@@ -14,7 +14,7 @@
             margin: 0; 
             overflow: hidden; 
             background-color: #050505; 
-            background-image: url('5585.png');
+            background-image: url('/api/static/holo_projector.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -64,6 +64,210 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #00ffcc; }
+
+        /* ============================================================
+           NEW: CINEMATIC SYSTEMS — Boot intro, Portal transitions,
+           Telemetry reticle, Intelligence ticker, Codex, Holo POI
+           ============================================================ */
+
+        /* --- Cinematic Boot Sequence --- */
+        #boot-overlay {
+            position: fixed; inset: 0; z-index: 9999; background: #000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 1.5s ease-out;
+        }
+        .boot-projector-stage {
+            position: relative; width: 320px; height: 320px; max-width: 80vw; max-height: 50vh;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transform: scale(0.6);
+            animation: bootProjectorIn 2.2s 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .boot-projector-stage img {
+            width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 30px #00ffcc);
+        }
+        .boot-beam {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 100%;
+            background: linear-gradient(180deg, transparent 0%, rgba(0,255,255,0) 30%, rgba(0,255,255,0.6) 70%, rgba(255,255,255,0.9) 100%);
+            filter: blur(8px);
+            opacity: 0;
+            animation: bootBeamRise 1.5s 1.4s forwards ease-out;
+            pointer-events: none;
+        }
+        .boot-text-stack {
+            margin-top: 32px; text-align: center; opacity: 0;
+            animation: bootTextIn 1s 2.0s forwards;
+        }
+        .boot-title { font-size: 28px; color: #00ffcc; letter-spacing: 8px; text-shadow: 0 0 12px #00ffcc; font-weight: bold; }
+        .boot-sub { font-size: 11px; color: #888; letter-spacing: 4px; margin-top: 8px; }
+        .boot-progress { width: 240px; max-width: 70vw; height: 2px; background: rgba(0,255,204,0.2); margin: 16px auto 0; overflow: hidden; }
+        .boot-progress::before {
+            content: ''; display: block; height: 100%; width: 0;
+            background: #00ffcc; box-shadow: 0 0 8px #00ffcc;
+            animation: bootProgress 2.5s 2.3s forwards linear;
+        }
+        @keyframes bootProjectorIn {
+            0% { opacity: 0; transform: scale(0.4) translateY(40px); filter: blur(20px); }
+            60% { opacity: 1; filter: blur(0); }
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+        @keyframes bootBeamRise {
+            0% { opacity: 0; height: 0; }
+            100% { opacity: 1; height: 100%; }
+        }
+        @keyframes bootTextIn { to { opacity: 1; } }
+        @keyframes bootProgress { to { width: 100%; } }
+        .boot-fadeout { opacity: 0; pointer-events: none; }
+
+        /* --- Reality Portal Transition (used when opening databanks) --- */
+        #portal-overlay {
+            position: fixed; inset: 0; z-index: 95;
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 70%);
+            opacity: 0;
+            transition: opacity 0.35s ease-in;
+        }
+        #portal-overlay.active { opacity: 1; }
+        #portal-vortex {
+            width: 100vmin; height: 100vmin;
+            background-size: cover; background-position: center;
+            mix-blend-mode: screen; filter: brightness(1.4) contrast(1.2);
+            transform: scale(0.2); opacity: 0;
+            transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s;
+            border-radius: 50%;
+        }
+        #portal-overlay.active #portal-vortex {
+            transform: scale(2.2) rotate(45deg); opacity: 1;
+        }
+        #portal-label {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 18px; letter-spacing: 6px; font-weight: bold;
+            color: #fff; text-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+            opacity: 0; transition: opacity 0.3s 0.3s; white-space: nowrap;
+        }
+        #portal-overlay.active #portal-label { opacity: 1; }
+
+        /* --- Hover Telemetry Reticle --- */
+        #telemetry-reticle {
+            position: fixed; pointer-events: none; z-index: 30;
+            width: 120px; height: 120px;
+            transform: translate(-50%, -50%);
+            opacity: 0; transition: opacity 0.2s ease-out;
+        }
+        #telemetry-reticle.visible { opacity: 0.95; }
+        .reticle-ring {
+            position: absolute; inset: 0; border: 1px dashed #00ffcc;
+            border-radius: 50%; animation: reticleSpin 6s linear infinite;
+        }
+        .reticle-ring.inner { inset: 22%; border-style: solid; border-width: 1px; opacity: 0.6; animation-direction: reverse; animation-duration: 4s; }
+        .reticle-corner {
+            position: absolute; width: 12px; height: 12px;
+            border-color: #00ffcc; border-style: solid; border-width: 0;
+        }
+        .reticle-corner.tl { top: -2px; left: -2px; border-top-width: 2px; border-left-width: 2px; }
+        .reticle-corner.tr { top: -2px; right: -2px; border-top-width: 2px; border-right-width: 2px; }
+        .reticle-corner.bl { bottom: -2px; left: -2px; border-bottom-width: 2px; border-left-width: 2px; }
+        .reticle-corner.br { bottom: -2px; right: -2px; border-bottom-width: 2px; border-right-width: 2px; }
+        .reticle-data {
+            position: absolute; left: 130%; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.85); border-left: 2px solid #00ffcc;
+            padding: 8px 12px; min-width: 180px;
+            font-size: 10px; letter-spacing: 2px; color: #00ffcc;
+            white-space: nowrap;
+        }
+        .reticle-data .r-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+        .reticle-data .r-key { color: #666; }
+        .reticle-data .r-val { color: #fff; text-shadow: 0 0 4px currentColor; }
+        @keyframes reticleSpin { to { transform: rotate(360deg); } }
+
+        /* --- Intelligence Feed Ticker --- */
+        #intel-bar {
+            position: relative; overflow: hidden; height: 22px;
+            background: rgba(0,0,0,0.4); border-top: 1px solid rgba(0,255,204,0.25); border-bottom: 1px solid rgba(0,255,204,0.25);
+            font-size: 10px; letter-spacing: 1px;
+        }
+        #intel-bar::before {
+            content: 'INTEL ▶'; position: absolute; left: 0; top: 0; height: 100%;
+            display: flex; align-items: center; padding: 0 10px;
+            background: #00ffcc; color: #000; font-weight: bold; font-size: 9px; letter-spacing: 2px;
+            z-index: 2; box-shadow: 4px 0 8px rgba(0,255,204,0.5);
+        }
+        #intel-ticker {
+            display: flex; gap: 60px; padding-left: 70px; height: 100%; align-items: center;
+            animation: intelScroll 60s linear infinite;
+            white-space: nowrap; width: max-content;
+        }
+        .intel-item { color: #d0d0d0; }
+        .intel-item .tag { color: #00ffcc; font-weight: bold; margin-right: 6px; }
+        .intel-item.alert .tag { color: #ff4444; }
+        .intel-item.trade .tag { color: #ffcc00; }
+        .intel-item.shadow .tag { color: #ff8800; }
+        @keyframes intelScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* --- Achievement Codex --- */
+        #codex-btn {
+            position: absolute; top: 2px; right: 110px;
+            z-index: 50; cursor: pointer;
+        }
+        @media (min-width: 768px) { #codex-btn { top: 12px; right: 140px; } }
+        #codex-panel {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 200; width: 95%; max-width: 700px; max-height: 80vh;
+            background: rgba(10, 15, 20, 0.97); border: 2px solid #00ffcc;
+            box-shadow: 0 0 40px rgba(0,255,204,0.4); display: none; flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+        #codex-panel.open { display: flex; }
+        .codex-header { padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .codex-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .codex-badge {
+            border: 1px solid #333; padding: 12px; background: rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 4px;
+            transition: all 0.3s;
+        }
+        .codex-badge.unlocked { border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.3); background: rgba(0,255,204,0.05); }
+        .codex-badge.unlocked .badge-icon { color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+        .badge-icon { font-size: 22px; color: #444; }
+        .badge-name { font-size: 12px; font-weight: bold; color: #fff; letter-spacing: 1px; }
+        .badge-desc { font-size: 9px; color: #888; line-height: 1.4; }
+        .badge-progress { font-size: 9px; color: #00ffcc; margin-top: 4px; font-family: monospace; }
+
+        .codex-toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 250;
+            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 18px;
+            box-shadow: 0 0 30px rgba(0,255,204,0.5);
+            transform: translateX(120%); transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            display: flex; gap: 12px; align-items: center; min-width: 240px;
+        }
+        .codex-toast.show { transform: translateX(0); }
+        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+        .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
+        .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
+
+        /* --- Holo POI canvas inside databank diagram pane --- */
+        #poi-holo-container {
+            position: absolute; inset: 0; z-index: 5;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: radial-gradient(ellipse at center bottom, rgba(0,255,204,0.15) 0%, transparent 60%);
+        }
+        #poi-holo-canvas { width: 100%; height: 100%; display: block; }
+        .holo-platform-label {
+            position: absolute; bottom: 14px; left: 0; right: 0; text-align: center;
+            font-size: 10px; letter-spacing: 4px; color: #00ffcc;
+            text-shadow: 0 0 6px #00ffcc; opacity: 0.85;
+        }
+        .holo-mode-toggle {
+            position: absolute; top: 12px; right: 12px; z-index: 12;
+            background: rgba(0,0,0,0.7); border: 1px solid #00ffcc;
+            color: #00ffcc; padding: 4px 10px; font-size: 9px; letter-spacing: 2px;
+            cursor: pointer; transition: all 0.2s;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .holo-mode-toggle:hover { background: #00ffcc; color: #000; }
     </style>
 
     <!-- Stable Three.js & OrbitControls Links -->
@@ -71,6 +275,70 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body class="text-sm md:text-base">
+
+    <!-- CINEMATIC BOOT SEQUENCE -->
+    <div id="boot-overlay">
+        <div class="boot-projector-stage">
+            <img src="/api/static/holo_projector.jpg" alt="Astrolabe Projector">
+            <div class="boot-beam"></div>
+        </div>
+        <div class="boot-text-stack">
+            <div class="boot-title">ASTROLABE</div>
+            <div class="boot-sub">DIMENSIONLOCK DEEP-SCAN INTERFACE</div>
+            <div class="boot-progress"></div>
+            <div class="boot-sub" style="margin-top:10px;color:#666;">CALIBRATING 199 STRATA · SOUL-LANE ALIGNMENT</div>
+        </div>
+    </div>
+
+    <!-- REALITY PORTAL TRANSITION (used when opening databanks) -->
+    <div id="portal-overlay">
+        <div id="portal-vortex"></div>
+        <div id="portal-label">ANCHORING REALITY</div>
+    </div>
+
+    <!-- HOVER TELEMETRY RETICLE -->
+    <div id="telemetry-reticle">
+        <div class="reticle-ring"></div>
+        <div class="reticle-ring inner"></div>
+        <div class="reticle-corner tl"></div>
+        <div class="reticle-corner tr"></div>
+        <div class="reticle-corner bl"></div>
+        <div class="reticle-corner br"></div>
+        <div class="reticle-data" id="reticle-data">
+            <div class="r-row"><span class="r-key">STRATA</span><span class="r-val" id="rt-level">--</span></div>
+            <div class="r-row"><span class="r-key">FACTION</span><span class="r-val" id="rt-faction">--</span></div>
+            <div class="r-row"><span class="r-key">STATUS</span><span class="r-val" id="rt-status">--</span></div>
+            <div class="r-row"><span class="r-key">POIs</span><span class="r-val" id="rt-pois">--</span></div>
+            <div class="r-row"><span class="r-key">FLUX</span><span class="r-val" id="rt-flux">--</span></div>
+        </div>
+    </div>
+
+    <!-- CODEX BUTTON -->
+    <button id="codex-btn" onclick="toggleCodex()" class="interactive-panel p-1.5 md:p-2 text-[#00ffcc] text-[10px] md:text-xs font-bold hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm">
+        [ CODEX ]
+    </button>
+
+    <!-- CODEX PANEL -->
+    <div id="codex-panel">
+        <div class="codex-header">
+            <div>
+                <div class="text-[10px] text-gray-500 tracking-widest">DLDS ASTROLABE</div>
+                <h2 class="text-xl font-bold text-[#00ffcc] tracking-widest">EXPLORER CODEX</h2>
+                <div class="text-[10px] text-gray-400 mt-1">Achievements unlocked: <span id="codex-count" class="text-[#00ffcc]">0/8</span></div>
+            </div>
+            <button onclick="toggleCodex()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors">[ X ]</button>
+        </div>
+        <div class="codex-grid" id="codex-grid"><!-- JS injects --></div>
+    </div>
+
+    <!-- ACHIEVEMENT TOAST -->
+    <div id="codex-toast" class="codex-toast">
+        <div class="t-icon" id="toast-icon">★</div>
+        <div>
+            <div class="t-label">ACHIEVEMENT UNLOCKED</div>
+            <div class="t-name" id="toast-name">--</div>
+        </div>
+    </div>
 
     <div class="bg-overlay"></div>
 
@@ -101,6 +369,13 @@
                 <span class="text-gray-500">FOCUS:</span>
                 <span id="anchor-display" class="font-bold text-white text-glow">LVL 0</span>
                 <span id="anchor-name" class="text-cyan-300 truncate max-w-[150px] md:max-w-none">ZERO POINT</span>
+            </div>
+        </div>
+
+        <!-- INTEL FEED TICKER -->
+        <div class="interactive-panel pointer-events-auto w-[calc(100%-80px)] md:w-full max-w-4xl mx-auto rounded-sm" style="padding:0;">
+            <div id="intel-bar">
+                <div id="intel-ticker"><!-- JS injects --></div>
             </div>
         </div>
 
@@ -256,12 +531,21 @@
                 <!-- Right: Diagram Canvas -->
                 <div id="lore-diagram-container" class="w-full md:w-1/2 p-4 flex flex-col h-[400px] md:h-full relative bg-cover bg-center">
                     <!-- Overlay to ensure text/diagram remains readable over the GIF -->
-                    <div class="absolute inset-0 bg-black bg-opacity-40 pointer-events-none z-0"></div>
+                    <div class="absolute inset-0 bg-black bg-opacity-50 pointer-events-none z-0"></div>
                     
-                    <div class="text-gray-400 text-[10px] md:text-xs tracking-widest border-b border-gray-800 pb-1 mb-2 relative z-10 text-shadow-md font-bold">STRUCTURAL DIAGRAM / POIS</div>
+                    <div class="text-gray-400 text-[10px] md:text-xs tracking-widest border-b border-gray-800 pb-1 mb-2 relative z-10 text-shadow-md font-bold flex justify-between items-center">
+                        <span id="diagram-mode-label">HOLOGRAPHIC PROJECTION</span>
+                    </div>
+                    <button class="holo-mode-toggle" id="holo-toggle-btn" onclick="toggleHoloMode()">[ 2D MAP ]</button>
+                    
                     <div class="flex-1 relative w-full h-full z-10" id="canvas-wrapper">
-                        <!-- Canvas will size to this wrapper -->
-                        <canvas id="diagram-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+                        <!-- Holographic 3D canvas (default) -->
+                        <div id="poi-holo-container">
+                            <canvas id="poi-holo-canvas"></canvas>
+                            <div class="holo-platform-label" id="holo-platform-label">--</div>
+                        </div>
+                        <!-- 2D Diagram Canvas (toggleable) -->
+                        <canvas id="diagram-canvas" class="absolute top-0 left-0 w-full h-full" style="display:none;"></canvas>
                     </div>
                 </div>
 
@@ -953,23 +1237,25 @@
 
             factionVolumeMeshes.forEach(vol => {
                 if (isFactionFilter) {
-                    let isMatch = type === 'factions' || vol.userData.factionId === type.replace('factions-', '');
-                    vol.material.opacity = isMatch ? (vol.userData.isFactionHull ? 0.08 : 0.8) : 0.0;
-                    if(vol.children.length > 0) vol.children[0].material.opacity = isMatch ? 0.15 : 0.0; 
+                    let isMatch = type === 'factions' || vol.userData.factionKey === type.replace('factions-', '');
+                    vol.material.opacity = isMatch ? 0.8 : 0.0;
                 } else {
-                    vol.material.opacity = 0.0; if(vol.children.length > 0) vol.children[0].material.opacity = 0.0;
+                    vol.material.opacity = 0.0;
                 }
             });
 
             poiMeshes.forEach(marker => {
-                const data = TERRITORY_DATA[marker.userData.level];
+                const lvl = marker.userData.level;
+                const data = TERRITORY_DATA[lvl];
+                const poi = (POIS[lvl] || [])[marker.userData.poiIndex];
+                const poiFaction = (poi && poi.faction) ? poi.faction : data.faction;
                 let isMatch = true;
                 if (type === 'dead' && !data.isDead) isMatch = false;
                 else if (type === 'stable' && !data.isStable) isMatch = false;
                 else if (isFactionFilter) {
                     const sf = type.replace('factions-', '');
-                    if (type === 'factions' && data.faction === FACTIONS.UNCLAIMED) isMatch = false;
-                    else if (type !== 'factions' && data.faction.id !== sf) isMatch = false;
+                    if (type === 'factions' && poiFaction === FACTIONS.UNCLAIMED) isMatch = false;
+                    else if (type !== 'factions' && poiFaction.id !== sf) isMatch = false;
                 }
                 marker.material.opacity = isMatch ? 0.8 : 0.05;
             });
@@ -1041,6 +1327,7 @@
         function onMouseMove(event) {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            updateTelemetryReticle(event.clientX, event.clientY);
         }
 
         function onClick() {
@@ -1185,7 +1472,7 @@
             
             // Set the reality background GIF based on if it's a dead/unholy reality
             const isNightmare = data.isDead || (data.faction && data.faction.id === 'unholy_ones') || (poi && poi.faction && poi.faction.id === 'unholy_ones');
-            diagramContainer.style.backgroundImage = isNightmare ? "url('35245.gif')" : "url('35243.gif')";
+            diagramContainer.style.backgroundImage = isNightmare ? "url('/api/static/reality_red.gif')" : "url('/api/static/reality_violet.gif')";
             
             if (poi) {
                 titleEl.innerText = poi.name;
@@ -1213,7 +1500,13 @@
             }
 
             panel.classList.remove('hidden'); panel.classList.add('flex');
-            setTimeout(drawDiagramFromCurrentState, 50); 
+            // === NEW: Reality Portal cinematic + Holo POI viewer + achievements ===
+            playRealityPortal(data, poi);
+            setTimeout(() => {
+                initHoloPOI(level, poi, data);
+                drawDiagramFromCurrentState();
+            }, 700);
+            trackAchievements(level, data, poi);
         }
 
         function drawDiagramFromCurrentState() {
@@ -1286,6 +1579,7 @@
         function closeLore() {
             document.getElementById('lore-panel').classList.add('hidden');
             document.getElementById('lore-panel').classList.remove('flex');
+            destroyHoloPOI();
         }
 
         function zoomHolo(amount) {
@@ -1394,6 +1688,479 @@
                 document.getElementById('anchor-name').innerText = data.title;
                 document.getElementById('coord-display').innerText = `COORD: [0.${Math.abs(lvl)}, ${(Math.random()*99).toFixed(2)}]`;
             }
+        }
+
+        // =============================================================
+        //  CINEMATIC SYSTEMS — Boot, Portal, Telemetry, Intel, Codex, Holo POI
+        // =============================================================
+
+        // --- Cinematic Boot Sequence ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const overlay = document.getElementById('boot-overlay');
+                if (overlay) {
+                    overlay.classList.add('boot-fadeout');
+                    setTimeout(() => overlay.remove(), 1600);
+                }
+            }, 5000);
+        });
+
+        // --- Reality Portal Transition ---
+        function playRealityPortal(data, poi) {
+            const overlay = document.getElementById('portal-overlay');
+            const vortex = document.getElementById('portal-vortex');
+            const label = document.getElementById('portal-label');
+            if (!overlay) return;
+
+            const isNightmare = (data && data.isDead)
+                || (data && data.faction && data.faction.id === 'unholy_ones')
+                || (data && data.faction && data.faction.id === 'abyss_followers')
+                || (poi && poi.faction && (poi.faction.id === 'unholy_ones' || poi.faction.id === 'abyss_followers'));
+            vortex.style.backgroundImage = `url('/api/static/${isNightmare ? 'reality_red.gif' : 'reality_violet.gif'}')`;
+            label.innerText = isNightmare ? 'BREACHING NIGHTMARE STRAND' : 'ANCHORING REALITY';
+            label.style.color = isNightmare ? '#ff5555' : '#fff';
+
+            overlay.classList.add('active');
+            setTimeout(() => overlay.classList.remove('active'), 1100);
+        }
+
+        // --- Hover Telemetry Reticle ---
+        let reticleLastLevel = null;
+        function updateTelemetryReticle(clientX, clientY) {
+            const ret = document.getElementById('telemetry-reticle');
+            if (!ret || !uiVisible) return;
+            ret.style.left = clientX + 'px';
+            ret.style.top = clientY + 'px';
+
+            if (hoveredDisc) {
+                const lvl = hoveredDisc.userData.level;
+                if (lvl !== reticleLastLevel) {
+                    reticleLastLevel = lvl;
+                    const data = TERRITORY_DATA[lvl];
+                    const pois = POIS[lvl] || [];
+                    document.getElementById('rt-level').innerText = (lvl > 0 ? '+' : '') + lvl;
+                    document.getElementById('rt-faction').innerText = data.faction.name.toUpperCase().slice(0, 18);
+                    document.getElementById('rt-status').innerText = data.isDead ? 'DEAD' : (data.isStable ? 'STABLE' : 'UNSTABLE');
+                    document.getElementById('rt-status').style.color = data.isDead ? '#ff4444' : (data.isStable ? '#00ffcc' : '#ffaa00');
+                    document.getElementById('rt-pois').innerText = pois.length || '0';
+                }
+                // live flux jitter
+                document.getElementById('rt-flux').innerText = (Math.random() * 99).toFixed(2) + ' Φ';
+                ret.classList.add('visible');
+                // Reposition data tooltip if too close to right edge
+                const dataEl = document.getElementById('reticle-data');
+                if (clientX > window.innerWidth - 240) {
+                    dataEl.style.left = 'auto'; dataEl.style.right = '130%';
+                } else {
+                    dataEl.style.right = 'auto'; dataEl.style.left = '130%';
+                }
+            } else {
+                ret.classList.remove('visible');
+                reticleLastLevel = null;
+            }
+        }
+
+        // --- Intelligence Feed Ticker ---
+        const INTEL_TEMPLATES = [
+            { type: 'normal', tag: 'TRADE', text: 'Trigon Hub posts record cycle profits. Centura-1 stocks surge.' },
+            { type: 'alert', tag: 'BREAKING', text: 'Watrari sabotage cell apprehended at Strata -32.' },
+            { type: 'normal', tag: 'CYCLE', text: 'Reality birth detected near Sector +47. Faction claim pending.' },
+            { type: 'shadow', tag: 'ANOMALY', text: 'Soul-flow disturbance reported in Reaper Training Plane.' },
+            { type: 'alert', tag: 'ALERT', text: 'Vamperica blood-tithe enforcement upgraded to Tier 5.' },
+            { type: 'trade', tag: 'MARKET', text: 'Soul Collectors auction rare Tier-S spirit at Rippers Street.' },
+            { type: 'normal', tag: 'CENTURION', text: 'Garrison fleet rotation at Fort Harpie completed.' },
+            { type: 'alert', tag: 'WARNING', text: 'Curse-radiation surge detected in Strata -77.' },
+            { type: 'shadow', tag: 'WHISPERS', text: 'Abyss followers report contact with sleeping Gods.' },
+            { type: 'normal', tag: 'CENTURA', text: 'Centura News broadcasts reality-edit at Strata +18.' },
+            { type: 'trade', tag: 'BAZAAR', text: 'Muggai Nomads strip-mine derelict at Sector -55.' },
+            { type: 'alert', tag: 'BREACH', text: 'Raiders Guild boards transit vessel. Bounty issued.' },
+            { type: 'normal', tag: 'ELDERION', text: 'Probability storm forecast at Trinity Leviticus.' },
+            { type: 'shadow', tag: 'OMEN', text: 'Watcher eyes orbit-shift at Strata +71. Do not approach.' },
+            { type: 'trade', tag: 'SUPREME', text: 'Supremes Finest auction Strata +45 sunlight rights.' }
+        ];
+        function buildIntelTicker() {
+            const ticker = document.getElementById('intel-ticker');
+            if (!ticker) return;
+            // shuffle and duplicate so the marquee can scroll seamlessly
+            const shuffled = [...INTEL_TEMPLATES].sort(() => Math.random() - 0.5);
+            const html = [...shuffled, ...shuffled].map(it =>
+                `<span class="intel-item ${it.type}"><span class="tag">${it.tag}:</span>${it.text}</span>`
+            ).join('');
+            ticker.innerHTML = html;
+        }
+        buildIntelTicker();
+        setInterval(buildIntelTicker, 90000);
+
+        // --- Achievement Codex ---
+        const CODEX = [
+            { id: 'first', icon: '◈', name: 'FIRST CONTACT', desc: 'Open your first reality databank.', check: (s) => s.databanksOpened >= 1 },
+            { id: 'cart50', icon: '◉', name: 'CARTOGRAPHER I', desc: 'Discover 50 distinct strata.', check: (s) => s.discoveredStrata.size >= 50, prog: (s) => `${s.discoveredStrata.size}/50` },
+            { id: 'cart100', icon: '◎', name: 'CARTOGRAPHER II', desc: 'Discover 100 distinct strata.', check: (s) => s.discoveredStrata.size >= 100, prog: (s) => `${s.discoveredStrata.size}/100` },
+            { id: 'cart199', icon: '★', name: 'OMNISCIENT', desc: 'Discover every strata in The Endless.', check: (s) => s.discoveredStrata.size >= 199, prog: (s) => `${s.discoveredStrata.size}/199` },
+            { id: 'dead', icon: '☠', name: 'NEKROMANCER', desc: 'Survive a Dead Reality databank.', check: (s) => s.openedDead },
+            { id: 'diplomat', icon: '⌖', name: 'FACTION DIPLOMAT', desc: 'View intel on 10+ different factions.', check: (s) => s.factionsVisited.size >= 10, prog: (s) => `${s.factionsVisited.size}/10` },
+            { id: 'poi', icon: '♦', name: 'POI HUNTER', desc: 'Open 5 Points-of-Interest databanks.', check: (s) => s.poisOpened >= 5, prog: (s) => `${s.poisOpened}/5` },
+            { id: 'extremes', icon: '∞', name: 'EDGE-WALKER', desc: 'Visit both Strata +99 and -99.', check: (s) => s.discoveredStrata.has(99) && s.discoveredStrata.has(-99) }
+        ];
+        GAME_STATE.databanksOpened = 0;
+        GAME_STATE.poisOpened = 0;
+        GAME_STATE.openedDead = false;
+        GAME_STATE.factionsVisited = new Set();
+        GAME_STATE.unlockedAchievements = new Set();
+
+        function renderCodex() {
+            const grid = document.getElementById('codex-grid');
+            const countEl = document.getElementById('codex-count');
+            if (!grid) return;
+            grid.innerHTML = '';
+            let unlockedCount = 0;
+            CODEX.forEach(a => {
+                const unlocked = GAME_STATE.unlockedAchievements.has(a.id);
+                if (unlocked) unlockedCount++;
+                const div = document.createElement('div');
+                div.className = 'codex-badge' + (unlocked ? ' unlocked' : '');
+                div.innerHTML = `
+                    <div class="badge-icon">${a.icon}</div>
+                    <div class="badge-name">${unlocked ? a.name : '████ ██████'}</div>
+                    <div class="badge-desc">${a.desc}</div>
+                    ${a.prog ? `<div class="badge-progress">${a.prog(GAME_STATE)}</div>` : ''}
+                `;
+                grid.appendChild(div);
+            });
+            countEl.innerText = `${unlockedCount}/${CODEX.length}`;
+        }
+        function checkAchievements() {
+            let newUnlocks = [];
+            CODEX.forEach(a => {
+                if (!GAME_STATE.unlockedAchievements.has(a.id) && a.check(GAME_STATE)) {
+                    GAME_STATE.unlockedAchievements.add(a.id);
+                    newUnlocks.push(a);
+                }
+            });
+            renderCodex();
+            newUnlocks.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 2200));
+        }
+        function showAchievementToast(a) {
+            const toast = document.getElementById('codex-toast');
+            document.getElementById('toast-icon').innerText = a.icon;
+            document.getElementById('toast-name').innerText = a.name;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4500);
+            logMessage(`ACHIEVEMENT: ${a.name}`, 'success');
+        }
+        function toggleCodex() {
+            document.getElementById('codex-panel').classList.toggle('open');
+            renderCodex();
+        }
+        function trackAchievements(level, data, poi) {
+            GAME_STATE.databanksOpened++;
+            if (poi) GAME_STATE.poisOpened++;
+            if (data && data.isDead) GAME_STATE.openedDead = true;
+            const f = (poi && poi.faction) ? poi.faction : (data ? data.faction : null);
+            if (f && f.id !== 'unclaimed') GAME_STATE.factionsVisited.add(f.id);
+            checkAchievements();
+        }
+        renderCodex();
+
+        // --- Holographic POI Viewer (mini Three.js scene inside the lore panel) ---
+        let holoScene = null, holoCam = null, holoRenderer = null, holoGroup = null;
+        let holoAnimId = null;
+        let holoUsing2D = false;
+
+        function toggleHoloMode() {
+            holoUsing2D = !holoUsing2D;
+            const holoContainer = document.getElementById('poi-holo-container');
+            const canvas2D = document.getElementById('diagram-canvas');
+            const toggleBtn = document.getElementById('holo-toggle-btn');
+            const label = document.getElementById('diagram-mode-label');
+            if (holoUsing2D) {
+                holoContainer.style.display = 'none';
+                canvas2D.style.display = 'block';
+                toggleBtn.innerText = '[ 3D HOLO ]';
+                label.innerText = 'STRUCTURAL DIAGRAM / POIS';
+                drawDiagramFromCurrentState();
+            } else {
+                holoContainer.style.display = 'flex';
+                canvas2D.style.display = 'none';
+                toggleBtn.innerText = '[ 2D MAP ]';
+                label.innerText = 'HOLOGRAPHIC PROJECTION';
+            }
+        }
+
+        function initHoloPOI(level, poi, data) {
+            destroyHoloPOI();
+            const canvas = document.getElementById('poi-holo-canvas');
+            const container = document.getElementById('poi-holo-container');
+            if (!canvas || !container) return;
+
+            const w = container.clientWidth, h = container.clientHeight;
+            if (w === 0 || h === 0) { setTimeout(() => initHoloPOI(level, poi, data), 100); return; }
+
+            holoScene = new THREE.Scene();
+            holoCam = new THREE.PerspectiveCamera(45, w / h, 0.1, 200);
+            holoCam.position.set(0, 4, 14);
+            holoCam.lookAt(0, 0, 0);
+
+            holoRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            holoRenderer.setSize(w, h, false);
+            holoRenderer.setPixelRatio(window.devicePixelRatio);
+            holoRenderer.setClearColor(0x000000, 0);
+
+            holoScene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const keyLight = new THREE.PointLight(0x00ffcc, 6, 30);
+            keyLight.position.set(4, 8, 6);
+            holoScene.add(keyLight);
+            const rimLight = new THREE.PointLight(0xff00ff, 3, 25);
+            rimLight.position.set(-5, 3, -4);
+            holoScene.add(rimLight);
+
+            holoGroup = new THREE.Group();
+            holoScene.add(holoGroup);
+
+            // Platform — circular projector base (matches the boot projector aesthetic)
+            const platformColor = (poi && poi.faction) ? poi.faction.color :
+                (data && data.faction !== FACTIONS.UNCLAIMED ? data.faction.color : 0x00ffcc);
+            const platformGeo = new THREE.CylinderGeometry(4, 4.5, 0.3, 64);
+            const platformMat = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.2, emissive: platformColor, emissiveIntensity: 0.2 });
+            const platform = new THREE.Mesh(platformGeo, platformMat);
+            platform.position.y = -2.5;
+            holoGroup.add(platform);
+
+            // Glowing platform rim
+            const rim = new THREE.Mesh(
+                new THREE.TorusGeometry(4, 0.08, 8, 64),
+                new THREE.MeshBasicMaterial({ color: platformColor, transparent: true, opacity: 0.9 })
+            );
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = -2.35;
+            holoGroup.add(rim);
+
+            // Light beam shooting up from platform
+            const beamGeo = new THREE.CylinderGeometry(0.6, 3.5, 6, 32, 1, true);
+            const beamMat = new THREE.MeshBasicMaterial({
+                color: platformColor, transparent: true, opacity: 0.15,
+                blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
+            });
+            const beam = new THREE.Mesh(beamGeo, beamMat);
+            beam.position.y = 0.5;
+            holoGroup.add(beam);
+
+            // Build the hologram based on POI type / data
+            const holoModel = buildHoloModel(poi, data, platformColor);
+            holoModel.position.y = 0.5;
+            holoModel.userData.spin = true;
+            holoGroup.add(holoModel);
+
+            // Surrounding orbiting "data points"
+            const subs = poi ? poi.subLocations : getProceduralSublocations(level);
+            const orbiters = new THREE.Group();
+            subs.slice(0, 8).forEach((name, i) => {
+                const a = (i / Math.min(subs.length, 8)) * Math.PI * 2;
+                const r = 5;
+                const node = new THREE.Mesh(
+                    new THREE.IcosahedronGeometry(0.18, 0),
+                    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: platformColor, emissiveIntensity: 1.0 })
+                );
+                node.position.set(Math.cos(a) * r, 0.5 + Math.sin(i * 1.3) * 0.4, Math.sin(a) * r);
+                node.userData.baseY = node.position.y;
+                node.userData.phase = i * 0.7;
+                orbiters.add(node);
+            });
+            holoGroup.add(orbiters);
+            holoGroup.userData.orbiters = orbiters;
+
+            // Wire-grid floor (futuristic "deck" under hologram)
+            const grid = new THREE.GridHelper(12, 12, platformColor, 0x113344);
+            grid.position.y = -2.55;
+            grid.material.transparent = true;
+            grid.material.opacity = 0.3;
+            holoGroup.add(grid);
+
+            // Platform label text below the hologram
+            const lblName = poi ? poi.name : (data ? data.title : 'UNKNOWN');
+            document.getElementById('holo-platform-label').innerText = `◉ ${lblName.toUpperCase()} ◉`;
+
+            // Loop
+            const start = performance.now();
+            const t0 = start;
+            function tick() {
+                if (!holoScene) return;
+                const t = (performance.now() - t0) / 1000;
+                holoGroup.userData.orbiters?.children.forEach((n, i) => {
+                    const a = (i / 8) * Math.PI * 2 + t * 0.4;
+                    n.position.x = Math.cos(a) * 5;
+                    n.position.z = Math.sin(a) * 5;
+                    n.position.y = n.userData.baseY + Math.sin(t * 1.5 + n.userData.phase) * 0.18;
+                });
+                holoModel.rotation.y += 0.008;
+                holoModel.position.y = 0.5 + Math.sin(t * 1.2) * 0.12;
+                rim.rotation.z += 0.005;
+                beam.rotation.y += 0.003;
+                holoRenderer.render(holoScene, holoCam);
+                holoAnimId = requestAnimationFrame(tick);
+            }
+            tick();
+
+            // Handle resize while open
+            holoResizeHandler = () => {
+                if (!holoRenderer) return;
+                const w2 = container.clientWidth, h2 = container.clientHeight;
+                if (w2 > 0 && h2 > 0) {
+                    holoRenderer.setSize(w2, h2, false);
+                    holoCam.aspect = w2 / h2;
+                    holoCam.updateProjectionMatrix();
+                }
+            };
+            window.addEventListener('resize', holoResizeHandler);
+        }
+
+        let holoResizeHandler = null;
+        function destroyHoloPOI() {
+            if (holoAnimId) cancelAnimationFrame(holoAnimId);
+            holoAnimId = null;
+            if (holoResizeHandler) { window.removeEventListener('resize', holoResizeHandler); holoResizeHandler = null; }
+            if (holoScene) {
+                holoScene.traverse(obj => {
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) {
+                        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                        else obj.material.dispose();
+                    }
+                });
+                holoScene = null; holoCam = null; holoGroup = null;
+            }
+            if (holoRenderer) { holoRenderer.dispose(); holoRenderer = null; }
+        }
+
+        // Builds a specific 3D model per POI type — cinematic, distinct per location
+        function buildHoloModel(poi, data, color) {
+            const group = new THREE.Group();
+            const matWire = (c, o = 0.85) => new THREE.MeshBasicMaterial({ color: c, wireframe: true, transparent: true, opacity: o });
+            const matSolid = (c, o = 0.55) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.7, transparent: true, opacity: o, metalness: 0.3, roughness: 0.4 });
+
+            const type = poi ? poi.type.toLowerCase() : (data && data.isDead ? 'dead' : 'plane');
+
+            if (type.includes('nexus') || type.includes('zero')) {
+                // Zero Point — concentric crystalline rings
+                for (let i = 0; i < 4; i++) {
+                    const r = new THREE.Mesh(new THREE.TorusGeometry(1.4 + i * 0.5, 0.06, 8, 48), matWire(color, 0.7 - i * 0.1));
+                    r.rotation.x = Math.PI / 2 + i * 0.2;
+                    r.userData.spinAxis = ['x', 'y', 'z'][i % 3];
+                    r.userData.spinSpeed = (i + 1) * 0.003;
+                    group.add(r);
+                }
+                const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.6, 1), matSolid(0xffffff, 0.9));
+                group.add(core);
+            } else if (type.includes('capital') || type.includes('plane') || type.includes('realm')) {
+                // Centurion realm — central spire surrounded by shield-rings
+                const spire = new THREE.Mesh(new THREE.ConeGeometry(0.6, 3, 8), matSolid(color));
+                spire.position.y = 0.5; group.add(spire);
+                const base = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.3, 8), matSolid(color, 0.7));
+                base.position.y = -1.2; group.add(base);
+                for (let i = 0; i < 3; i++) {
+                    const shield = new THREE.Mesh(new THREE.TorusGeometry(1.8 + i * 0.4, 0.04, 6, 36), matWire(color, 0.6));
+                    shield.rotation.x = Math.PI / 2;
+                    shield.position.y = -0.2 + i * 0.3;
+                    group.add(shield);
+                }
+            } else if (type.includes('hub') || type.includes('city') || type.includes('media')) {
+                // Trigon Trading Hub — orbiting triangular city plates
+                for (let i = 0; i < 5; i++) {
+                    const platform = new THREE.Mesh(new THREE.TetrahedronGeometry(0.5 + Math.random() * 0.3), matSolid(color, 0.8));
+                    const a = (i / 5) * Math.PI * 2;
+                    platform.position.set(Math.cos(a) * 1.5, (Math.random() - 0.5) * 1.5, Math.sin(a) * 1.5);
+                    platform.userData.orbitOffset = a;
+                    group.add(platform);
+                }
+                const central = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), matWire(0xffffff, 0.9));
+                group.add(central);
+            } else if (type.includes('supernatural') || type.includes('reaper')) {
+                // Reaper Training — dark sphere with orbiting scythe-arcs
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), matSolid(0x222222, 0.95));
+                sphere.material.emissive = new THREE.Color(color);
+                sphere.material.emissiveIntensity = 0.2;
+                group.add(sphere);
+                for (let i = 0; i < 4; i++) {
+                    const arc = new THREE.Mesh(new THREE.TorusGeometry(2, 0.05, 6, 24, Math.PI * 0.4), matWire(color));
+                    arc.rotation.x = Math.PI / 2;
+                    arc.rotation.z = (i / 4) * Math.PI * 2;
+                    group.add(arc);
+                }
+            } else if (type.includes('vampiric') || type.includes('repository') || type.includes('soul')) {
+                // Vamperica / Soul Repository — gothic cathedral spires
+                for (let i = 0; i < 6; i++) {
+                    const a = (i / 6) * Math.PI * 2;
+                    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.5 + Math.random() * 0.5, 6), matSolid(color));
+                    spire.position.set(Math.cos(a) * 1, 0, Math.sin(a) * 1);
+                    group.add(spire);
+                }
+                const central = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.5, 8), matSolid(color, 0.9));
+                central.position.y = 0.3;
+                group.add(central);
+            } else if (type.includes('nightmare') || type.includes('relic') || (data && data.isDead)) {
+                // Damnation Forge / Dead — jagged broken obsidian
+                for (let i = 0; i < 8; i++) {
+                    const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.4 + Math.random() * 0.5), matSolid(0xaa0000, 0.85));
+                    shard.material.emissive = new THREE.Color(0xff2200);
+                    shard.material.emissiveIntensity = 0.6;
+                    shard.position.set((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 3);
+                    shard.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    group.add(shard);
+                }
+            } else if (type.includes('lovecraftian') || type.includes('abyssal')) {
+                // Abyssal Root — knotted tentacle-mass
+                for (let i = 0; i < 5; i++) {
+                    const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.5 + i * 0.15, 0.08, 32, 5, 2, 3), matWire(0x440088, 0.7));
+                    knot.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                    group.add(knot);
+                }
+            } else if (type.includes('magical') || type.includes('anomaly') || type.includes('construct')) {
+                // Arcane Nebula / Magical Anomaly — orbiting runes
+                const core = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7), matWire(color));
+                group.add(core);
+                for (let i = 0; i < 6; i++) {
+                    const rune = new THREE.Mesh(new THREE.RingGeometry(0.15, 0.25, 6), matSolid(color, 1));
+                    const a = (i / 6) * Math.PI * 2;
+                    rune.position.set(Math.cos(a) * 1.5, Math.sin(i) * 0.3, Math.sin(a) * 1.5);
+                    rune.lookAt(0, 0, 0);
+                    group.add(rune);
+                }
+            } else if (type.includes('elitist') || type.includes('sanctuary') || type.includes('divine')) {
+                // Golden Spire — towering crystal
+                const tower = new THREE.Mesh(new THREE.OctahedronGeometry(1.2, 0), matSolid(color, 0.9));
+                tower.scale.y = 2.5;
+                tower.material.emissive = new THREE.Color(color);
+                tower.material.emissiveIntensity = 0.8;
+                group.add(tower);
+                for (let i = 0; i < 3; i++) {
+                    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8 + i * 0.3, 0.03, 6, 32), matWire(color, 0.5));
+                    ring.rotation.x = Math.PI / 2;
+                    ring.position.y = -0.5 + i * 0.5;
+                    group.add(ring);
+                }
+            } else if (type.includes('shadow') || type.includes('fleet') || type.includes('rebel')) {
+                // Watrari Rebel Encampment — cluster of small ships
+                for (let i = 0; i < 7; i++) {
+                    const ship = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 4), matSolid(color, 0.9));
+                    ship.position.set((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 3);
+                    ship.rotation.set(Math.PI / 2, Math.random() * Math.PI, 0);
+                    group.add(ship);
+                }
+            } else if (type.includes('shattered')) {
+                // Astra -38 — ringed structure
+                const planet = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12), matWire(color));
+                group.add(planet);
+                const ring1 = new THREE.Mesh(new THREE.RingGeometry(1.4, 2.4, 64), new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }));
+                ring1.rotation.x = Math.PI / 2.3;
+                group.add(ring1);
+            } else {
+                // Default — abstract polyhedron cluster (unclaimed/procedural)
+                const main = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), matWire(color));
+                group.add(main);
+                const inner = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 0), matSolid(color, 0.7));
+                group.add(inner);
+            }
+            return group;
         }
 
     </script>

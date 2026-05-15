@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -47,6 +48,14 @@ async def astrolabe_terminal():
     """Serves the Dimensionlock: Astrolabe Terminal HTML as-is."""
     html_path = ROOT_DIR / "static" / "astrolabe.html"
     return FileResponse(html_path, media_type="text/html")
+
+
+# Static file mount for assets (GIFs, images) used by the Astrolabe HTML
+app.mount(
+    "/api/static",
+    StaticFiles(directory=str(ROOT_DIR / "static")),
+    name="astrolabe_static",
+)
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):

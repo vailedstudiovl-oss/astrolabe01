@@ -530,6 +530,154 @@
         .foot a { color: inherit; text-decoration: none; border-bottom: 1px dotted; }
         .foot a:hover { color: #fff; }
         .foot .bullet { opacity: 0.5; }
+        .foot .donate-link {
+            background: none; border: 1px dotted rgba(255, 110, 158, 0.65);
+            color: #ff7da0; font: inherit; cursor: pointer;
+            padding: 1px 6px; border-radius: 3px;
+            transition: all 0.18s; letter-spacing: inherit;
+        }
+        .foot .donate-link:hover {
+            background: rgba(255, 110, 158, 0.12);
+            color: #ffb0c8; border-color: rgba(255, 200, 220, 0.85);
+            text-shadow: 0 0 8px rgba(255, 110, 158, 0.7);
+        }
+
+        /* === DONATE MODAL === */
+        .donate-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: radial-gradient(ellipse at center, rgba(8, 4, 16, 0.92), rgba(0, 0, 0, 0.98));
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(6px);
+            opacity: 1; transition: opacity 0.28s ease;
+        }
+        .donate-overlay.hidden { opacity: 0; pointer-events: none; }
+        .donate-modal {
+            position: relative;
+            width: min(540px, 100%);
+            background: linear-gradient(160deg, #1a0a22 0%, #20102e 55%, #150818 100%);
+            border: 1px solid rgba(255, 100, 158, 0.45);
+            border-radius: 14px;
+            padding: 28px 26px 22px;
+            box-shadow:
+                0 0 60px rgba(255, 100, 158, 0.25),
+                inset 0 0 80px rgba(80, 0, 60, 0.25);
+            animation: donateIn 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+            max-height: 92vh; overflow-y: auto;
+        }
+        @keyframes donateIn {
+            from { transform: scale(0.85) translateY(20px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .donate-close {
+            position: absolute; top: 10px; right: 12px;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(40, 10, 30, 0.7); border: 1px solid rgba(255, 100, 158, 0.4);
+            color: #ff7da0; font-size: 14px; cursor: pointer;
+            transition: all 0.18s;
+        }
+        .donate-close:hover {
+            background: rgba(255, 100, 158, 0.25); color: #fff;
+            border-color: #ffb0c8; transform: rotate(90deg);
+        }
+        .donate-header { text-align: center; margin-bottom: 18px; }
+        .donate-glyph {
+            font-size: 38px; color: #ff7da0;
+            text-shadow: 0 0 22px rgba(255, 100, 158, 0.85);
+            animation: heartPulse 2s ease-in-out infinite;
+        }
+        @keyframes heartPulse {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 22px rgba(255, 100, 158, 0.85); }
+            50%       { transform: scale(1.12); text-shadow: 0 0 36px rgba(255, 130, 178, 1); }
+        }
+        .donate-header h2 {
+            font-size: 18px; letter-spacing: 6px; margin: 8px 0 4px;
+            color: #fff;
+            text-shadow: 0 0 14px rgba(255, 100, 158, 0.55);
+        }
+        .donate-tagline {
+            font-size: 10px; letter-spacing: 3px;
+            color: rgba(255, 200, 220, 0.7);
+        }
+        .donate-tagline em { color: #ffb0c8; font-style: normal; }
+        .donate-pitch {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px; line-height: 1.65;
+            color: rgba(240, 220, 230, 0.92);
+            margin: 0 0 18px;
+        }
+        .donate-pitch .hl { color: #ffb0c8; font-weight: 500; }
+        .donate-tiers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tier-btn {
+            background: linear-gradient(170deg, rgba(50, 18, 40, 0.85), rgba(30, 8, 24, 0.95));
+            border: 1px solid rgba(255, 100, 158, 0.32);
+            color: #fff;
+            border-radius: 10px;
+            padding: 12px 8px 10px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            text-align: center;
+            font: inherit;
+        }
+        .tier-btn:hover {
+            transform: translateY(-3px);
+            border-color: #ff7da0;
+            box-shadow: 0 6px 22px rgba(255, 100, 158, 0.35);
+            background: linear-gradient(170deg, rgba(80, 28, 60, 0.9), rgba(50, 12, 35, 0.95));
+        }
+        .tier-btn.featured {
+            border-color: rgba(255, 200, 100, 0.75);
+            background: linear-gradient(170deg, rgba(75, 35, 20, 0.85), rgba(45, 15, 8, 0.95));
+            box-shadow: 0 0 18px rgba(255, 200, 100, 0.25);
+        }
+        .tier-btn.featured:hover {
+            border-color: #ffd460;
+            box-shadow: 0 6px 28px rgba(255, 200, 100, 0.55);
+        }
+        .tier-icon { font-size: 22px; line-height: 1; margin-bottom: 4px; }
+        .tier-amt {
+            font-size: 16px; font-weight: 700; letter-spacing: 1px;
+            color: #ffd060; margin-bottom: 2px;
+        }
+        .tier-btn.featured .tier-amt { color: #ffe48c; }
+        .tier-lbl {
+            font-size: 9px; letter-spacing: 2px;
+            color: rgba(255, 200, 220, 0.75);
+            text-transform: uppercase;
+        }
+        .donate-paypal-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin: 8px 0 4px;
+            padding: 8px 14px;
+            background: rgba(0, 30, 60, 0.4);
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+        }
+        .paypal-label { font-size: 10px; color: rgba(180, 220, 255, 0.7); letter-spacing: 1px; }
+        .donate-paypal-row code {
+            font-size: 12px; color: #88ccff;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0, 30, 60, 0.6);
+            padding: 3px 8px; border-radius: 4px;
+        }
+        .donate-footer-note {
+            font-size: 9px; letter-spacing: 1.5px;
+            color: rgba(255, 200, 220, 0.5);
+            text-align: center; margin-top: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        @media (max-width: 500px) {
+            .donate-modal { padding: 22px 16px 16px; }
+            .donate-header h2 { font-size: 14px; letter-spacing: 4px; }
+            .donate-pitch { font-size: 12px; }
+            .donate-tiers { grid-template-columns: repeat(2, 1fr); }
+        }
 
         /* === AUDIO TOGGLE === */
         .audio-toggle {
@@ -616,9 +764,9 @@
     <main id="stage">
         <img class="splash-img" src="./static/dlds_splash.png" alt="Dimension Lock: Deathly Stories">
 
+        <!-- Tagline only — main title already baked into splash image to avoid duplication -->
         <div class="title-block">
             <div class="system">▸ DEATH'S APPRENTICE TERMINAL ◂</div>
-            <h1 class="main-title">DIMENSION LOCK</h1>
             <div class="subtitle">— DEATHLY STORIES —</div>
         </div>
 
@@ -716,15 +864,67 @@
         </div>
 
         <div class="foot">
-            <span>build 1.2</span><span class="bullet">·</span>
+            <span>build 1.3</span><span class="bullet">·</span>
             <span><a href="./astrolabe-game.html">enter astrolabe</a></span><span class="bullet">·</span>
             <span><a href="https://globalcomix.com/c/dimensionlock" target="_blank" rel="noopener">globalcomix.com/c/dimensionlock</a></span><span class="bullet">·</span>
+            <span><button id="open-donate" class="donate-link" type="button">♥ support the cartographer</button></span><span class="bullet">·</span>
             <span>wanderer ▸ <span id="wid-display">—</span></span>
         </div>
     </main>
 
     <button class="audio-toggle" id="audio-toggle" aria-label="Toggle music" title="Toggle ambient music">♪</button>
     <div class="audio-hint" id="audio-hint">tap anywhere to begin music</div>
+
+    <!-- ============================================================== -->
+    <!-- DONATION MODAL — PayPal-routed                                  -->
+    <!-- ============================================================== -->
+    <div id="donate-overlay" class="donate-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+        <div class="donate-modal">
+            <button class="donate-close" id="donate-close" aria-label="Close">✕</button>
+            <div class="donate-header">
+                <div class="donate-glyph">♥</div>
+                <h2 id="donate-title">SUPPORT THE CARTOGRAPHER</h2>
+                <div class="donate-tagline">Fuel the next layer of <em>Dimension Lock</em></div>
+            </div>
+            <div class="donate-body">
+                <p class="donate-pitch">
+                    Every dollar keeps the lights on in the Astrolabe Terminal — funding
+                    new <span class="hl">strata</span>, more <span class="hl">webcomic chapters</span>,
+                    and additional <span class="hl">soundscapes</span> for the realities we explore.
+                    Thank you for walking the edge of <span class="hl">The Endless</span> with us.
+                </p>
+                <div class="donate-tiers">
+                    <button class="tier-btn" data-amount="3">
+                        <div class="tier-icon">☕</div>
+                        <div class="tier-amt">$3</div>
+                        <div class="tier-lbl">Tip a coffee</div>
+                    </button>
+                    <button class="tier-btn featured" data-amount="7">
+                        <div class="tier-icon">⚔</div>
+                        <div class="tier-amt">$7</div>
+                        <div class="tier-lbl">Patron</div>
+                    </button>
+                    <button class="tier-btn" data-amount="15">
+                        <div class="tier-icon">🜨</div>
+                        <div class="tier-amt">$15</div>
+                        <div class="tier-lbl">Reality Architect</div>
+                    </button>
+                    <button class="tier-btn" data-amount="">
+                        <div class="tier-icon">✺</div>
+                        <div class="tier-amt">Custom</div>
+                        <div class="tier-lbl">You choose</div>
+                    </button>
+                </div>
+                <div class="donate-paypal-row">
+                    <span class="paypal-label">via PayPal:</span>
+                    <code>dimensionlockdeath@gmail.com</code>
+                </div>
+                <div class="donate-footer-note">
+                    Opens PayPal in a new tab. No payment info is stored by this site.
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ============================================================== -->
     <!-- LOGIC                                                           -->
@@ -1195,6 +1395,45 @@
         rosterModal.addEventListener('click', (e) => { if (e.target === rosterModal) closeRoster(); });
         charDetailClose.addEventListener('click', closeCharDetail);
         charDetail.addEventListener('click', (e) => { if (e.target === charDetail) closeCharDetail(); });
+
+        // ======== DONATION MODAL WIRE-UP ========
+        const donateBtn     = document.getElementById('open-donate');
+        const donateOverlay = document.getElementById('donate-overlay');
+        const donateClose   = document.getElementById('donate-close');
+        const PAYPAL_EMAIL  = 'dimensionlockdeath@gmail.com';
+        function openDonate() {
+            donateOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeDonate() {
+            donateOverlay.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        donateBtn && donateBtn.addEventListener('click', openDonate);
+        donateClose && donateClose.addEventListener('click', closeDonate);
+        donateOverlay && donateOverlay.addEventListener('click', (e) => {
+            if (e.target === donateOverlay) closeDonate();
+        });
+        // Tier button → open PayPal donate page in a new tab
+        document.querySelectorAll('.tier-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const amt = (btn.dataset.amount || '').trim();
+                const base = 'https://www.paypal.com/donate/';
+                const params = new URLSearchParams({
+                    business: PAYPAL_EMAIL,
+                    item_name: 'Dimension Lock — Astrolabe Development',
+                    currency_code: 'USD',
+                });
+                if (amt) params.set('amount', amt);
+                window.open(base + '?' + params.toString(), '_blank', 'noopener,noreferrer');
+            });
+        });
+        // Escape closes donate
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && donateOverlay && !donateOverlay.classList.contains('hidden')) {
+                closeDonate();
+            }
+        });
     })();
     </script>
 </body>

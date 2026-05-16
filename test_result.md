@@ -712,3 +712,78 @@ agent_communication:
         • Beacon, parasites, gun firing, HUD all functional
         • No JS errors
 
+
+
+  - agent: "main"
+    message: |
+      [2026-05-16 — Iteration 5: 3-phase polish (UX / gameplay / audio-visual)]
+
+      PHASE A — UX QUICK WINS:
+        • Replaced multi-barrel cluster Loomgun with SINGLE rifle silhouette
+          (stock + receiver + grip + single barrel with 5 heat-vent rings +
+          scope rail + green energy cell). Fixes "duplicate weapon" look.
+        • Removed duplicate "DIMENSION LOCK" h1 text title from main_menu —
+          splash image already contains the styled title. Tagline retained.
+        • Styled DONATE modal on main menu (open via "♥ support the
+          cartographer" link):
+            - Pulsing heart + "SUPPORT THE CARTOGRAPHER" header
+            - 4 tier buttons ($3 Tip a Coffee / $7 Patron featured-gold /
+              $15 Reality Architect / Custom) opening PayPal donate URL with
+              business=dimensionlockdeath@gmail.com in a new tab
+            - Responsive 4-col → 2x2 on mobile; Escape / backdrop / X close
+        • Camera zoomed out: CAM_HEIGHT 13→17, CAM_TILT 9→13, FOV bumped per
+          aspect (landscape 58, tablet 66, portrait 78). Player + beacon +
+          back-wall reaper all fit comfortably now.
+
+      PHASE B — GAMEPLAY:
+        • Endless progressive SURVIVAL — removed launch countdown.
+          timeSurvived counts UP. Beacon HP alone gates death. Waves uncapped.
+        • Wave spawning scales harder forever: spawnCadence shrinks per wave,
+          spawn budget = 6 + waveLevel*3, husk chance ramps 12% → 45% by
+          wave 13. Banners at waves 3, 5, 8, 12+.
+        • TAP-TO-FIRE with auto-target snap: tap/click snaps aim to nearest
+          enemy within ~4.5m before firing. Forgiving for thumb taps.
+        • Parasite SIZE VARIANCE: scale 0.7×–1.5× per spawn. HP × size²,
+          speed × (1.4 - size*0.55). Beacon collision radius + damage also
+          scale. Float physics now spring-damped (stiffness 14, damping 6)
+          instead of pure sine — varies with size. Wing-flap rate inversely
+          scales with size.
+        • Procedural firing animation: recoilZ/Pitch incremented on shot,
+          spring back via exponential decay. Gun pulls back along barrel
+          axis + tilts up; body kicks slightly. Gentle idle chest-breathing
+          sway when not firing.
+        • End-game panel updated: survival time (mm:ss) + waves + kills.
+
+      PHASE C — AUDIO / VISUAL:
+        • Procedural COMBAT MUSIC via Tone.js (CDN @14.7.77): sub-bass pedal
+          (C-C-G-F), industrial kick + probabilistic offbeat double-kick,
+          hi-hat noise, square-wave lead playing C-minor arpeggio at density
+          0.2 + waveLevel*0.07, filter LFO at 0.18Hz sweeping 380-1400Hz,
+          tempo ramps BPM 92 → max 132 with wave level. Master gain mirrors
+          existing mute toggle. startCombatMusic from startGame(),
+          stopCombatMusic from failGame().
+        • Existing procedural WebAudio in main_menu + astrolabe-engine.js
+          covers the interactive map music (Cartographer ambient pad/drone).
+        • Custom GLSL ShaderPass added to composer chain:
+            - Radial VIGNETTE (strength 1.05, radius 0.95)
+            - Subtle CHROMATIC ABERRATION (R/B shifted radially by r²,
+              caStrength 0.0025) — cinematic edge fringe
+        • Sci-fi industrial floor texture + dead-reaper carcass + fire embers
+          + scorch marks + infection cracks (from iteration 4) remain — they
+          form the "realities slowly becoming infected" atmosphere.
+
+      BUILDS:
+        • Bundles re-exported: dist 39 MB / portable zip 39 MB.
+        • Frontend + backend confirmed RUNNING in supervisorctl.
+
+      VERIFIED LIVE on desktop (1280×800) + mobile portrait (412×915):
+        • Centurion in navy-blue armor with single rifle — no duplicate
+        • Dead reaper, scorch marks, infection cracks, fire embers visible
+        • Vignette + CA subtly fringe edges (cinematic, not obscuring)
+        • "SURVIVAL TIME" HUD counts up; beacon-bar shows HP
+        • Wave progression banners trigger at level changes
+        • Tap-to-fire (mouse click + touchstart) both confirmed
+        • Tone.js music initialized without errors
+        • Main menu shows ONE title; donate button + modal w/ 4 tiers + PayPal
+          email all functional
+

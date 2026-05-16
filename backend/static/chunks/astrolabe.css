@@ -968,8 +968,9 @@
             #directory-panel .flex.flex-col.gap-4 { max-height: 56vh !important; }
             .soul-row, .subloc-stat .v, .subloc-desc { font-size: 13px !important; }
             #mini-target-panel { width: 84% !important; }
-            .codex-toast { left: 12px !important; right: 12px !important; bottom: calc(220px + var(--safe-bottom)) !important; transform: translateY(150%) !important; min-width: unset !important; }
-            .codex-toast.show { transform: translateY(0) !important; }
+            .codex-toast { left: 12px !important; right: 12px !important; top: calc(56px + var(--safe-top)) !important; bottom: auto !important; transform: translateY(-150%) !important; min-width: unset !important; z-index: 9999 !important; pointer-events: none !important; }
+            .codex-toast.show { transform: translateY(0) !important; pointer-events: auto !important; }
+            .codex-toast .t-close { min-width: 36px; min-height: 36px; font-size: 18px; pointer-events: auto !important; touch-action: manipulation; }
             #tour-overlay { bottom: calc(80px + var(--safe-bottom)) !important; width: 96% !important; }
             .tour-controls { bottom: calc(20px + var(--safe-bottom)) !important; }
             /* Bigger touch targets in modals */

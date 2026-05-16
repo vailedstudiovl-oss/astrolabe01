@@ -189,7 +189,66 @@ backend:
           agent: "main"
           comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
 
-  - task: "Character Roster + Lurker Easter Egg + Breach Defense Overhaul"
+  - task: "Strata-themed dynamic music + 2 UI bug fixes"
+    implemented: true
+    working: true
+    file: "backend/static/astrolabe.html, backend/static/breach_defense.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            STRATA-THEMED DYNAMIC MUSIC (#1):
+            • Extended the existing 4-drone procedural Music module with FIVE
+              additional mood buses, each routed through its own GainNode for
+              smooth 1.5 s crossfades:
+                - neutral      (silent, baseline drones only)
+                - demonic      (deep negative ≤ -25): detuned saw sub-brass at
+                                A1 + tritone D#3 + slow pitch-wow LFO
+                - lovecraftian (deepest abyss ≤ -65): triangle detune cluster
+                                around A2, sub-bass swell at A0, erratic
+                                "whisper" oscillator with chaotic pitch LFO
+                - gothic       (negative -1 .. -24, vamperica): pizzicato
+                                triangle plucks + cello-like sawtooth at A3
+                                with slow tremolo
+                - angelic      (positive ≥ 25): choral pad stack root+fifth+
+                                octave + crystalline E6 shimmer + gentle
+                                breathing LFO
+            • applyLevelTone(lvl) — already called on every strata change —
+              now also calls applyMoodForLevel(lvl), which calls applyMood()
+              to crossfade the appropriate bus. The system logs a "▸ ambient
+              tone shift: <label>" line so the player sees the mood change
+              in the SYSTEM LOGS terminal.
+            • Real-track layer: Theenderswar (instrumental) MP3 plays at
+              0.7 × music-volume on loop, layered UNDER all procedural
+              layers. Started on first gesture, paused/resumed with the
+              music toggle, fades out gracefully on Music.stop().
+            • Verified: mood transitions trigger correctly at level -30
+              (demonic), -70 (lovecraftian), +50 (angelic), 0 (neutral),
+              and the corresponding log lines appear in SYSTEM LOGS.
+            • Music exposed on window.Music for debugging.
+
+            BUG FIX #1 — Breach Defense intro overlay unreachable button:
+            • The .intro-overlay is now overflow-y: auto + flex-start (not
+              justify-content: center) on short screens, so the
+              "▸ HOLD THE LINE ◂" button is always reachable by scrolling.
+            • Added animated pulse-glow to the start button so it's
+              instantly recognizable as the call-to-action.
+
+            BUG FIX #2 — Achievement toast unable to dismiss + wrong place:
+            • On mobile the toast was anchored at bottom:220px (calc'd) which
+              put it right inside the bottom sheet's INTEL FEED panel — fixed
+              by moving it to TOP of the screen on mobile
+              (top: calc(56px + var(--safe-top))).
+            • Forced z-index: 9999 + pointer-events: auto !important on
+              the .show state, plus a min 36×36px touch target on the ×
+              close button. DOM diagnostics confirm position top=56,
+              pointerEvents=auto, zIndex=9999, and that clicking × removes
+              the .show class so the toast slides away cleanly.
+
+            Bundles rebuilt: /app/dist (27 MB) + /app/portable/...zip (27 MB).
     implemented: true
     working: true
     file: "backend/static/main_menu.html, backend/static/breach_defense.html, backend/static/astrolabe.html, backend/static/characters/*"

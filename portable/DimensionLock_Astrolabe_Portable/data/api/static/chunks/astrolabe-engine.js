@@ -4326,6 +4326,147 @@
                 mod.stop(ctx.currentTime + dur + 0.1);
             }
 
+            // -----------------------------------------------------------
+            // STRATA MOOD LAYERS — procedural pads woven on top of the
+            // base drones that change colour with the current strata's
+            // metaphysical tone:
+            //   demonic     — detuned saw brass + sulfur bass throb
+            //   angelic     — high choral sine pads + crystalline shimmer
+            //   lovecraftian— dissonant flutter, sub-bass swells, whispers
+            //   gothic      — pizzicato-ish triangle plucks + cello pad
+            //   neutral     — silent layer (handled by base drones only)
+            //
+            // Each mood spins up its own subset of oscillators routed through
+            // its own GainNode so we can crossfade between them in 1.5 s.
+            // -----------------------------------------------------------
+            const moodGains = {};            // moodName → GainNode
+            const moodNodes = {};            // moodName → [oscillators]
+            let currentMood = 'neutral';
+            let currentMoodLabel = '';       // last label sent to UI for log de-dupe
+
+            function ensureMoodBus(name) {
+                if (moodGains[name]) return moodGains[name];
+                const g = ctx.createGain();
+                g.gain.value = 0;
+                g.connect(masterGain);
+                moodGains[name] = g;
+                moodNodes[name] = [];
+                buildMoodVoices(name, g);
+                return g;
+            }
+
+            function makeOscToBus(type, freq, detune, gainAmt, filterFreq, q, bus) {
+                const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq; if (detune) o.detune.value = detune;
+                const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = filterFreq || (freq * 6); f.Q.value = q || 0.7;
+                const g = ctx.createGain(); g.gain.value = gainAmt;
+                o.connect(f); f.connect(g); g.connect(bus);
+                o.start();
+                return o;
+            }
+            function makeLfoOnParam(rate, depth, target) {
+                const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = rate;
+                const lfoG = ctx.createGain(); lfoG.gain.value = depth;
+                lfo.connect(lfoG); lfoG.connect(target);
+                lfo.start();
+                return lfo;
+            }
+
+            function buildMoodVoices(name, bus) {
+                const arr = moodNodes[name];
+                if (name === 'demonic') {
+                    // Detuned sub brass — A1 + slightly-flat A1 → grinding beat
+                    arr.push(makeOscToBus('sawtooth', 55.00,  -12, 0.28, 320, 1.4, bus));
+                    arr.push(makeOscToBus('sawtooth', 55.00,  +14, 0.28, 320, 1.4, bus));
+                    // Tritone-flavor mid voice (D#3) — devil's interval to root A
+                    arr.push(makeOscToBus('square',   155.56, 0,   0.07, 700, 2.0, bus));
+                    // Sulfur bass throb LFO on filter
+                    const target = arr[0].frequency;  // wiggle sub-brass pitch
+                    arr.push(makeLfoOnParam(0.18, 1.5, target));
+                }
+                else if (name === 'angelic') {
+                    // Choral pad stack — A3 + E4 + A4 (root, fifth, octave)
+                    arr.push(makeOscToBus('sine',     220.00, 0,   0.16, 4000, 0.7, bus));
+                    arr.push(makeOscToBus('sine',     329.63, 0,   0.10, 4000, 0.7, bus));
+                    arr.push(makeOscToBus('sine',     440.00, 0,   0.07, 5000, 0.7, bus));
+                    // High shimmer (E6)
+                    arr.push(makeOscToBus('triangle', 1318.5, 0,   0.04, 6500, 0.7, bus));
+                    // Gentle breathing LFO on master mood gain so it "sighs"
+                    arr.push(makeLfoOnParam(0.08, 0.05, bus.gain));
+                }
+                else if (name === 'lovecraftian') {
+                    // Off-tuning detune cluster around A2 → wavering, sick
+                    arr.push(makeOscToBus('triangle', 110.00,  -25, 0.16, 380, 1.0, bus));
+                    arr.push(makeOscToBus('triangle', 110.00,  +30, 0.16, 380, 1.0, bus));
+                    arr.push(makeOscToBus('triangle', 113.00,  -40, 0.12, 380, 1.0, bus));
+                    // Sub-bass swells
+                    arr.push(makeOscToBus('sine',     27.50,   0,   0.50, 90,  0.5, bus));
+                    // Whisper-band noise via fast LFO on a high osc pitched into murmur range
+                    const noise = makeOscToBus('sawtooth', 700, 0, 0.015, 1200, 6, bus);
+                    arr.push(noise);
+                    arr.push(makeLfoOnParam(4.7, 380, noise.frequency)); // erratic pitch
+                    arr.push(makeLfoOnParam(0.21, 1.8, arr[0].frequency)); // wow on first detune
+                }
+                else if (name === 'gothic') {
+                    // Vamperica — pizzicato-ish triangle plucks via slow tremolo + cello pad
+                    arr.push(makeOscToBus('triangle',  73.42, -5, 0.16, 280, 1.6, bus));   // D2
+                    arr.push(makeOscToBus('triangle', 110.00, +5, 0.10, 600, 1.6, bus));   // A2
+                    arr.push(makeOscToBus('sawtooth', 220.00,  0, 0.05, 900, 2.2, bus));   // A3 cello
+                    arr.push(makeLfoOnParam(2.8, 0.04, bus.gain));  // gentle tremolo
+                }
+                // 'neutral' has no extra voices — silence on this bus
+            }
+
+            // Crossfade between mood buses
+            function applyMood(name, label) {
+                if (!ctx) return;
+                currentMood = name;
+                ensureMoodBus(name);
+                const now = ctx.currentTime;
+                // target gain per mood (subtle, atop drones + real track)
+                const targetGain = {
+                    demonic:      0.42,
+                    angelic:      0.38,
+                    lovecraftian: 0.46,
+                    gothic:       0.32,
+                    neutral:      0.0,
+                }[name] ?? 0;
+                for (const [k, g] of Object.entries(moodGains)) {
+                    g.gain.cancelScheduledValues(now);
+                    g.gain.setValueAtTime(g.gain.value, now);
+                    const v = (k === name) ? targetGain : 0.0;
+                    g.gain.linearRampToValueAtTime(v, now + 1.5);
+                }
+                // Log to system terminal (de-duped) so the player sees mood changes
+                if (label && label !== currentMoodLabel) {
+                    currentMoodLabel = label;
+                    try { logMessage('▸ ambient tone shift: ' + label, 'info'); } catch(e) {}
+                }
+            }
+
+            // -----------------------------------------------------------
+            // REAL TRACK LAYER — Theenderswar (instrumental) looped at low
+            // volume so the procedural moods sit on top of the canonical
+            // Dimensionlock theme.
+            // -----------------------------------------------------------
+            let trackEl = null;
+            let trackEnabled = true;
+            function startRealTrack() {
+                if (trackEl || !trackEnabled) return;
+                try {
+                    trackEl = new Audio('./static/dimensionlock_theme.mp3');
+                    trackEl.loop = true;
+                    trackEl.preload = 'auto';
+                    trackEl.volume = Math.max(0, Math.min(1, (GFX.musicVolume || 0.5) * 0.7));
+                    trackEl.addEventListener('error', () => { trackEl = null; });
+                    trackEl.play().catch(() => {
+                        // Will retry on next gesture (handled below)
+                    });
+                } catch(e) { trackEl = null; }
+            }
+            function setTrackVolume(v) {
+                if (trackEl) trackEl.volume = Math.max(0, Math.min(1, v * 0.7));
+            }
+
             // Schedule sparse bells using a slowly-varying scale based on current level
             function schedulePings() {
                 if (!isPlaying) return;
@@ -4357,8 +4498,19 @@
                 nodes.push(makeDrone(220.0, 'sawtooth', 2.2, 0.10, 0.13, 0.8));  // mid pad
                 nodes.push(makeDrone(440.0, 'sine',     1.0, 0.06, 0.18, 0.4));  // high shimmer
 
+                // Prepare ALL mood buses so we can crossfade between them.
+                ensureMoodBus('demonic');
+                ensureMoodBus('angelic');
+                ensureMoodBus('lovecraftian');
+                ensureMoodBus('gothic');
+                ensureMoodBus('neutral');
+
                 // Apply level-based tone (will be re-applied on level change too)
                 applyLevelTone(currentLevel);
+                applyMoodForLevel(currentLevel);
+
+                // Start the canonical Dimensionlock theme on its own audio element
+                startRealTrack();
 
                 // Fade in
                 const now = ctx.currentTime;
@@ -4378,12 +4530,39 @@
                 masterGain.gain.cancelScheduledValues(now);
                 masterGain.gain.setValueAtTime(masterGain.gain.value, now);
                 masterGain.gain.linearRampToValueAtTime(0.0001, now + 1.5);
+                // Fade out + tear down all mood buses too
+                for (const g of Object.values(moodGains)) {
+                    g.gain.cancelScheduledValues(now);
+                    g.gain.setValueAtTime(g.gain.value, now);
+                    g.gain.linearRampToValueAtTime(0.0001, now + 1.5);
+                }
+                // Fade out the real Theenderswar track
+                if (trackEl) {
+                    const start = trackEl.volume;
+                    const t0 = performance.now();
+                    const fade = setInterval(() => {
+                        const t = (performance.now() - t0) / 1500;
+                        if (t >= 1) {
+                            try { trackEl.pause(); } catch(e){}
+                            trackEl = null;
+                            clearInterval(fade);
+                        } else if (trackEl) {
+                            trackEl.volume = start * (1 - t);
+                        }
+                    }, 50);
+                }
                 setTimeout(() => {
                     nodes.forEach(n => {
                         try { n.o.stop(); } catch(e) {}
                         try { n.lfo.stop(); } catch(e) {}
                     });
                     nodes = [];
+                    // Stop all mood oscillators
+                    for (const arr of Object.values(moodNodes)) {
+                        arr.forEach(o => { try { o.stop(); } catch(e) {} });
+                    }
+                    for (const k in moodNodes) moodNodes[k] = [];
+                    currentMoodLabel = '';
                 }, 1700);
             }
 
@@ -4392,6 +4571,25 @@
                 const now = ctx.currentTime;
                 masterGain.gain.cancelScheduledValues(now);
                 masterGain.gain.linearRampToValueAtTime(v, now + 0.4);
+                setTrackVolume(v);
+            }
+
+            // Decide a mood from current strata level (uses the same heuristic
+            // as the procedural-content pickers). Returns {mood, label}.
+            function moodFromLevel(lvl) {
+                const n = lvl || 0;
+                if (n <= -65)             return { mood: 'lovecraftian', label: 'cosmic horror · abyss strata' };
+                if (n <= -25)             return { mood: 'demonic',      label: 'infernal · descending strata' };
+                if (n <= -1)              return { mood: 'gothic',       label: 'gothic · vamperica influence' };
+                if (n === 0)              return { mood: 'neutral',      label: 'zero point · equilibrium' };
+                if (n <= 24)              return { mood: 'neutral',      label: 'ascendant · mortal strata' };
+                if (n <= 64)              return { mood: 'angelic',      label: 'angelic · sacrosanct strata' };
+                return                          { mood: 'angelic',      label: 'empyrean · first light' };
+            }
+
+            function applyMoodForLevel(lvl) {
+                const { mood, label } = moodFromLevel(lvl);
+                applyMood(mood, label);
             }
 
             // Adjust filter cutoff + sub-bass volume based on which strata you're at
@@ -4408,11 +4606,14 @@
                     const cutoff = base * (3 + brightness * 12); // 3x..15x
                     n.f.frequency.linearRampToValueAtTime(cutoff, now + 1.5);
                 });
+                // Crossfade strata-mood layers
+                applyMoodForLevel(currentLevel);
             }
 
             return {
-                start, stop, setVolume, applyLevelTone,
-                get isPlaying() { return isPlaying; }
+                start, stop, setVolume, applyLevelTone, applyMood,
+                get isPlaying() { return isPlaying; },
+                get currentMood() { return currentMood; }
             };
         })();
 
@@ -4423,6 +4624,8 @@
             if (Music && Music.isPlaying) Music.applyLevelTone(GAME_STATE.currentLevel);
             return r;
         };
+        // Expose Music on window for debugging and external triggers
+        try { window.Music = Music; } catch(e) {}
 
         // First user interaction → if music was previously enabled, resume it
         // (browsers require a gesture to start audio).

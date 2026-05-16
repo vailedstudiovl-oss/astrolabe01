@@ -5635,3 +5635,83 @@
                 startGame();
             };
         })();
+
+        // ================================================================
+        // THE LURKER · EASTER EGG SIGHTINGS
+        // ----------------------------------------------------------------
+        // While exploring DEEP STRATA (level >= 50 or <= -50), there's a
+        // small per-tick chance that "The Lurker is watching." flashes for
+        // ~3.5 s with the canonical neon-green silhouette + chromatic
+        // aberration. Cooldown 90 s minimum between sightings; never
+        // triggers if any modal is open. F-key toggle for debugging.
+        // ================================================================
+        (function() {
+            const SIGHTING_COOLDOWN_MS = 90000;
+            const PROBABILITY_PER_TICK = 0.00045;  // ~1 sighting every ~37s of qualifying gameplay
+            const TICK_MS = 1500;
+            const FLAVOR = [
+                '▸ Strata signal corrupted',
+                '▸ Frame integrity .. unstable',
+                '▸ Watching :: from above',
+                '▸ The Endless is not silent',
+                '▸ Memory artifact :: redacted',
+                '▸ Soul-Lane breach detected',
+                '▸ He waits beyond the 199th',
+            ];
+            let lastSighting = 0;
+            let active = false;
+
+            function anyModalOpen() {
+                try {
+                    if (document.getElementById('pause-menu-backdrop')?.classList.contains('open')) return true;
+                    if (document.getElementById('breach-modal-backdrop')?.classList.contains('open')) return true;
+                    if (document.getElementById('contribute-modal-backdrop')?.classList.contains('open')) return true;
+                    if (document.getElementById('saves-modal-backdrop')?.classList.contains('open')) return true;
+                } catch(e) {}
+                return false;
+            }
+            function inDeepStrata() {
+                try {
+                    if (typeof currentStrata === 'number') {
+                        return Math.abs(currentStrata) >= 50;
+                    }
+                } catch(e) {}
+                return false;
+            }
+            window.triggerLurkerSighting = function(reason) {
+                if (active) return;
+                const overlay = document.getElementById('lurker-sighting');
+                if (!overlay) return;
+                active = true;
+                lastSighting = Date.now();
+                const sub = document.getElementById('lurker-sub');
+                if (sub) sub.textContent = reason || FLAVOR[Math.floor(Math.random() * FLAVOR.length)];
+                overlay.classList.add('active');
+                overlay.setAttribute('aria-hidden', 'false');
+                try { logMessage('!! LURKER SIGHTED — strata anomaly !!', 'error'); } catch(e) {}
+                // Restart silhouette animation by reflow
+                const sil = document.getElementById('lurker-silhouette');
+                if (sil) { sil.style.animation = 'none'; void sil.offsetHeight; sil.style.animation = ''; }
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    overlay.setAttribute('aria-hidden', 'true');
+                    active = false;
+                }, 3600);
+            };
+            // periodic chance ticker
+            setInterval(() => {
+                if (active) return;
+                if (anyModalOpen()) return;
+                if (Date.now() - lastSighting < SIGHTING_COOLDOWN_MS) return;
+                if (!inDeepStrata()) return;
+                if (Math.random() < PROBABILITY_PER_TICK * (TICK_MS / 1000)) {
+                    triggerLurkerSighting();
+                }
+            }, TICK_MS);
+            // Debug hotkey (Ctrl + Shift + L) to manually trigger
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+                    triggerLurkerSighting('▸ MANUAL TRIGGER (DEV)');
+                }
+            });
+        })();

@@ -189,7 +189,87 @@ backend:
           agent: "main"
           comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
 
-  - task: "UI bug fixes + Music & video integration"
+  - task: "Character Roster + Lurker Easter Egg + Breach Defense Overhaul"
+    implemented: true
+    working: true
+    file: "backend/static/main_menu.html, backend/static/breach_defense.html, backend/static/astrolabe.html, backend/static/characters/*"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            CHARACTER ROSTER (#2 from improvement list):
+            • New 5th main-menu card "CHARACTER ROSTER" opens a roster modal
+              displaying all 10 canonical characters (Maytradalis, Death, FlyButt,
+              Cryious, Elystria, Madoria, Centurion, Tenebris, Husks, The Lurker).
+              Each card uses the user-supplied character sheet art (downloaded and
+              optimized — cropped to a portrait + full sheet for the detail view).
+              Cards faction-tinted with floating portrait hover effect.
+            • Tapping a card opens a detailed profile modal: full character sheet
+              poster, eyebrow/role label, name, metadata (age/height/profession),
+              4 trait pills, multi-paragraph bio. Each faction has its own accent
+              colour and glow (purple reapers, neon-green Lurker, cyan skeleton,
+              etc). ESC + click-outside to close.
+
+            LURKER EASTER EGG (#7):
+            • Random ~1% chance per ~1.5s tick while exploring deep strata
+              (|level| >= 50). Triggers a full-screen overlay with:
+              · The actual Lurker character art centered, drop-shadowed in
+                NEON GREEN (#66ff88) with chromatic-aberration glitch animation
+              · "THE LURKER IS WATCHING." in neon green with offset red/cyan
+                shadow text (true chromatic aberration)
+              · Scanline + tendril-pulse background overlay
+              · Random flavor sub-text from a 7-line pool
+              · Logs to system log "!! LURKER SIGHTED — strata anomaly !!"
+            • 90-second cooldown between sightings, never triggers when any
+              modal is open. Ctrl+Shift+L dev hotkey to manually trigger.
+
+            BREACH DEFENSE OVERHAUL (#4):
+            • Complete visual+narrative overhaul of /api/breach-defense:
+              · Pre-game lore intro overlay explaining Maytradalis' field
+                training protocol, with 4 rule cards (stable / unstable /
+                shields / waves) and a "HOLD THE LINE" launch button.
+              · 10 faction-colored orbs each labelled with its FACTION SIGIL
+                (T/W/S/V/C/A/M/L/U/E for Turion, Watrari, Supreme, Vamperica,
+                Centura, Abyss, Magic, Lightbringer, Unholy, Exiles).
+              · Stable orbs now rotate with dashed orbital rings + faction
+                tinted radial gradients.
+              · UNSTABLE orbs become reality-rift portals with red-orange
+                inner gradient, chromatic ring fragments, jagged green
+                Lurker-tendrils erupting from the edge, and a !! glyph.
+              · Breach failures spawn a torn glyph "wound" that fades over
+                ~2 sec + screen shake + flash-red inset glow.
+              · Combo system: consecutive stabilizations build × multipliers
+                up to ×5 (every 3 stabilizes = +1 multi).
+              · "WAVE n — INSTABILITY RISING" banner pulses on level up.
+              · Live scrolling "BREACH ALERT" lore ticker at the top.
+              · Game-over screen shows a thematic flavor fact + Lurker
+                advance message tied to your level.
+              · Procedural Web-Audio SFX for stabilize / breach / level-up /
+                miss / game-over (no external assets).
+              · Cinematic corner brackets + nebula gradient backdrop with
+                lurker-green tendril pulses curling from corners.
+
+            BUNDLE UPDATES:
+            • Both export_dist.py and build_portable.py now copy the entire
+              characters/ folder. Portable bundle's chunk rewriter also
+              rewrites /api/static/ → ./static/ in body.html + engine.js
+              chunks so the Lurker easter egg image resolves correctly when
+              served from file:// or local http server.
+            • Bundle size grew from 19.7 MB → 26.7 MB to include the 10
+              character sheets + portraits.
+
+            Verified visually:
+              • Main menu (desktop + mobile) — 5 buttons fit cleanly
+              • Roster grid shows all 10 character cards with art + names
+              • Character detail modal renders full sheets with proper
+                accent colors per faction
+              • Lurker sighting renders with neon green chromatic glitch
+              • Breach Defense intro overlay → click "HOLD THE LINE" →
+                gameplay with sigil-labelled orbs + unstable rifts +
+                ticker + combo system all working on desktop + mobile
     implemented: true
     working: true
     file: "backend/static/main_menu.html, backend/static/breach_defense.html, backend/static/astrolabe.html"

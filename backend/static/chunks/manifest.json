@@ -3,18 +3,18 @@
   "chunks": [
     {
       "name": "astrolabe.css",
-      "size": 77460,
-      "hash": "002130346c4d"
+      "size": 82089,
+      "hash": "40fd55879ba3"
     },
     {
       "name": "astrolabe-body.html",
-      "size": 55830,
-      "hash": "513548681a4c"
+      "size": 56647,
+      "hash": "aeb227b4239b"
     },
     {
       "name": "astrolabe-engine.js",
-      "size": 325204,
-      "hash": "5295285ad925"
+      "size": 329277,
+      "hash": "9563a69de73c"
     }
   ]
 }

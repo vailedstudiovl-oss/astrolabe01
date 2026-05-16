@@ -4,7 +4,7 @@
             margin: 0; 
             overflow: hidden; 
             background-color: #050505; 
-            background-image: url('/api/static/holo_projector.jpg');
+            background-image: url('./static/holo_projector.jpg');
             background-size: cover;
             background-position: center;
             font-family: 'Share Tech Mono', monospace; 
@@ -1351,3 +1351,114 @@
             opacity: 0; transition: opacity 0.3s; white-space: nowrap;
         }
         #breach-level-banner.show { opacity: 1; }
+
+        /* === THE LURKER · EASTER EGG === */
+        #lurker-sighting {
+            position: fixed; inset: 0; z-index: 9500;
+            pointer-events: none;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.18s, visibility 0.18s;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        #lurker-sighting.active { opacity: 1; visibility: visible; }
+
+        #lurker-glitch-bg {
+            position: absolute; inset: 0;
+            background:
+              radial-gradient(circle at 50% 50%, rgba(102,255,136,0.18) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.95) 100%);
+            animation: lurker-flicker 0.18s steps(2, end) infinite;
+        }
+        @keyframes lurker-flicker {
+            0%, 49%   { filter: hue-rotate(0deg)   contrast(1.08) brightness(0.95); }
+            50%, 100% { filter: hue-rotate(15deg)  contrast(1.25) brightness(1.05); }
+        }
+
+        #lurker-silhouette {
+            position: relative;
+            max-height: 80vh; max-width: 50vw;
+            opacity: 0.78;
+            /* Neon green hue — the canonical Lurker glow */
+            filter:
+              brightness(0.85)
+              contrast(1.4)
+              drop-shadow(0 0 18px #66ff88)
+              drop-shadow(0 0 38px #44cc66)
+              drop-shadow(0 0 80px rgba(102,255,136,0.6))
+              hue-rotate(8deg);
+            animation: lurker-emerge 2.2s ease-out forwards,
+                       lurker-glitch-shift 0.2s steps(2, end) infinite;
+            mix-blend-mode: screen;
+        }
+        @keyframes lurker-emerge {
+            0%   { opacity: 0;    transform: translateY(20px) scale(0.92); filter: blur(8px) brightness(2); }
+            12%  { opacity: 0.4;  transform: translateY(10px) scale(0.97); filter: blur(2px); }
+            55%  { opacity: 0.85; transform: translateY(0)    scale(1);    filter: blur(0); }
+            100% { opacity: 0.78; transform: translateY(0)    scale(1); }
+        }
+        @keyframes lurker-glitch-shift {
+            0%, 100% { transform: translate(0, 0); }
+            18%      { transform: translate(2px, -1px); }
+            42%      { transform: translate(-1px, 1px); }
+            70%      { transform: translate(1px, 2px); }
+        }
+
+        #lurker-text {
+            position: absolute; bottom: 22%; left: 0; right: 0;
+            text-align: center;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        #lurker-text .ls-line {
+            display: block;
+            font-size: clamp(20px, 4vw, 38px);
+            letter-spacing: 8px;
+            color: #66ff88;
+            text-shadow:
+              -2px 0 #ff44aa,
+               2px 0 #44ccff,
+               0 0 16px #66ff88,
+               0 0 38px rgba(102,255,136,0.7);
+            opacity: 0;
+            animation: lurker-text-emerge 0.4s ease-out 0.6s forwards,
+                       lurker-text-jitter 0.14s steps(2,end) infinite 0.8s;
+        }
+        #lurker-text .ls-sub {
+            display: block;
+            margin-top: 8px;
+            font-size: clamp(10px, 1.2vw, 13px);
+            letter-spacing: 5px;
+            color: rgba(102, 255, 136, 0.65);
+            opacity: 0;
+            animation: lurker-text-emerge 0.4s ease-out 1.2s forwards;
+        }
+        @keyframes lurker-text-emerge {
+            from { opacity: 0; transform: translateY(8px); letter-spacing: 14px; }
+            to   { opacity: 1; transform: translateY(0);   letter-spacing: 8px; }
+        }
+        @keyframes lurker-text-jitter {
+            0%, 100% { transform: translateX(0); }
+            32%      { transform: translateX(-2px) skewX(-0.5deg); }
+            64%      { transform: translateX(2px)  skewX(0.5deg); }
+        }
+
+        #lurker-scanline {
+            position: absolute; inset: 0; pointer-events: none;
+            background:
+              repeating-linear-gradient(0deg,
+                rgba(102, 255, 136, 0.07) 0px,
+                rgba(102, 255, 136, 0.07) 1px,
+                transparent 1px,
+                transparent 3px),
+              repeating-linear-gradient(90deg,
+                rgba(255, 68, 170, 0.04) 0px,
+                rgba(255, 68, 170, 0.04) 1px,
+                transparent 1px,
+                transparent 200px);
+            mix-blend-mode: screen;
+            animation: lurker-scan-roll 1.4s linear infinite;
+        }
+        @keyframes lurker-scan-roll {
+            from { background-position: 0 0, 0 0; }
+            to   { background-position: 0 12px, -200px 0; }
+        }

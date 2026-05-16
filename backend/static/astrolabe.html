@@ -1408,6 +1408,117 @@
             opacity: 0; transition: opacity 0.3s; white-space: nowrap;
         }
         #breach-level-banner.show { opacity: 1; }
+
+        /* === THE LURKER · EASTER EGG === */
+        #lurker-sighting {
+            position: fixed; inset: 0; z-index: 9500;
+            pointer-events: none;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.18s, visibility 0.18s;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        #lurker-sighting.active { opacity: 1; visibility: visible; }
+
+        #lurker-glitch-bg {
+            position: absolute; inset: 0;
+            background:
+              radial-gradient(circle at 50% 50%, rgba(102,255,136,0.18) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.95) 100%);
+            animation: lurker-flicker 0.18s steps(2, end) infinite;
+        }
+        @keyframes lurker-flicker {
+            0%, 49%   { filter: hue-rotate(0deg)   contrast(1.08) brightness(0.95); }
+            50%, 100% { filter: hue-rotate(15deg)  contrast(1.25) brightness(1.05); }
+        }
+
+        #lurker-silhouette {
+            position: relative;
+            max-height: 80vh; max-width: 50vw;
+            opacity: 0.78;
+            /* Neon green hue — the canonical Lurker glow */
+            filter:
+              brightness(0.85)
+              contrast(1.4)
+              drop-shadow(0 0 18px #66ff88)
+              drop-shadow(0 0 38px #44cc66)
+              drop-shadow(0 0 80px rgba(102,255,136,0.6))
+              hue-rotate(8deg);
+            animation: lurker-emerge 2.2s ease-out forwards,
+                       lurker-glitch-shift 0.2s steps(2, end) infinite;
+            mix-blend-mode: screen;
+        }
+        @keyframes lurker-emerge {
+            0%   { opacity: 0;    transform: translateY(20px) scale(0.92); filter: blur(8px) brightness(2); }
+            12%  { opacity: 0.4;  transform: translateY(10px) scale(0.97); filter: blur(2px); }
+            55%  { opacity: 0.85; transform: translateY(0)    scale(1);    filter: blur(0); }
+            100% { opacity: 0.78; transform: translateY(0)    scale(1); }
+        }
+        @keyframes lurker-glitch-shift {
+            0%, 100% { transform: translate(0, 0); }
+            18%      { transform: translate(2px, -1px); }
+            42%      { transform: translate(-1px, 1px); }
+            70%      { transform: translate(1px, 2px); }
+        }
+
+        #lurker-text {
+            position: absolute; bottom: 22%; left: 0; right: 0;
+            text-align: center;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        #lurker-text .ls-line {
+            display: block;
+            font-size: clamp(20px, 4vw, 38px);
+            letter-spacing: 8px;
+            color: #66ff88;
+            text-shadow:
+              -2px 0 #ff44aa,
+               2px 0 #44ccff,
+               0 0 16px #66ff88,
+               0 0 38px rgba(102,255,136,0.7);
+            opacity: 0;
+            animation: lurker-text-emerge 0.4s ease-out 0.6s forwards,
+                       lurker-text-jitter 0.14s steps(2,end) infinite 0.8s;
+        }
+        #lurker-text .ls-sub {
+            display: block;
+            margin-top: 8px;
+            font-size: clamp(10px, 1.2vw, 13px);
+            letter-spacing: 5px;
+            color: rgba(102, 255, 136, 0.65);
+            opacity: 0;
+            animation: lurker-text-emerge 0.4s ease-out 1.2s forwards;
+        }
+        @keyframes lurker-text-emerge {
+            from { opacity: 0; transform: translateY(8px); letter-spacing: 14px; }
+            to   { opacity: 1; transform: translateY(0);   letter-spacing: 8px; }
+        }
+        @keyframes lurker-text-jitter {
+            0%, 100% { transform: translateX(0); }
+            32%      { transform: translateX(-2px) skewX(-0.5deg); }
+            64%      { transform: translateX(2px)  skewX(0.5deg); }
+        }
+
+        #lurker-scanline {
+            position: absolute; inset: 0; pointer-events: none;
+            background:
+              repeating-linear-gradient(0deg,
+                rgba(102, 255, 136, 0.07) 0px,
+                rgba(102, 255, 136, 0.07) 1px,
+                transparent 1px,
+                transparent 3px),
+              repeating-linear-gradient(90deg,
+                rgba(255, 68, 170, 0.04) 0px,
+                rgba(255, 68, 170, 0.04) 1px,
+                transparent 1px,
+                transparent 200px);
+            mix-blend-mode: screen;
+            animation: lurker-scan-roll 1.4s linear infinite;
+        }
+        @keyframes lurker-scan-roll {
+            from { background-position: 0 0, 0 0; }
+            to   { background-position: 0 12px, -200px 0; }
+        }
     </style>
 
     <!-- Stable Three.js & OrbitControls Links -->
@@ -1663,6 +1774,21 @@
                 <div class="lens-status" id="lens-status">--</div>
             </div>
         </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- THE LURKER · EASTER EGG SIGHTING OVERLAY                        -->
+    <!-- Triggered ~1% chance while exploring deep strata. Neon-green    -->
+    <!-- chromatic glitch + silhouette + "The Lurker is watching." text. -->
+    <!-- ============================================================== -->
+    <div id="lurker-sighting" aria-hidden="true">
+        <div id="lurker-glitch-bg"></div>
+        <img id="lurker-silhouette" src="/api/static/characters/lurker_portrait.png" alt="">
+        <div id="lurker-text">
+            <span class="ls-line">THE LURKER IS WATCHING.</span>
+            <span class="ls-sub" id="lurker-sub">▸ Strata signal corrupted</span>
+        </div>
+        <div id="lurker-scanline"></div>
     </div>
 
     <!-- DESKTOP PAUSE / SETTINGS BUTTON -->
@@ -7952,6 +8078,86 @@
                 hideGameOver();
                 startGame();
             };
+        })();
+
+        // ================================================================
+        // THE LURKER · EASTER EGG SIGHTINGS
+        // ----------------------------------------------------------------
+        // While exploring DEEP STRATA (level >= 50 or <= -50), there's a
+        // small per-tick chance that "The Lurker is watching." flashes for
+        // ~3.5 s with the canonical neon-green silhouette + chromatic
+        // aberration. Cooldown 90 s minimum between sightings; never
+        // triggers if any modal is open. F-key toggle for debugging.
+        // ================================================================
+        (function() {
+            const SIGHTING_COOLDOWN_MS = 90000;
+            const PROBABILITY_PER_TICK = 0.00045;  // ~1 sighting every ~37s of qualifying gameplay
+            const TICK_MS = 1500;
+            const FLAVOR = [
+                '▸ Strata signal corrupted',
+                '▸ Frame integrity .. unstable',
+                '▸ Watching :: from above',
+                '▸ The Endless is not silent',
+                '▸ Memory artifact :: redacted',
+                '▸ Soul-Lane breach detected',
+                '▸ He waits beyond the 199th',
+            ];
+            let lastSighting = 0;
+            let active = false;
+
+            function anyModalOpen() {
+                try {
+                    if (document.getElementById('pause-menu-backdrop')?.classList.contains('open')) return true;
+                    if (document.getElementById('breach-modal-backdrop')?.classList.contains('open')) return true;
+                    if (document.getElementById('contribute-modal-backdrop')?.classList.contains('open')) return true;
+                    if (document.getElementById('saves-modal-backdrop')?.classList.contains('open')) return true;
+                } catch(e) {}
+                return false;
+            }
+            function inDeepStrata() {
+                try {
+                    if (typeof currentStrata === 'number') {
+                        return Math.abs(currentStrata) >= 50;
+                    }
+                } catch(e) {}
+                return false;
+            }
+            window.triggerLurkerSighting = function(reason) {
+                if (active) return;
+                const overlay = document.getElementById('lurker-sighting');
+                if (!overlay) return;
+                active = true;
+                lastSighting = Date.now();
+                const sub = document.getElementById('lurker-sub');
+                if (sub) sub.textContent = reason || FLAVOR[Math.floor(Math.random() * FLAVOR.length)];
+                overlay.classList.add('active');
+                overlay.setAttribute('aria-hidden', 'false');
+                try { logMessage('!! LURKER SIGHTED — strata anomaly !!', 'error'); } catch(e) {}
+                // Restart silhouette animation by reflow
+                const sil = document.getElementById('lurker-silhouette');
+                if (sil) { sil.style.animation = 'none'; void sil.offsetHeight; sil.style.animation = ''; }
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    overlay.setAttribute('aria-hidden', 'true');
+                    active = false;
+                }, 3600);
+            };
+            // periodic chance ticker
+            setInterval(() => {
+                if (active) return;
+                if (anyModalOpen()) return;
+                if (Date.now() - lastSighting < SIGHTING_COOLDOWN_MS) return;
+                if (!inDeepStrata()) return;
+                if (Math.random() < PROBABILITY_PER_TICK * (TICK_MS / 1000)) {
+                    triggerLurkerSighting();
+                }
+            }, TICK_MS);
+            // Debug hotkey (Ctrl + Shift + L) to manually trigger
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+                    triggerLurkerSighting('▸ MANUAL TRIGGER (DEV)');
+                }
+            });
         })();
 
     </script>

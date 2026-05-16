@@ -68,6 +68,12 @@ for f in (STATIC_DIR / "chunks").iterdir():
     if f.is_file():
         shutil.copy(f, DATA_DIR / "api" / "static" / "chunks" / f.name)
 
+# Copy character art folder
+chars_src = STATIC_DIR / "characters"
+chars_dst = DATA_DIR / "api" / "static" / "characters"
+if chars_src.exists():
+    shutil.copytree(chars_src, chars_dst)
+
 # ---------- Patch HTML files for offline file:// loading ----------
 # Some browsers refuse to load absolute paths like /api/static/... when
 # using the file:// protocol. We rewrite them to relative paths.
@@ -116,6 +122,30 @@ def rewrite_for_offline(html_path):
 
 for html in (DATA_DIR / "api").glob("*.html"):
     rewrite_for_offline(html)
+
+# Also rewrite the chunks (body HTML + engine JS reference /api/static/characters/...)
+# We use a slightly different prefix because chunks live one folder deeper
+def rewrite_chunk_for_offline(chunk_path):
+    text = chunk_path.read_text(encoding="utf-8")
+    # The HTMLs that inject these chunks live at data/api/*.html (depth 1 inside data).
+    # When the launcher injects the body chunk via document.body.innerHTML, relative
+    # URLs resolve against the document URL (data/api/astrolabe-game.html).
+    # So /api/static/foo.png needs to become ./static/foo.png  (sibling 'static' folder).
+    rules = [
+        ('"/api/static/',  '"./static/'),
+        ("'/api/static/",  "'./static/"),
+        ('"/api/astrolabe"',  '"./astrolabe.html"'),
+        ("'/api/astrolabe'",  "'./astrolabe.html'"),
+    ]
+    new_text = text
+    for old, new in rules:
+        new_text = new_text.replace(old, new)
+    if new_text != text:
+        chunk_path.write_text(new_text, encoding="utf-8")
+
+for chunk in (DATA_DIR / "api" / "static" / "chunks").iterdir():
+    if chunk.is_file():
+        rewrite_chunk_for_offline(chunk)
 
 # Patch the launcher's chunk path resolution (it's hardcoded to /api/static/chunks/)
 launcher = DATA_DIR / "api" / "astrolabe-game.html"

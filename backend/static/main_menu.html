@@ -236,6 +236,228 @@
         .menu-btn.archives { border-color: #ffcc66; color: #ffcc66; background: rgba(40,30,10,0.5); }
         .menu-btn.archives .glyph { color: #ffcc66; }
 
+        .menu-btn.roster { border-color: #b48bff; color: #b48bff; background: rgba(30,20,50,0.5); }
+        .menu-btn.roster .glyph { color: #b48bff; }
+
+        /* === CHARACTER ROSTER MODAL === */
+        .roster-modal {
+            position: fixed; inset: 0; z-index: 600;
+            background: rgba(0, 0, 0, 0.92);
+            display: none; align-items: center; justify-content: center;
+            padding: 14px;
+            backdrop-filter: blur(6px);
+        }
+        .roster-modal.open { display: flex; }
+        .roster-shell {
+            width: min(940px, 98vw);
+            max-height: 94vh;
+            background: rgba(8, 8, 16, 0.97);
+            border: 1px solid #b48bff;
+            box-shadow: 0 0 50px rgba(180, 139, 255, 0.35), inset 0 0 80px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .roster-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 18px;
+            border-bottom: 1px solid rgba(180, 139, 255, 0.35);
+            background: rgba(180, 139, 255, 0.06);
+        }
+        .roster-title {
+            font-size: 13px; letter-spacing: 5px; color: #d4baff;
+            text-shadow: 0 0 12px rgba(180,139,255,0.7);
+            font-family: 'Cinzel', serif;
+        }
+        .roster-close {
+            background: transparent; border: 1px solid rgba(180,139,255,0.4);
+            color: #b48bff; width: 34px; height: 34px; font-size: 18px;
+            cursor: pointer; font-family: inherit; padding: 0; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.18s;
+        }
+        .roster-close:hover { background: #b48bff; color: #000; }
+
+        .roster-grid {
+            overflow-y: auto; padding: 18px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
+            background:
+              radial-gradient(circle at 30% 20%, rgba(180,139,255,0.04) 0, transparent 50%),
+              radial-gradient(circle at 70% 80%, rgba(255,68,119,0.03) 0, transparent 50%);
+        }
+        .roster-grid::-webkit-scrollbar { width: 6px; }
+        .roster-grid::-webkit-scrollbar-thumb { background: rgba(180,139,255,0.3); }
+
+        .roster-card {
+            position: relative;
+            background: rgba(15, 15, 25, 0.7);
+            border: 1px solid rgba(180,139,255,0.3);
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            min-height: 240px;
+            display: flex; flex-direction: column;
+        }
+        .roster-card:hover {
+            transform: translateY(-3px);
+            border-color: currentColor;
+            box-shadow: 0 0 24px rgba(180,139,255,0.4);
+        }
+        .roster-card.faction-reaper        { color: #d4baff; }
+        .roster-card.faction-skeleton      { color: #c8e8ff; }
+        .roster-card.faction-husk          { color: #ff5566; }
+        .roster-card.faction-lurker        { color: #66ff88; }
+        .roster-card.faction-tenebris      { color: #88ff44; }
+        .roster-card.faction-companion     { color: #ffcc66; }
+        .roster-card.faction-lightbringer  { color: #88ffe8; }
+        .roster-card.faction-centurion     { color: #c4a4ff; }
+
+        .roster-card-img {
+            flex: 1; min-height: 0;
+            background-size: cover; background-position: center top;
+            background-repeat: no-repeat;
+            background-color: rgba(255,255,255,0.02);
+            position: relative;
+        }
+        /* subtle hover glow effect with currentColor */
+        .roster-card-img::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(180deg,
+              rgba(0,0,0,0) 30%,
+              rgba(0,0,0,0.55) 70%,
+              rgba(0,0,0,0.92) 100%);
+            pointer-events: none;
+        }
+        .roster-card-glow {
+            position: absolute; inset: 0; pointer-events: none;
+            box-shadow: inset 0 0 30px currentColor;
+            opacity: 0.18; transition: opacity 0.22s;
+        }
+        .roster-card:hover .roster-card-glow { opacity: 0.6; }
+
+        .roster-card-info {
+            position: absolute; left: 0; right: 0; bottom: 0;
+            padding: 8px 10px 10px;
+            background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85));
+        }
+        .roster-card-name {
+            font-size: 13px; letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 0 8px currentColor, 0 0 2px #000;
+            margin-bottom: 2px;
+        }
+        .roster-card-role {
+            font-size: 9px; letter-spacing: 2px;
+            color: currentColor;
+            opacity: 0.85;
+        }
+
+        /* === CHARACTER DETAIL MODAL === */
+        .char-detail {
+            position: fixed; inset: 0; z-index: 700;
+            background: rgba(0, 0, 0, 0.95);
+            display: none; align-items: center; justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .char-detail.open { display: flex; }
+        .char-detail-shell {
+            width: min(960px, 96vw);
+            max-height: 94vh;
+            background: rgba(10, 8, 18, 0.98);
+            border: 1px solid var(--accent, #b48bff);
+            box-shadow: 0 0 50px var(--accent-glow, rgba(180,139,255,0.4)),
+                        inset 0 0 80px rgba(0,0,0,0.7);
+            display: grid;
+            grid-template-columns: minmax(280px, 38%) 1fr;
+            overflow: hidden; position: relative;
+        }
+        .char-detail-close {
+            position: absolute; top: 10px; right: 10px; z-index: 5;
+            background: rgba(0,0,0,0.7); border: 1px solid var(--accent, #b48bff);
+            color: var(--accent, #b48bff); width: 36px; height: 36px;
+            font-size: 20px; cursor: pointer; font-family: inherit;
+            padding: 0; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.18s;
+        }
+        .char-detail-close:hover { background: var(--accent, #b48bff); color: #000; }
+
+        .char-detail-art {
+            background: radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 70%);
+            display: flex; align-items: center; justify-content: center;
+            padding: 18px; min-height: 320px;
+            position: relative; overflow: hidden;
+            border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        .char-detail-art::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at center, var(--accent-glow, rgba(180,139,255,0.18)) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .char-detail-art img {
+            max-width: 100%; max-height: 75vh;
+            filter: drop-shadow(0 4px 16px rgba(0,0,0,0.7))
+                    drop-shadow(0 0 22px var(--accent-glow, rgba(180,139,255,0.35)));
+            animation: portrait-float 6s ease-in-out infinite;
+        }
+        @keyframes portrait-float {
+            0%, 100% { transform: translateY(0px); }
+            50%      { transform: translateY(-6px); }
+        }
+
+        .char-detail-info {
+            padding: 22px 22px 24px;
+            display: flex; flex-direction: column; gap: 10px;
+            overflow-y: auto;
+        }
+        .char-detail-eyebrow {
+            font-size: 10px; letter-spacing: 5px;
+            color: var(--accent, #b48bff);
+            text-transform: uppercase;
+            text-shadow: 0 0 8px var(--accent-glow, rgba(180,139,255,0.6));
+        }
+        .char-detail-info h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 28px; letter-spacing: 3px;
+            color: #fff; margin: 0;
+            text-shadow: 0 0 14px var(--accent-glow, rgba(180,139,255,0.5));
+        }
+        .char-detail-meta {
+            font-size: 10px; letter-spacing: 2px;
+            color: rgba(255,255,255,0.55);
+            line-height: 1.8;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 0; margin: 2px 0;
+        }
+        .char-detail-traits {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .char-detail-traits .trait {
+            font-size: 9.5px; letter-spacing: 1.5px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--accent, #b48bff);
+            color: var(--accent, #b48bff);
+            padding: 4px 9px;
+            border-radius: 2px;
+        }
+        .char-detail-bio {
+            font-size: 12px; line-height: 1.7;
+            color: rgba(220, 220, 235, 0.85);
+            margin: 4px 0 0;
+            letter-spacing: 0.4px;
+        }
+
+        @media (max-width: 720px) {
+            .char-detail-shell { grid-template-columns: 1fr; }
+            .char-detail-art { min-height: 240px; padding: 14px; }
+            .char-detail-art img { max-height: 36vh; }
+            .char-detail-info { padding: 16px 16px 22px; }
+            .char-detail-info h2 { font-size: 22px; letter-spacing: 2px; }
+        }
+
         /* === ARCHIVES VIDEO MODAL === */
         .archives-modal {
             position: fixed; inset: 0; z-index: 500;
@@ -435,6 +657,12 @@
                 <div class="label">LORE ARCHIVES</div>
                 <div class="desc">deathly fragments · cinematic transmissions</div>
             </button>
+
+            <button class="menu-btn roster" id="open-roster" type="button">
+                <div class="glyph">☥</div>
+                <div class="label">CHARACTER ROSTER</div>
+                <div class="desc">reapers · husks · lurkers · sentinels of creation</div>
+            </button>
         </nav>
 
         <!-- VIDEO ARCHIVES MODAL -->
@@ -453,6 +681,36 @@
                 </div>
                 <div class="archives-meta">
                     <span id="archives-caption">▸ Fragment retrieved from the Endless</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHARACTER ROSTER MODAL -->
+        <div id="roster-modal" class="roster-modal" role="dialog" aria-hidden="true">
+            <div class="roster-shell">
+                <div class="roster-header">
+                    <div class="roster-title">☥  CHARACTER ROSTER  ☥</div>
+                    <button class="roster-close" id="roster-close" aria-label="Close">×</button>
+                </div>
+                <div class="roster-grid" id="roster-grid">
+                    <!-- character cards injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CHARACTER DETAIL MODAL (when a roster card is clicked) -->
+        <div id="char-detail" class="char-detail" role="dialog" aria-hidden="true">
+            <div class="char-detail-shell">
+                <button class="char-detail-close" id="char-detail-close" aria-label="Close">×</button>
+                <div class="char-detail-art">
+                    <img id="char-detail-img" alt="">
+                </div>
+                <div class="char-detail-info">
+                    <div class="char-detail-eyebrow" id="char-detail-faction">REAPER</div>
+                    <h2 id="char-detail-name">—</h2>
+                    <div class="char-detail-meta" id="char-detail-meta"></div>
+                    <div class="char-detail-traits" id="char-detail-traits"></div>
+                    <p class="char-detail-bio" id="char-detail-bio">—</p>
                 </div>
             </div>
         </div>
@@ -671,8 +929,218 @@
         });
         // ESC closes
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && archivesModal.classList.contains('open')) closeArchives();
+            if (e.key === 'Escape') {
+                if (archivesModal.classList.contains('open')) closeArchives();
+                if (charDetail.classList.contains('open')) closeCharDetail();
+                if (rosterModal.classList.contains('open')) closeRoster();
+            }
         });
+
+        // ===== CHARACTER ROSTER =====
+        const ROSTER = [
+            {
+                id: 'maytradalis',
+                name: "May'tra'dalis",
+                shortName: 'Maytradalis',
+                role: 'HALF-REAPER · PROTAGONIST',
+                eyebrow: 'PROTAGONIST · DEATH\'S RAVEN',
+                faction: 'reaper',
+                accent: '#d4baff', glow: 'rgba(180,139,255,0.45)',
+                portrait: '/api/static/characters/maytradalis_portrait.jpg',
+                sheet:    '/api/static/characters/maytradalis_sheet.jpg',
+                meta: 'Age: 9999 · Height: 5\'7" · Profession: Half-Reaper',
+                traits: ['HOT-TEMPERED', 'EMERGING LEADER', 'EMOTIONALLY DETACHED', 'FAKES EMOTIONS TO APPEAR NORMAL'],
+                bio: "Our protagonist. May is a Half-Reaper — the only Reaper type with no Reality. She is originally Death's Raven (an all-seeing-eye), appointing Reapers throughout creation. May runs Death's Vault as an accountant and is always aiming to become the best Reaper possible. Her scythe carries the weight of unwritten realities."
+            },
+            {
+                id: 'death',
+                name: 'DEATH',
+                shortName: 'Death',
+                role: 'GREAT MASTER · LIVING SKELETON',
+                eyebrow: 'ETERNAL · MASTER OF REAPERS',
+                faction: 'skeleton',
+                accent: '#c8e8ff', glow: 'rgba(200,232,255,0.45)',
+                portrait: '/api/static/characters/death_portrait.png',
+                sheet:    '/api/static/characters/death_sheet.png',
+                meta: 'Profession: The Reaper of Reapers · Witch-Hat with Bell Tassels',
+                traits: ['ETERNAL', 'PATIENT', 'TEACHER', 'COSMIC'],
+                bio: "A tall, living skeleton in flowing black robes and a peaked witch-hat draped with bell tassels. Death is Maytradalis' great master, the original source of all Reapers throughout creation. He carries an obsidian scythe that has cut the threads of innumerable realities. Beneath his perpetual skull-grin lies a quiet, terrible compassion."
+            },
+            {
+                id: 'flybutt',
+                name: 'FlyButt',
+                shortName: 'FlyButt',
+                role: 'BEST BUDDY · INTERESTING FLY',
+                eyebrow: 'COMPANION · UNEXPECTED WISDOM',
+                faction: 'companion',
+                accent: '#ffcc66', glow: 'rgba(255,204,102,0.5)',
+                portrait: '/api/static/characters/flybutt_portrait.png',
+                sheet:    '/api/static/characters/flybutt_sheet.png',
+                meta: 'Profession: Maytradalis\'s constant companion · An interestingly emotional fly',
+                traits: ['CURIOUS', 'EMOTIONAL', 'MISCHIEVOUS', 'SURPRISINGLY DEEP'],
+                bio: "A small yellow fly with antennae and an absurdly wide emotional range. Despite being a fly, FlyButt provides comic relief and unexpected wisdom on May's reaper journey — sometimes wearing a tiny maid-uniform, sometimes brooding, sometimes incandescent with fury. He is the only being who is allowed to perch on Death's hat."
+            },
+            {
+                id: 'cryious',
+                name: 'Grim Cryious',
+                shortName: 'Cryious',
+                role: 'DEATH\'S FIRST REAPER · MENTOR',
+                eyebrow: 'BORN OF THE 2ND REALITY',
+                faction: 'reaper',
+                accent: '#ff8866', glow: 'rgba(255,136,102,0.4)',
+                portrait: '/api/static/characters/cryious_portrait.jpg',
+                sheet:    '/api/static/characters/cryious_sheet.jpg',
+                meta: 'Height: 6\'2" · Weight: ~160-170 lbs · Eye: Singular crimson',
+                traits: ['LOYAL', 'DOGMATIC', 'TRADITIONAL', 'ELITE FIGHTER'],
+                bio: "Death's first reaper, born of the 2nd Reality — now non-existent. Cryious is duty-bound as a reaper for Death and respects him as a brother in arms. Wielding a thorny crimson scythe and a single burning red eye beneath a peaked hood, he currently oversees Maytradalis' reaper training with stern, dogmatic devotion."
+            },
+            {
+                id: 'elystria',
+                name: 'Grim Elystria',
+                shortName: 'Elystria',
+                role: 'SENIOR REAPER · DIGITAL FORM',
+                eyebrow: 'INTERFACER OF THE ENDLESS',
+                faction: 'reaper',
+                accent: '#ff5588', glow: 'rgba(255,85,136,0.4)',
+                portrait: '/api/static/characters/elystria_portrait.png',
+                sheet:    '/api/static/characters/elystria_sheet.png',
+                meta: 'Senior Reaper · Gothic armor · Glitch-interface alt form',
+                traits: ['ELEGANT', 'AUTHORITATIVE', 'INTERFACED', 'COMPOSED'],
+                bio: "A senior reaper with cascading scarlet hair and gothic plate armor. Elystria interfaces directly with the Endless — when she does, her form fragments into a luminous digital cascade of glyphs. She operates with calm authority and quiet, elegant menace, often dispatched to anomalies the others cannot survive."
+            },
+            {
+                id: 'madoria',
+                name: 'Madoria Lightbringer',
+                shortName: 'Madoria',
+                role: 'LIGHTBRINGER · GUIDE OF DAWN',
+                eyebrow: 'EMISSARY OF THE FIRST LIGHT',
+                faction: 'lightbringer',
+                accent: '#88ffe8', glow: 'rgba(136,255,232,0.45)',
+                portrait: '/api/static/characters/madoria_portrait.jpg',
+                sheet:    '/api/static/characters/madoria_sheet.jpg',
+                meta: 'Race: Lightbringer · Aurora-hair · Cyan-rune limbs',
+                traits: ['LUMINOUS', 'KIND', 'RELENTLESS', 'PROTECTIVE'],
+                bio: "Aurora-haired emissary of the First Light. Madoria's body is laced with cyan circuit-runes that pulse in time with the choir-vaults of Strata +12. Where her translucent veil falls, dark realities are briefly held in stasis. She believes the Lurker can be unmade by remembrance, not violence."
+            },
+            {
+                id: 'centurion',
+                name: 'Centurion Trooper',
+                shortName: 'Centurion',
+                role: 'GUARD · HEAVY ARMOR',
+                eyebrow: 'TURION GARRISON · FORT HARPIE',
+                faction: 'centurion',
+                accent: '#c4a4ff', glow: 'rgba(196,164,255,0.4)',
+                portrait: '/api/static/characters/centurion_portrait.png',
+                sheet:    '/api/static/characters/centurion_sheet.png',
+                meta: 'Armor: Pact-forged purple plate · Weapon: Multi-barrel Loomgun',
+                traits: ['DISCIPLINED', 'HEAVY ASSAULT', 'GARRISON', 'PACT-BOUND'],
+                bio: "Frontline guard of the Turion Garrison stationed at Fort Harpie. Centurions wear pact-forged purple plate and carry a six-barreled Loomgun that fires reality-binding rounds. They are the only mortal force that dared volunteer for the standing perimeter around known Lurker corruption zones."
+            },
+            {
+                id: 'tenebris',
+                name: 'The Tenebris',
+                shortName: 'Tenebris',
+                role: 'LURKER\'S HARBINGER',
+                eyebrow: 'EMISSARY OF THE LURKER',
+                faction: 'tenebris',
+                accent: '#88ff44', glow: 'rgba(136,255,68,0.55)',
+                portrait: '/api/static/characters/tenebris_portrait.png',
+                sheet:    '/api/static/characters/tenebris_sheet.png',
+                meta: 'A glitching alien herald · neon-green inner flesh · embers',
+                traits: ['SILENT', 'BLADE-LIMBED', 'GLITCHING', 'HERALD'],
+                bio: "The Tenebris arrives where realities thin. Beneath chitinous black plating, neon-green inner flesh pulses; ember-orange smoke clings to its crown like a halo. It is the Lurker's herald — silent, swift, and surgical. Wherever it stands, the colors of the world begin to slip out of register."
+            },
+            {
+                id: 'husks',
+                name: 'Lurker Husks',
+                shortName: 'Husks',
+                role: 'CORRUPTED REMNANTS · SWARM',
+                eyebrow: 'WHAT REMAINS · CONSUMED',
+                faction: 'husk',
+                accent: '#ff5566', glow: 'rgba(255,85,102,0.45)',
+                portrait: '/api/static/characters/lurker_husks_portrait.png',
+                sheet:    '/api/static/characters/lurker_husks_sheet.png',
+                meta: 'Origin: Souls denied passage by The Lurker · Tendril swarm',
+                traits: ['HUNGRY', 'SCREAMING', 'COLLECTIVE', 'INSATIABLE'],
+                bio: "What remains of those the Lurker has consumed. Skinned pale, sprouting masses of crimson tendrils tipped in barbed mouths, the Husks roam the unmapped strata in screaming packs. They were people once; they remember nothing but the hunger that follows the silence."
+            },
+            {
+                id: 'lurker',
+                name: 'THE LURKER',
+                shortName: 'The Lurker',
+                role: 'THE MYSTERIOUS ENTITY',
+                eyebrow: 'UNKNOWABLE · CREATION\'S ENEMY',
+                faction: 'lurker',
+                accent: '#66ff88', glow: 'rgba(102,255,136,0.5)',
+                portrait: '/api/static/characters/lurker_portrait.png',
+                sheet:    '/api/static/characters/lurker_sheet.png',
+                meta: 'Gender: — · Race: — · Age: — · Height: —',
+                traits: ['UNKNOWN', 'INESCAPABLE', 'WATCHING', 'PATIENT'],
+                bio: "All data on the Lurker is redacted, withheld, or — in seven recorded instances — actively erased from the wanderer's own memory between observations. What can be confirmed: a tall, beaked figure cloaked in dark green hide, chest-bound with shifting jeweled cells. It is patient. It is watching. It is the reason May trains. The Endless does not name it."
+            }
+        ];
+
+        const rosterModal  = document.getElementById('roster-modal');
+        const rosterClose  = document.getElementById('roster-close');
+        const rosterBtn    = document.getElementById('open-roster');
+        const rosterGrid   = document.getElementById('roster-grid');
+        const charDetail   = document.getElementById('char-detail');
+        const charDetailClose = document.getElementById('char-detail-close');
+
+        function buildRoster() {
+            rosterGrid.innerHTML = '';
+            ROSTER.forEach((c, i) => {
+                const card = document.createElement('div');
+                card.className = 'roster-card faction-' + c.faction;
+                card.style.setProperty('--accent', c.accent);
+                card.style.setProperty('--accent-glow', c.glow);
+                card.innerHTML = `
+                    <div class="roster-card-img" style="background-image:url('${c.portrait}')"></div>
+                    <div class="roster-card-glow"></div>
+                    <div class="roster-card-info">
+                        <div class="roster-card-name">${c.shortName}</div>
+                        <div class="roster-card-role">${c.role}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => openCharDetail(c));
+                rosterGrid.appendChild(card);
+            });
+        }
+
+        function openRoster() {
+            buildRoster();
+            // Pause menu music while browsing roster (optional — keeps it playing actually)
+            rosterModal.classList.add('open');
+            rosterModal.setAttribute('aria-hidden', 'false');
+        }
+        function closeRoster() {
+            rosterModal.classList.remove('open');
+            rosterModal.setAttribute('aria-hidden', 'true');
+        }
+        function openCharDetail(c) {
+            const shell = charDetail.querySelector('.char-detail-shell');
+            shell.style.setProperty('--accent', c.accent);
+            shell.style.setProperty('--accent-glow', c.glow);
+            document.getElementById('char-detail-img').src = c.sheet;
+            document.getElementById('char-detail-img').alt = c.name;
+            document.getElementById('char-detail-faction').textContent = c.eyebrow;
+            document.getElementById('char-detail-name').textContent = c.name;
+            document.getElementById('char-detail-meta').textContent = c.meta;
+            const traitsEl = document.getElementById('char-detail-traits');
+            traitsEl.innerHTML = c.traits.map(t => `<span class="trait">${t}</span>`).join('');
+            document.getElementById('char-detail-bio').textContent = c.bio;
+            charDetail.classList.add('open');
+            charDetail.setAttribute('aria-hidden', 'false');
+        }
+        function closeCharDetail() {
+            charDetail.classList.remove('open');
+            charDetail.setAttribute('aria-hidden', 'true');
+        }
+        rosterBtn.addEventListener('click', openRoster);
+        rosterClose.addEventListener('click', closeRoster);
+        rosterModal.addEventListener('click', (e) => { if (e.target === rosterModal) closeRoster(); });
+        charDetailClose.addEventListener('click', closeCharDetail);
+        charDetail.addEventListener('click', (e) => { if (e.target === charDetail) closeCharDetail(); });
     })();
     </script>
 </body>

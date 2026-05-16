@@ -241,6 +241,21 @@
         </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- THE LURKER · EASTER EGG SIGHTING OVERLAY                        -->
+    <!-- Triggered ~1% chance while exploring deep strata. Neon-green    -->
+    <!-- chromatic glitch + silhouette + "The Lurker is watching." text. -->
+    <!-- ============================================================== -->
+    <div id="lurker-sighting" aria-hidden="true">
+        <div id="lurker-glitch-bg"></div>
+        <img id="lurker-silhouette" src="/api/static/characters/lurker_portrait.png" alt="">
+        <div id="lurker-text">
+            <span class="ls-line">THE LURKER IS WATCHING.</span>
+            <span class="ls-sub" id="lurker-sub">▸ Strata signal corrupted</span>
+        </div>
+        <div id="lurker-scanline"></div>
+    </div>
+
     <!-- DESKTOP PAUSE / SETTINGS BUTTON -->
     <button id="pause-btn" onclick="openPauseMenu()" aria-label="Settings menu" title="Settings (Esc)">[ ⏸ SETTINGS ]</button>
     <!-- DESKTOP FULLSCREEN BUTTON -->

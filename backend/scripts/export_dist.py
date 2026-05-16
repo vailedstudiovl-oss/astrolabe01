@@ -83,6 +83,13 @@ for f in (STATIC_DIR / "chunks").iterdir():
     if f.is_file():
         shutil.copy(f, DIST_DIR / "api" / "static" / "chunks" / f.name)
 
+# Copy character art folder (used by main menu roster + Lurker easter egg)
+chars_src = STATIC_DIR / "characters"
+chars_dst = DIST_DIR / "api" / "static" / "characters"
+if chars_src.exists():
+    shutil.copytree(chars_src, chars_dst)
+    print(f"  · copied {sum(1 for _ in chars_dst.iterdir())} character art files")
+
 # Root index.html — tiny redirect to /api/astrolabe (handles users hitting "/")
 print("[4/6] Writing routing helpers …")
 (DIST_DIR / "index.html").write_text("""<!DOCTYPE html>

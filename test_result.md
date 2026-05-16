@@ -787,3 +787,41 @@ agent_communication:
         • Main menu shows ONE title; donate button + modal w/ 4 tiers + PayPal
           email all functional
 
+
+  - agent: "main"
+    message: |
+      [2026-05-16 — Iteration 7: Mobile Topbar Scaling Verification + Bundle Rebuild]
+
+      P0 — Mobile topbar "ghost rectangle" bug:
+        Previous fork applied responsive `clamp()` scaling to `.m-topbar`
+        (min-height: clamp(44px, 8vh, 60px) + padding-top: var(--safe-top)
+        + clamp() padding-left/right + clamp() font sizes on burger/eyebrow/
+        title/seed). That fix had landed in /app/backend/static/astrolabe.html
+        but never been verified end-to-end.
+
+        VERIFIED VIA SCREENSHOT TOOL at 3 mobile viewport widths
+        (320×568, 360×800, 412×915) — full launcher → game flow:
+          • 320×568: topbar = 0px top, 46.4px tall — NO ghost element above
+          • 360×800: topbar = 0px top, 61px tall — clean
+          • 412×915: topbar = 0px top, 61px tall — clean
+          • Vision-model inspection of 320×568 top 100px confirms:
+            "no visible inset rectangles, ghost elements, or content
+             rendering above this main topbar"
+
+        Root cause of previously-reported "--" rectangle: the achievement
+        toast template defaulted its name to "--" before any real
+        achievement was unlocked. That was already guarded inside
+        showAchievementToast() (bails out silently if name === '--').
+        Combined with the clamp() refactor + box-sizing: content-box +
+        padding-top: var(--safe-top), the layout now scales smoothly.
+
+      P1 — Re-export bundles to embed the verified fix:
+        • python3 backend/scripts/split_astrolabe.py
+            → astrolabe.css 83.5 KB / -body 55.7 KB / -engine 335.1 KB
+        • python3 backend/scripts/export_dist.py
+            → /app/dist 53 files · 38.89 MB
+        • python3 backend/scripts/build_portable.py
+            → /app/portable/DimensionLock_Astrolabe_Portable.zip 38.90 MB
+        All three scripts ran clean. Chunks now reference the
+        clamp()-based topbar and the latest 3D models/textures.
+

@@ -336,7 +336,7 @@
             position: absolute; top: 2px; right: 110px;
             z-index: 50; cursor: pointer;
         }
-        @media (min-width: 768px) { #codex-btn { top: 12px; right: 140px; } }
+        @media (min-width: 768px) { #codex-btn { top: 12px; right: clamp(70px, 11vw, 140px); } }
         #codex-panel {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             z-index: 200; width: 95%; max-width: 700px; max-height: 80vh;
@@ -680,9 +680,11 @@
         }
         .pause-preset-row button:hover { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; }
 
-        /* Pause / Settings button in desktop HUD (top-right area) */
+        /* Pause / Settings button in desktop HUD (top-right area).
+           Right offset is viewport-relative so the cluster (fullscreen → pause → seed → codex)
+           stays anchored to the right edge without overlapping on narrower desktop widths. */
         #pause-btn {
-            position: fixed; top: 14px; right: 250px; z-index: 60;
+            position: fixed; top: 14px; right: clamp(125px, 20vw, 250px); z-index: 60;
             background: rgba(0,0,0,0.7); border: 1px solid #00ffcc; color: #00ffcc;
             font-family: 'Share Tech Mono', monospace; font-size: 11px;
             letter-spacing: 2px; padding: 6px 12px; cursor: pointer;
@@ -691,7 +693,7 @@
         #pause-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
         /* Fullscreen button in desktop HUD (sits to the left of the SETTINGS button) */
         #fullscreen-btn {
-            position: fixed; top: 14px; right: 380px; z-index: 60;
+            position: fixed; top: 14px; right: clamp(190px, 30vw, 380px); z-index: 60;
             background: rgba(0,0,0,0.7); border: 1px solid #00ffcc; color: #00ffcc;
             font-family: 'Share Tech Mono', monospace; font-size: 11px;
             letter-spacing: 2px; padding: 6px 12px; cursor: pointer;
@@ -840,9 +842,11 @@
             .scanline { background-size: 100% 6px; opacity: 0.18; }
         }
 
-        /* --- Mobile Top Bar --- */
+        /* --- Mobile Top Bar (responsive across small-phone → tablet widths) --- */
         .m-topbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 52px;
+            position: fixed; top: 0; left: 0; right: 0;
+            /* Scales 40 → 56 px between ~570 px wide and ~800 px wide viewports */
+            height: clamp(40px, 7vh, 56px);
             padding-top: var(--safe-top);
             background: linear-gradient(180deg, rgba(0,5,10,0.95) 0%, rgba(0,5,10,0.7) 100%);
             border-bottom: 1px solid rgba(0,255,204,0.4);
@@ -851,19 +855,34 @@
             backdrop-filter: blur(10px);
         }
         .m-topbar .m-burger {
-            width: 36px; height: 36px; flex-shrink: 0;
+            /* 30 → 40 px responsive square (preserves the 44 px tap target on mid+ phones) */
+            width: clamp(30px, 5vw, 40px);
+            height: clamp(30px, 5vw, 40px);
+            flex-shrink: 0;
             background: rgba(0,255,204,0.08); border: 1px solid #00ffcc;
-            color: #00ffcc; font-size: 16px; cursor: pointer;
+            color: #00ffcc; font-size: clamp(13px, 3vw, 16px); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             transition: background 0.2s;
         }
         .m-topbar .m-burger:active { background: #00ffcc; color: #000; }
         .m-topbar .m-focus { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .m-topbar .m-eyebrow { font-size: 8px; letter-spacing: 4px; color: #666; text-transform: uppercase; }
-        .m-topbar .m-title { font-size: 11px; letter-spacing: 1.5px; color: #00ffcc; text-shadow: 0 0 5px currentColor; font-weight: bold; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+        .m-topbar .m-eyebrow {
+            font-size: clamp(7px, 1.8vw, 10px);
+            letter-spacing: 4px; color: #666; text-transform: uppercase;
+        }
+        .m-topbar .m-title {
+            font-size: clamp(9px, 2.2vw, 13px);
+            letter-spacing: 1.5px; color: #00ffcc;
+            text-shadow: 0 0 5px currentColor; font-weight: bold;
+            max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
+        }
         .m-topbar .m-seed {
             background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,204,0.4);
-            color: #00ffcc; font-size: 9px; letter-spacing: 1px; padding: 6px 8px;
+            color: #00ffcc;
+            font-size: clamp(8px, 1.9vw, 11px);
+            letter-spacing: 1px;
+            /* Padding scales proportionally so the chip doesn't dwarf the title on small screens */
+            padding: clamp(4px, 1.2vw, 7px) clamp(6px, 1.8vw, 10px);
             display: flex; align-items: center; gap: 4px; cursor: pointer;
             font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
         }
@@ -1334,7 +1353,7 @@
             font-family: 'Share Tech Mono', monospace;
             transition: all 0.2s;
         }
-        @media (min-width: 768px) { #seed-pill { top: 12px; right: 240px; font-size: 10px; padding: 6px 10px; } }
+        @media (min-width: 768px) { #seed-pill { top: 12px; right: clamp(120px, 19vw, 240px); font-size: 10px; padding: 6px 10px; } }
         #seed-pill:hover { background: #00ffcc; color: #000; }
         #seed-pill .seed-val { color: #fff; font-weight: bold; }
         #seed-pill .seed-icon { font-size: 11px; }

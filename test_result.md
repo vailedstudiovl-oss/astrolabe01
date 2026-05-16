@@ -189,7 +189,75 @@ backend:
           agent: "main"
           comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
 
-  - task: "Audio overlap fix (menu toggle + breach defense entry)"
+  - task: "Breach Defense → Soulseam Containment (Alien-Swarm-style top-down 3D defense)"
+    implemented: true
+    working: true
+    file: "backend/static/breach_defense.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Complete redesign of /api/breach-defense from a 2D-canvas orb-tap arcade
+            into an Alien-Swarm-style top-down 3D tactical defense. Player is now
+            a CENTURION GUARD TROOPER who CANNOT MOVE — only aim and shoot — and
+            must HOLD THEIR POST until the Containment Beacon launches.
+
+            Lore: The reality is a soul-rotten skein born of trapped souls who
+            cannot pass on; SOUL PARASITES (flying worm-creatures) crawl from the
+            infection toward the beacon. Win = survive 3:00 until the beacon
+            launches. Lose = parasites destroy the beacon.
+
+            Tech:
+            • Three.js (r128 CDN) — top-down 3D scene with perspective camera
+              tilted ~75°. Fog + ambient + point + spot lighting for the dark
+              green industrial aesthetic.
+            • Floor with grid + 7 random emissive "infection pool" splotches.
+            • Perimeter cylindrical wall + 8 cover pillars.
+            • Centurion player (purple armored cube + helmet + visor + red
+              accent + 2 shoulder pauldrons + 4-barrel Loomgun cluster with
+              chrome stripe rings + green energy cell + recoil animation +
+              muzzle flash cone).
+            • Beacon = cylinder core + 3 rotating torus rings + base + glow
+              point light. Animates progress to launch.
+            • Soul Parasites = TubeGeometry along Catmull-Rom curve, glowing
+              green emissive, sinusoidal y-wiggle + body sway + magenta eye.
+              HP scales per wave.
+            • Bullets = line tracers (yellow, additive blending) with
+              instant-frame collision detection. Loomgun fires ~11 shots/sec
+              with horizontal spread.
+            • Heat system: HEAT bar fills as you fire; overheat at 100 → 1.6s
+              lockout cooldown. NOMINAL / HEAT RISING / HEAT CRITICAL /
+              OVERHEATED status.
+            • Wave manager spawns parasites at random arena-edge angles; new
+              wave triggers every ~18-25s once previous wave clears.
+            • Damage vignette (red radial) on beacon hits + screen-shake.
+            • Particles for impact / kill / damage with additive blending.
+            • Aim reticle on floor follows mouse / touch.
+            • Mobile FIRE button bottom-right (44×44+ touch target).
+            • HUD: BEACON HP / LAUNCH-IN timer with progress bar / SOULS PURGED /
+              WAVE indicator / CONTAINMENT count / LOOMGUN heat bar.
+            • Win screen: "BEACON LAUNCHED — the souls move on at last".
+              Lose screen: "CONTAINMENT BREACH — the Lurker advances".
+            • Pre-game intro overlay shows full mission briefing with the
+              user's Centurion character art as reference plus 4 control cards.
+            • Web Audio SFX for shot / hit / kill / damage / overheat / wave /
+              win / lose — plus the canonical DL Opening Theme music with
+              safe play/pause + visibility cleanup (no audio overlap).
+            • Mobile-friendly: HUD wraps, FIRE button auto-shows on touch
+              devices, intro overlay scrollable on short screens.
+
+            Verified end-to-end via screenshot tool: intro briefing renders,
+            "HOLD THE LINE" launches the game, Centurion appears with the
+            beacon, mouse-aim rotates the Centurion's body+gun, holding
+            mouse-down fires yellow tracers, parasites spawn from edges and
+            crawl toward the beacon, heat bar fills with sustained fire,
+            beacon HP drops when parasites touch it (with red vignette +
+            screen shake), wave banners trigger correctly.
+
+            Bundles rebuilt: /app/dist + /app/portable...zip (31 MB each).
     implemented: true
     working: true
     file: "backend/static/main_menu.html, backend/static/breach_defense.html"

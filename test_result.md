@@ -612,3 +612,66 @@ agent_communication:
         7. Test edge case: empty event_history on saves, no description on saves, no title on lore.
       DB is local Mongo via existing MONGO_URL env. UUIDs as `id` field (not Mongo _id).
       You do NOT need to test the existing astrolabe HTML/PWA serving — those are stable.
+
+  - agent: "main"
+    message: |
+      [2026-05-16 — Breach Defense visual overhaul, iteration 3]
+      User feedback addressed in this iteration:
+        1. "flying parasites are not spawning" — They WERE spawning, but the prior
+           camera/lighting setup made them invisible. Now:
+           • spawnAccum primed to 1.4 → first parasite spawns within 0.2s of "Hold the Line"
+           • Parasites rebuilt as proper flying soul-worms: green segmented body,
+             magenta eye, two translucent flapping wings (animated sin-flap), green
+             glow halo, drop-shadow disc on the ground
+           • They hover between y=1.05 and y=1.65 with wing-flap on Math.sin(phase*2.2)
+           • Husks are now ground-walking bulky enemies with skull heads and red halo
+        2. "the character isn't matching his character sheet" — Centurion completely
+           rebuilt to match centurion_sheet_v2.png:
+           • Deep purple armor (#5a3aa0 / #3a2370) on torso, helmet, pauldrons
+           • Burnt orange/red ribbed chest panel (#c14f32) + knee pads + belt buckle
+             + spinal accent (faithful to sheet)
+           • Gold/yellow visor (#ffd44a) as bright emissive horizontal band on helm,
+             plus orange faceplate below
+           • Two yellow chest light dots (#ffee66) with PointLight emitters
+           • Dark grey legs (#2a2a2e) with diagonal yellow shin stripes and boots
+           • Huge rounded pauldrons (sphere caps) with orange trim torus + dark outer
+             plate, plus angular helmet crest and side fins
+           • Multi-barrel Loomgun: 3 cylindrical dark barrels in a horizontal row
+             (per sheet), silver alternating rings, prominent green energy cell at
+             chamber with green PointLight + additive halo, muzzle flash cone
+           • Player scaled 1.35× so silhouette is the focal point of the iso frame
+        3. Achievement toast — Tested live in both desktop (1280×800) and mobile
+           (390×844 iPhone) on both /api/astrolabe (main menu) and /api/astrolabe-game
+           (the actual game). Toast displays correctly when:
+           a) showAchievementToast() called directly
+           b) checkAchievements() triggers naturally on databank open
+           Old chunks were re-split → manifest hash updated, so any stale-cache
+           clients will auto-refetch on next visit.
+        4. Massive "black band" rendering bug eliminated. Root cause: 5 ceiling-pipe
+           cylinders at y=12.0 were sitting just below camera height (y=13), and one
+           pipe at z=+8 was right in the center of the camera frustum, rendering as a
+           giant horizontal black stripe across the middle of the screen. Removed the
+           ceiling-pipe loop entirely.
+        5. Camera + lighting overhauled for true Alien-Swarm framing:
+           • CAM_HEIGHT 17→13, CAM_TILT 12→9, FOV 48→52, lookAt (0,1,-1.5)
+           • Player position moved to (0, 0, +1.5) — foreground; beacon to (0,0,-3.5)
+             — background. So player is now in the lower-third of frame, beacon
+             glows behind, enemies converge from all sides toward beacon.
+           • HemisphereLight (1.4) + AmbientLight (0.45) + DirectionalLight (1.1) +
+             multiple PointLight fills with `useLegacyLights=true` so PointLights
+             have linear decay and actually reach the floor.
+           • Bloom retuned: strength 0.5, threshold 0.92, radius 0.4. Glows pop on
+             muzzle/beacon/parasites without washing out the floor.
+           • Walls dropped from 2.4 to 1.2 height with bright yellow trim strips.
+           • Background tanks shortened (h: 3.5-4.0 vs prior 8-9) so they don't
+             loom over the iso frame.
+           • Tone mapping: ACESFilmic, exposure 1.05.
+      Bundle re-export:
+        • split_astrolabe.py executed → new chunk hashes
+        • export_dist.py → /app/dist/ refreshed (49 files, 30.33 MB)
+        • build_portable.py → /app/portable/DimensionLock_Astrolabe_Portable.zip
+          refreshed (30.33 MB)
+      Verified rendering with screenshot tool — no JS errors, parasites spawning,
+      Centurion clearly readable, tracers/lightning firing, HUD nominal, beacon HP
+      ticking when parasites touch it. Achievement toast verified working.
+

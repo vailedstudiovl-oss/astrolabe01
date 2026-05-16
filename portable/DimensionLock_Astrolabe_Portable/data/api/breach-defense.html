@@ -11,9 +11,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="icon" href="./static/icon-192.png" type="image/png">
 
-    <!-- Three.js + helpers (same CDN that the astrolabe game uses, so most users
-         already have it cached). -->
+    <!-- Three.js + post-processing for the bloom effect (matches Alien Swarm-style glow) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@600&display=swap');
@@ -458,6 +463,7 @@
         <div class="wave-tag" id="hud-wave">WAVE 1</div>
         <div class="kills">CONTAINMENT · <span id="hud-active">0</span></div>
         <div class="ammo">CENTURION GUARD · TURION</div>
+        <div id="hud-lightning" style="margin-top:4px;color:#88ddff;font-size:11px;letter-spacing:2px;">LIGHTNING ⚡ READY [R / ⚡]</div>
     </div>
 
     <div id="ammo-bar">
@@ -467,6 +473,7 @@
     </div>
 
     <button id="touch-shoot">FIRE</button>
+    <button id="touch-lightning" style="position:fixed;bottom:108px;right:78px;z-index:90;width:62px;height:62px;border-radius:50%;background:radial-gradient(circle,rgba(136,221,255,0.35),rgba(136,221,255,0.1));border:2px solid #88ddff;color:#88ddff;font-size:22px;display:none;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(136,221,255,0.4);backdrop-filter:blur(4px);user-select:none;touch-action:none;cursor:pointer;font-family:inherit;">⚡</button>
 
     <!-- Wave / launch banners -->
     <div class="banner" id="banner-wave"><div class="b-eyebrow">▸ INCOMING ◂</div><div class="b-title">WAVE 1</div></div>
@@ -536,109 +543,248 @@
         'use strict';
 
         // ========== CONFIG ==========
-        const ARENA_RADIUS    = 12;      // playable area radius
-        const CAM_HEIGHT      = 22;
-        const CAM_TILT        = 8;       // how far in z the camera leans
+        const ARENA_RADIUS    = 14;      // playable area radius
+        const CAM_HEIGHT      = 13;      // camera height for tighter Alien-Swarm framing
+        const CAM_TILT        = 9;       // forward offset for 3/4 iso tilt
         const BEACON_LAUNCH_S = 180;     // 3 minutes to survive
         const BEACON_HP_MAX   = 100;
         const PARASITE_BASE_SPEED = 2.6;
         const PARASITE_TOUCH_DAMAGE = 8;
-        const FIRE_INTERVAL_MS = 90;     // Loomgun firing cadence
-        const HEAT_PER_SHOT    = 1.4;
-        const HEAT_COOL_RATE   = 22;     // per second when not firing
+        const FIRE_INTERVAL_MS = 75;     // Loomgun firing cadence (faster — bullet-hell feel)
+        const HEAT_PER_SHOT    = 1.3;
+        const HEAT_COOL_RATE   = 22;
         const HEAT_MAX         = 100;
         const HEAT_OVERHEAT_LOCK_S = 1.6;
-        const BULLET_SPEED     = 38;
-        const BULLET_RANGE     = 28;
+        const BULLET_SPEED     = 48;
+        const BULLET_RANGE     = 34;
         const PARASITE_HP      = 18;
+        const HUSK_HP          = 120;
+        const LIGHTNING_COOLDOWN_S = 4.0;   // alt-fire reset
+        const LIGHTNING_DAMAGE = 80;
+        const LIGHTNING_CHAIN_RADIUS = 6.5;
 
         // ========== SCENE ==========
         const canvas = document.getElementById('game-canvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-        renderer.setClearColor(0x050b08, 1);
+        renderer.setClearColor(0x040806, 1);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.toneMapping = THREE.LinearToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        // Legacy linear-decay lights so PointLight reaches the floor without inverse-square falloff drama
+        renderer.useLegacyLights = true;
+        renderer.physicallyCorrectLights = false;
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x070d0a, 18, 38);
+        // No volumetric fog — keeps the whole arena floor uniformly readable.
+        scene.background = new THREE.Color(0x121d18);
 
-        const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 80);
+        const camera = new THREE.PerspectiveCamera(52, 1, 0.5, 90);
         camera.position.set(0, CAM_HEIGHT, CAM_TILT);
-        camera.lookAt(0, 0, 0);
+        camera.lookAt(0, 1.0, -1.5);   // aim slightly into arena so player (foreground) and beacon (background) both fit
+
+        // -- POST-PROCESSING (UnrealBloomPass) — gives muzzle flashes / beacon / parasites
+        //    that bright Alien-Swarm glow on top of dark green environment.
+        let composer, bloomPass;
+        function setupComposer() {
+            const w = window.innerWidth, h = window.innerHeight;
+            composer = new THREE.EffectComposer(renderer);
+            composer.setSize(w, h);
+            composer.addPass(new THREE.RenderPass(scene, camera));
+            // Subtle bloom for emissive highlights — won't wash the floor
+            bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 0.5, 0.4, 0.92);
+            bloomPass.threshold = 0.92;
+            bloomPass.strength  = 0.5;
+            bloomPass.radius    = 0.4;
+            composer.addPass(bloomPass);
+        }
 
         function resizeRenderer() {
             const w = window.innerWidth, h = window.innerHeight;
             renderer.setSize(w, h, false);
             camera.aspect = w / h; camera.updateProjectionMatrix();
+            if (composer) composer.setSize(w, h);
+            if (bloomPass) bloomPass.resolution.set(w, h);
         }
         window.addEventListener('resize', resizeRenderer);
         resizeRenderer();
+        setupComposer();
+        resizeRenderer();
 
         // ========== LIGHTING ==========
-        scene.add(new THREE.AmbientLight(0x4a6b58, 0.55));
-        const keyLight = new THREE.PointLight(0xa0ff90, 2.4, 32);
-        keyLight.position.set(0, 12, 0);
+        // Hemisphere light = uniform fill from above (sky) and below (ground). Eliminates dark dead zones.
+        const hemi = new THREE.HemisphereLight(0xa8ffd0, 0x224033, 1.4);
+        scene.add(hemi);
+        // Soft ambient base layer
+        scene.add(new THREE.AmbientLight(0x5a7868, 0.45));
+        // Main key light — directional, no falloff
+        const keyLight = new THREE.DirectionalLight(0xd8ffe8, 1.1);
+        keyLight.position.set(-8, 18, 6);
         scene.add(keyLight);
-
-        // Subtle moving green caustic from above
-        const causticLight = new THREE.SpotLight(0x88ffaa, 1.3, 24, Math.PI / 4, 0.6, 1.5);
-        causticLight.position.set(0, 14, -4);
-        causticLight.target.position.set(0, 0, 0);
+        // Player highlight — wider range with linear falloff so it reaches the floor
+        const playerLight = new THREE.PointLight(0xc8ffe0, 4.0, 18, 1);
+        playerLight.position.set(0, 6, 1.5);
+        scene.add(playerLight);
+        // Mid-arena fill so the floor doesn't have a dark dead zone
+        const midFill = new THREE.PointLight(0xaaddc0, 3.5, 22, 1);
+        midFill.position.set(0, 7, -5);
+        scene.add(midFill);
+        // Caustic spot — slowly drifting green industrial uplight
+        const causticLight = new THREE.SpotLight(0x88ffaa, 1.2, 30, Math.PI / 3.5, 0.65, 1);
+        causticLight.position.set(0, 14, -10);
+        causticLight.target.position.set(0, 0, -10);
         scene.add(causticLight); scene.add(causticLight.target);
+        // Red infection uplight from one corner — for color contrast
+        const redLight = new THREE.PointLight(0xff4422, 1.2, 18, 1);
+        redLight.position.set(12, 4, -10);
+        scene.add(redLight);
 
-        // ========== FLOOR — sickly soul-rotted plates ==========
-        const floorGeo = new THREE.PlaneGeometry(48, 48, 24, 24);
-        const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x1a3322, roughness: 0.95, metalness: 0.1,
-            emissive: 0x081a10, emissiveIntensity: 0.4,
+        // ========== INDUSTRIAL ENVIRONMENT ==========
+        // Floor (mesh-grate look via subtle gridline noise)
+        const floorGeo = new THREE.PlaneGeometry(60, 60, 1, 1);
+        const floorMat = new THREE.MeshLambertMaterial({
+            color: 0x3a5b4c,
+            emissive: 0x1a3528, emissiveIntensity: 0.55,
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        // Grid pattern overlay (faint cyan)
-        const gridHelper = new THREE.GridHelper(48, 32, 0x00ff88, 0x00553a);
-        gridHelper.material.opacity = 0.18; gridHelper.material.transparent = true;
-        gridHelper.position.y = 0.01;
-        scene.add(gridHelper);
+        // Grate pattern overlay — subtle, with colors very close to floor so perspective foreshortening doesn't darken bands
+        const grate = new THREE.GridHelper(60, 15, 0x5a8a72, 0x4a7060);
+        grate.material.opacity = 0.4; grate.material.transparent = true;
+        grate.position.y = 0.015;
+        scene.add(grate);
 
-        // Random "infection" pools — emissive dark-red splotches
-        const POOL_COUNT = 7;
-        for (let i = 0; i < POOL_COUNT; i++) {
-            const r = 0.8 + Math.random() * 2.2;
+        // Infection oozes — emissive red splotches
+        for (let i = 0; i < 9; i++) {
+            const r = 0.9 + Math.random() * 2.6;
             const poolGeo = new THREE.CircleGeometry(r, 16);
             const poolMat = new THREE.MeshBasicMaterial({
-                color: 0x3a0a18, transparent: true, opacity: 0.5,
+                color: 0x4a0918, transparent: true, opacity: 0.55,
                 blending: THREE.AdditiveBlending, depthWrite: false,
             });
             const pool = new THREE.Mesh(poolGeo, poolMat);
             pool.rotation.x = -Math.PI / 2;
             const ang = Math.random() * Math.PI * 2;
-            const dist = 3 + Math.random() * 10;
+            const dist = 3 + Math.random() * 12;
             pool.position.set(Math.cos(ang) * dist, 0.02, Math.sin(ang) * dist);
             scene.add(pool);
         }
 
-        // Perimeter wall — cylinder ring with subtle pillars
-        const wallGeo = new THREE.CylinderGeometry(ARENA_RADIUS + 1.4, ARENA_RADIUS + 1.4, 1.6, 48, 1, true);
+        // -- INDUSTRIAL WALLS (low perimeter ridge — no front-facing slab in camera POV) --
         const wallMat = new THREE.MeshStandardMaterial({
-            color: 0x0a1612, side: THREE.BackSide,
-            metalness: 0.6, roughness: 0.4,
-            emissive: 0x002211, emissiveIntensity: 0.4,
+            color: 0x4a6058, metalness: 0.5, roughness: 0.55,
+            emissive: 0x1a3528, emissiveIntensity: 0.5,
         });
-        const wall = new THREE.Mesh(wallGeo, wallMat);
-        wall.position.y = 0.8;
-        scene.add(wall);
+        const wallH = 1.2;  // short knee-wall — readable but doesn't block iso view
+        const arenaW = ARENA_RADIUS * 2 + 4;
 
-        // 8 pillars around perimeter for cover-look
+        // 4 wall slabs around the arena
+        const wallPositions = [
+            { pos: [0, wallH/2, -arenaW/2], rot: 0 },
+            { pos: [0, wallH/2,  arenaW/2], rot: Math.PI },
+            { pos: [-arenaW/2, wallH/2, 0], rot: Math.PI/2 },
+            { pos: [ arenaW/2, wallH/2, 0], rot: -Math.PI/2 },
+        ];
+        wallPositions.forEach(({ pos, rot }) => {
+            const w = new THREE.Mesh(
+                new THREE.BoxGeometry(arenaW + 1, wallH, 0.6),
+                wallMat
+            );
+            w.position.set(...pos);
+            w.rotation.y = rot;
+            scene.add(w);
+            // Glowing top trim — bright yellow stripe along wall top (visual interest)
+            const trim = new THREE.Mesh(
+                new THREE.BoxGeometry(arenaW + 1, 0.05, 0.65),
+                new THREE.MeshBasicMaterial({ color: 0xffcc44 })
+            );
+            trim.position.set(...pos);
+            trim.position.y = wallH + 0.02;
+            trim.rotation.y = rot;
+            scene.add(trim);
+        });
+
+        // Ceiling pipes — REMOVED entirely. They were rendering as the giant black band
+        // in the middle of the iso frame due to their proximity to camera height.
+        // (Atmospheric ceiling detail is unnecessary for top-down play.)
+
+        // Big background tanks/vats — visible behind the arena like the reference
+        const tankMat = new THREE.MeshStandardMaterial({
+            color: 0x2a3a30, metalness: 0.65, roughness: 0.4,
+            emissive: 0x0a1a10, emissiveIntensity: 0.3,
+        });
+        const tankConfigs = [
+            { x: -10, z: -arenaW/2 - 2.5, r: 1.8, h: 3.5 },
+            { x:   0, z: -arenaW/2 - 2.5, r: 1.6, h: 4.0 },
+            { x:  10, z: -arenaW/2 - 2.5, r: 1.9, h: 3.2 },
+            { x:   6, z:  arenaW/2 + 2.5, r: 1.5, h: 2.8 },
+            { x:  -8, z:  arenaW/2 + 2.5, r: 1.7, h: 3.0 },
+        ];
+        tankConfigs.forEach(t => {
+            const tank = new THREE.Mesh(
+                new THREE.CylinderGeometry(t.r, t.r, t.h, 16),
+                tankMat
+            );
+            tank.position.set(t.x, t.h / 2, t.z);
+            scene.add(tank);
+            // Tank dome cap
+            const cap = new THREE.Mesh(
+                new THREE.SphereGeometry(t.r, 16, 8, 0, Math.PI * 2, 0, Math.PI/2),
+                tankMat
+            );
+            cap.position.set(t.x, t.h, t.z);
+            scene.add(cap);
+            // Glowing pressure light on tank
+            const pressLight = new THREE.Mesh(
+                new THREE.CircleGeometry(0.18, 12),
+                new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xff4422 : 0x88ffaa })
+            );
+            pressLight.position.set(t.x + t.r * 0.95, t.h * 0.6, t.z + 0.05);
+            pressLight.rotation.y = -Math.PI / 8;
+            scene.add(pressLight);
+        });
+
+        // 8 cover pillars / shipping crates inside arena perimeter
         for (let i = 0; i < 8; i++) {
-            const ang = (i / 8) * Math.PI * 2 + 0.2;
-            const pillarGeo = new THREE.BoxGeometry(0.8, 2.4, 0.8);
-            const pillarMat = new THREE.MeshStandardMaterial({
-                color: 0x2a3a30, metalness: 0.5, roughness: 0.6
+            const ang = (i / 8) * Math.PI * 2 + 0.3;
+            const dist = ARENA_RADIUS - 1.5;
+            const crateGeo = new THREE.BoxGeometry(1.4, 1.6, 1.4);
+            const crateMat = new THREE.MeshStandardMaterial({
+                color: 0x2e3530, metalness: 0.6, roughness: 0.55,
+                emissive: 0x111a14, emissiveIntensity: 0.3,
             });
-            const p = new THREE.Mesh(pillarGeo, pillarMat);
-            p.position.set(Math.cos(ang) * (ARENA_RADIUS + 0.3), 1.2, Math.sin(ang) * (ARENA_RADIUS + 0.3));
-            scene.add(p);
+            const c = new THREE.Mesh(crateGeo, crateMat);
+            c.position.set(Math.cos(ang) * dist, 0.8, Math.sin(ang) * dist);
+            scene.add(c);
+            // bright stripe accent
+            const stripe = new THREE.Mesh(
+                new THREE.BoxGeometry(1.42, 0.08, 0.05),
+                new THREE.MeshBasicMaterial({ color: 0xffcc00 })
+            );
+            stripe.position.set(c.position.x, 0.55, c.position.z + 0.71);
+            scene.add(stripe);
+        }
+
+        // Blood decal pool (re-used) — additive transparent splatters left where parasites die
+        const bloodDecals = [];
+        function spawnBlood(x, z, color = 0x88ff44) {
+            const r = 0.4 + Math.random() * 0.5;
+            const geom = new THREE.CircleGeometry(r, 14);
+            const mat  = new THREE.MeshBasicMaterial({
+                color, transparent: true, opacity: 0.55,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const decal = new THREE.Mesh(geom, mat);
+            decal.rotation.x = -Math.PI / 2;
+            decal.position.set(x, 0.025, z);
+            scene.add(decal);
+            bloodDecals.push({ mesh: decal, age: 0, life: 18 });
+            // keep only ~40 decals total
+            if (bloodDecals.length > 40) {
+                const oldest = bloodDecals.shift();
+                scene.remove(oldest.mesh);
+            }
         }
 
         // ========== BEACON ==========
@@ -651,132 +797,279 @@
         beaconGroup.add(beaconBase);
 
         const beaconCore = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.4, 0.4, 3.0, 12),
+            new THREE.CylinderGeometry(0.35, 0.35, 2.4, 12),
             new THREE.MeshStandardMaterial({
-                color: 0xffcc00, emissive: 0xff8800, emissiveIntensity: 1.6,
-                metalness: 0.2, roughness: 0.3,
+                color: 0xffaa22, emissive: 0xff7700, emissiveIntensity: 0.85,
+                metalness: 0.3, roughness: 0.4,
             })
         );
-        beaconCore.position.y = 2.0;
+        beaconCore.position.y = 1.7;
         beaconGroup.add(beaconCore);
 
-        const beaconRingGeo = new THREE.TorusGeometry(0.9, 0.06, 12, 32);
+        const beaconRingGeo = new THREE.TorusGeometry(0.85, 0.05, 10, 28);
         const beaconRingMat = new THREE.MeshStandardMaterial({
-            color: 0xffcc66, emissive: 0xffaa00, emissiveIntensity: 1.8
+            color: 0xffcc66, emissive: 0xffaa00, emissiveIntensity: 0.9
         });
         const beaconRings = [];
         for (let i = 0; i < 3; i++) {
             const r = new THREE.Mesh(beaconRingGeo, beaconRingMat.clone());
-            r.position.y = 1.0 + i * 0.9;
+            r.position.y = 0.9 + i * 0.7;
             r.rotation.x = Math.PI / 2;
             beaconGroup.add(r); beaconRings.push(r);
         }
 
-        const beaconLight = new THREE.PointLight(0xffaa44, 2.5, 14);
-        beaconLight.position.y = 2.2;
+        const beaconLight = new THREE.PointLight(0xffaa44, 1.6, 12);
+        beaconLight.position.y = 1.9;
         beaconGroup.add(beaconLight);
 
-        beaconGroup.position.set(0, 0, 1.5);  // beacon slightly behind player
+        beaconGroup.position.set(0, 0, -3.5);  // beacon BEHIND player from camera POV
         scene.add(beaconGroup);
 
-        // ========== PLAYER (CENTURION) ==========
+        // ========== PLAYER (CENTURION GUARD — faithful to character sheet) ==========
+        // Colour palette pulled from character_sheet_v2 reference:
+        //   purple body, orange/red ribbed chest accent, gold visor, yellow chest lights,
+        //   dark grey legs/joints, silver gun barrels, neon-green energy cell.
         const playerGroup = new THREE.Group();
-        // Body — purple bulky plate
-        const bodyGeo = new THREE.BoxGeometry(0.95, 1.3, 0.7);
-        const bodyMat = new THREE.MeshStandardMaterial({
-            color: 0x4d2db8, metalness: 0.45, roughness: 0.45,
-            emissive: 0x180a40, emissiveIntensity: 0.4,
-        });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.position.y = 0.85;
-        playerGroup.add(body);
 
-        // Shoulder pauldrons
-        for (const sx of [-0.6, 0.6]) {
-            const pld = new THREE.Mesh(
-                new THREE.SphereGeometry(0.36, 12, 10, 0, Math.PI),
-                new THREE.MeshStandardMaterial({ color: 0x5e3ad6, metalness: 0.55, roughness: 0.4, emissive: 0x1e0f44, emissiveIntensity: 0.3 })
-            );
-            pld.position.set(sx, 1.30, 0);
-            pld.rotation.x = Math.PI;
-            playerGroup.add(pld);
+        const CEN_PURPLE   = 0x5a3aa0;
+        const CEN_PURPLE_D = 0x3a2370;
+        const CEN_ORANGE   = 0xc14f32;
+        const CEN_DARK     = 0x2a2a2e;
+        const CEN_GOLD     = 0xffd44a;
+        const CEN_YELLOW   = 0xffee66;
+        const CEN_SILVER   = 0xb0b0b8;
+        const CEN_GREEN    = 0x33ffaa;
+
+        const matPurple = new THREE.MeshStandardMaterial({
+            color: CEN_PURPLE, metalness: 0.5, roughness: 0.5,
+            emissive: 0x180a40, emissiveIntensity: 0.35,
+        });
+        const matPurpleDark = new THREE.MeshStandardMaterial({
+            color: CEN_PURPLE_D, metalness: 0.55, roughness: 0.45,
+        });
+        const matOrange = new THREE.MeshStandardMaterial({
+            color: CEN_ORANGE, metalness: 0.4, roughness: 0.55,
+            emissive: 0x4a1308, emissiveIntensity: 0.5,
+        });
+        const matDark = new THREE.MeshStandardMaterial({
+            color: CEN_DARK, metalness: 0.7, roughness: 0.35,
+        });
+        const matSilver = new THREE.MeshStandardMaterial({
+            color: CEN_SILVER, metalness: 0.9, roughness: 0.2,
+        });
+        const matGold   = new THREE.MeshBasicMaterial({ color: CEN_GOLD });
+        const matYellow = new THREE.MeshBasicMaterial({ color: CEN_YELLOW });
+
+        // === LEGS (two thick armored legs) ===
+        for (const sx of [-0.28, 0.28]) {
+            // Thigh — purple plated
+            const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.6, 0.5), matPurple);
+            thigh.position.set(sx, 0.32, 0);
+            playerGroup.add(thigh);
+            // Shin — dark grey
+            const shin = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.48), matDark);
+            shin.position.set(sx, 0.0, 0.02);
+            playerGroup.add(shin);
+            // Yellow diagonal stripe on shin (signature)
+            const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.41, 0.05, 0.02), matYellow);
+            stripe.position.set(sx, 0.08, 0.24);
+            stripe.rotation.z = Math.PI / 14;
+            playerGroup.add(stripe);
+            // Boot — armored
+            const boot = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.6), matDark);
+            boot.position.set(sx, -0.22, 0.06);
+            playerGroup.add(boot);
+            // Knee pad — orange accent
+            const knee = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.1, 0.05), matOrange);
+            knee.position.set(sx, 0.16, 0.26);
+            playerGroup.add(knee);
         }
 
-        // Helmet
-        const helmGeo = new THREE.BoxGeometry(0.55, 0.42, 0.55);
-        const helmMat = new THREE.MeshStandardMaterial({ color: 0x37206b, metalness: 0.55, roughness: 0.45 });
-        const helm = new THREE.Mesh(helmGeo, helmMat);
-        helm.position.y = 1.72;
+        // === WAIST / HIP BELT ===
+        const waist = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.28, 0.58), matPurpleDark);
+        waist.position.y = 0.72;
+        playerGroup.add(waist);
+        // belt buckle (orange center)
+        const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.05), matOrange);
+        buckle.position.set(0, 0.72, 0.32);
+        playerGroup.add(buckle);
+
+        // === TORSO (chunky purple chest plate) ===
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.85, 0.7), matPurple);
+        torso.position.y = 1.28;
+        playerGroup.add(torso);
+        // upper torso inner segment (lighter)
+        const torsoUpper = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.18, 0.62), matPurpleDark);
+        torsoUpper.position.y = 1.68;
+        playerGroup.add(torsoUpper);
+
+        // === ORANGE CHEST RIBBED CENTRAL PANEL ===
+        const chestPanel = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.04), matOrange);
+        chestPanel.position.set(0, 1.28, 0.37);
+        playerGroup.add(chestPanel);
+        // Dark ribs across the panel (creates segmented "exo" texture)
+        for (let i = -3; i <= 3; i++) {
+            const rib = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.04, 0.012), matDark);
+            rib.position.set(0, 1.28 + i * 0.1, 0.39);
+            playerGroup.add(rib);
+        }
+
+        // === YELLOW CHEST LIGHTS (two glowing dots — signature) ===
+        for (const dx of [-0.32, 0.32]) {
+            const lightDot = new THREE.Mesh(
+                new THREE.CircleGeometry(0.07, 16),
+                matYellow
+            );
+            lightDot.position.set(dx, 1.55, 0.371);
+            playerGroup.add(lightDot);
+            // small light source for ambient bloom
+            const ptL = new THREE.PointLight(0xffee66, 0.45, 2.4);
+            ptL.position.set(dx, 1.55, 0.55);
+            playerGroup.add(ptL);
+        }
+
+        // === SHOULDER PAULDRONS — huge, signature silhouette ===
+        for (const sx of [-1, 1]) {
+            // Main dome (purple)
+            const pauldron = new THREE.Mesh(
+                new THREE.SphereGeometry(0.46, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+                matPurple
+            );
+            pauldron.position.set(sx * 0.72, 1.66, 0);
+            playerGroup.add(pauldron);
+            // Orange trim ring around base
+            const trim = new THREE.Mesh(
+                new THREE.TorusGeometry(0.44, 0.04, 8, 24),
+                matOrange
+            );
+            trim.rotation.x = Math.PI / 2;
+            trim.position.set(sx * 0.72, 1.62, 0);
+            playerGroup.add(trim);
+            // Outer dark plate (mechanical edge)
+            const outerPlate = new THREE.Mesh(
+                new THREE.BoxGeometry(0.14, 0.32, 0.55),
+                matDark
+            );
+            outerPlate.position.set(sx * 1.14, 1.58, 0);
+            playerGroup.add(outerPlate);
+        }
+
+        // === NECK / GORGET (cable joint look) ===
+        const gorget = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.22, 12), matDark);
+        gorget.position.y = 1.85;
+        playerGroup.add(gorget);
+
+        // === HELMET (boxy angular) ===
+        const helm = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.5, 0.62), matPurpleDark);
+        helm.position.y = 2.14;
         playerGroup.add(helm);
+        // Top angular crest
+        const crest = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.45), matDark);
+        crest.position.set(0, 2.42, -0.05);
+        playerGroup.add(crest);
+        // Side fins (angular flanks)
+        for (const sx of [-1, 1]) {
+            const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.6), matDark);
+            fin.position.set(sx * 0.31, 2.10, 0);
+            playerGroup.add(fin);
+        }
 
-        // Visor (yellow glowing eye)
-        const visorGeo = new THREE.BoxGeometry(0.34, 0.08, 0.05);
-        const visorMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
-        const visor = new THREE.Mesh(visorGeo, visorMat);
-        visor.position.set(0, 1.75, 0.28);
+        // === GOLD VISOR — prominent horizontal band ===
+        const visor = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.14, 0.04),
+            matGold
+        );
+        visor.position.set(0, 2.18, 0.32);
         playerGroup.add(visor);
+        // gold visor inner glow
+        const visorGlow = new THREE.PointLight(0xffd44a, 0.35, 1.8);
+        visorGlow.position.set(0, 2.18, 0.5);
+        playerGroup.add(visorGlow);
 
-        // Red accent panels
-        const accentMat = new THREE.MeshBasicMaterial({ color: 0xc94a2a });
-        const accent = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.05, 0.05), accentMat);
-        accent.position.set(0, 1.42, 0.36);
-        playerGroup.add(accent);
+        // === ORANGE FACEPLATE (below visor — angular jaw) ===
+        const faceplate = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.16, 0.05), matOrange);
+        faceplate.position.set(0, 1.99, 0.32);
+        playerGroup.add(faceplate);
 
-        // Loomgun — group rotates with body, barrel points forward (+Z local)
+        // === BACKPACK / SPINE element ===
+        const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.85, 0.22), matPurpleDark);
+        backpack.position.set(0, 1.28, -0.42);
+        playerGroup.add(backpack);
+        // orange spinal accent
+        const spine = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.72, 0.04), matOrange);
+        spine.position.set(0, 1.28, -0.55);
+        playerGroup.add(spine);
+
+        // === MULTI-BARREL LOOMGUN (3 barrels + green energy cell) ===
         const gunGroup = new THREE.Group();
-        // Stock
-        const stockMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.7, roughness: 0.3 });
-        const stock = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.32, 0.7), stockMat);
-        stock.position.set(0, 0, -0.05);
+        // Stock — dark body
+        const stock = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, 0.7), matDark);
+        stock.position.set(0, 0, -0.08);
         gunGroup.add(stock);
 
-        // 4 barrels in a 2x2 cluster
-        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.85, roughness: 0.25, emissive: 0x111111 });
-        const barrelStripeMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
+        // 3 cylindrical barrels in a single horizontal row (per character sheet)
         const barrelsHolder = new THREE.Group();
-        for (let i = 0; i < 4; i++) {
-            const bx = (i % 2 === 0 ? -0.07 : 0.07);
-            const by = (i < 2 ? -0.07 : 0.07);
+        for (let i = 0; i < 3; i++) {
+            const bx = (i - 1) * 0.12;
             const barrel = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.06, 0.06, 0.95, 12),
-                barrelMat
+                new THREE.CylinderGeometry(0.06, 0.06, 1.0, 14),
+                matDark
             );
             barrel.rotation.x = Math.PI / 2;
-            barrel.position.set(bx, by, 0.55);
+            barrel.position.set(bx, 0, 0.55);
             barrelsHolder.add(barrel);
-            // stripe ring
+            // Silver alternating rings along barrel
             for (let s = 0; s < 4; s++) {
-                const stripe = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.062, 0.062, 0.06, 12),
-                    barrelStripeMat
+                const ring = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.07, 0.07, 0.05, 14),
+                    matSilver
                 );
-                stripe.rotation.x = Math.PI / 2;
-                stripe.position.set(bx, by, 0.18 + s * 0.22);
-                barrelsHolder.add(stripe);
+                ring.rotation.x = Math.PI / 2;
+                ring.position.set(bx, 0, 0.16 + s * 0.22);
+                barrelsHolder.add(ring);
             }
         }
         gunGroup.add(barrelsHolder);
 
-        // Green energy cell — sits on stock
-        const cellMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
-        const cell = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.1, 0.22), cellMat);
-        cell.position.set(0, 0.18, 0.05);
+        // GREEN ENERGY CELL — cylindrical chamber near front (signature loomgun glow)
+        const cell = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, 0.28, 16),
+            new THREE.MeshBasicMaterial({ color: CEN_GREEN })
+        );
+        cell.rotation.x = Math.PI / 2;
+        cell.position.set(0, 0.05, 0.05);
         gunGroup.add(cell);
+        // green emissive halo around cell
+        const cellHalo = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 12, 12),
+            new THREE.MeshBasicMaterial({
+                color: 0x44ffaa, transparent: true, opacity: 0.5,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            })
+        );
+        cellHalo.position.set(0, 0.05, 0.05);
+        gunGroup.add(cellHalo);
+        // green spot light
+        const cellLight = new THREE.PointLight(0x33ffaa, 0.7, 3.5);
+        cellLight.position.set(0, 0.1, 0);
+        gunGroup.add(cellLight);
 
-        // Muzzle flash (hidden by default)
+        // Muzzle flash sprite (hidden by default)
         const muzzleFlash = new THREE.Mesh(
-            new THREE.ConeGeometry(0.22, 0.55, 8),
+            new THREE.ConeGeometry(0.26, 0.6, 8),
             new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
         );
         muzzleFlash.rotation.x = -Math.PI / 2;
-        muzzleFlash.position.set(0, 0, 1.0);
+        muzzleFlash.position.set(0, 0, 1.1);
         gunGroup.add(muzzleFlash);
 
-        gunGroup.position.set(0.5, 1.0, 0.3);
+        // Position gun on right side at chest height, slightly forward
+        gunGroup.position.set(0.6, 1.18, 0.32);
         playerGroup.add(gunGroup);
 
-        // Player position — slightly forward of beacon
-        playerGroup.position.set(0, 0, -1.2);
+        // Player position — front of arena (camera side), guarding the beacon BEHIND
+        playerGroup.position.set(0, 0, 1.5);
+        playerGroup.scale.setScalar(1.35);  // larger silhouette so the Centurion is the focal point
         scene.add(playerGroup);
 
         // Aim reticle on floor
@@ -826,49 +1119,174 @@
         shootBtn.addEventListener('mousedown',  () => { mouse.down = true; shootBtn.classList.add('active'); });
         window.addEventListener('mouseup',      () => shootBtn.classList.remove('active'));
 
-        // ========== PARASITES ==========
-        // Worm body — tube along sinusoidal curve, glowing emissive
-        function makeParasite() {
+        // Mobile LIGHTNING button — show on touch devices via CSS @media + JS for safety
+        const lightningBtn = document.getElementById('touch-lightning');
+        if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+            lightningBtn.style.display = 'flex';
+        }
+        function lightningTap(e) { if (e) e.preventDefault(); if (running) fireLightning(); }
+        lightningBtn.addEventListener('touchstart', lightningTap);
+        lightningBtn.addEventListener('click',      lightningTap);
+
+        // Lightning chain — alt-fire (R / right-click / dedicated button)
+        window.addEventListener('keydown', e => {
+            if ((e.key === 'r' || e.key === 'R') && running) fireLightning();
+        });
+        canvas.addEventListener('contextmenu', e => { e.preventDefault(); if (running) fireLightning(); });
+
+        // ========== PARASITES + HUSKS ==========
+        // Flying parasites = neon-green segmented worms with translucent flapping wings.
+        // Husks = bulky ground-walking corpses with skull head and red glow.
+        function makeParasite(isHusk = false) {
             const tier = waveLevel + Math.floor(Math.random() * 2);
-            const points = [];
-            for (let i = 0; i < 8; i++) {
-                const t = i / 7;
-                points.push(new THREE.Vector3(0, 0, t * 1.2));
+            const group = new THREE.Group();
+
+            if (isHusk) {
+                // -- HUSK --
+                const bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x6a1a14, emissive: 0xff3322, emissiveIntensity: 1.1,
+                    roughness: 0.65, metalness: 0.15,
+                });
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.95, 0.7), bodyMat);
+                body.position.y = 0.55;
+                group.add(body);
+                // shoulders
+                const sh = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.22, 0.65), bodyMat);
+                sh.position.y = 1.05;
+                group.add(sh);
+                // skull head
+                const head = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.3, 14, 12),
+                    new THREE.MeshStandardMaterial({ color: 0xe5d2a4, roughness: 0.6, metalness: 0.1 })
+                );
+                head.position.y = 1.35;
+                head.position.z = 0.05;
+                group.add(head);
+                // jaw
+                const jaw = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.26, 0.06, 0.22),
+                    new THREE.MeshStandardMaterial({ color: 0x9c8060, roughness: 0.7 })
+                );
+                jaw.position.set(0, 1.2, 0.18);
+                group.add(jaw);
+                // glowing red eye sockets
+                for (const ex of [-0.1, 0.1]) {
+                    const eye = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.06, 8, 8),
+                        new THREE.MeshBasicMaterial({ color: 0xff3300 })
+                    );
+                    eye.position.set(ex, 1.36, 0.28);
+                    group.add(eye);
+                }
+                // red glow halo
+                const halo = new THREE.Mesh(
+                    new THREE.SphereGeometry(1.05, 14, 12),
+                    new THREE.MeshBasicMaterial({
+                        color: 0xff3322, transparent: true, opacity: 0.32,
+                        blending: THREE.AdditiveBlending, depthWrite: false,
+                    })
+                );
+                halo.position.y = 0.7;
+                group.add(halo);
+                // shadow disc
+                const shadow = new THREE.Mesh(
+                    new THREE.CircleGeometry(0.65, 16),
+                    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45 })
+                );
+                shadow.rotation.x = -Math.PI / 2;
+                shadow.position.y = 0.02;
+                group.add(shadow);
+            } else {
+                // -- FLYING SOUL PARASITE --
+                // Segmented worm body (4 spheres, tapering)
+                const bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x66ff88, emissive: 0x33ff66, emissiveIntensity: 1.2,
+                    roughness: 0.45, metalness: 0.1,
+                });
+                for (let s = 0; s < 4; s++) {
+                    const seg = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.20 - s * 0.025, 10, 8),
+                        bodyMat
+                    );
+                    seg.position.set(0, 0, -s * 0.22);
+                    group.add(seg);
+                }
+                // Big head with magenta eye
+                const head = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.24, 14, 12),
+                    new THREE.MeshStandardMaterial({
+                        color: 0x88ffaa, emissive: 0x55ff88, emissiveIntensity: 1.5,
+                        roughness: 0.4,
+                    })
+                );
+                head.position.set(0, 0.03, 0.22);
+                group.add(head);
+                const eye = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.09, 10, 8),
+                    new THREE.MeshBasicMaterial({ color: 0xff44cc })
+                );
+                eye.position.set(0, 0.08, 0.4);
+                group.add(eye);
+                // Two translucent wings — additive, fluttering
+                const wingMat = new THREE.MeshBasicMaterial({
+                    color: 0xaaffcc, transparent: true, opacity: 0.55,
+                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+                });
+                const wingL = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), wingMat);
+                wingL.position.set(-0.28, 0.12, -0.08);
+                wingL.rotation.y = -Math.PI / 4;
+                group.add(wingL);
+                const wingR = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), wingMat);
+                wingR.position.set(0.28, 0.12, -0.08);
+                wingR.rotation.y = Math.PI / 4;
+                group.add(wingR);
+                group.userData.wingL = wingL;
+                group.userData.wingR = wingR;
+                // Green glow halo so they're visible at distance
+                const halo = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.55, 14, 12),
+                    new THREE.MeshBasicMaterial({
+                        color: 0x66ffaa, transparent: true, opacity: 0.4,
+                        blending: THREE.AdditiveBlending, depthWrite: false,
+                    })
+                );
+                group.add(halo);
+                // ground shadow disc (drop shadow for flying creature)
+                const shadow = new THREE.Mesh(
+                    new THREE.CircleGeometry(0.4, 14),
+                    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
+                );
+                shadow.rotation.x = -Math.PI / 2;
+                shadow.position.set(0, -1.0, 0);  // will be repositioned each frame
+                group.add(shadow);
+                group.userData.shadow = shadow;
             }
-            const curve = new THREE.CatmullRomCurve3(points);
-            const tubeGeo = new THREE.TubeGeometry(curve, 16, 0.18, 8, false);
-            const tubeMat = new THREE.MeshStandardMaterial({
-                color: 0x66ff88, emissive: 0x66ff88, emissiveIntensity: 1.0,
-                roughness: 0.5, metalness: 0.0,
-            });
-            const mesh = new THREE.Mesh(tubeGeo, tubeMat);
 
-            // Spawn at random edge
+            // Spawn at random edge of arena
             const ang = Math.random() * Math.PI * 2;
-            const r = ARENA_RADIUS + 0.5;
-            mesh.position.set(Math.cos(ang) * r, 0.5, Math.sin(ang) * r);
+            const r = ARENA_RADIUS - 0.5;
+            // Husks walk on ground; parasites fly above
+            group.position.set(Math.cos(ang) * r, isHusk ? 0 : 1.3, Math.sin(ang) * r);
 
-            // Eye dots — small magenta orbs at the head
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff44cc });
-            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), eyeMat);
-            eye.position.z = 0.7;
-            mesh.add(eye);
-
-            scene.add(mesh);
+            scene.add(group);
             return {
-                mesh, curve, points,
-                hp: PARASITE_HP + tier * 4,
-                speed: PARASITE_BASE_SPEED + tier * 0.25,
+                mesh: group,
+                hp: (isHusk ? HUSK_HP : PARASITE_HP) + tier * (isHusk ? 20 : 4),
+                speed: (isHusk ? PARASITE_BASE_SPEED * 0.55 : PARASITE_BASE_SPEED * 1.05) + tier * 0.22,
                 phase: Math.random() * Math.PI * 2,
                 touchedBeacon: false,
+                isHusk,
+                color: isHusk ? 0xff4422 : 0x66ff88,
             };
         }
 
-        // ========== BULLETS / TRACERS ==========
-        const tracerGeo = new THREE.BufferGeometry();
-        tracerGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-        const tracerMat = new THREE.LineBasicMaterial({
-            color: 0xffcc44, transparent: true, opacity: 0.95,
+        // ========== BULLETS / TRACERS — thick glowing tubes with bloom ==========
+        const tracerMat = new THREE.MeshBasicMaterial({
+            color: 0xffd844, transparent: true, opacity: 1.0,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        const tracerCoreMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff, transparent: true, opacity: 1.0,
             blending: THREE.AdditiveBlending, depthWrite: false,
         });
 
@@ -877,9 +1295,98 @@
                 x: originX, z: originZ,
                 vx: dirX * BULLET_SPEED, vz: dirZ * BULLET_SPEED,
                 life: BULLET_RANGE / BULLET_SPEED,
-                mesh: null,  // we'll render bullets as line tracers each frame
                 tailX: originX, tailZ: originZ,
             };
+        }
+
+        // ========== LIGHTNING CHAIN (alt-fire) ==========
+        const lightningSegments = [];   // array of { line, life }
+        let lightningCooldown = 0;       // seconds until next available shot
+
+        function fireLightning() {
+            if (lightningCooldown > 0 || parasites.length === 0) return false;
+            // Find nearest parasite to player as starting target
+            let nearest = null, nDist = Infinity;
+            for (const p of parasites) {
+                const dx = p.mesh.position.x - playerGroup.position.x;
+                const dz = p.mesh.position.z - playerGroup.position.z;
+                const d = dx*dx + dz*dz;
+                if (d < nDist) { nDist = d; nearest = p; }
+            }
+            if (!nearest) return false;
+
+            const visited = new Set();
+            let current = nearest;
+            let from = playerGroup.position.clone();
+            from.y = 1.2;
+            // chain up to 5 enemies
+            for (let chain = 0; chain < 5 && current; chain++) {
+                visited.add(current);
+                drawLightningBolt(from, current.mesh.position);
+                current.hp -= LIGHTNING_DAMAGE;
+                spawnParticle(current.mesh.position.x, current.mesh.position.z, 0x88ddff, 2.0, 14, 0.5);
+                if (current.hp <= 0) killParasite(current);
+                from = current.mesh.position.clone();
+                // find next unvisited within radius
+                let next = null, nd = LIGHTNING_CHAIN_RADIUS * LIGHTNING_CHAIN_RADIUS;
+                for (const p of parasites) {
+                    if (visited.has(p)) continue;
+                    const dx = p.mesh.position.x - from.x;
+                    const dz = p.mesh.position.z - from.z;
+                    const d = dx*dx + dz*dz;
+                    if (d < nd) { nd = d; next = p; }
+                }
+                current = next;
+            }
+            lightningCooldown = LIGHTNING_COOLDOWN_S;
+            playSfx('lightning');
+            return true;
+        }
+
+        function drawLightningBolt(a, b) {
+            // 6-8 jagged segments between a and b
+            const segs = 8;
+            const points = [];
+            for (let i = 0; i <= segs; i++) {
+                const t = i / segs;
+                const x = a.x + (b.x - a.x) * t + (i > 0 && i < segs ? (Math.random() - 0.5) * 0.8 : 0);
+                const y = a.y + (b.y - a.y) * t + (i > 0 && i < segs ? (Math.random() - 0.5) * 0.5 : 0);
+                const z = a.z + (b.z - a.z) * t + (i > 0 && i < segs ? (Math.random() - 0.5) * 0.8 : 0);
+                points.push(new THREE.Vector3(x, y, z));
+            }
+            const geom = new THREE.BufferGeometry().setFromPoints(points);
+            const mat  = new THREE.LineBasicMaterial({
+                color: 0x88ddff, transparent: true, opacity: 1.0,
+                blending: THREE.AdditiveBlending, depthWrite: false, linewidth: 4,
+            });
+            const line = new THREE.Line(geom, mat);
+            scene.add(line);
+            lightningSegments.push({ line, life: 0.35 });
+
+            // Bright flash sprite at the endpoints
+            const flashMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff, transparent: true, opacity: 1.0,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const flashGeo = new THREE.SphereGeometry(0.5, 10, 10);
+            const flash = new THREE.Mesh(flashGeo, flashMat);
+            flash.position.copy(b);
+            scene.add(flash);
+            lightningSegments.push({ line: flash, life: 0.35, isFlash: true });
+        }
+
+        function updateLightning(dt) {
+            for (let i = lightningSegments.length - 1; i >= 0; i--) {
+                const s = lightningSegments[i];
+                s.life -= dt;
+                if (s.life <= 0) {
+                    scene.remove(s.line);
+                    lightningSegments.splice(i, 1);
+                } else {
+                    s.line.material.opacity = (s.life / 0.35);
+                }
+            }
+            lightningCooldown = Math.max(0, lightningCooldown - dt);
         }
 
         // ========== PARTICLES (sparks / blood-mist) ==========
@@ -887,9 +1394,9 @@
         function spawnParticle(x, z, color, vy0 = 1.2, n = 12, life = 0.7) {
             for (let i = 0; i < n; i++) {
                 const ang = Math.random() * Math.PI * 2;
-                const spd = 1 + Math.random() * 3;
+                const spd = 1.5 + Math.random() * 4;
                 const m = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.08, 6, 6),
+                    new THREE.SphereGeometry(0.10, 6, 6),
                     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1,
                                                   blending: THREE.AdditiveBlending, depthWrite: false })
                 );
@@ -897,7 +1404,7 @@
                 scene.add(m);
                 particles.push({
                     mesh: m,
-                    vx: Math.cos(ang) * spd, vy: vy0 + Math.random() * 1.2, vz: Math.sin(ang) * spd,
+                    vx: Math.cos(ang) * spd, vy: vy0 + Math.random() * 1.4, vz: Math.sin(ang) * spd,
                     life: life, age: 0,
                 });
             }
@@ -932,7 +1439,7 @@
             particles.length = 0;
             kills = 0; beaconHP = BEACON_HP_MAX; timeRemaining = BEACON_LAUNCH_S;
             heat = 0; overheated = false; overheatLockTimer = 0;
-            waveLevel = 1; elapsedSinceWave = 0; spawnAccum = 0;
+            waveLevel = 1; elapsedSinceWave = 0; spawnAccum = 1.4;  // first parasite spawns ~0.2s after start
             activeWaveSpawnsLeft = 6;  // wave 1 starts with 6 parasites
             running = true; lastTime = 0;
             updateHUD();
@@ -1055,7 +1562,7 @@
             // We rebuild tracer geometry every frame from live bullets
             renderTracers();
 
-            // Update parasites — wiggle + move toward beacon
+            // Update parasites — flying soul-worms hover/flap, husks walk on ground
             for (let i = parasites.length - 1; i >= 0; i--) {
                 const p = parasites[i];
                 const tx = beaconGroup.position.x - p.mesh.position.x;
@@ -1067,14 +1574,31 @@
                     // Face direction of motion (yaw)
                     p.mesh.rotation.y = Math.atan2(tx, tz);
                 }
-                // Vertical wiggle
-                p.phase += dt * 6;
-                p.mesh.position.y = 0.5 + Math.sin(p.phase) * 0.25;
-                // Slight body sway via rotation.z
-                p.mesh.rotation.z = Math.sin(p.phase * 1.3) * 0.4;
+                p.phase += dt * (p.isHusk ? 4 : 9);
+                if (p.isHusk) {
+                    // Husks: ground-locked walk cycle (slight up/down bob simulating step)
+                    p.mesh.position.y = Math.abs(Math.sin(p.phase)) * 0.08;
+                    // small body sway
+                    p.mesh.rotation.z = Math.sin(p.phase * 0.7) * 0.06;
+                } else {
+                    // Flying parasites: bob up/down between y=1.0 and y=1.7
+                    p.mesh.position.y = 1.35 + Math.sin(p.phase) * 0.3;
+                    // wing flap
+                    if (p.mesh.userData.wingL) {
+                        const wf = Math.sin(p.phase * 2.2) * 0.55;
+                        p.mesh.userData.wingL.rotation.z =  wf;
+                        p.mesh.userData.wingR.rotation.z = -wf;
+                    }
+                    // body sway
+                    p.mesh.rotation.z = Math.sin(p.phase * 0.7) * 0.18;
+                    // drop shadow stays on the ground (group is at y, shadow needs offset)
+                    if (p.mesh.userData.shadow) {
+                        p.mesh.userData.shadow.position.y = -p.mesh.position.y + 0.025;
+                    }
+                }
 
                 // Touched beacon?
-                if (d < 1.6 && !p.touchedBeacon) {
+                if (d < 1.8 && !p.touchedBeacon) {
                     p.touchedBeacon = true;
                     beaconHP -= PARASITE_TOUCH_DAMAGE;
                     flashDamage();
@@ -1099,7 +1623,24 @@
                 if (pp.age >= pp.life) { scene.remove(pp.mesh); particles.splice(i, 1); }
             }
 
+            // Update lightning bolts + cooldown
+            updateLightning(dt);
+            // Age blood decals
+            ageDecals(dt);
             updateHUD();
+        }
+
+        function ageDecals(dt) {
+            for (let i = bloodDecals.length - 1; i >= 0; i--) {
+                const d = bloodDecals[i];
+                d.age += dt;
+                if (d.age >= d.life) {
+                    scene.remove(d.mesh);
+                    bloodDecals.splice(i, 1);
+                } else if (d.age > d.life * 0.7) {
+                    d.mesh.material.opacity = 0.55 * (1 - (d.age - d.life * 0.7) / (d.life * 0.3));
+                }
+            }
         }
 
         function fireBullet(aimAngle) {
@@ -1115,11 +1656,23 @@
 
             bullets.push(spawnBullet(origX, origZ, dirX, dirZ));
             muzzleFlash.material.opacity = 1.0;
-            muzzleFlash.scale.setScalar(0.9 + Math.random() * 0.5);
+            muzzleFlash.scale.setScalar(1.4 + Math.random() * 0.7);
+            // Big white flash sprite at muzzle for bloom
+            const flashMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff, transparent: true, opacity: 0.95,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const flash = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 8), flashMat);
+            flash.position.copy(muzzleLocal);
+            flash.position.y = 1.0;
+            scene.add(flash);
+            particles.push({
+                mesh: flash, vx: 0, vy: 0, vz: 0, life: 0.08, age: 0,
+            });
             playSfx('shot');
 
             // Slight gun recoil — pull stock back
-            gunGroup.position.z = 0.3 - 0.06;
+            gunGroup.position.z = 0.3 - 0.08;
             setTimeout(() => { gunGroup.position.z = 0.3; }, 50);
         }
 
@@ -1128,31 +1681,48 @@
             for (const t of tracers) scene.remove(t.mesh);
             tracers = [];
             for (const b of bullets) {
-                const positions = new Float32Array([
-                    b.tailX, 0.5, b.tailZ,
-                    b.x,     0.5, b.z,
-                ]);
-                const geom = new THREE.BufferGeometry();
-                geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                const mesh = new THREE.Line(geom, tracerMat);
-                scene.add(mesh);
-                tracers.push({ mesh });
+                // Glow halo (wide, dim) — fat outer tube for bloom
+                const halo = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.22, 0.22, Math.hypot(b.x - b.tailX, b.z - b.tailZ) + 0.1),
+                    tracerMat
+                );
+                const midX = (b.x + b.tailX) / 2, midZ = (b.z + b.tailZ) / 2;
+                halo.position.set(midX, 1.3, midZ);
+                halo.lookAt(b.x, 1.3, b.z);
+                scene.add(halo);
+                tracers.push({ mesh: halo });
+                // Bright white core — narrower, higher intensity
+                const core = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.06, 0.06, Math.hypot(b.x - b.tailX, b.z - b.tailZ) + 0.1),
+                    tracerCoreMat
+                );
+                core.position.set(midX, 1.3, midZ);
+                core.lookAt(b.x, 1.3, b.z);
+                scene.add(core);
+                tracers.push({ mesh: core });
             }
         }
 
         function killParasite(p) {
-            spawnParticle(p.mesh.position.x, p.mesh.position.z, 0x66ff88, 2.2, 18, 0.7);
-            spawnParticle(p.mesh.position.x, p.mesh.position.z, 0xff44cc, 1.4, 8, 0.5);
+            const col = p.isHusk ? 0xff8844 : 0x66ff88;
+            spawnParticle(p.mesh.position.x, p.mesh.position.z, col, 2.4, p.isHusk ? 26 : 18, 0.7);
+            spawnParticle(p.mesh.position.x, p.mesh.position.z, 0xff44cc, 1.4, p.isHusk ? 12 : 6, 0.5);
+            // Blood splatter decal stays on floor
+            spawnBlood(p.mesh.position.x, p.mesh.position.z, col);
             scene.remove(p.mesh);
-            parasites.splice(parasites.indexOf(p), 1);
+            const idx = parasites.indexOf(p);
+            if (idx >= 0) parasites.splice(idx, 1);
             kills++;
-            playSfx('kill');
+            playSfx(p.isHusk ? 'killbig' : 'kill');
         }
 
         function updateWaves(dt) {
             // Spawn parasites for the active wave
-            if (activeWaveSpawnsLeft > 0 && spawnAccum > Math.max(0.4, 1.8 - waveLevel * 0.12)) {
-                parasites.push(makeParasite());
+            if (activeWaveSpawnsLeft > 0 && spawnAccum > Math.max(0.32, 1.6 - waveLevel * 0.12)) {
+                // After wave 3, ~20% chance of spawning a HUSK
+                const huskChance = waveLevel >= 3 ? 0.15 + waveLevel * 0.03 : 0;
+                const isHusk = Math.random() < huskChance;
+                parasites.push(makeParasite(isHusk));
                 activeWaveSpawnsLeft--;
                 spawnAccum = 0;
             }
@@ -1160,10 +1730,10 @@
             if (elapsedSinceWave >= 18 + waveLevel * 1.5 && parasites.length < 3 && activeWaveSpawnsLeft === 0) {
                 waveLevel++;
                 elapsedSinceWave = 0;
-                activeWaveSpawnsLeft = 6 + waveLevel * 2;
+                activeWaveSpawnsLeft = 8 + waveLevel * 3;     // more dense each wave
                 document.getElementById('hud-wave').textContent = 'WAVE ' + waveLevel;
                 showBanner('banner-wave', '▸ INCOMING ◂', 'WAVE ' + waveLevel,
-                           waveLevel > 4 ? 'soul-density rising' : null);
+                           waveLevel > 4 ? 'HUSKS DETECTED — soul-density rising' : null);
                 playSfx('wave');
             }
         }
@@ -1202,6 +1772,17 @@
                 else if (pct > 40) document.getElementById('ammo-status').textContent = '▸ HEAT RISING';
                 else document.getElementById('ammo-status').textContent = '▸ NOMINAL';
             }
+            // Lightning cooldown indicator
+            const lightningEl = document.getElementById('hud-lightning');
+            if (lightningEl) {
+                if (lightningCooldown > 0) {
+                    lightningEl.textContent = 'LIGHTNING ⚡ ' + lightningCooldown.toFixed(1) + 's';
+                    lightningEl.style.color = '#5a8a78';
+                } else {
+                    lightningEl.textContent = 'LIGHTNING ⚡ READY [R / ⚡]';
+                    lightningEl.style.color = '#88ddff';
+                }
+            }
         }
 
         function winGame() {
@@ -1235,7 +1816,11 @@
             startGame();
         });
 
-        function render() { renderer.render(scene, camera); }
+        function render() {
+            // Render with bloom composer for that bright glowing Alien-Swarm look
+            if (composer) composer.render();
+            else renderer.render(scene, camera);
+        }
 
         // ========== SFX (Web Audio) ==========
         let audioCtx = null;
@@ -1297,6 +1882,33 @@
                     o2.start(t); o2.stop(t + 0.42);
                 });
                 o.frequency.value = 0; g.gain.value = 0; o.start(now); o.stop(now + 0.01);
+            } else if (kind === 'lightning') {
+                // Sharp electric crackle: 2 detuned squares
+                const o2 = a.createOscillator(); const g2 = a.createGain();
+                o2.connect(g2); g2.connect(a.destination);
+                o2.type = 'sawtooth';
+                o.type = 'square';
+                o.frequency.setValueAtTime(1200, now);
+                o.frequency.exponentialRampToValueAtTime(280, now + 0.4);
+                o2.frequency.setValueAtTime(620, now);
+                o2.frequency.exponentialRampToValueAtTime(140, now + 0.45);
+                g.gain.setValueAtTime(0.0001, now);
+                g.gain.linearRampToValueAtTime(0.16, now + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+                g2.gain.setValueAtTime(0.0001, now);
+                g2.gain.linearRampToValueAtTime(0.13, now + 0.01);
+                g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+                o.start(now); o.stop(now + 0.52);
+                o2.start(now); o2.stop(now + 0.52);
+            } else if (kind === 'killbig') {
+                // Heavy thump for a husk death
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(280, now);
+                o.frequency.exponentialRampToValueAtTime(40, now + 0.7);
+                g.gain.setValueAtTime(0.0001, now);
+                g.gain.linearRampToValueAtTime(0.20, now + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+                o.start(now); o.stop(now + 0.82);
             } else if (kind === 'win') {
                 [392, 523.25, 659.25, 783.99].forEach((f, i) => {
                     const o2 = a.createOscillator(); const g2 = a.createGain();

@@ -2750,6 +2750,7 @@
             generatePOIHalos();
             generatePOIHolograms();
             generatePolarCaps();        // chromatic shells + gravity-bend warp arcs at +99 / -99 axes
+            generateProjectorDais();    // persistent holographic projector at the base of the map
             generateSoulSeedWeb();      // spider-web network of soul-seed connections across creation
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
@@ -3318,37 +3319,35 @@
                 }`;
 
             function makeHemisphere(yPos, isTop, tintHex, edgeHex) {
-                // ConeBufferGeometry pointing toward the pole — open base, apex at pole
-                const geo = new THREE.ConeGeometry(POLE_RADIUS, POLE_RADIUS * 0.85, 64, 12, true);
-                // By default a cone points +Y. For the bottom pole, flip Y by rotating Pi.
+                // Smaller, contained cone — fits within the strata footprint rather than
+                // overwhelming the spindle. Uses NORMAL blending (not additive) so it
+                // tints the layers behind it instead of adding to them.
+                const geo = new THREE.ConeGeometry(POLE_RADIUS, POLE_RADIUS * 0.7, 64, 12, true);
                 const mat = new THREE.ShaderMaterial({
                     vertexShader: HEMI_VERT,
                     fragmentShader: HEMI_FRAG,
                     transparent: true,
                     depthWrite: false,
                     side: THREE.DoubleSide,
-                    blending: THREE.AdditiveBlending,
+                    blending: THREE.NormalBlending,
                     uniforms: {
-                        tint:     { value: new THREE.Color(tintHex).toArray ? new THREE.Vector3(...new THREE.Color(tintHex).toArray()) : new THREE.Color(tintHex) },
-                        tintEdge: { value: new THREE.Color(edgeHex) },
+                        tint:     { value: new THREE.Vector3() },
+                        tintEdge: { value: new THREE.Vector3() },
                         time:     { value: 0 },
-                        intensity:{ value: 0.85 },
+                        intensity:{ value: 0.32 },   // way down from 0.85 — was overwhelming the scene
                     },
                 });
-                // Build Vector3 from Color (manual to avoid version issues)
                 const tc = new THREE.Color(tintHex);
-                mat.uniforms.tint.value = new THREE.Vector3(tc.r, tc.g, tc.b);
+                mat.uniforms.tint.value.set(tc.r, tc.g, tc.b);
                 const ec = new THREE.Color(edgeHex);
-                mat.uniforms.tintEdge.value = new THREE.Vector3(ec.r, ec.g, ec.b);
+                mat.uniforms.tintEdge.value.set(ec.r, ec.g, ec.b);
 
                 const mesh = new THREE.Mesh(geo, mat);
-                // For top pole: cone apex up (+Y), base at strata
-                // For bottom pole: cone apex down (-Y), so rotate 180° on X
                 if (isTop) {
-                    mesh.position.y = yPos - (POLE_RADIUS * 0.85 * 0.5);
+                    mesh.position.y = yPos - (POLE_RADIUS * 0.7 * 0.5);
                 } else {
                     mesh.rotation.x = Math.PI;
-                    mesh.position.y = yPos + (POLE_RADIUS * 0.85 * 0.5);
+                    mesh.position.y = yPos + (POLE_RADIUS * 0.7 * 0.5);
                 }
                 mesh.userData.isPolarShell = true;
                 return mesh;
@@ -3427,7 +3426,7 @@
                     uniforms: {
                         tint:      { value: new THREE.Vector3(0, 1, 0.8) },
                         time:      { value: 0 },
-                        intensity: { value: 0.75 },
+                        intensity: { value: 0.35 },   // way down — was washing out spindle
                     },
                     transparent: true,
                     depthWrite: false,
@@ -3448,10 +3447,107 @@
         }
 
         // =====================================================================
-        // SOUL-SEED WEB — Spider-web network of dim glowing lines connecting
-        // random POIs across creation. Soul seeds spread "like a spider web".
-        // Lines have animated pulses that travel along them slowly.
+        // PERSISTENT HOLOGRAPHIC PROJECTOR — sits at the base of the spindle,
+        // projecting the entire 199-layer creation upward as a hologram.
+        // Visible at all times in the live map (not just boot).
         // =====================================================================
+        let projectorDaisGroup = null;
+        function generateProjectorDais() {
+            const Y_BOT = -99 * 0.6;
+            const DAIS_Y = Y_BOT - 6.5;   // a bit below the lowest stratum
+            projectorDaisGroup = new THREE.Group();
+
+            // --- Solid metal-feel dais base (cylinder) — NORMAL blending so it has substance
+            const baseGeo = new THREE.CylinderGeometry(5.5, 6.5, 1.2, 32);
+            const baseMat = new THREE.MeshBasicMaterial({
+                color: 0x101a22, transparent: true, opacity: 0.95, depthWrite: true,
+            });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = DAIS_Y;
+            projectorDaisGroup.add(base);
+
+            // Cyan top-lip ring (the actual "emitter" rim)
+            const lipGeo = new THREE.TorusGeometry(5.4, 0.18, 8, 64);
+            const lipMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+            const lip = new THREE.Mesh(lipGeo, lipMat);
+            lip.rotation.x = Math.PI / 2;
+            lip.position.y = DAIS_Y + 0.6;
+            projectorDaisGroup.add(lip);
+
+            // Wireframe outline on the dais itself (subtle blueprint feel)
+            const wireGeo = new THREE.CylinderGeometry(5.5, 6.5, 1.2, 32, 1, true);
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.45 });
+            const wire = new THREE.Mesh(wireGeo, wireMat);
+            wire.position.y = DAIS_Y;
+            projectorDaisGroup.add(wire);
+
+            // Spinning runic ring (magenta) below the lip
+            const runeGeo = new THREE.TorusGeometry(6.2, 0.06, 6, 96);
+            const runeMat = new THREE.MeshBasicMaterial({ color: 0xff00cc, transparent: true, opacity: 0.7 });
+            const rune = new THREE.Mesh(runeGeo, runeMat);
+            rune.rotation.x = Math.PI / 2.15;
+            rune.position.y = DAIS_Y;
+            rune.userData.isProjectorRune = true; // animated rotation
+            projectorDaisGroup.add(rune);
+
+            // 4 supporting spokes (tetrahedral "antennae") around the rim
+            for (let i = 0; i < 4; i++) {
+                const a = (i / 4) * Math.PI * 2;
+                const spk = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.18, 0.8, 4),
+                    new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.85 })
+                );
+                spk.position.set(Math.cos(a) * 5.7, DAIS_Y + 1.1, Math.sin(a) * 5.7);
+                spk.rotation.z = Math.cos(a) * 0.15;
+                spk.rotation.x = Math.sin(a) * 0.15;
+                projectorDaisGroup.add(spk);
+            }
+
+            // Pedestal glow on the floor (a flat ring of soft light around the dais)
+            const floorGeo = new THREE.RingGeometry(6.8, 12, 64);
+            const floorMat = new THREE.MeshBasicMaterial({
+                color: 0x00ffcc, transparent: true, opacity: 0.10,
+                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = DAIS_Y - 0.55;
+            projectorDaisGroup.add(floor);
+
+            // Faint vertical emitter beam from the dais up to the lowest stratum
+            // (sells "the whole spindle is being projected from here")
+            const BEAM_HEIGHT = (Y_BOT - DAIS_Y) - 0.5;          // ~6.0 units
+            const BEAM_HALF   = BEAM_HEIGHT / 2;
+            const beamGeo = new THREE.CylinderGeometry(0.12, 0.5, BEAM_HEIGHT, 16, 1, true);
+            const beamMat = new THREE.ShaderMaterial({
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+                uniforms: {
+                    time:        { value: 0 },
+                    beamHalf:    { value: BEAM_HALF },
+                    beamHeight:  { value: BEAM_HEIGHT },
+                },
+                vertexShader: `
+                    varying vec3 vP;
+                    void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+                fragmentShader: `
+                    uniform float time;
+                    uniform float beamHalf;
+                    uniform float beamHeight;
+                    varying vec3 vP;
+                    void main() {
+                        float h = (vP.y + beamHalf) / beamHeight;   // 0 at bottom → 1 at top
+                        float fade = 1.0 - h * 0.6;
+                        float stripe = 0.55 + 0.45 * sin(vP.y * 3.0 - time * 1.4);
+                        gl_FragColor = vec4(vec3(0.0, 1.0, 0.85), fade * stripe * 0.40);
+                    }`,
+            });
+            const beam = new THREE.Mesh(beamGeo, beamMat);
+            beam.position.y = DAIS_Y + 0.6 + BEAM_HALF;
+            beam.userData.isProjectorBeam = true;
+            projectorDaisGroup.add(beam);
+
+            astrolabeGroup.add(projectorDaisGroup);
+        }
         let soulSeedWebGroup = null;
         function generateSoulSeedWeb() {
             soulSeedWebGroup = new THREE.Group();
@@ -6029,11 +6125,11 @@
         // ----- Settings state with localStorage persistence -----
         const SETTINGS_KEY = 'astrolabe_settings_v1';
         const DEFAULT_SETTINGS = {
-            bloomStrength: 0.55,    // toned down for legibility (user feedback)
-            bloomRadius:   0.65,
-            bloomThreshold:0.40,    // higher threshold → less bloom on dim text/UI
-            vignette:      0.45,
-            scanline:      0.18,
+            bloomStrength: 0.18,    // matches the "original look" reference — strata stay crisp
+            bloomRadius:   0.50,
+            bloomThreshold:0.65,    // only the brightest pixels bloom — keeps text legible
+            vignette:      0.40,
+            scanline:      0.16,
             cameraShake:   true,
             centralSpine:  true,
             starfield:     true,

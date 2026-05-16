@@ -133,7 +133,36 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
-### Iteration 12 — Polar Caps, Soul-Seed Web, New Canon Reapers, Readability
+### Iteration 13 — Balanced Bloom + Persistent Holographic Projector Base
+**User feedback:** spindle was too bright (whiteout) and they wanted the holographic projector dais at the bottom of the map (so the entire 199-layer creation feels projected from it). Also a transient `stacktrace-parser` was missing from `node_modules` causing the Expo bundler to crash — fixed via `yarn install`.
+
+**Bloom rebalance (3-step iteration to match the "original look" reference):**
+- `bloomStrength`: 0.55 → **0.18**
+- `bloomThreshold`: 0.40 → **0.65** (only the brightest pixels bloom — keeps text/HUD crisp)
+- Polar cap intensity: 0.85 → **0.32** + switched from `AdditiveBlending` → `NormalBlending` (was double-adding into the spindle)
+- Gravity-arc intensity: 0.75 → **0.35**
+- Polar cone size: `0.85 * radius` → `0.7 * radius` (more contained, doesn't dominate frame)
+
+**Persistent Holographic Projector Dais (`generateProjectorDais`):**
+- Anchored at `y = -65.9` (below the -99 stratum). 10 sub-meshes:
+  - Cylindrical metallic base (NormalBlending, opaque-ish — gives it presence)
+  - Cyan top-lip emitter torus
+  - Wireframe outline on the dais (blueprint feel)
+  - Magenta spinning runic ring underneath the lip
+  - 4 conical antennae spokes around the rim
+  - Soft floor halo (additive ring)
+  - **Vertical emitter beam** from the dais up to the lowest stratum — uniform-driven shader (NO template-literal interpolation; fixes the GLSL `int → float` bug that broke the source on first attempt)
+- The whole spindle visually appears to be PROJECTED FROM this dais — matches user vision
+
+**Bug fixed during this iteration:**
+- Initial dais commit had a shader using JS template literals with whole numbers (`${3.0}` → `"3"`) which is invalid GLSL; rewritten to pass float uniforms (`beamHalf`, `beamHeight`) so the shader compiles correctly.
+
+**Verified screenshots:**
+- ✅ Desktop side view: top-half cyan + bottom-half magenta clearly delineated, strata labels readable
+- ✅ Projector dais clearly visible at base with spinning rune, lip ring, spokes
+- ✅ Mobile portrait view legible without bloom washout
+
+
 **Goal:** New visual + lore features per user request.
 
 **Lore canon expansion (NAMED_REAPER_BINDINGS):**

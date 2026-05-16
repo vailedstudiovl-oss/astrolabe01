@@ -4297,6 +4297,7 @@
         const Music = (() => {
             let ctx = null;
             let masterGain = null;
+            let cinematicBus = null;
             let nodes = [];
             let pingTimer = null;
             let isPlaying = false;
@@ -4308,21 +4309,46 @@
                 if (!AC) return null;
                 ctx = new AC();
                 masterGain = ctx.createGain();
-                masterGain.gain.value = 0; // fade in
+                masterGain.gain.value = 0;
+
+                // === CINEMATIC SOFTENING CHAIN ===
+                // Voices feed `cinematicBus` → softLP (rolls off brittle highs) → masterGain
+                // + parallel feedback-delay wet bus for pseudo-reverb (atmosphere).
+                cinematicBus = ctx.createGain(); cinematicBus.gain.value = 1.0;
+                const softLP = ctx.createBiquadFilter();
+                softLP.type = 'lowpass'; softLP.frequency.value = 3200; softLP.Q.value = 0.4;
+
+                const wetSend  = ctx.createGain(); wetSend.gain.value = 0.32;
+                const delay    = ctx.createDelay(1.5); delay.delayTime.value = 0.42;
+                const feedback = ctx.createGain(); feedback.gain.value = 0.42;
+                const wetReturn = ctx.createGain(); wetReturn.gain.value = 0.55;
+                const wetLP    = ctx.createBiquadFilter();
+                wetLP.type = 'lowpass'; wetLP.frequency.value = 1800; wetLP.Q.value = 0.3;
+
+                cinematicBus.connect(softLP);
+                softLP.connect(masterGain);
+                softLP.connect(wetSend);
+                wetSend.connect(delay);
+                delay.connect(wetLP);
+                wetLP.connect(feedback); feedback.connect(delay);
+                wetLP.connect(wetReturn); wetReturn.connect(masterGain);
+
                 masterGain.connect(ctx.destination);
                 return ctx;
             }
 
-            // Build a single drone voice: osc → filter → gain → master
+            // Build a single drone voice with SMOOTH 5-second swell-in.
             function makeDrone(freq, type, q, gainAmt, lfoRate, lfoDepth) {
                 const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
-                const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq * 6; f.Q.value = q;
-                const g = ctx.createGain(); g.gain.value = gainAmt;
-                // Slow LFO on the filter cutoff for "breathing" timbre
-                const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = lfoRate;
-                const lfoG = ctx.createGain(); lfoG.gain.value = freq * lfoDepth;
+                const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq * 5; f.Q.value = q;
+                const g = ctx.createGain();
+                g.gain.value = 0;
+                g.gain.setValueAtTime(0, ctx.currentTime);
+                g.gain.linearRampToValueAtTime(gainAmt, ctx.currentTime + 5.0);
+                const lfo  = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = lfoRate;
+                const lfoG = ctx.createGain(); lfoG.gain.value = freq * lfoDepth * 0.15;
                 lfo.connect(lfoG); lfoG.connect(f.frequency);
-                o.connect(f); f.connect(g); g.connect(masterGain);
+                o.connect(f); f.connect(g); g.connect(cinematicBus);
                 o.start(); lfo.start();
                 return { o, f, g, lfo, lfoG };
             }
@@ -4339,7 +4365,7 @@
                 g.gain.linearRampToValueAtTime(vel, ctx.currentTime + 0.04);
                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
                 const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq * 1.5; f.Q.value = 2;
-                car.connect(f); f.connect(g); g.connect(masterGain);
+                car.connect(f); f.connect(g); g.connect(cinematicBus);
                 car.start(); mod.start();
                 car.stop(ctx.currentTime + dur + 0.1);
                 mod.stop(ctx.currentTime + dur + 0.1);
@@ -4367,7 +4393,9 @@
                 if (moodGains[name]) return moodGains[name];
                 const g = ctx.createGain();
                 g.gain.value = 0;
-                g.connect(masterGain);
+                // Route mood voices through the cinematic softening chain so they pick up
+                // the reverb tail + lowpass smoothing too.
+                g.connect(cinematicBus);
                 moodGains[name] = g;
                 moodNodes[name] = [];
                 buildMoodVoices(name, g);
@@ -4419,18 +4447,19 @@
                     arr.push(makeOscToBus('triangle', 113.00,  -40, 0.12, 380, 1.0, bus));
                     // Sub-bass swells
                     arr.push(makeOscToBus('sine',     27.50,   0,   0.50, 90,  0.5, bus));
-                    // Whisper-band noise via fast LFO on a high osc pitched into murmur range
-                    const noise = makeOscToBus('sawtooth', 700, 0, 0.015, 1200, 6, bus);
+                    // Eldritch whisper — softer triangle pad in murmur range (was harsh
+                    // sawtooth creating the "mic unplugged" static).
+                    const noise = makeOscToBus('triangle', 480, 0, 0.006, 900, 4, bus);
                     arr.push(noise);
-                    arr.push(makeLfoOnParam(4.7, 380, noise.frequency)); // erratic pitch
-                    arr.push(makeLfoOnParam(0.21, 1.8, arr[0].frequency)); // wow on first detune
+                    arr.push(makeLfoOnParam(0.9, 90, noise.frequency));
+                    arr.push(makeLfoOnParam(0.21, 1.8, arr[0].frequency));
                 }
                 else if (name === 'gothic') {
                     // Vamperica — pizzicato-ish triangle plucks via slow tremolo + cello pad
-                    arr.push(makeOscToBus('triangle',  73.42, -5, 0.16, 280, 1.6, bus));   // D2
-                    arr.push(makeOscToBus('triangle', 110.00, +5, 0.10, 600, 1.6, bus));   // A2
-                    arr.push(makeOscToBus('sawtooth', 220.00,  0, 0.05, 900, 2.2, bus));   // A3 cello
-                    arr.push(makeLfoOnParam(2.8, 0.04, bus.gain));  // gentle tremolo
+                    arr.push(makeOscToBus('triangle',  73.42, -5, 0.16, 280, 1.6, bus));
+                    arr.push(makeOscToBus('triangle', 110.00, +5, 0.10, 600, 1.6, bus));
+                    arr.push(makeOscToBus('triangle', 220.00,  0, 0.05, 900, 2.2, bus));   // A3 cello (was sawtooth → buzz)
+                    arr.push(makeLfoOnParam(2.8, 0.04, bus.gain));
                 }
                 // 'neutral' has no extra voices — silence on this bus
             }
@@ -4512,10 +4541,10 @@
                 isPlaying = true;
 
                 // 3 drone layers. Frequencies tuned to A minor / phrygian root.
-                nodes.push(makeDrone(55.0,  'sine',     1.0, 0.55, 0.07, 0.4));  // sub bass
-                nodes.push(makeDrone(110.0, 'triangle', 1.4, 0.30, 0.10, 0.6));  // body
-                nodes.push(makeDrone(220.0, 'sawtooth', 2.2, 0.10, 0.13, 0.8));  // mid pad
-                nodes.push(makeDrone(440.0, 'sine',     1.0, 0.06, 0.18, 0.4));  // high shimmer
+                nodes.push(makeDrone(55.0,  'sine',     1.0, 0.50, 0.07, 0.4));  // sub bass
+                nodes.push(makeDrone(110.0, 'triangle', 1.4, 0.28, 0.10, 0.6));  // body
+                nodes.push(makeDrone(220.0, 'triangle', 1.6, 0.10, 0.13, 0.5));  // mid pad (was harsh sawtooth)
+                nodes.push(makeDrone(440.0, 'sine',     1.0, 0.05, 0.18, 0.4));  // high shimmer
 
                 // Prepare ALL mood buses so we can crossfade between them.
                 ensureMoodBus('demonic');

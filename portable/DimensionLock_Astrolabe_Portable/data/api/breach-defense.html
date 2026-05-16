@@ -2493,8 +2493,17 @@
             if (music) { try { music.pause(); } catch(e) {} }
             isPlaying = false;
         }
+        let combatMusicActive = false;
         muteBtn.addEventListener('click', () => {
             if (!music) return;
+            // While combat is active, the mute button controls ONLY the Tone.js track —
+            // we don't want the briefing MP3 to resume on top of the combat soundtrack.
+            if (combatMusicActive) {
+                muted = !muted;
+                muteBtn.classList.toggle('muted', muted);
+                try { localStorage.setItem(MUTED_KEY, muted ? '1' : '0'); } catch(e) {}
+                return;
+            }
             if (music.paused) {
                 muted = false; muteBtn.classList.remove('muted');
                 try { localStorage.setItem(MUTED_KEY, '0'); } catch(e) {}
@@ -2524,9 +2533,14 @@
         // ========== PROCEDURAL COMBAT MUSIC (Tone.js) ==========
         // Industrial-tense generative track: pulsing sub-bass + filtered noise hat +
         // industrial kick + tense minor-scale arpeggio. Tempo + intensity scale with waveLevel.
+        // IMPORTANT: When this starts, we PAUSE the briefing-MP3 (dl_opening_theme.mp3) so
+        // the two tracks don't overlap into a wall of noise.
         let toneStarted = false;
         let toneNodes = null;
         async function startCombatMusic() {
+            // Stop the briefing/MP3 layer before the procedural combat track takes over.
+            safePause();
+            combatMusicActive = true;
             if (typeof Tone === 'undefined') return;
             try {
                 if (Tone.context.state !== 'running') await Tone.start();

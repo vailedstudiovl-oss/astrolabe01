@@ -155,14 +155,16 @@
         <div class="codex-grid" id="codex-grid"><!-- JS injects --></div>
     </div>
 
-    <!-- ACHIEVEMENT TOAST -->
-    <div id="codex-toast" class="codex-toast" onclick="hideAchievementToast(event)">
+    <!-- ACHIEVEMENT TOAST — pinned to TOP of screen so it never overlaps
+         the DIRECTORY / PING / OPEN DATABANK button row at the bottom.
+         Tapping ANYWHERE on the toast (or the × button) dismisses it. -->
+    <div id="codex-toast" class="codex-toast" role="alert" aria-live="polite" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)">
         <div class="t-icon" id="toast-icon">★</div>
         <div style="flex:1;min-width:0;">
             <div class="t-label">ACHIEVEMENT UNLOCKED</div>
             <div class="t-name" id="toast-name"></div>
         </div>
-        <button class="t-close" onclick="hideAchievementToast(event)" aria-label="Dismiss" title="Dismiss">×</button>
+        <button class="t-close" type="button" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)" aria-label="Dismiss achievement" title="Dismiss" style="pointer-events:auto !important;">×</button>
     </div>
 
     <!-- CINEMATIC TOUR OVERLAY -->

@@ -268,6 +268,160 @@
             font-family: 'Share Tech Mono', monospace;
         }
         .holo-mode-toggle:hover { background: #00ffcc; color: #000; }
+
+        /* =================================================
+           ITERATION 3 — Tour · Soul · Lens · Sub-Lore
+           ================================================= */
+
+        /* --- Cinematic Tour Narration Overlay --- */
+        #tour-overlay {
+            position: fixed; bottom: 12%; left: 50%; transform: translateX(-50%);
+            z-index: 80; pointer-events: none; opacity: 0;
+            transition: opacity 0.5s ease-out;
+            width: 92%; max-width: 720px;
+            text-align: center;
+        }
+        #tour-overlay.active { opacity: 1; pointer-events: auto; }
+        .tour-card {
+            background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,30,30,0.75) 100%);
+            border: 1px solid #00ffcc; border-left: 4px solid #00ffcc;
+            padding: 16px 24px; box-shadow: 0 0 30px rgba(0,255,204,0.3);
+            backdrop-filter: blur(10px);
+        }
+        .tour-eyebrow { font-size: 9px; letter-spacing: 5px; color: #00ffcc; margin-bottom: 6px; opacity: 0.8; }
+        .tour-title { font-size: 22px; color: #fff; letter-spacing: 3px; text-shadow: 0 0 10px currentColor; line-height: 1.1; }
+        .tour-faction { font-size: 10px; color: #888; letter-spacing: 2px; margin-top: 4px; }
+        .tour-body { font-size: 12px; color: #d0d0d0; margin-top: 12px; line-height: 1.6; min-height: 60px; }
+        .tour-body .typer-cursor { animation: typerBlink 0.7s steps(2) infinite; color: #00ffcc; }
+        @keyframes typerBlink { to { opacity: 0; } }
+        .tour-progress {
+            display: flex; justify-content: center; gap: 4px; margin-top: 14px; font-size: 9px; color: #666;
+        }
+        .tour-controls {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            z-index: 82; display: flex; gap: 8px;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        #tour-overlay.active ~ .tour-controls { opacity: 1; pointer-events: auto; }
+        .tour-controls button {
+            background: rgba(0,0,0,0.8); color: #00ffcc; border: 1px solid #00ffcc;
+            padding: 6px 14px; font-size: 10px; letter-spacing: 2px;
+            cursor: pointer; font-family: 'Share Tech Mono', monospace;
+            transition: all 0.2s;
+        }
+        .tour-controls button:hover { background: #00ffcc; color: #000; }
+        .tour-controls button.danger { border-color: #ff4444; color: #ff4444; }
+        .tour-controls button.danger:hover { background: #ff4444; color: #000; }
+
+        /* --- Soul Dossier Modal --- */
+        #soul-dossier {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 110; width: 92%; max-width: 480px;
+            background: rgba(5,10,15,0.97); border: 2px solid #00ffff;
+            box-shadow: 0 0 40px rgba(0,255,255,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(8px);
+            color: #fff; font-size: 12px;
+        }
+        #soul-dossier.open { display: flex; }
+        .soul-header { padding: 14px 18px; border-bottom: 1px solid #00ffff; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .soul-header h3 { color: #00ffff; letter-spacing: 3px; font-size: 18px; text-shadow: 0 0 8px currentColor; }
+        .soul-header .sub { font-size: 9px; color: #666; letter-spacing: 3px; margin-bottom: 4px; }
+        .soul-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+        .soul-vis {
+            height: 80px; position: relative; background: linear-gradient(180deg, #002233 0%, #110033 100%);
+            border: 1px solid rgba(0,255,255,0.3); overflow: hidden;
+        }
+        .soul-vis .light-side, .soul-vis .dark-side {
+            position: absolute; top: 0; bottom: 0; width: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 9px; letter-spacing: 2px;
+        }
+        .soul-vis .light-side { left: 0; color: #ffffaa; background: linear-gradient(90deg, rgba(255,255,150,0.15), transparent); }
+        .soul-vis .dark-side { right: 0; color: #aa44ff; background: linear-gradient(-90deg, rgba(170,68,255,0.15), transparent); }
+        .soul-vis .soul-marker {
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 18px; height: 18px; border-radius: 50%;
+            background: radial-gradient(circle, #fff 0%, #00ffff 70%, transparent 100%);
+            box-shadow: 0 0 12px #00ffff;
+            animation: soulPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes soulPulse { 50% { transform: translate(-50%, -50%) scale(1.3); box-shadow: 0 0 24px #00ffff; } }
+        .soul-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(0,255,255,0.15); }
+        .soul-row .k { color: #555; font-size: 10px; letter-spacing: 2px; }
+        .soul-row .v { color: #fff; text-shadow: 0 0 4px currentColor; }
+        .soul-memories {
+            margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.4); border-left: 2px solid #00ffff;
+            font-style: italic; color: #aaa; font-size: 11px; line-height: 1.5;
+        }
+
+        /* --- Reality Lens (volumetric magnifier) --- */
+        #reality-lens {
+            position: fixed; width: 240px; height: 240px;
+            pointer-events: none; z-index: 35;
+            transform: translate(-50%, -50%); opacity: 0;
+            transition: opacity 0.2s, width 0.3s, height 0.3s;
+        }
+        #reality-lens.visible { opacity: 1; }
+        #reality-lens.locked { pointer-events: auto; }
+        .lens-frame {
+            position: absolute; inset: 0; border-radius: 50%;
+            border: 2px solid #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.6), inset 0 0 30px rgba(0,255,204,0.3);
+            overflow: hidden; background: #000;
+        }
+        .lens-vortex {
+            position: absolute; inset: -20%; background-size: cover; background-position: center;
+            animation: lensSpin 8s linear infinite;
+            opacity: 0.55; filter: brightness(1.4) saturate(1.3);
+        }
+        .lens-content {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 8px;
+        }
+        .lens-mini-canvas { width: 100px; height: 100px; }
+        .lens-title { font-size: 11px; color: #fff; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 6px #000, 0 0 4px #000; }
+        .lens-faction { font-size: 9px; letter-spacing: 2px; text-shadow: 0 0 6px #000; }
+        .lens-status { font-size: 8px; letter-spacing: 3px; color: #00ffcc; margin-top: 4px; text-shadow: 0 0 6px #000; }
+        .lens-strata-label {
+            position: absolute; top: -22px; left: 0; right: 0; text-align: center;
+            font-size: 10px; letter-spacing: 4px; color: #00ffcc; text-shadow: 0 0 6px #00ffcc;
+        }
+        @keyframes lensSpin { to { transform: rotate(360deg); } }
+
+        /* Mode toggle buttons inside nav-computer */
+        .nav-mode-btn {
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #00ffcc; padding: 4px 8px;
+            font-size: 9px; letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
+            font-family: 'Share Tech Mono', monospace; background: transparent; color: #00ffcc;
+        }
+        .nav-mode-btn:hover { background: rgba(0,255,204,0.15); }
+        .nav-mode-btn.on { background: #00ffcc; color: #000; font-weight: bold; }
+        .nav-mode-btn .ico { font-size: 11px; }
+
+        /* --- Sub-location Dossier modal --- */
+        #subloc-dossier {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 115; width: 92%; max-width: 440px;
+            background: rgba(0,5,10,0.97); border: 2px solid #ffcc00;
+            box-shadow: 0 0 35px rgba(255,204,0,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(8px);
+            color: #fff;
+        }
+        #subloc-dossier.open { display: flex; }
+        .subloc-header { padding: 14px 18px; border-bottom: 1px solid #ffcc00; display: flex; justify-content: space-between; align-items: flex-start; }
+        .subloc-header h3 { color: #ffcc00; letter-spacing: 3px; font-size: 16px; text-shadow: 0 0 8px currentColor; }
+        .subloc-header .sub { font-size: 9px; color: #666; letter-spacing: 3px; }
+        .subloc-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+        .subloc-tag { display: inline-block; font-size: 9px; letter-spacing: 2px; padding: 2px 8px; background: rgba(255,204,0,0.15); border: 1px solid #ffcc00; color: #ffcc00; align-self: flex-start; }
+        .subloc-desc { color: #d0d0d0; line-height: 1.6; font-size: 12px; }
+        .subloc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .subloc-stat { background: rgba(0,0,0,0.4); border-left: 2px solid #ffcc00; padding: 6px 10px; }
+        .subloc-stat .k { font-size: 8px; letter-spacing: 2px; color: #666; }
+        .subloc-stat .v { font-size: 13px; color: #fff; font-weight: bold; text-shadow: 0 0 4px currentColor; }
+        .subloc-flavor {
+            background: rgba(0,0,0,0.5); padding: 10px; font-style: italic; color: #aaa;
+            border-left: 2px solid #ffcc00; font-size: 11px; line-height: 1.5;
+        }
     </style>
 
     <!-- Stable Three.js & OrbitControls Links -->
@@ -337,6 +491,82 @@
         <div>
             <div class="t-label">ACHIEVEMENT UNLOCKED</div>
             <div class="t-name" id="toast-name">--</div>
+        </div>
+    </div>
+
+    <!-- CINEMATIC TOUR OVERLAY -->
+    <div id="tour-overlay">
+        <div class="tour-card">
+            <div class="tour-eyebrow" id="tour-eyebrow">DLDS PILGRIMAGE LOG</div>
+            <div class="tour-title" id="tour-title">--</div>
+            <div class="tour-faction" id="tour-faction">--</div>
+            <div class="tour-body" id="tour-body">--<span class="typer-cursor">▌</span></div>
+            <div class="tour-progress" id="tour-progress">STOP 0 / 0</div>
+        </div>
+    </div>
+    <div class="tour-controls" id="tour-controls">
+        <button onclick="tourSkip()">[ NEXT ▶ ]</button>
+        <button class="danger" onclick="endCinematicTour()">[ ABORT ]</button>
+    </div>
+
+    <!-- SOUL DOSSIER -->
+    <div id="soul-dossier">
+        <div class="soul-header">
+            <div>
+                <div class="sub">SOUL FORENSIC SCAN</div>
+                <h3 id="soul-id">--</h3>
+            </div>
+            <button onclick="closeSoulDossier()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="soul-body">
+            <div class="soul-vis">
+                <div class="light-side">PEAK<br>DIVINITY</div>
+                <div class="dark-side">LOVECRAFTIAN<br>ABYSS</div>
+                <div class="soul-marker" id="soul-marker"></div>
+            </div>
+            <div class="soul-row"><span class="k">ORIGIN STRATA</span><span class="v" id="soul-origin">--</span></div>
+            <div class="soul-row"><span class="k">CURRENT STRATA</span><span class="v" id="soul-current">--</span></div>
+            <div class="soul-row"><span class="k">TRAJECTORY</span><span class="v" id="soul-traj">--</span></div>
+            <div class="soul-row"><span class="k">KARMIC ALIGNMENT</span><span class="v" id="soul-karma">--</span></div>
+            <div class="soul-row"><span class="k">ASSIGNED REAPER</span><span class="v" id="soul-reaper">--</span></div>
+            <div class="soul-row"><span class="k">FRAGMENT INTEGRITY</span><span class="v" id="soul-integrity">--</span></div>
+            <div class="soul-memories" id="soul-memory">--</div>
+        </div>
+    </div>
+
+    <!-- SUB-LOCATION DOSSIER -->
+    <div id="subloc-dossier">
+        <div class="subloc-header">
+            <div>
+                <div class="sub" id="subloc-parent">PARENT</div>
+                <h3 id="subloc-name">--</h3>
+            </div>
+            <button onclick="closeSubLocDossier()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="subloc-body">
+            <span class="subloc-tag" id="subloc-tag">SUB-NODE</span>
+            <div class="subloc-desc" id="subloc-desc">--</div>
+            <div class="subloc-stats">
+                <div class="subloc-stat"><div class="k">POPULATION</div><div class="v" id="subloc-pop">--</div></div>
+                <div class="subloc-stat"><div class="k">RISK LEVEL</div><div class="v" id="subloc-risk">--</div></div>
+                <div class="subloc-stat"><div class="k">ANOMALY INDEX</div><div class="v" id="subloc-anomaly">--</div></div>
+                <div class="subloc-stat"><div class="k">CONTROL</div><div class="v" id="subloc-control">--</div></div>
+            </div>
+            <div class="subloc-flavor" id="subloc-flavor">--</div>
+        </div>
+    </div>
+
+    <!-- REALITY LENS (volumetric magnifier) -->
+    <div id="reality-lens">
+        <div class="lens-strata-label" id="lens-strata-label">STRATA --</div>
+        <div class="lens-frame">
+            <div class="lens-vortex" id="lens-vortex"></div>
+            <div class="lens-content">
+                <canvas class="lens-mini-canvas" id="lens-mini-canvas"></canvas>
+                <div class="lens-title" id="lens-title">--</div>
+                <div class="lens-faction" id="lens-faction">--</div>
+                <div class="lens-status" id="lens-status">--</div>
+            </div>
         </div>
     </div>
 
@@ -439,6 +669,17 @@
                     </div>
                     
                     <button onclick="openStrataDirectory()" class="btn-glitch border border-[#00ffcc] bg-[#00ffcc] bg-opacity-10 p-1.5 font-bold tracking-widest transition-all text-[10px] md:text-xs mt-0.5 text-white shadow-[0_0_10px_rgba(0,255,204,0.3)]">VIEW STRATA DIRECTORY</button>
+
+                    <div class="text-gray-500 text-[9px] tracking-widest mt-2 border-t border-gray-700 pt-1">EXPLORATION MODES</div>
+                    <button id="tour-btn" class="nav-mode-btn" onclick="startCinematicTour()">
+                        <span><span class="ico">▶</span> CINEMATIC TOUR</span><span>+99 → -99</span>
+                    </button>
+                    <button id="soul-btn" class="nav-mode-btn" onclick="toggleSoulMode()">
+                        <span><span class="ico">✦</span> SOUL TRACKER</span><span id="soul-btn-state">OFF</span>
+                    </button>
+                    <button id="lens-btn" class="nav-mode-btn" onclick="toggleLensMode()">
+                        <span><span class="ico">◎</span> REALITY LENS</span><span id="lens-btn-state">OFF</span>
+                    </button>
                     
                 </div>
             </div>
@@ -851,6 +1092,7 @@
         let hoveredDisc = null;
         let factionVolumeMeshes = [];
         let soulSeedsGeometry;
+        let soulSeedsParticles;
         const seedCount = 1500;
         const seedPaths = [];
         const seedData = [];
@@ -1142,7 +1384,8 @@
             soulSeedsGeometry = new THREE.BufferGeometry();
             soulSeedsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             soulSeedsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            astrolabeGroup.add(new THREE.Points(soulSeedsGeometry, new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })));
+            soulSeedsParticles = new THREE.Points(soulSeedsGeometry, new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+            astrolabeGroup.add(soulSeedsParticles);
         }
 
         function generateDeadZoneVolumes() {
@@ -1332,6 +1575,24 @@
 
         function onClick() {
             if (!uiVisible || isCamTweening) return;
+            // Suppress clicks while modals or tour are active
+            if (!document.getElementById('lore-panel').classList.contains('hidden')) return;
+            if (document.getElementById('codex-panel').classList.contains('open')) return;
+            if (document.getElementById('soul-dossier').classList.contains('open')) return;
+            if (document.getElementById('subloc-dossier').classList.contains('open')) return;
+            if (TOUR.active) return;
+
+            // Soul mode — raycast against the soul-seeds Points cloud instead of discs
+            if (SOUL_MODE && soulSeedsGeometry) {
+                raycaster.params.Points = { threshold: 1.2 };
+                raycaster.setFromCamera(mouse, camera);
+                const soulHit = raycaster.intersectObject(soulSeedsParticles, false);
+                if (soulHit.length) {
+                    openSoulDossier(soulHit[0].index);
+                    return;
+                }
+            }
+
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects([...Object.values(discMeshes), ...poiMeshes]);
             
@@ -1951,20 +2212,34 @@
             holoModel.userData.spin = true;
             holoGroup.add(holoModel);
 
-            // Surrounding orbiting "data points"
+            // Surrounding orbiting "data points" — clickable sub-locations
             const subs = poi ? poi.subLocations : getProceduralSublocations(level);
             const orbiters = new THREE.Group();
+            const orbiterCount = Math.min(subs.length, 8);
             subs.slice(0, 8).forEach((name, i) => {
-                const a = (i / Math.min(subs.length, 8)) * Math.PI * 2;
+                const a = (i / Math.max(orbiterCount, 1)) * Math.PI * 2;
                 const r = 5;
+                // Larger invisible click hit-target around the visible node
+                const hitTarget = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.55, 8, 8),
+                    new THREE.MeshBasicMaterial({ visible: false })
+                );
                 const node = new THREE.Mesh(
                     new THREE.IcosahedronGeometry(0.18, 0),
                     new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: platformColor, emissiveIntensity: 1.0 })
                 );
-                node.position.set(Math.cos(a) * r, 0.5 + Math.sin(i * 1.3) * 0.4, Math.sin(a) * r);
-                node.userData.baseY = node.position.y;
-                node.userData.phase = i * 0.7;
-                orbiters.add(node);
+                hitTarget.add(node);
+                hitTarget.position.set(Math.cos(a) * r, 0.5 + Math.sin(i * 1.3) * 0.4, Math.sin(a) * r);
+                hitTarget.userData = {
+                    isOrbiter: true,
+                    subName: name,
+                    parentPOI: poi,
+                    parentData: data,
+                    parentLevel: level,
+                    baseY: hitTarget.position.y,
+                    phase: i * 0.7
+                };
+                orbiters.add(hitTarget);
             });
             holoGroup.add(orbiters);
             holoGroup.userData.orbiters = orbiters;
@@ -2001,6 +2276,27 @@
             }
             tick();
 
+            // === NEW: Orbiter (sub-location) click handler ===
+            holoCanvasClickHandler = (e) => {
+                if (!holoCam || !orbiters) return;
+                const rect = canvas.getBoundingClientRect();
+                const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                const rc = new THREE.Raycaster();
+                rc.setFromCamera({ x: mx, y: my }, holoCam);
+                const hits = rc.intersectObjects(orbiters.children, true);
+                if (hits.length) {
+                    let t = hits[0].object;
+                    while (t && !t.userData.isOrbiter) t = t.parent;
+                    if (t) {
+                        e.stopPropagation();
+                        openSubLocDossier(t.userData);
+                    }
+                }
+            };
+            canvas.addEventListener('click', holoCanvasClickHandler);
+            canvas.style.cursor = 'pointer';
+
             // Handle resize while open
             holoResizeHandler = () => {
                 if (!holoRenderer) return;
@@ -2015,10 +2311,17 @@
         }
 
         let holoResizeHandler = null;
+        let holoCanvasClickHandler = null;
         function destroyHoloPOI() {
             if (holoAnimId) cancelAnimationFrame(holoAnimId);
             holoAnimId = null;
             if (holoResizeHandler) { window.removeEventListener('resize', holoResizeHandler); holoResizeHandler = null; }
+            const canvas = document.getElementById('poi-holo-canvas');
+            if (canvas && holoCanvasClickHandler) {
+                canvas.removeEventListener('click', holoCanvasClickHandler);
+                holoCanvasClickHandler = null;
+                canvas.style.cursor = '';
+            }
             if (holoScene) {
                 holoScene.traverse(obj => {
                     if (obj.geometry) obj.geometry.dispose();
@@ -2032,7 +2335,408 @@
             if (holoRenderer) { holoRenderer.dispose(); holoRenderer = null; }
         }
 
-        // Builds a specific 3D model per POI type — cinematic, distinct per location
+        // =============================================================
+        //  ITERATION 3 — Cinematic Tour, Soul Inspection, Reality Lens, Sub-Lore
+        // =============================================================
+
+        // -------------- CINEMATIC TOUR (Pilgrimage Mode) --------------
+        const TOUR = { active: false, stops: [], index: 0, paused: false, typerTimer: null, advanceTimer: null };
+        function buildTourStops() {
+            // All named POI strata, sorted +99 → -99
+            const poiLevels = Object.keys(POIS).map(n => parseInt(n)).sort((a,b) => b - a);
+            // Add a few procedural waypoints for visual rhythm
+            const filler = [70, 30, 20, -20, -30, -70].filter(l => !poiLevels.includes(l));
+            const all = [...new Set([...poiLevels, ...filler])].sort((a,b) => b - a);
+            return all;
+        }
+        function startCinematicTour() {
+            if (TOUR.active) return;
+            TOUR.active = true;
+            TOUR.stops = buildTourStops();
+            TOUR.index = 0;
+            controls.autoRotate = false;
+            document.getElementById('tour-overlay').classList.add('active');
+            document.getElementById('tour-btn').classList.add('on');
+            logMessage('PILGRIMAGE INITIATED — auto-piloting through The Endless.', 'info');
+            playTourStep();
+        }
+        function endCinematicTour() {
+            TOUR.active = false;
+            if (TOUR.typerTimer) clearInterval(TOUR.typerTimer);
+            if (TOUR.advanceTimer) clearTimeout(TOUR.advanceTimer);
+            controls.autoRotate = true;
+            document.getElementById('tour-overlay').classList.remove('active');
+            document.getElementById('tour-btn').classList.remove('on');
+            logMessage('PILGRIMAGE TERMINATED.', 'info');
+        }
+        function tourSkip() {
+            if (!TOUR.active) return;
+            if (TOUR.typerTimer) clearInterval(TOUR.typerTimer);
+            if (TOUR.advanceTimer) clearTimeout(TOUR.advanceTimer);
+            TOUR.index++;
+            if (TOUR.index >= TOUR.stops.length) { endCinematicTour(); return; }
+            playTourStep();
+        }
+        function playTourStep() {
+            if (!TOUR.active) return;
+            const lvl = TOUR.stops[TOUR.index];
+            const data = TERRITORY_DATA[lvl];
+            const poi = (POIS[lvl] && POIS[lvl][0]) ? POIS[lvl][0] : null;
+
+            // Camera dolly — orbit angle drifts ~120° per stop so each feels new
+            const yCenter = lvl * 0.6;
+            const sizeRatio = Math.pow(1 - (Math.abs(lvl) / 100), 2.5);
+            const radius = Math.max(15, 10 + (60 * sizeRatio));
+            const angle = (TOUR.index * 2.0) + (lvl > 0 ? 0 : Math.PI);
+            animCamTarget.set(0, yCenter, 0);
+            animCamPos.set(Math.cos(angle) * radius, yCenter + 6, Math.sin(angle) * radius);
+            isCamTweening = true;
+            GAME_STATE.currentLevel = lvl;
+            GAME_STATE.discoveredStrata.add(lvl);
+            updateUI(true);
+
+            // Fill narration card
+            const eyebrow = `STOP ${TOUR.index + 1} OF ${TOUR.stops.length}  ·  STRATA ${lvl > 0 ? '+' + lvl : lvl}`;
+            const title = poi ? poi.name : data.title;
+            const factionName = poi ? (poi.faction.name) : data.faction.name;
+            const factionColor = '#' + (poi ? poi.faction : data.faction).color.toString(16).padStart(6, '0');
+
+            document.getElementById('tour-eyebrow').innerText = eyebrow;
+            document.getElementById('tour-title').innerText = title.toUpperCase();
+            document.getElementById('tour-title').style.color = data.isDead ? '#ef4444' : factionColor;
+            document.getElementById('tour-faction').innerText = `[ ${factionName.toUpperCase()} ${data.isDead ? '· DEAD STRATA' : ''} ]`;
+            document.getElementById('tour-progress').innerText = '▰'.repeat(TOUR.index + 1) + '▱'.repeat(TOUR.stops.length - TOUR.index - 1);
+
+            // Typewriter the lore body
+            let bodyText;
+            if (poi) bodyText = poi.desc;
+            else {
+                const list = FACTION_LORE_TEMPLATES[data.faction.id] || FACTION_LORE_TEMPLATES['unclaimed'];
+                bodyText = list[Math.abs(lvl * 13) % list.length];
+            }
+            if (data.isDead && !poi) bodyText = 'WARNING: Collapsed reality strand. ' + bodyText;
+            typewriter('tour-body', bodyText, 22);
+
+            checkAchievements();
+
+            // Schedule next stop (8 seconds per stop)
+            TOUR.advanceTimer = setTimeout(() => {
+                if (TOUR.index + 1 >= TOUR.stops.length) { endCinematicTour(); return; }
+                TOUR.index++;
+                playTourStep();
+            }, 8000);
+        }
+        function typewriter(elId, text, charsPerSec) {
+            if (TOUR.typerTimer) clearInterval(TOUR.typerTimer);
+            const el = document.getElementById(elId);
+            let i = 0;
+            el.innerHTML = '<span class="typer-cursor">▌</span>';
+            TOUR.typerTimer = setInterval(() => {
+                if (i >= text.length) { clearInterval(TOUR.typerTimer); el.innerHTML = text; return; }
+                i++;
+                el.innerHTML = text.slice(0, i) + '<span class="typer-cursor">▌</span>';
+            }, 1000 / charsPerSec);
+        }
+
+        // -------------- SOUL INSPECTION MODE --------------
+        let SOUL_MODE = false;
+        const SOUL_FIRST_NAMES = ['Ash','Vex','Ren','Tor','Lia','Mor','Sev','Kael','Nyx','Zara','Iris','Vael','Dorn','Pyx','Quin','Lyr','Sol','Wyn','Thal','Eira'];
+        const SOUL_TITLES = ['the Forgotten','of the Forge','the Wanderer','Twice-Born','the Veiled','the Unclaimed','of Ashen Light','the Echoborn','the Last','the Resolute'];
+        const REAPER_NAMES = ['MORDREN-7','HARROW-12','GRIM-3X','SEPHIRA','OBOLUS-Δ','THANE-IX','KORAX','VEILWING','NULL-9','SILTBINDER'];
+        const SOUL_MEMORIES = [
+            'Died in the Saviour City accident at Strata 0. Last memory: cyan light, then nothing.',
+            'A merchant of Rippers Street who refused to pay the Trigon tariff. Stabbed in the alley.',
+            'Centurion Guard, 412th legion. Ascended after holding the line at Fort Harpie for 9 cycles.',
+            'A Watrari saboteur who never made it home. Soul slipped through the cracks during a hex storm.',
+            'Trafficked by Soul Collectors. The Wailing Cells erased most identifying fragments.',
+            'Born in a Dead Reality. Should not exist, yet here it drifts.',
+            'A poet from Trinity Leviticus who wrote 9 stanzas before the words turned to ash.',
+            'Stolen blood-tithe from the Sanguine Court. Lost everything chasing the Crimson Keep.',
+            'Wandering child of the Muggai Nomads. The scrap took it before the Reapers could.'
+        ];
+        function toggleSoulMode() {
+            SOUL_MODE = !SOUL_MODE;
+            document.getElementById('soul-btn').classList.toggle('on', SOUL_MODE);
+            document.getElementById('soul-btn-state').innerText = SOUL_MODE ? 'ON' : 'OFF';
+            if (SOUL_MODE) {
+                if (LENS_MODE) toggleLensMode(); // mutually exclusive
+                document.body.style.cursor = 'crosshair';
+                logMessage('SOUL TRACKER engaged — click a drifting soul-seed for forensic scan.', 'purple');
+                // Boost soul particle size for visibility
+                if (soulSeedsParticles) soulSeedsParticles.material.size = 1.5;
+            } else {
+                document.body.style.cursor = 'default';
+                logMessage('SOUL TRACKER disengaged.', 'normal');
+                if (soulSeedsParticles) soulSeedsParticles.material.size = 0.9;
+            }
+        }
+        function openSoulDossier(particleIndex) {
+            const data = seedData[particleIndex];
+            const positions = soulSeedsGeometry.attributes.position.array;
+            const cy = positions[particleIndex * 3 + 1];
+            const currentLevel = Math.round(cy / 0.6);
+            const seed = (particleIndex * 31 + Math.abs(currentLevel) * 17) % 9999;
+            const seededRand = (n) => Math.abs(Math.sin(seed + n) * 9999) % 1;
+
+            const firstName = SOUL_FIRST_NAMES[Math.floor(seededRand(1) * SOUL_FIRST_NAMES.length)];
+            const title = SOUL_TITLES[Math.floor(seededRand(2) * SOUL_TITLES.length)];
+            const id = `SX-${String(seed).padStart(4, '0')}//${firstName} ${title}`;
+            const originLvl = Math.round((Math.random() - 0.5) * 198);
+            const ascending = data.speed > 0;
+            const karma = cy > 0 ? 'LIGHT-WEIGHTED' : (cy < -10 ? 'SHADOW-BOUND' : 'NEUTRAL');
+            const reaper = REAPER_NAMES[Math.floor(seededRand(3) * REAPER_NAMES.length)];
+            const integrity = (40 + Math.floor(seededRand(4) * 59)) + '%';
+            const memory = SOUL_MEMORIES[Math.floor(seededRand(5) * SOUL_MEMORIES.length)];
+
+            document.getElementById('soul-id').innerText = id;
+            document.getElementById('soul-origin').innerText = (originLvl > 0 ? '+' : '') + originLvl;
+            document.getElementById('soul-current').innerText = (currentLevel > 0 ? '+' : '') + currentLevel;
+            document.getElementById('soul-traj').innerText = ascending ? '▲ ASCENDING' : '▼ DESCENDING';
+            document.getElementById('soul-traj').style.color = ascending ? '#ffff88' : '#aa66ff';
+            document.getElementById('soul-karma').innerText = karma;
+            document.getElementById('soul-karma').style.color = karma === 'LIGHT-WEIGHTED' ? '#ffff88' : (karma === 'SHADOW-BOUND' ? '#ff44aa' : '#aaaaaa');
+            document.getElementById('soul-reaper').innerText = reaper;
+            document.getElementById('soul-integrity').innerText = integrity;
+            document.getElementById('soul-memory').innerText = `"${memory}"`;
+
+            // Position marker on the light/dark gradient bar (clamp to ±60 strata range visually)
+            const norm = Math.max(-1, Math.min(1, cy / (60 * 0.6))); // -1 (dark) to +1 (light)
+            const leftPct = 50 + norm * 45;
+            document.getElementById('soul-marker').style.left = leftPct + '%';
+
+            document.getElementById('soul-dossier').classList.add('open');
+            logMessage(`Soul ${id} captured. Forensic scan running.`, 'info');
+        }
+        function closeSoulDossier() {
+            document.getElementById('soul-dossier').classList.remove('open');
+        }
+
+        // -------------- VOLUMETRIC REALITY LENS --------------
+        let LENS_MODE = false;
+        let lensMiniScene = null, lensMiniCam = null, lensMiniRenderer = null, lensMiniGroup = null;
+        let lensMiniAnimId = null;
+        let lensLastLevel = null;
+        function toggleLensMode() {
+            LENS_MODE = !LENS_MODE;
+            document.getElementById('lens-btn').classList.toggle('on', LENS_MODE);
+            document.getElementById('lens-btn-state').innerText = LENS_MODE ? 'ON' : 'OFF';
+            const lens = document.getElementById('reality-lens');
+            if (LENS_MODE) {
+                if (SOUL_MODE) toggleSoulMode();
+                lens.classList.add('visible');
+                document.body.style.cursor = 'crosshair';
+                logMessage('REALITY LENS engaged — hover over any strata to peer in.', 'info');
+                initLensMiniScene();
+            } else {
+                lens.classList.remove('visible');
+                document.body.style.cursor = 'default';
+                destroyLensMiniScene();
+                lensLastLevel = null;
+                logMessage('REALITY LENS disengaged.', 'normal');
+            }
+        }
+        function initLensMiniScene() {
+            const canvas = document.getElementById('lens-mini-canvas');
+            if (!canvas) return;
+            lensMiniScene = new THREE.Scene();
+            lensMiniCam = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+            lensMiniCam.position.set(0, 1, 4);
+            lensMiniCam.lookAt(0, 0, 0);
+            lensMiniRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            lensMiniRenderer.setSize(100, 100, false);
+            lensMiniRenderer.setPixelRatio(window.devicePixelRatio);
+            lensMiniRenderer.setClearColor(0x000000, 0);
+            lensMiniScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const pl = new THREE.PointLight(0xffffff, 4, 10);
+            pl.position.set(3, 3, 3); lensMiniScene.add(pl);
+            lensMiniGroup = new THREE.Group();
+            lensMiniScene.add(lensMiniGroup);
+            (function loop() {
+                if (!lensMiniScene) return;
+                if (lensMiniGroup) lensMiniGroup.rotation.y += 0.015;
+                lensMiniRenderer.render(lensMiniScene, lensMiniCam);
+                lensMiniAnimId = requestAnimationFrame(loop);
+            })();
+        }
+        function destroyLensMiniScene() {
+            if (lensMiniAnimId) cancelAnimationFrame(lensMiniAnimId);
+            lensMiniAnimId = null;
+            if (lensMiniScene) {
+                lensMiniScene.traverse(o => {
+                    if (o.geometry) o.geometry.dispose();
+                    if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose()); else o.material.dispose(); }
+                });
+                lensMiniScene = null; lensMiniCam = null; lensMiniGroup = null;
+            }
+            if (lensMiniRenderer) { lensMiniRenderer.dispose(); lensMiniRenderer = null; }
+        }
+        function updateLensMiniModel(level, data, poi) {
+            if (!lensMiniGroup) return;
+            // Clear existing
+            while (lensMiniGroup.children.length) {
+                const c = lensMiniGroup.children[0];
+                lensMiniGroup.remove(c);
+                if (c.geometry) c.geometry.dispose();
+                if (c.material) c.material.dispose();
+            }
+            const color = (poi && poi.faction) ? poi.faction.color :
+                (data && data.faction !== FACTIONS.UNCLAIMED ? data.faction.color : (data.isDead ? 0xff3333 : 0x00ffcc));
+            if (data && data.isDead) {
+                // Shattered shards
+                for (let i = 0; i < 5; i++) {
+                    const m = new THREE.Mesh(
+                        new THREE.TetrahedronGeometry(0.2 + Math.random() * 0.2),
+                        new THREE.MeshStandardMaterial({ color: 0xaa0000, emissive: 0xff2200, emissiveIntensity: 0.7 })
+                    );
+                    m.position.set((Math.random()-0.5)*1.5, (Math.random()-0.5)*1.2, (Math.random()-0.5)*1);
+                    m.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+                    lensMiniGroup.add(m);
+                }
+            } else if (poi) {
+                // Use a simplified version of the holo model
+                lensMiniGroup.add(buildHoloModel(poi, data, color));
+                lensMiniGroup.scale.setScalar(0.35);
+            } else {
+                // Planet sphere with rings
+                const planet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 }));
+                lensMiniGroup.add(planet);
+                if (data.isStable) {
+                    const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 1.0, 32), new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
+                    ring.rotation.x = Math.PI / 2.3;
+                    lensMiniGroup.add(ring);
+                }
+            }
+        }
+
+        // Update lens content based on hovered strata (called from updateTelemetryReticle)
+        function updateRealityLens(clientX, clientY) {
+            if (!LENS_MODE) return;
+            const lens = document.getElementById('reality-lens');
+            lens.style.left = clientX + 'px';
+            lens.style.top = clientY + 'px';
+            if (!hoveredDisc) return;
+            const lvl = hoveredDisc.userData.level;
+            if (lvl !== lensLastLevel) {
+                lensLastLevel = lvl;
+                const data = TERRITORY_DATA[lvl];
+                const poi = (POIS[lvl] && POIS[lvl][0]) ? POIS[lvl][0] : null;
+                const isNightmare = data.isDead || (data.faction && (data.faction.id === 'unholy_ones' || data.faction.id === 'abyss_followers'));
+                document.getElementById('lens-vortex').style.backgroundImage = `url('/api/static/${isNightmare ? 'reality_red.gif' : 'reality_violet.gif'}')`;
+                document.getElementById('lens-strata-label').innerText = `STRATA ${lvl > 0 ? '+' + lvl : lvl}`;
+                document.getElementById('lens-title').innerText = (poi ? poi.name : data.title).toUpperCase().slice(0, 24);
+                document.getElementById('lens-faction').innerText = (poi ? poi.faction.name : data.faction.name).toUpperCase();
+                document.getElementById('lens-faction').style.color = '#' + (poi ? poi.faction : data.faction).color.toString(16).padStart(6, '0');
+                document.getElementById('lens-status').innerText = data.isDead ? '☠ DEAD STRAND' : (data.isStable ? '◉ STABLE' : '◌ UNSTABLE');
+                document.getElementById('lens-status').style.color = data.isDead ? '#ff5555' : (data.isStable ? '#00ffcc' : '#ffaa00');
+                updateLensMiniModel(lvl, data, poi);
+            }
+        }
+        // Hook lens update into the existing mouse-move flow
+        const _origUpdateReticle = updateTelemetryReticle;
+        updateTelemetryReticle = function(clientX, clientY) {
+            _origUpdateReticle(clientX, clientY);
+            updateRealityLens(clientX, clientY);
+        };
+
+        // -------------- NESTED SUB-LOCATION LORE --------------
+        const SUBLOC_VENDORS = ['Vex the Boneweaver','One-Eyed Threnn','Madame Carrion','The Reckoner','Old Hollow-Sound','Marrow Sister','Brokerlord Sull','Quill of Echoes'];
+        const SUBLOC_THREATS = ['Soul-vermin infestation','Cursed-air pockets','Rogue Reaper sightings','Centurion checkpoint surge','Watrari informant cells','Cult ritual perimeter','Anomalous time loops','Faction bounty hunters'];
+        const SUBLOC_ANOMALIES = ['Static-saint apparitions at 03:00','Echoes of a future raid','Door that wasn\'t there yesterday','Music with no source','Mirror reflects nothing','Sky bleeds upward'];
+        function openSubLocDossier(orbiterUserData) {
+            const { subName, parentPOI, parentData, parentLevel } = orbiterUserData;
+            if (!subName) return;
+
+            const seed = subName.length * 41 + Math.abs(parentLevel) * 7 + subName.charCodeAt(0);
+            const r = (n) => Math.abs(Math.sin(seed + n) * 9999) % 1;
+
+            const parentName = parentPOI ? parentPOI.name : parentData.title;
+            const parentFaction = (parentPOI && parentPOI.faction) ? parentPOI.faction : parentData.faction;
+            const factionName = parentFaction.name.toUpperCase();
+            const factionColor = '#' + parentFaction.color.toString(16).padStart(6, '0');
+
+            // Type-keyword based flavor
+            const lowName = subName.toLowerCase();
+            let typeTag = 'OUTPOST';
+            let desc = `A sub-node of ${parentName}. `;
+            let flavor = '';
+
+            if (lowName.includes('market') || lowName.includes('bazaar') || lowName.includes('shop') || lowName.includes('docks') || lowName.includes('street')) {
+                typeTag = 'COMMERCE NODE';
+                desc += `Foot traffic is dense and constantly shifting. Vendors hawk wares both legal and forbidden — most goods change owners three times before sunset (where 'sunset' even applies).`;
+                flavor = `Featured vendor: ${SUBLOC_VENDORS[Math.floor(r(1) * SUBLOC_VENDORS.length)]}. Patronage is wary but profitable.`;
+            } else if (lowName.includes('throne') || lowName.includes('court') || lowName.includes('capital') || lowName.includes('hall') || lowName.includes('command')) {
+                typeTag = 'SEAT OF POWER';
+                desc += `A heavily guarded political nucleus. Decisions made here ripple across multiple strata. Access is restricted to faction-blooded.`;
+                flavor = `Threat: ${SUBLOC_THREATS[Math.floor(r(1) * SUBLOC_THREATS.length)]}.`;
+            } else if (lowName.includes('fort') || lowName.includes('garrison') || lowName.includes('defense') || lowName.includes('fleet') || lowName.includes('drydock')) {
+                typeTag = 'MILITARY ZONE';
+                desc += `Active patrols, weapon caches, and rotating sentries. Astrolabe scans pick up encrypted comm spikes round-the-clock.`;
+                flavor = `Threat: ${SUBLOC_THREATS[Math.floor(r(1) * SUBLOC_THREATS.length)]}.`;
+            } else if (lowName.includes('valley') || lowName.includes('forge') || lowName.includes('forest') || lowName.includes('garden') || lowName.includes('field') || lowName.includes('grass')) {
+                typeTag = 'TERRAIN FEATURE';
+                desc += `A massive natural — or unnaturally grown — geographic feature. Locals tell conflicting stories about what happened here last cycle.`;
+                flavor = `Anomaly: ${SUBLOC_ANOMALIES[Math.floor(r(1) * SUBLOC_ANOMALIES.length)]}.`;
+            } else if (lowName.includes('library') || lowName.includes('archive') || lowName.includes('vault') || lowName.includes('book') || lowName.includes('silo') || lowName.includes('ledger')) {
+                typeTag = 'KNOWLEDGE REPOSITORY';
+                desc += `Information is currency here. Forbidden texts, sealed soul-records, and rumor-archives are catalogued (and weaponized) by the curators.`;
+                flavor = `Custodian: ${SUBLOC_VENDORS[Math.floor(r(1) * SUBLOC_VENDORS.length)]}.`;
+            } else if (lowName.includes('portal') || lowName.includes('rift') || lowName.includes('zone') || lowName.includes('anomaly')) {
+                typeTag = 'DIMENSIONAL ANOMALY';
+                desc += `A localized breach in spatial law. Linger too long and your shadow may decide it would rather be somewhere else.`;
+                flavor = `Anomaly: ${SUBLOC_ANOMALIES[Math.floor(r(1) * SUBLOC_ANOMALIES.length)]}.`;
+            } else if (lowName.includes('warehouse') || lowName.includes('cells') || lowName.includes('pens') || lowName.includes('siphon')) {
+                typeTag = 'CONTAINMENT';
+                desc += `Whatever's inside is meant to stay inside. The exterior is heavily reinforced — every door has at least three locks and one prayer.`;
+                flavor = `Risk: ${SUBLOC_THREATS[Math.floor(r(1) * SUBLOC_THREATS.length)]}.`;
+            } else if (lowName.includes('ship') || lowName.includes('hull') || lowName.includes('vessel')) {
+                typeTag = 'DERELICT VESSEL';
+                desc += `Whatever crew once piloted this hulk is long-gone. Scavengers pick it clean cycle after cycle, but it never truly empties.`;
+                flavor = `Anomaly: ${SUBLOC_ANOMALIES[Math.floor(r(1) * SUBLOC_ANOMALIES.length)]}.`;
+            } else if (lowName.includes('peak') || lowName.includes('spire') || lowName.includes('tower')) {
+                typeTag = 'LANDMARK';
+                desc += `A monumental vertical structure visible from across the strata. Both a navigation point and a symbol of the dominant power's reach.`;
+                flavor = `Local fixture: ${SUBLOC_VENDORS[Math.floor(r(1) * SUBLOC_VENDORS.length)]} keeps watch nearby.`;
+            } else {
+                typeTag = 'POINT OF INTEREST';
+                desc += `Records on this location are fragmentary. What's documented is contradictory; what isn't, locals refuse to speak of.`;
+                flavor = `Curiosity: ${SUBLOC_ANOMALIES[Math.floor(r(1) * SUBLOC_ANOMALIES.length)]}.`;
+            }
+
+            const pop = (Math.floor(r(2) * 950) + 50) * 1000;
+            const risks = ['MINIMAL','LOW','MODERATE','HIGH','EXTREME'];
+            const risk = risks[Math.floor(r(3) * risks.length)];
+            const anomalyIdx = Math.floor(r(4) * 100);
+            const controlPct = Math.floor(50 + r(5) * 50);
+
+            document.getElementById('subloc-name').innerText = subName.toUpperCase();
+            document.getElementById('subloc-parent').innerText = `${parentName.toUpperCase()} · STRATA ${parentLevel > 0 ? '+' + parentLevel : parentLevel}`;
+            document.getElementById('subloc-tag').innerText = typeTag;
+            document.getElementById('subloc-desc').innerText = desc;
+            document.getElementById('subloc-pop').innerText = pop.toLocaleString();
+            document.getElementById('subloc-risk').innerText = risk;
+            document.getElementById('subloc-risk').style.color = risk === 'EXTREME' ? '#ff4444' : (risk === 'HIGH' ? '#ffaa00' : '#00ffcc');
+            document.getElementById('subloc-anomaly').innerText = anomalyIdx + ' Φ';
+            document.getElementById('subloc-control').innerText = `${controlPct}% ${factionName.split(' ')[0]}`;
+            document.getElementById('subloc-control').style.color = factionColor;
+            document.getElementById('subloc-flavor').innerText = flavor;
+
+            document.getElementById('subloc-dossier').classList.add('open');
+            logMessage(`Sub-node "${subName}" accessed.`, 'info');
+        }
+        function closeSubLocDossier() {
+            document.getElementById('subloc-dossier').classList.remove('open');
+        }
+
+        // ESC key universally closes any open modal
+        window.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (document.getElementById('subloc-dossier').classList.contains('open')) closeSubLocDossier();
+            else if (document.getElementById('soul-dossier').classList.contains('open')) closeSoulDossier();
+            else if (TOUR.active) endCinematicTour();
+            else if (!document.getElementById('lore-panel').classList.contains('hidden')) closeLore();
+            else if (document.getElementById('codex-panel').classList.contains('open')) toggleCodex();
+            else if (!document.getElementById('directory-panel').classList.contains('hidden')) closeStrataDirectory();
+        });
         function buildHoloModel(poi, data, color) {
             const group = new THREE.Group();
             const matWire = (c, o = 0.85) => new THREE.MeshBasicMaterial({ color: c, wireframe: true, transparent: true, opacity: o });

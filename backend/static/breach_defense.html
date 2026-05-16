@@ -1667,69 +1667,126 @@
                 shadow.position.y = 0.02;
                 group.add(shadow);
             } else {
-                // -- FLYING SOUL PARASITE --
-                // Segmented worm body (4 spheres, tapering)
+                // -- FLYING SOUL PARASITE (curved segmented worm, no wings) --
+                // Build a serpentine body by sampling a CatmullRomCurve3 spine.
+                // Cylinder segments along the spine + bright glowing torus rings between
+                // them + green point lights at every 3rd gap.  No wings.
+                const N_SEG = 8;                                // spine sample count
+                const SEG_LEN = 0.18;                           // approx distance between samples
+                const segR_base = 0.13;                         // body radius
+                const spinePoints = [];
+                for (let s = 0; s < N_SEG; s++) {
+                    // Initial straight spine along -Z, head at z=+, tail at z=-
+                    spinePoints.push(new THREE.Vector3(0, 0, (N_SEG / 2 - s) * SEG_LEN));
+                }
+                const spine = new THREE.CatmullRomCurve3(spinePoints, false);
+
+                // Reusable materials
                 const bodyMat = new THREE.MeshStandardMaterial({
-                    color: 0x66ff88, emissive: 0x33ff66, emissiveIntensity: 1.2,
-                    roughness: 0.45, metalness: 0.1,
+                    color: 0x5c3d2e, roughness: 0.85, metalness: 0.1,
                 });
-                for (let s = 0; s < 4; s++) {
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0x33ff55,
+                    transparent: true, opacity: 0.85,
+                    blending: THREE.AdditiveBlending, depthWrite: false,
+                });
+
+                // Sample N points along the spine and place a Cylinder at each, oriented
+                // along the tangent to the next sample.  Cache the meshes so the per-frame
+                // animation can re-position them when the spine control points wobble.
+                const segMeshes = [];
+                const ringMeshes = [];
+                const pointLights = [];
+                for (let s = 0; s < N_SEG; s++) {
+                    const t  = s / Math.max(1, N_SEG - 1);
+                    const isHead = (s === 0);
+                    const sizeMult = isHead ? 1.4 : 1.0;
+                    const segLen   = SEG_LEN * 0.95 * sizeMult;
+                    const segR     = (segR_base * (1.05 - t * 0.4)) * sizeMult;
                     const seg = new THREE.Mesh(
-                        new THREE.SphereGeometry(0.20 - s * 0.025, 10, 8),
+                        new THREE.CylinderGeometry(segR, segR * 0.92, segLen, 12, 1, false),
                         bodyMat
                     );
-                    seg.position.set(0, 0, -s * 0.22);
+                    // CylinderGeometry's long axis is +Y by default — rotate so it lies
+                    // along the spine direction (we'll set the precise look-at each frame).
+                    seg.rotation.x = Math.PI / 2;
                     group.add(seg);
+                    segMeshes.push(seg);
+
+                    // Inter-segment ring (between this segment and the next) — bright glow
+                    if (s < N_SEG - 1) {
+                        const ring = new THREE.Mesh(
+                            new THREE.TorusGeometry(segR * 1.18, segR * 0.16, 6, 18),
+                            ringMat
+                        );
+                        // Torus default plane is XY → rotate so the disc faces along Z
+                        ring.rotation.x = Math.PI / 2;
+                        group.add(ring);
+                        ringMeshes.push(ring);
+
+                        // Point light at every third inter-segment gap
+                        if (s % 3 === 0) {
+                            const pl = new THREE.PointLight(0x33ff55, 0.55, 4.0, 1);
+                            group.add(pl);
+                            pointLights.push({ light: pl, ringIndex: ringMeshes.length - 1 });
+                        }
+                    }
                 }
-                // Big head with magenta eye
-                const head = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.24, 14, 12),
+
+                // Head segment is the FIRST cylinder (s===0, 1.4× larger).
+                // Attach a glowing maw face — bright emissive green CircleGeometry on the front.
+                const head = segMeshes[0];
+                const mawR = (segR_base * 1.05) * 1.4 * 0.92;  // matches head front cap radius
+                const maw = new THREE.Mesh(
+                    new THREE.CircleGeometry(mawR, 18),
                     new THREE.MeshStandardMaterial({
-                        color: 0x88ffaa, emissive: 0x55ff88, emissiveIntensity: 1.5,
-                        roughness: 0.4,
+                        color: 0x44ff44, emissive: 0x44ff44, emissiveIntensity: 2.0,
+                        roughness: 0.4, metalness: 0.0,
+                        side: THREE.DoubleSide,
                     })
                 );
-                head.position.set(0, 0.03, 0.22);
-                group.add(head);
-                const eye = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.09, 10, 8),
-                    new THREE.MeshBasicMaterial({ color: 0xff44cc })
-                );
-                eye.position.set(0, 0.08, 0.4);
-                group.add(eye);
-                // Two translucent wings — additive, fluttering
-                const wingMat = new THREE.MeshBasicMaterial({
-                    color: 0xaaffcc, transparent: true, opacity: 0.55,
-                    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
-                });
-                const wingL = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), wingMat);
-                wingL.position.set(-0.28, 0.12, -0.08);
-                wingL.rotation.y = -Math.PI / 4;
-                group.add(wingL);
-                const wingR = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), wingMat);
-                wingR.position.set(0.28, 0.12, -0.08);
-                wingR.rotation.y = Math.PI / 4;
-                group.add(wingR);
-                group.userData.wingL = wingL;
-                group.userData.wingR = wingR;
-                // Green glow halo so they're visible at distance
+                // The maw is parented to the head so it follows its orientation.
+                // Position it just slightly forward of the head's local +Y (which we rotated
+                // to point along the body forward direction earlier).
+                maw.position.y = (SEG_LEN * 0.95 * 1.4) * 0.5 + 0.005;
+                head.add(maw);
+
+                // Subtle dark green halo so the worm pops at distance
                 const halo = new THREE.Mesh(
                     new THREE.SphereGeometry(0.55, 14, 12),
                     new THREE.MeshBasicMaterial({
-                        color: 0x66ffaa, transparent: true, opacity: 0.4,
+                        color: 0x33ff55, transparent: true, opacity: 0.22,
                         blending: THREE.AdditiveBlending, depthWrite: false,
                     })
                 );
                 group.add(halo);
-                // ground shadow disc (drop shadow for flying creature)
+
+                // Drop shadow (kept — gameplay reads better with grounding)
                 const shadow = new THREE.Mesh(
-                    new THREE.CircleGeometry(0.4, 14),
+                    new THREE.CircleGeometry(0.5, 14),
                     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
                 );
                 shadow.rotation.x = -Math.PI / 2;
-                shadow.position.set(0, -1.0, 0);  // will be repositioned each frame
+                shadow.position.set(0, -1.0, 0);  // repositioned each frame
                 group.add(shadow);
-                group.userData.shadow = shadow;
+
+                // BOSS-LEVEL SIZE
+                group.scale.setScalar(2.0);
+
+                // Per-frame data the animation loop will use:
+                //   - spinePoints: live control points (their .y is offset by sine each frame)
+                //   - spinePointsBase: original y so we can apply offset deterministically
+                //   - spinePhases: per-point sine phase offset → undulating serpentine motion
+                //   - spine: the CatmullRomCurve3 instance
+                //   - segMeshes / ringMeshes / pointLights: meshes to re-place along the curve
+                group.userData.spinePoints      = spinePoints;
+                group.userData.spinePointsBase  = spinePoints.map(v => v.clone());
+                group.userData.spinePhases      = spinePoints.map((_, i) => i * 0.7);
+                group.userData.spine            = spine;
+                group.userData.segMeshes        = segMeshes;
+                group.userData.ringMeshes       = ringMeshes;
+                group.userData.pointLights      = pointLights;
+                group.userData.shadow           = shadow;
             }
 
             // Spawn at random edge of arena

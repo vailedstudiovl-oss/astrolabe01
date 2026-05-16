@@ -179,25 +179,22 @@
             30%  { opacity: 1; width: 100vmax; height: 100vmax; }
             100% { opacity: 0; width: 200vmax; height: 200vmax; filter: blur(50px); }
         }
-        /* PHASE 3 — Projector & beam */
+        /* PHASE 3 — Projector & beam (now driven by Three.js boot scene) */
         .boot-projector-stage {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.6);
-            width: 280px; height: 280px; max-width: 70vw; max-height: 50vh;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: min(640px, 90vw); height: min(640px, 60vh);
             display: flex; align-items: center; justify-content: center;
             opacity: 0;
-            animation: bootProjectorIn 2.0s 5.4s forwards cubic-bezier(0.16, 1, 0.3, 1);
+            animation: bootProjectorFadeIn 1.2s 4.8s forwards ease-out;
         }
-        .boot-projector-stage img {
-            width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 30px #00ffcc);
+        #boot-projector-canvas {
+            width: 100%; height: 100%;
+            display: block;
+            filter: drop-shadow(0 0 30px rgba(0,255,204,0.5));
         }
-        .boot-beam {
-            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-            width: 60px; height: 100%;
-            background: linear-gradient(180deg, transparent 0%, rgba(0,255,255,0) 30%, rgba(0,255,255,0.6) 70%, rgba(255,255,255,0.9) 100%);
-            filter: blur(8px);
-            opacity: 0;
-            animation: bootBeamRise 1.4s 6.4s forwards ease-out;
-            pointer-events: none;
+        @keyframes bootProjectorFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
         /* PHASE 4 — Status text */
         .boot-text-stack {
@@ -225,6 +222,25 @@
         @keyframes bootTextIn { to { opacity: 1; } }
         @keyframes bootProgress { to { width: 100%; } }
         .boot-fadeout { opacity: 0; pointer-events: none; }
+
+        /* Skip Intro button (top-right of boot overlay) */
+        #boot-skip-btn {
+            position: absolute; top: calc(24px + env(safe-area-inset-top, 0));
+            right: 24px; z-index: 10000;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace; font-size: 10px;
+            letter-spacing: 3px; padding: 8px 14px; cursor: pointer;
+            transition: all .15s; opacity: 0;
+            animation: bootSkipIn .6s 1.4s forwards;
+            min-height: 36px;
+        }
+        #boot-skip-btn:hover {
+            background: #00ffcc; color: #000;
+            box-shadow: 0 0 12px rgba(0,255,204,0.6);
+        }
+        #boot-skip-btn:active { transform: scale(0.95); }
+        @keyframes bootSkipIn { to { opacity: 0.85; } }
 
         /* --- Reality Portal Transition (used when opening databanks) --- */
         #portal-overlay {
@@ -648,10 +664,10 @@
             transition: all .15s;
         }
         #pause-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
-        @media (max-width: 767px) { #pause-btn { display: none; } }
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) { #pause-btn { display: none; } }
 
         /* === MOBILE: Slide-up full-height sheet so the whole menu is always reachable === */
-        @media (max-width: 767px) {
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
             #pause-menu-backdrop {
                 align-items: stretch;       /* let the sheet stretch full height */
                 justify-content: center;
@@ -692,12 +708,96 @@
         }
 
         /* =============================================================
+           PHASE D — COMMUNITY MODALS (lore contributions + universe saves)
+           ============================================================= */
+        .community-modal-backdrop {
+            position: fixed; inset: 0; z-index: 350;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity .25s ease;
+        }
+        .community-modal-backdrop.open { display: flex; opacity: 1; }
+        .community-modal {
+            width: min(94vw, 560px); max-height: 88vh; overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: linear-gradient(160deg, rgba(0,15,20,0.98), rgba(5,5,15,0.98));
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 38px rgba(0,255,204,0.45), inset 0 0 40px rgba(0,255,204,0.05);
+            color: #d0fff0;
+            transform: scale(0.95);
+            transition: transform .25s cubic-bezier(.2,1.4,.4,1);
+        }
+        .community-modal-backdrop.open .community-modal { transform: scale(1); }
+        .community-modal-header {
+            padding: 14px 18px; border-bottom: 1px solid #00ffcc;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,204,0.06);
+            position: sticky; top: 0; z-index: 2;
+        }
+        .community-modal-header h3 {
+            font-size: 14px; letter-spacing: 4px; color: #00ffcc; font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,255,204,0.6);
+        }
+        .community-modal-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+        .community-modal-body label {
+            font-size: 9px; letter-spacing: 3px; color: #888; display: block; margin-bottom: 4px;
+        }
+        .community-modal-body input[type="text"],
+        .community-modal-body textarea {
+            width: 100%; background: rgba(0,0,0,0.55); border: 1px solid rgba(0,255,204,0.45);
+            color: #d0fff0; font-family: inherit; font-size: 13px; padding: 8px 10px;
+            outline: none; transition: border-color .15s;
+        }
+        .community-modal-body input[type="text"]:focus,
+        .community-modal-body textarea:focus { border-color: #00ffcc; }
+        .community-modal-body textarea { min-height: 130px; resize: vertical; line-height: 1.5; }
+        .community-modal-body .counter { font-size: 10px; color: #666; text-align: right; margin-top: 2px; letter-spacing: 1px; }
+        .community-modal-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 6px; }
+        .community-btn {
+            padding: 10px; background: rgba(0,255,204,0.08);
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: inherit; font-size: 11px; letter-spacing: 3px;
+            cursor: pointer; transition: all .15s; min-height: 44px;
+        }
+        .community-btn.primary { background: #00ffcc; color: #000; }
+        .community-btn.primary:hover { box-shadow: 0 0 12px rgba(0,255,204,0.7); }
+        .community-btn.cancel { border-color: #888; color: #888; }
+        .community-btn.cancel:hover { border-color: #ff4477; color: #ff4477; }
+        .community-btn:active { transform: scale(0.97); }
+
+        /* Wanderer ID badge */
+        .wid-badge {
+            display: inline-block; padding: 2px 8px;
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: inherit; font-size: 10px; letter-spacing: 2px;
+            background: rgba(0,255,204,0.08);
+        }
+
+        .saves-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+        .saves-tab {
+            flex: 1; padding: 6px; font-size: 10px; letter-spacing: 2px;
+            background: transparent; border: 1px solid rgba(0,255,204,0.4);
+            color: #b0e8d8; cursor: pointer; font-family: inherit; transition: all .15s;
+        }
+        .saves-tab.active { background: rgba(0,255,204,0.18); color: #00ffcc; border-color: #00ffcc; }
+
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
+            .community-modal-backdrop { align-items: stretch; padding: 0; }
+            .community-modal {
+                width: 100%; max-width: 100%; height: 100vh; max-height: 100vh;
+                border-left: none; border-right: none; border-top: none; border-bottom: none;
+            }
+            .community-modal-actions { grid-template-columns: 1fr; }
+        }
+
+        /* =============================================================
            ITERATION 6 — MOBILE UI OVERHAUL (touch-first redesign)
            ============================================================= */
         :root { --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px); }
 
         #mobile-ui-layer { display: none; }
-        @media (max-width: 767px) {
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
             #mobile-ui-layer { display: block; }
             /* Hide all desktop panels & telemetry on mobile */
             #ui-layer { display: none !important; }
@@ -895,7 +995,7 @@
         .m-faction-chip:active { background: rgba(255,255,255,0.1); }
 
         /* Make modals fill more space on mobile */
-        @media (max-width: 767px) {
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
             #lore-panel { padding: 0 !important; }
             #lore-panel > div { height: 100% !important; max-height: 100% !important; border: none !important; }
             #directory-panel, #soul-dossier, #subloc-dossier, #reaper-dossier { width: 92% !important; max-width: 92% !important; max-height: 80vh !important; }
@@ -1241,8 +1341,9 @@
 </head>
 <body class="text-sm md:text-base">
 
-    <!-- CINEMATIC BOOT SEQUENCE — Phase 1: DLDS Splash, Phase 2: Burst, Phase 3: Projector materialization, Phase 4: Status -->
+    <!-- CINEMATIC BOOT SEQUENCE — Phase 1: DLDS Splash, Phase 2: Burst, Phase 3: 3D Holographic Projector, Phase 4: Status -->
     <div id="boot-overlay">
+        <button id="boot-skip-btn" onclick="skipBootSequence()">[ SKIP INTRO ▸ ]</button>
         <div class="boot-stage">
             <div class="boot-splash-wrap">
                 <img src="/api/static/dlds_splash.png" alt="Dimension Lock: Deathly Stories">
@@ -1250,14 +1351,99 @@
         </div>
         <div class="boot-burst"></div>
         <div class="boot-projector-stage">
-            <img src="/api/static/holo_projector.jpg" alt="Astrolabe Projector">
-            <div class="boot-beam"></div>
+            <canvas id="boot-projector-canvas"></canvas>
         </div>
         <div class="boot-text-stack">
             <div class="boot-title">ASTROLABE TERMINAL</div>
             <div class="boot-sub">CALIBRATING 199 LAYERS · SOUL-LANE ALIGNMENT</div>
             <div class="boot-progress"></div>
             <div class="boot-sub" style="margin-top:8px;color:#555;">DEATH TRIBUNAL HANDSHAKE</div>
+        </div>
+    </div>
+
+    <!-- PHASE D — CONTRIBUTE LORE MODAL -->
+    <div id="contribute-lore-modal" class="community-modal-backdrop" onclick="if(event.target===this)closeContributeLoreModal()">
+        <div class="community-modal" role="dialog">
+            <div class="community-modal-header">
+                <h3>[ ADD COMMUNITY LORE ]</h3>
+                <button class="pause-close" onclick="closeContributeLoreModal()">[ X ]</button>
+            </div>
+            <div class="community-modal-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#888;letter-spacing:1.5px;">
+                    <span>POSTING TO: <span id="contribute-target-display" style="color:#00ffcc;">--</span></span>
+                    <span class="wid-badge" id="contribute-wid-display">--</span>
+                </div>
+                <div>
+                    <label>DISPLAY NAME (optional)</label>
+                    <input type="text" id="contribute-lore-name" placeholder="Anonymous Wanderer" maxlength="24">
+                </div>
+                <div>
+                    <label>FRAGMENT TITLE (optional)</label>
+                    <input type="text" id="contribute-lore-title" placeholder="e.g. The Last Echo" maxlength="80">
+                </div>
+                <div>
+                    <label>LORE CONTENT (10 - 1000 CHARS)</label>
+                    <textarea id="contribute-lore-content" maxlength="1000" oninput="document.getElementById('contribute-lore-counter').textContent = this.value.length + ' / 1000';" placeholder="Add your fragment to the community archive. Stories, observations, theories, witness accounts — all welcome."></textarea>
+                    <div class="counter" id="contribute-lore-counter">0 / 1000</div>
+                </div>
+                <div class="community-modal-actions">
+                    <button class="community-btn cancel" onclick="closeContributeLoreModal()">[ CANCEL ]</button>
+                    <button class="community-btn primary" onclick="submitContributeLore()">[ SUBMIT TO ARCHIVE ▸ ]</button>
+                </div>
+                <div style="font-size:9px;color:#555;letter-spacing:1px;text-align:center;">
+                    Auto-publishes immediately • Vote / flag from any device • Edit / delete via your Wanderer ID
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHASE D — UNIVERSE SAVES MODAL -->
+    <div id="saves-modal" class="community-modal-backdrop" onclick="if(event.target===this)closeSavesModal()">
+        <div class="community-modal" style="width: min(94vw, 640px);">
+            <div class="community-modal-header">
+                <h3>[ COMMUNITY UNIVERSES ]</h3>
+                <button class="pause-close" onclick="closeSavesModal()">[ X ]</button>
+            </div>
+            <div class="community-modal-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#888;letter-spacing:1.5px;">
+                    <span>YOUR WANDERER ID:</span>
+                    <span class="wid-badge" id="saves-wid-display">--</span>
+                </div>
+
+                <!-- Create save form -->
+                <div style="border:1px dashed rgba(0,255,204,0.3);padding:12px;background:rgba(0,255,204,0.03);">
+                    <div style="color:#00ffcc;letter-spacing:3px;font-weight:bold;font-size:11px;margin-bottom:8px;">▣ SAVE CURRENT UNIVERSE</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>
+                            <label>SAVE NAME</label>
+                            <input type="text" id="save-name-input" placeholder="e.g. Reapers' Awakening" maxlength="48">
+                        </div>
+                        <div>
+                            <label>AUTHOR NAME (optional)</label>
+                            <input type="text" id="save-author-input" placeholder="Anonymous Wanderer" maxlength="24">
+                        </div>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <label>DESCRIPTION (optional)</label>
+                        <input type="text" id="save-desc-input" placeholder="What's special about this universe?" maxlength="280">
+                    </div>
+                    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="font-size:10px;color:#666;letter-spacing:1px;">Saves: seed + event history + GFX</div>
+                        <button class="community-btn primary" onclick="submitSaveUniverse()" style="min-height:36px;padding:6px 16px;font-size:10px;">[ SAVE ▸ ]</button>
+                    </div>
+                </div>
+
+                <!-- Browse saves -->
+                <div>
+                    <div style="color:#00ffcc;letter-spacing:3px;font-weight:bold;font-size:11px;margin-bottom:8px;">▣ BROWSE COMMUNITY SAVES</div>
+                    <div class="saves-tabs">
+                        <button class="saves-tab active" onclick="switchSavesTab('trending', this)">TRENDING</button>
+                        <button class="saves-tab" onclick="switchSavesTab('recent', this)">RECENT</button>
+                        <button class="saves-tab" onclick="switchSavesTab('top', this)">TOP VOTED</button>
+                    </div>
+                    <div id="saves-list" style="max-height:50vh;overflow-y:auto;">Loading…</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1500,6 +1686,7 @@
                     <button class="pause-btn" onclick="resetGfxSettings()">[ RESET ]</button>
                     <button class="pause-btn" onclick="closePauseMenu()">[ RESUME ▸ ]</button>
                 </div>
+                <button class="pause-btn" onclick="openSavesModal()" style="background:rgba(255,0,200,0.06);border-color:#ff44cc;color:#ff44cc;">[ ⚏ COMMUNITY UNIVERSES ]</button>
                 <button class="pause-btn danger" onclick="quitAstrolabe()">[ ⏻ QUIT ASTROLABE ]</button>
 
                 <div style="font-size: 8px; color: #555; letter-spacing: 2px; text-align: center; margin-top: 4px;">
@@ -4126,16 +4313,623 @@
         //  CINEMATIC SYSTEMS — Boot, Portal, Telemetry, Intel, Codex, Holo POI
         // =============================================================
 
-        // --- Cinematic Boot Sequence (multi-phase) ---
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const overlay = document.getElementById('boot-overlay');
-                if (overlay) {
-                    overlay.classList.add('boot-fadeout');
-                    setTimeout(() => overlay.remove(), 1400);
+        // =============================================================
+        //  PHASE D — COMMUNITY (Wanderer ID + Lore + Saves)
+        // =============================================================
+
+        // ----- Wanderer ID (6-char, persisted in localStorage) -----
+        const WID_KEY = 'astrolabe_wanderer_id_v1';
+        const WID_NAME_KEY = 'astrolabe_wanderer_name_v1';
+        function getWID() {
+            let wid = null;
+            try { wid = localStorage.getItem(WID_KEY); } catch(e) {}
+            if (!wid || !/^[A-Z0-9]{4,8}$/.test(wid)) {
+                // Skip confusing chars (I, O, 0, 1)
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                wid = '';
+                for (let i = 0; i < 6; i++) wid += chars[Math.floor(Math.random() * chars.length)];
+                try { localStorage.setItem(WID_KEY, wid); } catch(e) {}
+            }
+            return wid;
+        }
+        function getWName() { try { return localStorage.getItem(WID_NAME_KEY) || ''; } catch(e) { return ''; } }
+        function setWName(n) { try { localStorage.setItem(WID_NAME_KEY, (n || '').slice(0, 24)); } catch(e) {} }
+
+        // ----- API helpers (same-origin via /api/...) -----
+        async function apiGet(path) {
+            const r = await fetch(path);
+            if (!r.ok) throw new Error(`GET ${path} → ${r.status}`);
+            return r.json();
+        }
+        async function apiPost(path, body) {
+            const r = await fetch(path, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!r.ok) {
+                const t = await r.text();
+                throw new Error(`POST ${path} → ${r.status}: ${t}`);
+            }
+            return r.json();
+        }
+        async function apiDelete(path) {
+            const r = await fetch(path, { method: 'DELETE' });
+            if (!r.ok) throw new Error(`DELETE ${path} → ${r.status}`);
+            return r.json();
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        }
+
+        // Derive a (target_type, target_id) tuple for whatever the lore panel
+        // is currently showing. Auto-generated lore stays — community is additive.
+        function currentLoreTarget() {
+            if (typeof activeLoreLevel === 'undefined' || activeLoreLevel == null) return null;
+            const poiIdx = (typeof activePoiIndex !== 'undefined') ? activePoiIndex : null;
+            if (poiIdx !== null && typeof POIS !== 'undefined' && POIS[activeLoreLevel] && POIS[activeLoreLevel][poiIdx]) {
+                const poi = POIS[activeLoreLevel][poiIdx];
+                const slug = (poi.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+                return { target_type: 'poi', target_id: `${activeLoreLevel}.${slug}`, display: `POI · ${poi.name}` };
+            }
+            return { target_type: 'reality', target_id: String(activeLoreLevel), display: `REALITY · STRATA ${activeLoreLevel}` };
+        }
+
+        // ----- Render community lore inside the existing lore-body -----
+        async function renderCommunityLore() {
+            const t = currentLoreTarget();
+            const bodyEl = document.getElementById('lore-body');
+            if (!t || !bodyEl) return;
+            let sec = bodyEl.querySelector('.community-lore-section');
+            if (!sec) {
+                sec = document.createElement('div');
+                sec.className = 'community-lore-section';
+                bodyEl.appendChild(sec);
+            }
+            sec.innerHTML = `
+                <div style="border-top: 1px dashed rgba(0,255,204,0.3); padding-top: 12px; margin-top: 18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <span style="color:#00ffcc; letter-spacing:3px; font-weight:bold; font-size:11px;">[ COMMUNITY ARCHIVES ]</span>
+                        <button onclick="openContributeLoreModal()" style="background:rgba(0,255,204,0.1);border:1px solid #00ffcc;color:#00ffcc;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:2px;min-height:32px;">[ + ADD LORE ]</button>
+                    </div>
+                    <div class="community-lore-list" style="margin-top: 12px;">Loading community fragments…</div>
+                </div>`;
+            const listEl = sec.querySelector('.community-lore-list');
+            try {
+                const list = await apiGet(`/api/lore/${t.target_type}/${encodeURIComponent(t.target_id)}?sort=trending`);
+                if (!list.length) {
+                    listEl.innerHTML = `<div style="color:#666;font-style:italic;font-size:12px;">No community lore yet. Be the first to add a fragment.</div>`;
+                } else {
+                    const wid = getWID();
+                    listEl.innerHTML = list.map(c => communityLoreCardHTML(c, wid)).join('');
                 }
-            }, 8500);
+            } catch(e) {
+                listEl.innerHTML = `<div style="color:#ff6666;font-size:11px;">Failed to load community archives.</div>`;
+                console.warn('community lore load failed', e);
+            }
+        }
+
+        function communityLoreCardHTML(c, wid) {
+            const isAuthor = c.author_wid === wid;
+            const isVoted = (c.voters || []).includes(wid);
+            const date = (c.created_at || '').toString().slice(0,10);
+            return `<div data-id="${c.id}" style="border-left: 2px solid #00ffcc; padding: 10px 12px; margin-bottom: 10px; background: rgba(0,255,204,0.04);">
+                ${c.title ? `<div style="color:#00ffcc;font-weight:bold;letter-spacing:1.5px;margin-bottom:4px;font-size:12px;">${escapeHtml(c.title)}</div>` : ''}
+                <div style="color:#cfe;font-size:13px;line-height:1.55;white-space:pre-wrap;">${escapeHtml(c.content)}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10px;color:#666;letter-spacing:1px;flex-wrap:wrap;gap:6px;">
+                    <span>— ${escapeHtml(c.author_name || 'Anonymous')} · ${escapeHtml(c.author_wid)} · ${date}</span>
+                    <div style="display:flex;gap:4px;">
+                        <button onclick="voteLore('${c.id}')" style="background:${isVoted?'#00ffcc':'transparent'};border:1px solid #00ffcc;color:${isVoted?'#000':'#00ffcc'};padding:4px 10px;cursor:pointer;font-family:inherit;font-size:10px;min-height:28px;">▲ ${c.votes || 0}</button>
+                        ${isAuthor
+                            ? `<button onclick="deleteLore('${c.id}')" style="background:transparent;border:1px solid #ff4477;color:#ff4477;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:10px;min-height:28px;">DEL</button>`
+                            : `<button onclick="flagLore('${c.id}')" style="background:transparent;border:1px solid #666;color:#888;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:10px;min-height:28px;" title="Flag inappropriate">⚑</button>`
+                        }
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        async function voteLore(id) {
+            try { await apiPost(`/api/lore/${id}/vote`, { wanderer_id: getWID() }); renderCommunityLore(); }
+            catch(e) { console.warn('vote failed', e); }
+        }
+        async function flagLore(id) {
+            if (!confirm("Flag this contribution as inappropriate?\nAuto-hidden after 3 flags.")) return;
+            try { await apiPost(`/api/lore/${id}/flag`, { wanderer_id: getWID() }); renderCommunityLore(); }
+            catch(e) { console.warn('flag failed', e); }
+        }
+        async function deleteLore(id) {
+            if (!confirm("Delete your contribution? This cannot be undone.")) return;
+            try { await apiDelete(`/api/lore/${id}?author_wid=${encodeURIComponent(getWID())}`); renderCommunityLore(); }
+            catch(e) { console.warn('delete failed', e); }
+        }
+
+        // ----- Contribute Lore modal -----
+        function openContributeLoreModal() {
+            const t = currentLoreTarget();
+            const modal = document.getElementById('contribute-lore-modal');
+            if (!modal) return;
+            document.getElementById('contribute-target-display').textContent = t ? t.display : '--';
+            document.getElementById('contribute-wid-display').textContent = getWID();
+            document.getElementById('contribute-lore-name').value = getWName();
+            document.getElementById('contribute-lore-title').value = '';
+            document.getElementById('contribute-lore-content').value = '';
+            document.getElementById('contribute-lore-counter').textContent = '0 / 1000';
+            modal.classList.add('open');
+            setTimeout(() => document.getElementById('contribute-lore-content').focus(), 200);
+        }
+        function closeContributeLoreModal() {
+            const m = document.getElementById('contribute-lore-modal'); if (m) m.classList.remove('open');
+        }
+        async function submitContributeLore() {
+            const t = currentLoreTarget();
+            if (!t) { alert('Open a databank first.'); return; }
+            const content = document.getElementById('contribute-lore-content').value.trim();
+            const title   = document.getElementById('contribute-lore-title').value.trim();
+            const name    = document.getElementById('contribute-lore-name').value.trim();
+            if (content.length < 10)   { alert('Lore must be at least 10 characters.'); return; }
+            if (content.length > 1000) { alert('Lore must be at most 1000 characters.'); return; }
+            setWName(name);
+            try {
+                await apiPost('/api/lore/contribute', {
+                    target_type: t.target_type, target_id: t.target_id,
+                    content, title: title || null,
+                    author_wid: getWID(), author_name: name || 'Anonymous Wanderer',
+                });
+                closeContributeLoreModal();
+                renderCommunityLore();
+                if (typeof logMessage === 'function') logMessage('LORE FRAGMENT SUBMITTED TO COMMUNITY ARCHIVE.', 'success');
+            } catch(e) {
+                alert('Submit failed:\n' + e.message);
+            }
+        }
+        window.openContributeLoreModal = openContributeLoreModal;
+        window.closeContributeLoreModal = closeContributeLoreModal;
+        window.submitContributeLore = submitContributeLore;
+        window.voteLore = voteLore; window.flagLore = flagLore; window.deleteLore = deleteLore;
+
+        // ----- Universe Saves -----
+        window.REALITY_EVENT_HISTORY = window.REALITY_EVENT_HISTORY || [];
+        function pushRealityEvent(event) {
+            try {
+                window.REALITY_EVENT_HISTORY.push(Object.assign({ ts: Date.now() }, event));
+                if (window.REALITY_EVENT_HISTORY.length > 200) window.REALITY_EVENT_HISTORY.shift();
+            } catch(e) {}
+        }
+        window.pushRealityEvent = pushRealityEvent;
+
+        let _currentSavesSort = 'trending';
+        function switchSavesTab(sort, btnEl) {
+            _currentSavesSort = sort;
+            document.querySelectorAll('.saves-tab').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            refreshSavesList(sort);
+        }
+        function openSavesModal() {
+            // If pause menu is open, close it first to declutter
+            try { if (typeof closePauseMenu === 'function' && typeof isPauseMenuOpen === 'function' && isPauseMenuOpen()) closePauseMenu(); } catch(e) {}
+            const m = document.getElementById('saves-modal'); if (!m) return;
+            document.getElementById('saves-wid-display').textContent = getWID();
+            document.getElementById('save-author-input').value = getWName();
+            m.classList.add('open');
+            refreshSavesList(_currentSavesSort);
+        }
+        function closeSavesModal() { const m = document.getElementById('saves-modal'); if (m) m.classList.remove('open'); }
+
+        async function refreshSavesList(sort) {
+            sort = sort || _currentSavesSort;
+            const listEl = document.getElementById('saves-list'); if (!listEl) return;
+            listEl.innerHTML = '<div style="color:#666;font-style:italic;padding:8px 0;">Loading community saves…</div>';
+            try {
+                const list = await apiGet(`/api/saves?sort=${sort}&limit=40`);
+                const wid = getWID();
+                if (!list.length) {
+                    listEl.innerHTML = `<div style="color:#666;font-style:italic;padding:8px 0;">No community saves yet. Be the first.</div>`;
+                } else {
+                    listEl.innerHTML = list.map(s => saveCardHTML(s, wid)).join('');
+                }
+            } catch(e) {
+                listEl.innerHTML = `<div style="color:#ff6666;padding:8px 0;">Failed to load saves.</div>`;
+                console.warn('saves load failed', e);
+            }
+        }
+
+        function saveCardHTML(s, wid) {
+            const isAuthor = s.author_wid === wid;
+            const isVoted = (s.voters || []).includes(wid);
+            const date = (s.created_at || '').toString().slice(0,10);
+            const ec = (s.event_history || []).length;
+            return `<div style="border-left:2px solid #00ffcc;padding:10px 12px;margin-bottom:10px;background:rgba(0,255,204,0.04);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <div style="color:#00ffcc;font-weight:bold;letter-spacing:1.5px;font-size:13px;">${escapeHtml(s.name)}</div>
+                        ${s.description ? `<div style="color:#cfe;font-size:12px;margin-top:4px;line-height:1.4;">${escapeHtml(s.description)}</div>` : ''}
+                        <div style="font-size:9px;color:#888;margin-top:6px;letter-spacing:1px;">SEED ${s.seed} · ${ec} events · ${escapeHtml(s.author_name)} · ${escapeHtml(s.author_wid)} · ${date}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+                        <button onclick="loadSave('${s.id}', ${s.seed})" style="background:#00ffcc;color:#000;border:none;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:2px;min-height:32px;">[ LOAD ▸ ]</button>
+                        <div style="display:flex;gap:4px;">
+                            <button onclick="voteSave('${s.id}')" style="background:${isVoted?'#00ffcc':'transparent'};border:1px solid #00ffcc;color:${isVoted?'#000':'#00ffcc'};padding:4px 8px;cursor:pointer;font-size:10px;min-height:28px;">▲ ${s.votes || 0}</button>
+                            ${isAuthor
+                                ? `<button onclick="deleteSave('${s.id}')" style="background:transparent;border:1px solid #ff4477;color:#ff4477;padding:4px 8px;cursor:pointer;font-size:10px;min-height:28px;">DEL</button>`
+                                : `<button onclick="flagSave('${s.id}')" style="background:transparent;border:1px solid #666;color:#888;padding:4px 8px;cursor:pointer;font-size:10px;min-height:28px;">⚑</button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        async function submitSaveUniverse() {
+            const name   = document.getElementById('save-name-input').value.trim();
+            const desc   = document.getElementById('save-desc-input').value.trim();
+            const author = document.getElementById('save-author-input').value.trim();
+            if (!name) { alert('Name your save.'); return; }
+            setWName(author);
+            const seed = (typeof window.UNIVERSE_SEED !== 'undefined') ? window.UNIVERSE_SEED : 1;
+            try {
+                await apiPost('/api/saves', {
+                    name, description: desc || null, seed,
+                    event_history: (window.REALITY_EVENT_HISTORY || []).slice(-100),
+                    author_wid: getWID(), author_name: author || 'Anonymous Wanderer',
+                    settings: { gfx_bloom: GFX ? GFX.bloomStrength : 1.1 },
+                });
+                document.getElementById('save-name-input').value = '';
+                document.getElementById('save-desc-input').value = '';
+                switchSavesTab('recent', document.querySelectorAll('.saves-tab')[1]);
+                if (typeof logMessage === 'function') logMessage('UNIVERSE SNAPSHOT SAVED TO COMMUNITY ARCHIVE.', 'success');
+            } catch(e) { alert('Save failed:\n' + e.message); }
+        }
+
+        async function voteSave(id) {
+            try { await apiPost(`/api/saves/${id}/vote`, { wanderer_id: getWID() }); refreshSavesList(); } catch(e) {}
+        }
+        async function flagSave(id) {
+            if (!confirm("Flag this save?\nAuto-hidden after 3 flags.")) return;
+            try { await apiPost(`/api/saves/${id}/flag`, { wanderer_id: getWID() }); refreshSavesList(); } catch(e) {}
+        }
+        async function deleteSave(id) {
+            if (!confirm("Delete your save?")) return;
+            try { await apiDelete(`/api/saves/${id}?author_wid=${encodeURIComponent(getWID())}`); refreshSavesList(); } catch(e) {}
+        }
+        async function loadSave(saveId, seed) {
+            if (!confirm("Load this community universe?\nYour current seed will change to " + seed + ".")) return;
+            try {
+                const data = await apiGet(`/api/saves/${saveId}`);
+                const url = new URL(window.location.href);
+                url.searchParams.set('seed', String(seed));
+                try { sessionStorage.setItem('astrolabe_replay_save_id', saveId); } catch(e) {}
+                try { sessionStorage.setItem('astrolabe_replay_events', JSON.stringify(data.event_history || [])); } catch(e) {}
+                window.location.href = url.toString();
+            } catch(e) { alert('Load failed:\n' + e.message); }
+        }
+
+        window.openSavesModal = openSavesModal;
+        window.closeSavesModal = closeSavesModal;
+        window.refreshSavesList = refreshSavesList;
+        window.switchSavesTab = switchSavesTab;
+        window.submitSaveUniverse = submitSaveUniverse;
+        window.voteSave = voteSave; window.flagSave = flagSave; window.deleteSave = deleteSave; window.loadSave = loadSave;
+
+        // Wrap openLoreDatabank to auto-load community lore once panel content settles
+        try {
+            const _origOpenLoreDB_Phase_D = openLoreDatabank;
+            openLoreDatabank = function(...args) {
+                const r = _origOpenLoreDB_Phase_D.apply(this, args);
+                setTimeout(renderCommunityLore, 80);
+                return r;
+            };
+        } catch(e) { /* openLoreDatabank not in scope yet — will be patched at first databank open via observer */ }
+
+        // Replay loaded community save events (after boot completes)
+        window.addEventListener('load', () => {
+            let saveId = null, events = null;
+            try { saveId = sessionStorage.getItem('astrolabe_replay_save_id'); } catch(e) {}
+            try { events = JSON.parse(sessionStorage.getItem('astrolabe_replay_events') || 'null'); } catch(e) {}
+            if (saveId && Array.isArray(events)) {
+                setTimeout(() => {
+                    window.REALITY_EVENT_HISTORY = events.slice();
+                    if (typeof logMessage === 'function') logMessage(`Replaying community save · ${events.length} events restored`, 'info');
+                }, 6000);
+                try { sessionStorage.removeItem('astrolabe_replay_save_id'); } catch(e) {}
+                try { sessionStorage.removeItem('astrolabe_replay_events'); } catch(e) {}
+            }
         });
+
+        // --- Cinematic Boot Sequence (multi-phase, Three.js powered) ---
+        // Renders an animated 3D holographic projector that materializes a
+        // wireframe Astrolabe in a beam of light, then fades into gameplay.
+        //
+        // Phases (relative to load):
+        //   0.0s — black
+        //   0.4s → 4.2s — DLDS splash fades in/out (CSS, existing)
+        //   4.6s → 6.0s — burst transition (CSS, existing)
+        //   4.8s → 8.5s — 3D projector materializes + beam + mini spindle
+        //   6.7s → 7.5s — status text fades in
+        //   ~8.5s — boot overlay fades to gameplay
+        //
+        // Skip Intro button (appears at 1.4s) immediately collapses to gameplay.
+        let _bootTimer = null;
+        let _bootHasFadedOut = false;
+        function fadeOutBoot() {
+            if (_bootHasFadedOut) return;
+            _bootHasFadedOut = true;
+            const overlay = document.getElementById('boot-overlay');
+            if (overlay) {
+                overlay.classList.add('boot-fadeout');
+                setTimeout(() => overlay.remove(), 1400);
+            }
+            // Stop boot scene shortly after fade-out completes (free GPU)
+            setTimeout(() => { if (window._bootSceneStop) window._bootSceneStop(); }, 1500);
+            // Mark that user has seen the boot — speeds up future visits
+            try { localStorage.setItem('astrolabe_boot_seen_v1', '1'); } catch(e) {}
+        }
+        function skipBootSequence() {
+            if (_bootTimer) { clearTimeout(_bootTimer); _bootTimer = null; }
+            // Stop the boot canvas render loop if running
+            if (window._bootSceneStop) window._bootSceneStop();
+            fadeOutBoot();
+        }
+        window.skipBootSequence = skipBootSequence;
+
+        window.addEventListener('load', () => {
+            // Repeat visitors get a shortened boot
+            let seen = false;
+            try { seen = !!localStorage.getItem('astrolabe_boot_seen_v1'); } catch(e) {}
+            const totalDuration = seen ? 4500 : 8500;
+
+            // Start the 3D projector boot scene a bit before the projector phase ends
+            // so it can build up its materialization animation.
+            setTimeout(() => startBootProjectorScene(), 4500);
+            // Fade out to gameplay
+            _bootTimer = setTimeout(() => fadeOutBoot(), totalDuration);
+        });
+
+        // ============ 3D HOLOGRAPHIC PROJECTOR BOOT SCENE ============
+        // Self-contained Three.js mini scene rendered into #boot-projector-canvas.
+        // Plays a ~4-second animation: dais materializes → beam ignites →
+        // particle column rises → wireframe Astrolabe spindle forms → camera
+        // dollies out as the construct rotates.
+        function startBootProjectorScene() {
+            const canvas = document.getElementById('boot-projector-canvas');
+            if (!canvas || typeof THREE === 'undefined') return;
+            const rect = canvas.getBoundingClientRect();
+            const W = Math.max(320, rect.width);
+            const H = Math.max(320, rect.height);
+            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setSize(W, H, false);
+            renderer.setClearColor(0x000000, 0);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 200);
+            camera.position.set(0, 4.5, 14);
+            camera.lookAt(0, 2.5, 0);
+
+            const CYAN = 0x00ffcc;
+            const MAGENTA = 0xff00cc;
+
+            // ---- Dais (projector base) ----
+            const dais = new THREE.Group();
+            const baseGeo = new THREE.CylinderGeometry(3.0, 3.6, 0.4, 32);
+            const baseMat = new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            dais.add(base);
+            // Wireframe outline
+            const wireGeo = new THREE.CylinderGeometry(3.0, 3.6, 0.4, 32, 1, true);
+            const wireMat = new THREE.MeshBasicMaterial({ color: CYAN, wireframe: true, transparent: true, opacity: 0 });
+            const wire = new THREE.Mesh(wireGeo, wireMat);
+            dais.add(wire);
+            // Top ring (lip)
+            const lipGeo = new THREE.TorusGeometry(2.95, 0.08, 8, 48);
+            const lipMat = new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0 });
+            const lip = new THREE.Mesh(lipGeo, lipMat);
+            lip.rotation.x = Math.PI / 2; lip.position.y = 0.21;
+            dais.add(lip);
+            // Spinning runic ring around dais
+            const runeGeo = new THREE.TorusGeometry(3.4, 0.04, 6, 64);
+            const runeMat = new THREE.MeshBasicMaterial({ color: MAGENTA, transparent: true, opacity: 0 });
+            const rune = new THREE.Mesh(runeGeo, runeMat);
+            rune.rotation.x = Math.PI / 2.2;
+            dais.add(rune);
+            scene.add(dais);
+
+            // ---- Energy beam (vertical column above dais) ----
+            const beamHeight = 8;
+            const beamGeo = new THREE.CylinderGeometry(0.18, 0.6, beamHeight, 16, 1, true);
+            const beamMat = new THREE.ShaderMaterial({
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+                uniforms: { time: { value: 0 }, alpha: { value: 0 } },
+                vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+                fragmentShader: `
+                    uniform float time; uniform float alpha; varying vec3 vP;
+                    void main() {
+                        // Brighter at base, fading toward top, with scrolling stripes
+                        float t = (vP.y + 4.0) / 8.0; // 0 bottom → 1 top
+                        float fade = 1.0 - t;
+                        float stripe = 0.7 + 0.3 * sin(vP.y * 6.0 + time * 8.0);
+                        vec3 col = mix(vec3(0.0,1.0,0.8), vec3(1.0,1.0,1.0), 1.0 - fade);
+                        gl_FragColor = vec4(col * stripe, alpha * fade * 0.85);
+                    }`,
+            });
+            const beam = new THREE.Mesh(beamGeo, beamMat);
+            beam.position.y = beamHeight / 2 + 0.2;
+            beam.scale.y = 0.01; // grows during animation
+            scene.add(beam);
+
+            // ---- Rising particle column ----
+            const PARTICLE_COUNT = 220;
+            const partGeo = new THREE.BufferGeometry();
+            const partPos = new Float32Array(PARTICLE_COUNT * 3);
+            const partLife = new Float32Array(PARTICLE_COUNT);
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const r = Math.pow(Math.random(), 0.6) * 0.6;
+                partPos[i * 3 + 0] = Math.cos(a) * r;
+                partPos[i * 3 + 1] = Math.random() * beamHeight + 0.2;
+                partPos[i * 3 + 2] = Math.sin(a) * r;
+                partLife[i] = Math.random();
+            }
+            partGeo.setAttribute('position', new THREE.Float32BufferAttribute(partPos, 3));
+            const partMat = new THREE.PointsMaterial({
+                color: 0xffffff, size: 0.08, transparent: true, opacity: 0,
+                blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const particles = new THREE.Points(partGeo, partMat);
+            scene.add(particles);
+
+            // ---- Wireframe Astrolabe mini-spindle (projected hologram) ----
+            const astrolabe = new THREE.Group();
+            astrolabe.scale.setScalar(0.01);
+            astrolabe.position.y = 4.0;
+            // Spine
+            const spineGeo = new THREE.CylinderGeometry(0.03, 0.03, 5.5, 8);
+            const spineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0 });
+            const spine = new THREE.Mesh(spineGeo, spineMat);
+            astrolabe.add(spine);
+            // 24 horizontal rings (mini strata)
+            const RINGS = 24;
+            for (let i = 0; i < RINGS; i++) {
+                const t = i / (RINGS - 1); // 0..1
+                const yy = (t - 0.5) * 5.4;
+                const sizeRatio = Math.pow(1 - Math.abs(t - 0.5) * 2, 1.3);
+                const radius = 0.25 + sizeRatio * 1.7;
+                const ringGeo = new THREE.TorusGeometry(radius, 0.012, 5, 36);
+                const hue = (yy < 0) ? 0.85 : 0.5; // magenta below, cyan above
+                const color = new THREE.Color().setHSL(hue, 0.9, 0.55);
+                const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.y = yy; ring.rotation.x = Math.PI / 2;
+                astrolabe.add(ring);
+            }
+            // Two POI orbs (cyan/magenta marker dots) for narrative flavor
+            for (let i = 0; i < 6; i++) {
+                const a = (i / 6) * Math.PI * 2 + Math.random();
+                const yy = (Math.random() - 0.5) * 4.4;
+                const r = 0.7 + Math.random() * 0.9;
+                const orb = new THREE.Mesh(
+                    new THREE.IcosahedronGeometry(0.06 + Math.random() * 0.04, 0),
+                    new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? CYAN : MAGENTA, transparent: true, opacity: 0, blending: THREE.AdditiveBlending })
+                );
+                orb.position.set(Math.cos(a) * r, yy, Math.sin(a) * r);
+                astrolabe.add(orb);
+            }
+            scene.add(astrolabe);
+
+            // ---- Floor grid for spatial context ----
+            const grid = new THREE.GridHelper(20, 20, CYAN, 0x223344);
+            grid.material.transparent = true; grid.material.opacity = 0;
+            grid.position.y = -0.2;
+            scene.add(grid);
+
+            // ---- Bright initial spark (small starburst at projector center) ----
+            const sparkMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const spark = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 12), sparkMat);
+            spark.position.y = 0.4;
+            scene.add(spark);
+
+            // Resize handler (in case viewport rotates mid-boot)
+            const onResize = () => {
+                const r = canvas.getBoundingClientRect();
+                const w = Math.max(320, r.width), h = Math.max(320, r.height);
+                renderer.setSize(w, h, false);
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+            };
+            window.addEventListener('resize', onResize);
+
+            // Animation loop
+            const start = performance.now();
+            let rafId = 0;
+            let stopped = false;
+            function tick(now) {
+                if (stopped) return;
+                const t = (now - start) / 1000;
+                // ---- timeline ----
+                //   0.0 - 0.6: dais fade in + spark flash
+                //   0.4 - 1.4: lip + wire pulse, runic ring fades in & spins
+                //   0.8 - 1.6: beam ignites and grows
+                //   1.2 - 2.2: particles emerge
+                //   1.6 - 3.0: astrolabe scales up, rings light sequentially
+                //   2.5 - 4.0: camera dolly out, slight rotation
+                //   4.0+    : maintain bright state until external fade
+                const ease = (x) => x < 0 ? 0 : x > 1 ? 1 : x;
+                const phase = (a, b) => ease((t - a) / (b - a));
+
+                // Dais (cylinder + lip + wire)
+                const daisIn = phase(0.0, 0.7);
+                baseMat.opacity = 0.15 * daisIn;
+                wireMat.opacity = 0.65 * daisIn;
+                lipMat.opacity  = 0.9 * daisIn;
+                rune.rotation.z += 0.012;
+                runeMat.opacity = 0.85 * phase(0.4, 1.4);
+
+                // Spark
+                const sparkPhase = phase(0.0, 0.5) * (1 - phase(0.3, 1.1));
+                sparkMat.opacity = 0.95 * sparkPhase;
+                spark.scale.setScalar(1 + sparkPhase * 4);
+
+                // Beam ignite
+                const beamIn = phase(0.8, 1.8);
+                beam.scale.y = 0.01 + beamIn * 1.0;
+                beam.position.y = beamHeight / 2 * (beam.scale.y) + 0.2;
+                beamMat.uniforms.alpha.value = beamIn * 0.9;
+                beamMat.uniforms.time.value = t;
+
+                // Particles rise
+                const partIn = phase(1.2, 2.2);
+                partMat.opacity = 0.8 * partIn;
+                const positions = partGeo.attributes.position.array;
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    positions[i * 3 + 1] += 0.015 + (i % 7) * 0.002;
+                    if (positions[i * 3 + 1] > beamHeight + 0.2) positions[i * 3 + 1] = 0.2;
+                }
+                partGeo.attributes.position.needsUpdate = true;
+
+                // Astrolabe materialization
+                const astroIn = phase(1.6, 3.0);
+                astrolabe.scale.setScalar(0.01 + astroIn * 1.0);
+                astrolabe.rotation.y += 0.014;
+                spineMat.opacity = 0.6 * astroIn;
+                // Light rings sequentially based on t (waterfall reveal)
+                astrolabe.children.forEach((c, i) => {
+                    if (c === spine) return;
+                    if (!c.material || c.material === spineMat) return;
+                    const delay = 1.7 + (i % RINGS) * 0.05;
+                    const fad = phase(delay, delay + 0.6);
+                    c.material.opacity = (c.geometry.type === 'IcosahedronGeometry' ? 0.9 : 0.85) * fad;
+                });
+
+                // Grid fade
+                grid.material.opacity = 0.35 * phase(0.8, 1.8);
+
+                // Camera dolly: pull back to reveal full astrolabe, then slight orbit
+                const dolly = phase(2.0, 3.8);
+                const orbit = phase(3.0, 5.0);
+                camera.position.x = Math.sin(orbit * 0.8) * 2.5;
+                camera.position.z = 14 + dolly * 4.0;
+                camera.position.y = 4.5 - dolly * 0.5;
+                camera.lookAt(0, 2.5 + dolly * 0.5, 0);
+
+                renderer.render(scene, camera);
+                rafId = requestAnimationFrame(tick);
+            }
+            rafId = requestAnimationFrame(tick);
+
+            // Expose a stop function so skip / fade-out can free GPU resources
+            window._bootSceneStop = function () {
+                stopped = true;
+                cancelAnimationFrame(rafId);
+                window.removeEventListener('resize', onResize);
+                try { renderer.dispose(); } catch(e) {}
+            };
+        }
+
+
 
         // --- Reality Portal Transition ---
         function playRealityPortal(data, poi) {
@@ -4274,8 +5068,11 @@
             newUnlocks.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 2200));
         }
         function showAchievementToast(a) {
+            // Bail out silently if there's no real achievement data (prevents
+            // empty "ACHIEVEMENT UNLOCKED --" cards bleeding through the UI).
+            if (!a || !a.name || a.name === '--') return;
             const toast = document.getElementById('codex-toast');
-            document.getElementById('toast-icon').innerText = a.icon;
+            document.getElementById('toast-icon').innerText = a.icon || '★';
             document.getElementById('toast-name').innerText = a.name;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 4500);
@@ -5904,6 +6701,7 @@
             showEventBanner('birth', `REALITY BIRTH AT ${poi.name.toUpperCase()}`,
                 `Layer ${pick.level > 0 ? '+'+pick.level : pick.level} · Reaper ${newReaper.name} is born to its custody.`, '✦');
             logMessage(`REALITY BIRTH: ${poi.name} reborn. Reaper ${newReaper.name} (firstborn) installed.`, 'success');
+            try { pushRealityEvent({ type: 'reality_birth', cycle: CYCLE_NUMBER, level: pick.level, poi: poi.name, reaper: newReaper.name }); } catch(e) {}
             return pick;
         }
 
@@ -5925,6 +6723,7 @@
             showEventBanner('death', `REAPER FALLS — ${poi.reaper.name}`,
                 `${poi.name} (Layer ${pick.level > 0 ? '+'+pick.level : pick.level}) is now cut off from the soul cycle. Soul-parasites accumulating.`, '☠');
             logMessage(`REALITY DEATH: Reaper ${poi.reaper.name} of ${poi.name} has fallen.`, 'alert');
+            try { pushRealityEvent({ type: 'reality_death', cycle: CYCLE_NUMBER, level: pick.level, poi: poi.name, reaper: poi.reaper.name }); } catch(e) {}
             return pick;
         }
 

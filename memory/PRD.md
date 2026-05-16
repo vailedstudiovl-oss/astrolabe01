@@ -133,7 +133,62 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
-### Iteration 10 — Pause Menu + Phase C: Ambient Music
+### Iteration 11 — Phase A (Holographic Boot) + Phase D (Community)
+
+**Phase A — Animated 3D Holographic Projector Boot**
+- Replaced static `holo_projector.jpg` with a full Three.js mini-scene rendered into a dedicated `#boot-projector-canvas`
+- Boot timeline (8.5s for first visit, 4.5s for returning visitors):
+  - **Dais materializes** (cylinder + wireframe + lip + spinning runic ring in magenta)
+  - **Energy spark flash** at center
+  - **Vertical beam ignites** (custom shader with scrolling cyan stripes, fresnel fade)
+  - **Particle column rises** through the beam (220 points, additive)
+  - **Wireframe Astrolabe spindle materializes** (24 mini strata rings with waterfall reveal + spine + 6 POI orbs)
+  - **Camera dollies out** and slight orbit (reveals full construct)
+- Floor `GridHelper` for spatial context, fades in with the dais
+- "**[ SKIP INTRO ▸ ]**" button appears at 1.4s for repeat visitors
+- `localStorage.astrolabe_boot_seen_v1` flag → skip splash phases on next load
+- Boot scene properly disposes (cancelAnimationFrame + renderer.dispose) after fade-out to free GPU
+
+**Phase D — Community Lore + Community-Saved Universes**
+
+*Backend (MongoDB collections: `lore_contributions`, `universe_saves`)*
+- **Identity**: 4-8 char "Wanderer ID" auto-generated client-side, stored in localStorage
+- **Lore endpoints**:
+  - `POST /api/lore/contribute` — auto-publishes
+  - `GET /api/lore/{target_type}/{target_id}` — supports sort=trending|recent|top
+  - `POST /api/lore/{id}/vote` — toggle thumbs-up (one per WID)
+  - `POST /api/lore/{id}/flag` — auto-hide after 3 distinct WID flags
+  - `PATCH /api/lore/{id}` — author-only edit
+  - `DELETE /api/lore/{id}?author_wid=` — author-only delete
+  - `GET /api/lore/recent` — activity feed
+- **Save endpoints**:
+  - `POST /api/saves` — name, description, seed, event_history (capped 200), GFX subset
+  - `GET /api/saves?sort=trending|recent|top&limit=40`
+  - `GET /api/saves/{id}`, vote, flag, delete (mirror of lore)
+- **Validation**: target_type in {reality, poi, sub_location, faction, reaper}; content 10-1000 chars; WID regex `^[A-Z0-9]{4,8}$`
+- **Trending score**: `(votes + 1) / age_hours^0.6` — fresh-but-loved content wins
+
+*Frontend integration*
+- **Auto-generated lore stays as default** — community contributions APPEND below it in a `[ COMMUNITY ARCHIVES ]` section
+- New section renders in every existing databank: reality, POI, sub-location, faction, reaper (via the wrapped `openLoreDatabank`)
+- **`[ + ADD LORE ]` modal**: name (optional) / title (optional) / content (10-1000 chars w/ live counter) → posts to `/api/lore/contribute`
+- Each contribution shows: title, content, author name + WID + date, **▲ vote button** (highlighted if you voted), `DEL` for your own / `⚑` flag for others
+- **Universe Saves modal** (`[ ⚏ COMMUNITY UNIVERSES ]` button in pause menu):
+  - "Save Current Universe" form — captures current seed + last 100 reality events + GFX bloom snapshot
+  - "Browse Community Saves" with 3 tabs (TRENDING / RECENT / TOP VOTED)
+  - **`[ LOAD ▸ ]` per save** → applies seed via `?seed=N` reload + writes event_history to sessionStorage for replay after boot
+- **Reality event tracking** — `pushRealityEvent()` hooks into `eventRealityBirth()` / `eventRealityDeath()` so saves capture the cycle history (cycle, level, POI name, Reaper name)
+- All modals use the same cyan terminal aesthetic, full-screen sheet on mobile, sticky header with drag-handle
+
+**Verified live:**
+- ✅ Wanderer ID auto-generated and persisted (`RHH2W7` in test)
+- ✅ 2 saves visible after creating one (existing curl save + new "Genesis Cycle 42")
+- ✅ Community archives section appears in Vault of Echoes databank
+- ✅ Curl-created contribution visible inside databank UI
+- ✅ ESC and pause menu work correctly with new modals (z-index 350 > pause-menu 300)
+- ✅ "Skip Intro" works during boot
+
+
 **Goal:** Give the user full control over graphics intensity (especially bloom) and add atmospheric procedural music — without external audio assets — that adapts to current strata.
 
 **Pause Menu (`#pause-menu-backdrop` modal):**

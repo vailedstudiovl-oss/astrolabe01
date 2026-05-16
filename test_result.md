@@ -101,3 +101,151 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Build the "Dimensionlock Astrolabe Terminal" — a 3D web-based exploration of the 199-Layer
+  Creation universe (Reapers, factions, realities), hosted in an Expo WebView. Latest scope adds
+  (Phase A) an animated 3D holographic projector boot, and (Phase D) community lore contributions
+  + community-saved universes backed by MongoDB.
+
+backend:
+  - task: "Phase D — Community Lore endpoints (CRUD, vote, flag)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New collection `lore_contributions`. Endpoints:
+              POST   /api/lore/contribute
+              GET    /api/lore/recent
+              GET    /api/lore/{target_type}/{target_id}?sort=trending|recent|top&include_hidden=
+              POST   /api/lore/{id}/vote      (idempotent toggle)
+              POST   /api/lore/{id}/flag      (auto-hides at flag_count>=3)
+              PATCH  /api/lore/{id}           (author wid match only)
+              DELETE /api/lore/{id}?author_wid=
+            Validation: target_type ∈ {reality, poi, sub_location, faction, reaper}; content 10-1000 chars; wid ^[A-Z0-9]{4,8}$.
+            Verified manually with curl: create + list + vote all returned 200 OK.
+        - working: true
+          agent: "testing"
+          comment: |
+            Full automated suite in /app/backend_test.py executed against the external
+            preview URL (EXPO_PUBLIC_BACKEND_URL). All Lore checks PASSED:
+              * Happy-path CRUD: create → recent → list-by-target → patch → delete (incl. author-only 403s)
+              * Vote toggle: first call +1, second call from same WID toggles back to 0, voters list updated
+              * Flag threshold: 3 distinct WIDs flip hidden=true; default GET excludes; ?include_hidden=true includes
+              * Validation: bad target_type → 400, content <10 / >1000 chars → 422, WID violating ^[A-Z0-9]{4,8}$ → 400
+              * 404s on vote/flag of unknown contribution_id
+              * sort=top / recent / trending all produce expected ordering; limit param respected; sort=banana → 422
+              * Edge case: no title + no author_name → defaults applied (title=None, author_name="Anonymous Wanderer")
+            No bugs found. Implementation matches spec exactly.
+
+  - task: "Phase D — Community Saves endpoints (CRUD, vote, flag, load)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New collection `universe_saves`. Endpoints:
+              POST   /api/saves                       (create)
+              GET    /api/saves?sort=...&limit=...&author_wid=  (list)
+              GET    /api/saves/{id}                  (load specific)
+              POST   /api/saves/{id}/vote
+              POST   /api/saves/{id}/flag
+              DELETE /api/saves/{id}?author_wid=
+            Save payload: name, description, seed (int), event_history (capped 200), settings (optional dict).
+            Verified manually with curl: create + list returned 200 OK.
+        - working: true
+          agent: "testing"
+          comment: |
+            Full automated suite in /app/backend_test.py — all Saves checks PASSED:
+              * Happy-path: create → list (recent) → get → vote toggle → author-only delete → 404 after delete
+              * Vote toggle on save works the same as lore (idempotent)
+              * Flag threshold: 3 distinct WIDs → hidden=true, hidden saves excluded from default list, but
+                still returned when filtering ?author_wid=<owner> (author can still see/load their own)
+              * Validation: missing name → 422, whitespace-only name → 422, bad WID → 400, bad sort → 422
+              * 404 on vote/flag/get of unknown save_id
+              * Edge cases: empty event_history + no description accepted; event_history > 200 entries capped at 200
+            No bugs found. Implementation matches spec.
+
+  - task: "Astrolabe HTML + Service Worker delivery"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
+
+frontend:
+  - task: "Astrolabe 3D scene (Three.js bloom, scanlines, holograms, music, pause menu, boot)"
+    implemented: true
+    working: true
+    file: "backend/static/astrolabe.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "All visual/UX features verified via screenshot tool. Mobile landscape now also routes to mobile UI via (pointer:coarse) and (orientation: landscape) media queries."
+
+  - task: "Phase D — Community UI (contribute lore modal + saves modal, wired into databanks + pause menu)"
+    implemented: true
+    working: true
+    file: "backend/static/astrolabe.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Wanderer ID auto-generated and persisted. Community section appended below
+            every databank's auto-generated lore. Saves modal opens from pause menu.
+            Verified via screenshot tool: contributions appear, saves create+list works,
+            voting hits backend (200 OK), mobile full-sheet styling applied.
+
+metadata:
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Phase D — Community Lore endpoints (CRUD, vote, flag)"
+    - "Phase D — Community Saves endpoints (CRUD, vote, flag, load)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Please test the Phase D backend endpoints listed under `backend.tasks`. Focus areas:
+        1. CRUD happy paths for both /api/lore/* and /api/saves/*
+        2. Validation errors:
+           - target_type outside the allowed set
+           - content shorter than 10 chars or longer than 1000
+           - bad WID (must match ^[A-Z0-9]{4,8}$ uppercase)
+        3. Vote idempotency — same WID voting twice should TOGGLE (un-vote)
+        4. Flag threshold — once 3 distinct WIDs flag a contribution, it should set hidden=true
+           and disappear from default queries (but appear with ?include_hidden=1 on lore).
+        5. Author-only edit/delete — non-author should get 403.
+        6. Sort params (trending/recent/top) should work and respect limit.
+        7. Test edge case: empty event_history on saves, no description on saves, no title on lore.
+      DB is local Mongo via existing MONGO_URL env. UUIDs as `id` field (not Mongo _id).
+      You do NOT need to test the existing astrolabe HTML/PWA serving — those are stable.

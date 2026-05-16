@@ -758,9 +758,12 @@
 
         let audioCtx = null, masterGain = null, started = false, stopFns = [];
         let trackEl = null;   // HTMLAudioElement if a real track exists
+        let isStartingMusic = false;  // re-entry guard
+        let isPaused = muted; // tracks whether music is paused-by-user (separate from muted state)
 
         function tryLoadUserTrack() {
             return new Promise((resolve) => {
+                if (trackEl) { resolve(true); return; }  // already loaded
                 const a = new Audio('./static/dimensionlock_theme.mp3');
                 a.preload = 'auto';
                 a.loop = true;
@@ -810,7 +813,7 @@
 
             // 3) Occasional distant bell (random)
             const bellTimer = setInterval(() => {
-                if (!audioCtx || muted) return;
+                if (!audioCtx || muted || isPaused) return;
                 const now = audioCtx.currentTime;
                 const o = audioCtx.createOscillator();
                 o.type = 'triangle';
@@ -827,46 +830,89 @@
         }
 
         async function startMusic() {
-            if (started) return;
-            started = true;
-            // 1) Try real track first
-            const ok = await tryLoadUserTrack();
-            if (ok && trackEl) {
-                if (!muted) trackEl.play().catch(()=>{});
-            } else {
-                // 2) Fall back to procedural dimensionlock dirge
-                startProcedural();
+            // Guarded against re-entry — only one in-flight start at a time.
+            if (started || isStartingMusic) {
+                // If music is already loaded but paused, just resume.
+                if (started && trackEl && trackEl.paused && !muted && !isPaused) {
+                    trackEl.play().catch(()=>{});
+                }
+                return;
             }
-            audioHint.classList.remove('show');
+            isStartingMusic = true;
+            try {
+                const ok = await tryLoadUserTrack();
+                if (ok && trackEl) {
+                    if (!muted) trackEl.play().catch(()=>{});
+                } else {
+                    startProcedural();
+                }
+                started = true;
+                audioHint.classList.remove('show');
+            } finally {
+                isStartingMusic = false;
+            }
         }
 
         function stopMusic() {
-            if (trackEl) try { trackEl.pause(); } catch(e){}
+            // Hard-stop everything — used on pagehide / navigation
+            if (trackEl) {
+                try { trackEl.pause(); trackEl.currentTime = 0; } catch(e){}
+                try { trackEl.src = ''; trackEl.load(); } catch(e){}
+                trackEl = null;
+            }
             stopFns.forEach(fn => { try { fn(); } catch(e){} });
             stopFns = [];
-            if (audioCtx) try { audioCtx.close(); } catch(e){}
-            audioCtx = null; masterGain = null; started = false;
+            if (audioCtx) {
+                try { audioCtx.close(); } catch(e){}
+            }
+            audioCtx = null; masterGain = null; started = false; isStartingMusic = false;
+        }
+
+        // Pause/resume (NOT teardown) — used by the ♪ toggle and archives modal
+        function pauseMusic() {
+            isPaused = true;
+            if (trackEl) { try { trackEl.pause(); } catch(e){} }
+            if (masterGain) {
+                try {
+                    masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                    masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.25);
+                } catch(e){}
+            }
+        }
+        function resumeMusic() {
+            isPaused = false;
+            if (!started) { startMusic(); return; }
+            if (trackEl && trackEl.paused && !muted) { trackEl.play().catch(()=>{}); }
+            if (masterGain) {
+                try {
+                    masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                    masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.18, audioCtx.currentTime + 0.4);
+                } catch(e){}
+            }
         }
 
         function setMuted(m) {
             muted = m;
             try { localStorage.setItem(MUTED_KEY, m ? '1' : '0'); } catch(e){}
             audioBtn.classList.toggle('muted', m);
-            if (trackEl) trackEl.volume = m ? 0 : 0.55;
-            if (masterGain) masterGain.gain.value = m ? 0 : 0.18;
+            if (m) pauseMusic(); else resumeMusic();
         }
 
         audioBtn.addEventListener('click', () => {
-            if (!started) {
+            // The ♪ icon is the SINGLE source of truth for play/mute state.
+            // First click starts music; subsequent clicks toggle mute/play.
+            if (!started && !isStartingMusic) {
+                setMuted(false);
                 startMusic();
-            } else {
-                setMuted(!muted);
+                return;
             }
+            setMuted(!muted);
         });
 
         // Auto-prompt user to enable audio (browsers require gesture).
+        // Important: ONLY fires once, and ONLY if music isn't already starting/started.
         const startOnGesture = () => {
-            startMusic();
+            if (!started && !isStartingMusic && !muted) startMusic();
             ['click', 'touchstart', 'keydown'].forEach(ev => window.removeEventListener(ev, startOnGesture));
         };
         ['click', 'touchstart', 'keydown'].forEach(ev =>
@@ -876,8 +922,16 @@
         // Show audio hint until first interaction
         setTimeout(() => { if (!started) audioHint.classList.add('show'); }, 900);
 
-        // Cleanup when navigating away (best-effort)
+        // Clean teardown on EVERY navigation/lifecycle exit.
+        // pagehide is fired before bfcache stores the page, and also before
+        // a hard unload — covers both same-tab and back/forward navigation.
         window.addEventListener('pagehide', stopMusic);
+        window.addEventListener('beforeunload', stopMusic);
+        // If user backgrounds the tab, pause; resume when they come back.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') pauseMusic();
+            else if (!muted) resumeMusic();
+        });
 
         // ===== ARCHIVES VIDEO MODAL =====
         const archivesModal = document.getElementById('archives-modal');

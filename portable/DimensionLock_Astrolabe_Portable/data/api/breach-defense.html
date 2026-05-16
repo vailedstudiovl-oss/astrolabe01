@@ -1013,24 +1013,83 @@
         const muteBtn = document.getElementById('bd-mute');
         const MUTED_KEY = 'breach_music_muted';
         let muted = false;
+        let isPlaying = false;
+        let isStartingPlay = false;  // re-entry guard
         try { muted = localStorage.getItem(MUTED_KEY) === '1'; } catch(e) {}
-        if (music) { music.volume = 0.5; music.muted = muted; }
+        if (music) { music.volume = 0.5; music.muted = false; music.pause(); music.currentTime = 0; }
         muteBtn.classList.toggle('muted', muted);
-        function tryPlay() { if (music) music.play().catch(()=>{}); }
+
+        async function safePlay() {
+            // Hard-guard against double-play(): only call .play() if the audio
+            // element is actually paused. This prevents the "two voices"
+            // overlap users were reporting on rapid toggle.
+            if (!music || isStartingPlay) return;
+            if (!music.paused) { isPlaying = true; return; }
+            isStartingPlay = true;
+            try {
+                await music.play();
+                isPlaying = true;
+            } catch(e) {
+                // autoplay blocked — that's fine, will resume on next ♪ tap
+                isPlaying = false;
+            } finally {
+                isStartingPlay = false;
+            }
+        }
+        function safePause() {
+            if (!music) return;
+            try { music.pause(); } catch(e) {}
+            isPlaying = false;
+        }
+
         muteBtn.addEventListener('click', () => {
             if (!music) return;
-            if (music.paused) tryPlay();
-            else {
-                muted = !muted; music.muted = muted;
-                muteBtn.classList.toggle('muted', muted);
-                try { localStorage.setItem(MUTED_KEY, muted ? '1' : '0'); } catch(e) {}
+            // The ♪ icon = master play/pause toggle.
+            //  Click 1 (cold start): start music (clears muted state)
+            //  Click 2 (playing):    pause music + mark muted
+            //  Click 3 (paused):     resume music + clear muted
+            if (music.paused) {
+                muted = false;
+                muteBtn.classList.remove('muted');
+                try { localStorage.setItem(MUTED_KEY, '0'); } catch(e) {}
+                safePlay();
+            } else {
+                muted = true;
+                muteBtn.classList.add('muted');
+                try { localStorage.setItem(MUTED_KEY, '1'); } catch(e) {}
+                safePause();
             }
         });
+
+        // Auto-start on FIRST gesture in this page only — but ONLY if the
+        // user hasn't pre-muted, and only if no other audio is currently
+        // colliding (defensive: tiny delay lets the previous page's audio
+        // teardown finish so we don't briefly overlap with menu music).
         const autoStart = () => {
-            tryPlay();
             ['click','touchstart','keydown'].forEach(e => window.removeEventListener(e, autoStart));
+            if (muted) return;
+            // 250ms delay = give the previous page's audio teardown a beat
+            setTimeout(() => { if (!isPlaying) safePlay(); }, 250);
         };
         ['click','touchstart','keydown'].forEach(e => window.addEventListener(e, autoStart, { once: true, passive: true }));
+
+        // Hard cleanup on navigation away — prevents this page's music
+        // from leaking into the menu's audio context on back-nav.
+        function teardownAudio() {
+            safePause();
+            if (music) {
+                try { music.src = ''; music.load(); } catch(e) {}
+            }
+        }
+        window.addEventListener('pagehide',     teardownAudio);
+        window.addEventListener('beforeunload', teardownAudio);
+        // Pause/resume on tab visibility — prevents background-tab playback
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') safePause();
+            else if (!muted && music && music.paused && isPlaying === false && !isStartingPlay) {
+                // do NOT auto-resume — require user gesture
+            }
+        });
 
         // ===== INTRO OVERLAY =====
         const intro = document.getElementById('intro-overlay');

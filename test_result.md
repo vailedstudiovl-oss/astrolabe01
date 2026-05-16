@@ -189,7 +189,62 @@ backend:
           agent: "main"
           comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
 
-  - task: "Strata-themed dynamic music + 2 UI bug fixes"
+  - task: "Audio overlap fix (menu toggle + breach defense entry)"
+    implemented: true
+    working: true
+    file: "backend/static/main_menu.html, backend/static/breach_defense.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            User reported audio overlap when (a) toggling the ♪ icon and (b)
+            entering Breach Defense from the main menu. Two root causes:
+              1. Mute was implemented as volume-only, so the underlying
+                 audio kept playing. Rapid toggles could create perceived
+                 overlap via partial overlapping play() calls.
+              2. Browser-level navigation didn't fully tear down the menu
+                 Audio() instance before the new page's bd-music started,
+                 so for ~200ms both tracks were audible.
+
+            Fixes:
+              MAIN MENU (main_menu.html):
+              • Replaced volume-mute with true pause/play discipline. Added
+                pauseMusic() and resumeMusic() that pause the HTMLAudioEl
+                AND ramp the procedural masterGain to 0, then restore.
+              • Added isStartingMusic re-entry guard so duplicate clicks
+                during async tryLoadUserTrack() cannot create two Audio
+                instances. tryLoadUserTrack() also short-circuits if trackEl
+                already exists.
+              • audioBtn click handler now reads cleanly: first click starts
+                music, subsequent clicks toggle pause/resume via setMuted.
+              • startOnGesture only fires if !started && !muted (respects
+                persisted mute state).
+              • stopMusic() hardened: pause + clear src + load() + reset
+                trackEl to null + close audioCtx + reset all state flags.
+              • Added beforeunload + visibilitychange handlers in addition
+                to pagehide, so on every conceivable nav exit the audio
+                is fully stopped before the next page can start.
+
+              BREACH DEFENSE (breach_defense.html):
+              • safePlay()/safePause() helpers with isStartingPlay re-entry
+                guard. safePlay never calls .play() if music.paused is false.
+              • autoStart now waits 250 ms before calling safePlay so the
+                previous page's pagehide teardown has time to complete —
+                eliminating the cross-page overlap window.
+              • Mute toggle now ACTUALLY pauses the audio (not just .muted).
+              • teardownAudio() on pagehide + beforeunload clears src, calls
+                load(), and resets state.
+              • visibilitychange pauses on hidden, never auto-resumes (gesture
+                required) so background tabs don't leak audio.
+
+            Verified end-to-end via Playwright:
+              • 5 rapid menu toggles → no audio element duplication
+              • Navigate menu → breach defense → only 1 audio playing
+                (menu's trackEl successfully torn down)
+              • 4 rapid breach defense toggles → 1 element, 1 playing
     implemented: true
     working: true
     file: "backend/static/astrolabe.html, backend/static/breach_defense.html"

@@ -2437,16 +2437,19 @@
 
         // Lore-canon named Reapers bound to specific notable strata
         const NAMED_REAPER_BINDINGS = {
-            '0':   { name: 'Aurum, the Firstborn',   sigil: '⊕', specialty: "Death's own apprentice",                       backstory: "The first Reaper ever manifested. Death's own apprentice. Aurum's scythe was forged from a sliver of Death itself — the only Reaper weapon that can both kill and process a soul in a single motion. Aurum has never broken Reaper Law and never will." },
+            '0':   { name: 'Aurum, the Firstborn',   sigil: '⊕', specialty: "Death's apprentice of the modern era",            backstory: "Death's apprentice of the modern era — appointed long after Grim Cryious and Maytradalis. Aurum's scythe was forged from a sliver of Death itself: the only Reaper weapon that can both kill and process a soul in a single motion. Aurum has never broken Reaper Law and never will. He carries the title 'Firstborn' as a mortal-tongued misunderstanding — he was the first to be born of mortal stock; he was never the first to be MADE." },
             '2':   { name: 'Mordren-7',               sigil: '☠', specialty: 'Death-Tribunal Executor',                     backstory: "A senior arbiter of the Death Tribunal who carved his sigils into the Asphodel Plains. Mordren-7 enforces the Old Pact: souls whose ledgers balance are granted passage. The rest he unmakes with a precision some call mercy and others call cruelty." },
             '-12': { name: 'Harrow-12',               sigil: '☥', specialty: 'Border Shepherd of the Training Plane',       backstory: "Harrow walks the contested fringe between Trigon and Reaper territories. She rarely speaks. When she does, the words rearrange themselves in the listener's skull until the right meaning settles in." },
             '33':  { name: 'Thane-IX',                sigil: '⚖', specialty: 'Ascension Tribunal Speaker',                  backstory: "Thane-IX presides over upward souls of Trinity Leviticus. His judgments are televised on Centura News at peak viewership. He has never lost a case, and his closing arguments are studied across the strata." },
             '-25': { name: 'Veilwing',                sigil: '✸', specialty: 'Soul-Smuggler of the Vault',                  backstory: "Veilwing trades favors with the Supremes Finest at Trigon Trading Hub — a violation no Reaper Law explicitly forbids, but every Reaper despises. She is wanted by the Reaper Hunters for trafficking souls the Death Tribunal had not yet released." },
             '-66': { name: 'Sephira',                 sigil: '✶', specialty: 'Twin-Souled Empress of Sorrow',               backstory: "Once mortal, twice-killed, thrice-reborn. Sephira commands the Damnation Forge Plane and is feared by Soul Collectors. Her two voices speak in unison and contradiction — and both are correct." },
-            '-38': { name: 'Grim-3X',                 sigil: '✟', specialty: 'First-Death Officer',                          backstory: "Manifested only three cycles ago at Astra -38. Grim-3X handles the inexperienced — souls who didn't see their end coming. Often gentle, occasionally apologetic, always carrying a fresh ledger." },
+            '-38': { name: 'Grim-3X',                 sigil: '✟', specialty: 'First-Death Officer',                          backstory: "Manifested only three cycles ago at Astra -38. Grim-3X handles the inexperienced — souls who didn't see their end coming. Often gentle, occasionally apologetic, always carrying a fresh ledger. Named for Grim Cryious, though never in his presence." },
             '-50': { name: 'Siltbinder',              sigil: '✻', specialty: 'Cleanup of Forgotten Realities',               backstory: "Newly-formed and assigned the unglamorous work of the Sanguine Court: sweeping up after collapsed realities and Vamperica thrall-deaths. Siltbinder has a tally of every name they've filed away, and the tally bothers them." },
-            '99':  { name: 'Null-9',                  sigil: '⊛', specialty: 'Last Reaper of Peak Divinity',                 backstory: "Operates so close to the gods that her silhouette is sometimes mistaken for one. She delivers souls into the Centurion vaults and walks out lighter than air. Her scythe is folded sun-metal — it does not cut so much as it agrees with the world that the soul is ready." },
-            '-99': { name: 'Obolus-Δ',                sigil: '◈', specialty: 'Coin-Carrier of the Last Crossing',           backstory: "Obolus walks the Lovecraftian depths of The Abyssal Root, ferrying the unwilling and unwell. Pays in scars. The toll is steeper than mortals believe — but he has never lost a passenger." }
+            // ============ POLAR REAPERS — predate Aurum, predate the strata themselves ============
+            '99':  { name: 'Grim Cryious, the First Made',       sigil: '✧', specialty: "Death's first ever apprentice and creation",
+                     backstory: "Before the 199 layers were stacked, before Aurum drew his first breath, Death made GRIM CRYIOUS. He is Death's first ever apprentice and Death's first ever CREATION — predating the strata, predating the soul-lanes, predating even the concept of cycle. His sigil is older than the cyan of the divinity-pole. He resides at the apex of creation where the strata fold inward and gravity bends out of existence; mortals who ascend past +99 do not meet a Reaper, they meet Grim. He does not collect souls — he *acknowledges* them, and that is enough for them to pass. His scythe is the original — every other Reaper weapon is a copy or copy-of-copy of his blade. He has spoken to Aurum only twice in recorded history. Both times, Aurum knelt." },
+            '-99': { name: 'Maytradalis, the Second Made',       sigil: '✦', specialty: "Death's second apprentice and household maid",
+                     backstory: "Made directly after Grim Cryious — Death's second-ever apprentice and the keeper of Death's household. Maytradalis carries the title 'maid' not as a diminishment but as a sacred office: she keeps the Lamp of Endings lit, sweeps the threshold between cycles, and prepares the soul-coin for every Reaper before they ride out. She resides at the nadir of creation where the strata fold inward toward the abyss-pole; gravity vanishes here, but Maytradalis does not. The Lovecraftian horrors of The Abyssal Root pass through her doorway daily — she nods to each, files them, and shuts the gate without slamming it. Reapers whisper that her quiet is the only thing keeping the underside of creation from inverting. She has never been seen to rest." }
         };
 
         // Procedural Reaper name + scythe parts for the other ~189 strata
@@ -2746,6 +2749,8 @@
             generateStarfield();
             generatePOIHalos();
             generatePOIHolograms();
+            generatePolarCaps();        // chromatic shells + gravity-bend warp arcs at +99 / -99 axes
+            generateSoulSeedWeb();      // spider-web network of soul-seed connections across creation
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
             scene.add(ambientLight);
@@ -3045,7 +3050,7 @@
                 const c = new THREE.Color(cChoices[Math.floor(Math.random()*cChoices.length)]);
                 colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
                 
-                seedData.push({ pathIdx, progress, speed: (0.0005 + Math.random() * 0.001) * (Math.random() > 0.5 ? 1 : -1), offset: new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2) });
+                seedData.push({ pathIdx, progress, speed: (0.00020 + Math.random() * 0.00040) * (Math.random() > 0.5 ? 1 : -1), offset: new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2) });
             }
             
             soulSeedsGeometry = new THREE.BufferGeometry();
@@ -3256,9 +3261,295 @@
             scene.add(centralSpine);
         }
 
+        // =====================================================================
+        // POLAR CAPS — Chromatic shell + gravity-bend warp arcs
+        // Indicates where creation's strata fold inward toward the polar axes,
+        // with gravity-like bend vanishing BEFORE reaching the actual pole.
+        // Top (+99) = cyan (divinity pole, Grim Cryious's residence)
+        // Bottom (-99) = magenta (abyss pole, Maytradalis's threshold)
+        // =====================================================================
+        let polarCapTop = null, polarCapBot = null, gravityArcGroup = null;
+
+        function generatePolarCaps() {
+            const Y_TOP =  99 * 0.6;   // matches strata stacking
+            const Y_BOT = -99 * 0.6;
+            const POLE_RADIUS = 22;    // dome radius
+
+            // ----- Chromatic shell shader -----
+            // Renders an inward-facing hemisphere that fades toward the axis
+            // (so the pole itself is "missing" — gravity vanishes).
+            // Color gradient runs from outer ring (vivid) to inner pole (dark/black).
+            const HEMI_VERT = `
+                varying vec3 vNormal;
+                varying vec3 vWorldPos;
+                varying float vRadialT; // 0 at base (outer rim), 1 at apex (pole axis)
+                varying vec2  vUv;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    vec4 wp = modelMatrix * vec4(position, 1.0);
+                    vWorldPos = wp.xyz;
+                    vUv = uv;
+                    // ConeGeometry UV.y: 0 at base, 1 at apex. Perfect for radial-to-pole fade.
+                    vRadialT = uv.y;
+                    gl_Position = projectionMatrix * viewMatrix * wp;
+                }`;
+            const HEMI_FRAG = `
+                precision mediump float;
+                uniform vec3 tint;
+                uniform vec3 tintEdge;
+                uniform float time;
+                uniform float intensity;
+                varying vec3 vNormal;
+                varying vec3 vWorldPos;
+                varying float vRadialT;
+                void main() {
+                    // Fresnel for shell-look
+                    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+                    float fres = pow(1.0 - max(dot(normalize(vNormal), viewDir), 0.0), 1.4);
+                    // Radial fade — vanish near the pole (the "gravity-bend vanishes" effect)
+                    // gentle inner curve (smoothstep) so it doesn't just hard-cutoff
+                    float poleFade = smoothstep(0.95, 0.55, vRadialT); // 1 at outer, 0 at center
+                    // Soft animated chromatic banding (slow latitudinal pulse)
+                    float band = 0.7 + 0.3 * sin(vRadialT * 8.0 - time * 0.6);
+                    // Color blend: outer rim = bright tint, inner = darker
+                    vec3 col = mix(tint, tintEdge, vRadialT);
+                    float alpha = intensity * poleFade * fres * band;
+                    gl_FragColor = vec4(col, alpha);
+                }`;
+
+            function makeHemisphere(yPos, isTop, tintHex, edgeHex) {
+                // ConeBufferGeometry pointing toward the pole — open base, apex at pole
+                const geo = new THREE.ConeGeometry(POLE_RADIUS, POLE_RADIUS * 0.85, 64, 12, true);
+                // By default a cone points +Y. For the bottom pole, flip Y by rotating Pi.
+                const mat = new THREE.ShaderMaterial({
+                    vertexShader: HEMI_VERT,
+                    fragmentShader: HEMI_FRAG,
+                    transparent: true,
+                    depthWrite: false,
+                    side: THREE.DoubleSide,
+                    blending: THREE.AdditiveBlending,
+                    uniforms: {
+                        tint:     { value: new THREE.Color(tintHex).toArray ? new THREE.Vector3(...new THREE.Color(tintHex).toArray()) : new THREE.Color(tintHex) },
+                        tintEdge: { value: new THREE.Color(edgeHex) },
+                        time:     { value: 0 },
+                        intensity:{ value: 0.85 },
+                    },
+                });
+                // Build Vector3 from Color (manual to avoid version issues)
+                const tc = new THREE.Color(tintHex);
+                mat.uniforms.tint.value = new THREE.Vector3(tc.r, tc.g, tc.b);
+                const ec = new THREE.Color(edgeHex);
+                mat.uniforms.tintEdge.value = new THREE.Vector3(ec.r, ec.g, ec.b);
+
+                const mesh = new THREE.Mesh(geo, mat);
+                // For top pole: cone apex up (+Y), base at strata
+                // For bottom pole: cone apex down (-Y), so rotate 180° on X
+                if (isTop) {
+                    mesh.position.y = yPos - (POLE_RADIUS * 0.85 * 0.5);
+                } else {
+                    mesh.rotation.x = Math.PI;
+                    mesh.position.y = yPos + (POLE_RADIUS * 0.85 * 0.5);
+                }
+                mesh.userData.isPolarShell = true;
+                return mesh;
+            }
+
+            polarCapTop = makeHemisphere(Y_TOP, true,  0x00ffcc, 0x002222); // cyan → fade to dark teal
+            polarCapBot = makeHemisphere(Y_BOT, false, 0xff00cc, 0x220011); // magenta → fade to dark plum
+            astrolabeGroup.add(polarCapTop);
+            astrolabeGroup.add(polarCapBot);
+
+            // ----- Gravity-bend warp arcs -----
+            // Curved geodesic-like arcs that converge toward each pole and fade out
+            // before reaching the actual pole. Visualizes "bending gravity that vanishes".
+            gravityArcGroup = new THREE.Group();
+            const ARC_COUNT_PER_POLE = 14;
+            const RAW_OUTER = 18;  // start radius at the strata edge
+            function makePoleArc(isTop, longitudeRad) {
+                // Build a smooth curve: starts at outer rim near the polar disc,
+                // bends inward and upward toward the pole, then VANISHES before the apex.
+                const apexY = (isTop ? Y_TOP : Y_BOT);
+                const baseY = apexY + (isTop ? -2 : +2); // start just outside the topmost stratum
+                const vanishY = apexY + (isTop ? -3.5 : +3.5); // arc only renders to here, then fades
+                const cosL = Math.cos(longitudeRad), sinL = Math.sin(longitudeRad);
+                const pts = [];
+                const SEG = 22;
+                for (let i = 0; i <= SEG; i++) {
+                    const t = i / SEG; // 0 at outer, 1 toward pole
+                    // Radius shrinks with a smooth easing so the arc curves inward
+                    const r = RAW_OUTER * Math.pow(1 - t, 1.4);
+                    // Y interpolates from baseY toward vanishY (gravity vanishes here, NOT at apex)
+                    const y = baseY + (vanishY - baseY) * (1 - Math.pow(1 - t, 2.2));
+                    // Slight spiral (longitude offset increases with t for nice swirl)
+                    const swirl = t * 0.6;
+                    pts.push(new THREE.Vector3(
+                        Math.cos(longitudeRad + swirl) * r,
+                        y,
+                        Math.sin(longitudeRad + swirl) * r,
+                    ));
+                }
+                const curve = new THREE.CatmullRomCurve3(pts);
+                const geo = new THREE.TubeGeometry(curve, SEG, 0.06, 6, false);
+                // Per-vertex alpha via custom shader (fades along length)
+                const ARC_VERT = `
+                    varying float vAlpha;
+                    attribute float aLen;
+                    void main() {
+                        vAlpha = aLen; // pre-baked alpha per vertex
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }`;
+                const ARC_FRAG = `
+                    precision mediump float;
+                    uniform vec3 tint;
+                    uniform float time;
+                    uniform float intensity;
+                    varying float vAlpha;
+                    void main() {
+                        // Pulse traveling toward the pole
+                        float pulse = 0.5 + 0.5 * sin(time * 1.2 - vAlpha * 6.0);
+                        float a = vAlpha * intensity * (0.4 + 0.6 * pulse);
+                        gl_FragColor = vec4(tint, a);
+                    }`;
+                // Bake aLen per vertex: 1 at base (outer), 0 at vanishing end
+                const posAttr = geo.attributes.position;
+                const lenArr = new Float32Array(posAttr.count);
+                // TubeGeometry vertices are arranged segmentwise; we approximate by
+                // projecting each vertex along the curve and mapping to 0..1.
+                for (let i = 0; i < posAttr.count; i++) {
+                    const ratio = (i / posAttr.count);
+                    // Smoothly fade toward 0 in the second half of the arc
+                    lenArr[i] = Math.pow(1 - ratio, 1.1);
+                }
+                geo.setAttribute('aLen', new THREE.BufferAttribute(lenArr, 1));
+                const mat = new THREE.ShaderMaterial({
+                    vertexShader: ARC_VERT,
+                    fragmentShader: ARC_FRAG,
+                    uniforms: {
+                        tint:      { value: new THREE.Vector3(0, 1, 0.8) },
+                        time:      { value: 0 },
+                        intensity: { value: 0.75 },
+                    },
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                });
+                const tintColor = isTop ? new THREE.Color(0x00ffcc) : new THREE.Color(0xff00cc);
+                mat.uniforms.tint.value = new THREE.Vector3(tintColor.r, tintColor.g, tintColor.b);
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.userData.isGravityArc = true;
+                return mesh;
+            }
+            for (let i = 0; i < ARC_COUNT_PER_POLE; i++) {
+                const ang = (i / ARC_COUNT_PER_POLE) * Math.PI * 2;
+                gravityArcGroup.add(makePoleArc(true,  ang));
+                gravityArcGroup.add(makePoleArc(false, ang + 0.18));
+            }
+            astrolabeGroup.add(gravityArcGroup);
+        }
+
+        // =====================================================================
+        // SOUL-SEED WEB — Spider-web network of dim glowing lines connecting
+        // random POIs across creation. Soul seeds spread "like a spider web".
+        // Lines have animated pulses that travel along them slowly.
+        // =====================================================================
+        let soulSeedWebGroup = null;
+        function generateSoulSeedWeb() {
+            soulSeedWebGroup = new THREE.Group();
+            // Collect candidate anchor points across the spindle.
+            // We use a mix of POI positions (when available) + procedural waypoints
+            // distributed roughly along every 5th stratum at random angles.
+            const anchors = [];
+            for (let lvl = -95; lvl <= 95; lvl += 5) {
+                const y = lvl * 0.6;
+                const sizeRatio = Math.pow(1 - Math.abs(lvl) / 100, 2.5);
+                const radius = 1.2 + sizeRatio * 14.0;
+                // 2 anchors per level at random opposing angles
+                const baseA = Math.random() * Math.PI * 2;
+                anchors.push(new THREE.Vector3(Math.cos(baseA) * radius, y, Math.sin(baseA) * radius));
+                anchors.push(new THREE.Vector3(Math.cos(baseA + Math.PI) * radius, y, Math.sin(baseA + Math.PI) * radius));
+            }
+            // Build a connectivity graph: each anchor connects to its 2 nearest neighbors
+            // (excluding self). This produces a sparse web-like topology rather than a mesh.
+            const SEED_VERT = `
+                varying float vT;
+                attribute float aT;
+                void main() {
+                    vT = aT;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`;
+            const SEED_FRAG = `
+                precision mediump float;
+                uniform vec3 tint;
+                uniform float time;
+                varying float vT;
+                void main() {
+                    // Travelling pulse along the line
+                    float p = 0.4 + 0.6 * sin(vT * 12.0 - time * 0.8);
+                    // Base dim glow + bright pulse spot
+                    float spot = smoothstep(0.94, 1.0, sin(vT * 9.0 - time * 0.5));
+                    float a = 0.10 + 0.45 * spot + 0.10 * p;
+                    gl_FragColor = vec4(tint * (0.5 + spot), a);
+                }`;
+            const edgeSet = new Set();
+            function addEdge(i, j) {
+                const key = i < j ? `${i}_${j}` : `${j}_${i}`;
+                if (edgeSet.has(key)) return;
+                edgeSet.add(key);
+                const a = anchors[i], b = anchors[j];
+                // Slight midpoint sag to give web-like droop
+                const mid = a.clone().add(b).multiplyScalar(0.5);
+                mid.x += (Math.random() - 0.5) * 1.2;
+                mid.z += (Math.random() - 0.5) * 1.2;
+                mid.y -= 0.4 * (1 + Math.random() * 1.5);
+                const curve = new THREE.CatmullRomCurve3([a, mid, b]);
+                const SEG = 26;
+                const tubeGeo = new THREE.TubeGeometry(curve, SEG, 0.025, 4, false);
+                // per-vertex parameter (0..1 along length) for the shader
+                const pc = tubeGeo.attributes.position.count;
+                const tArr = new Float32Array(pc);
+                // TubeGeometry orders vertices ring-by-ring; approximate t via index
+                const ringSize = 4; // radialSegments + ... use approximation
+                for (let v = 0; v < pc; v++) tArr[v] = (v / pc);
+                tubeGeo.setAttribute('aT', new THREE.BufferAttribute(tArr, 1));
+                // Color tint: cyan if both ends positive-y, magenta if both negative, white if straddling
+                let tintHex = 0xffffff;
+                if (a.y > 0 && b.y > 0) tintHex = 0x00ffcc;
+                else if (a.y < 0 && b.y < 0) tintHex = 0xff00cc;
+                const tintColor = new THREE.Color(tintHex);
+                const mat = new THREE.ShaderMaterial({
+                    vertexShader: SEED_VERT,
+                    fragmentShader: SEED_FRAG,
+                    uniforms: {
+                        tint: { value: new THREE.Vector3(tintColor.r, tintColor.g, tintColor.b) },
+                        time: { value: 0 },
+                    },
+                    transparent: true,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                });
+                const mesh = new THREE.Mesh(tubeGeo, mat);
+                mesh.userData.isSoulWeb = true;
+                soulSeedWebGroup.add(mesh);
+            }
+            // For each anchor, connect to its 2-3 nearest others — gives sparse spider-web look
+            anchors.forEach((p, i) => {
+                const dists = anchors.map((q, j) => ({ j, d: i === j ? Infinity : p.distanceTo(q) }));
+                dists.sort((a, b) => a.d - b.d);
+                const k = 2 + (Math.random() > 0.7 ? 1 : 0);
+                for (let n = 0; n < k && n < dists.length; n++) addEdge(i, dists[n].j);
+            });
+            // Add a few long-range "fate" threads spanning across the spindle
+            for (let i = 0; i < 12; i++) {
+                const a = Math.floor(Math.random() * anchors.length);
+                let b = Math.floor(Math.random() * anchors.length);
+                while (b === a) b = Math.floor(Math.random() * anchors.length);
+                if (Math.abs(anchors[a].y - anchors[b].y) > 25) addEdge(a, b);
+            }
+            astrolabeGroup.add(soulSeedWebGroup);
+        }
+
         // Procedural starfield with twinkle shader
-        function generateStarfield() {
-            const count = 2200;
+        function generateStarfield() {            const count = 2200;
             const positions = new Float32Array(count * 3);
             const phases = new Float32Array(count);
             const sizes = new Float32Array(count);
@@ -3813,6 +4104,21 @@
                 const s = 4 + Math.sin(t * 1.4 + i * 0.5) * 0.4;
                 halo.scale.set(s, s, 1);
             });
+
+            // === Polar caps + gravity-bend arcs: drive shader time uniform ===
+            if (polarCapTop && polarCapTop.material.uniforms) polarCapTop.material.uniforms.time.value = t;
+            if (polarCapBot && polarCapBot.material.uniforms) polarCapBot.material.uniforms.time.value = t;
+            if (gravityArcGroup) {
+                gravityArcGroup.children.forEach(arc => {
+                    if (arc.material && arc.material.uniforms) arc.material.uniforms.time.value = t;
+                });
+            }
+            // === Soul-seed web pulse update ===
+            if (soulSeedWebGroup) {
+                soulSeedWebGroup.children.forEach(line => {
+                    if (line.material && line.material.uniforms) line.material.uniforms.time.value = t;
+                });
+            }
 
             // === 3D Holographic POI Constructs — LOD + animation ===
             // Fade in when camera approaches a POI strata, fade out when far away.
@@ -5723,11 +6029,11 @@
         // ----- Settings state with localStorage persistence -----
         const SETTINGS_KEY = 'astrolabe_settings_v1';
         const DEFAULT_SETTINGS = {
-            bloomStrength: 1.1,
-            bloomRadius:   0.7,
-            bloomThreshold:0.22,
-            vignette:      0.6,
-            scanline:      0.22,
+            bloomStrength: 0.55,    // toned down for legibility (user feedback)
+            bloomRadius:   0.65,
+            bloomThreshold:0.40,    // higher threshold → less bloom on dim text/UI
+            vignette:      0.45,
+            scanline:      0.18,
             cameraShake:   true,
             centralSpine:  true,
             starfield:     true,

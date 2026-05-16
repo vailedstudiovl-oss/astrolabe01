@@ -133,7 +133,56 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
-### Iteration 11 — Phase A (Holographic Boot) + Phase D (Community)
+### Iteration 12 — Polar Caps, Soul-Seed Web, New Canon Reapers, Readability
+**Goal:** New visual + lore features per user request.
+
+**Lore canon expansion (NAMED_REAPER_BINDINGS):**
+- **Grim Cryious, the First Made** (level +99) — Death's first ever apprentice AND first ever creation. Predates Aurum, predates the strata. Resides at the apex where layers fold inward; carries the original scythe (every other Reaper weapon is a copy/copy-of-copy). Aurum has knelt to him twice. The polar cap visual at +99 is now thematically his residence.
+- **Maytradalis, the Second Made** (level -99) — Death's second apprentice and household maid. Keeps the Lamp of Endings lit, sweeps the threshold between cycles. Resides at the nadir where layers fold toward the abyss-pole. Lovecraftian horrors pass through her doorway daily; she nods, files them, shuts the gate without slamming it.
+- **Aurum** updated — his "Firstborn" title is now reframed as a mortal-tongued misunderstanding; he was the first to be born of MORTAL stock, never the first to be MADE.
+- **Grim-3X** rebackground — now explicitly named for Grim Cryious.
+
+**Readability (default GFX presets toned down):**
+- `bloomStrength`: 1.1 → 0.55
+- `bloomThreshold`: 0.22 → 0.40 (higher = less bloom on text/UI)
+- `vignette`: 0.6 → 0.45
+- `scanline`: 0.22 → 0.18
+- Verified: strata labels & data panels are clearly readable in screenshots
+
+**Soul-seed lanes slowed:**
+- Soul-seed speed range was `(0.0005 + rand*0.001) * ±1` → now `(0.00020 + rand*0.00040) * ±1` (~3x slower)
+- Now reads as a slow current rather than a rushing stream — better matches "lanes" canon
+
+**Spider-web soul-seed network (`generateSoulSeedWeb`):**
+- 2 anchor points per stratum every 5 levels (≈80 anchors total)
+- Each anchor connects to its 2-3 nearest neighbors → produces a sparse web topology (~117 edges in test)
+- Plus 12 "fate" threads spanning huge vertical distances
+- Each line is a `TubeGeometry` with a custom shader (cyan for upward, magenta for downward, white for cross-axis)
+- Travelling pulse along each line (`sin(vT * 12.0 - time * 0.8)`) — bright spot drifts along
+- Additive blending, depth-write disabled, ~0.025 radius for thread-like look
+
+**Chromatic polar shells + Gravity-bend warp arcs (`generatePolarCaps`):**
+- **Polar shells**: ConeGeometry hemispheres at +99 and -99 (radius 22), inward-facing
+  - Custom shader uses ConeGeometry `uv.y` (0 base → 1 apex) for radial normalization
+  - Color gradient: vivid tint at base → near-black at apex (so the pole "vanishes")
+  - Animated latitudinal banding (`sin(vRadialT * 8.0 - time * 0.6)`)
+  - Fresnel-modulated alpha → reads as a translucent shell, not a solid cone
+  - `poleFade = smoothstep(0.95, 0.55, vRadialT)` — the **gravity-bend-vanishes** effect
+  - Cyan at +99 (divinity / Grim Cryious), magenta at -99 (abyss / Maytradalis)
+- **Gravity-bend warp arcs**: 14 per pole (28 total)
+  - CatmullRomCurve → TubeGeometry, swirls inward toward each pole
+  - Per-vertex `aLen` attribute → fades along length to invisibility BEFORE reaching apex
+  - Travelling pulse `sin(time * 1.2 - vAlpha * 6.0)` along each arc
+  - Reinforces the "gravity vanishes" canon visually
+
+**Verified:**
+- ✅ Top-down view shows cyan shell fold + radial gravity arcs
+- ✅ Bottom-up view shows magenta shell fold
+- ✅ Side view shows full spindle with both polar caps + spider-web threading layers
+- ✅ Text on strata + data panels now readable (lower bloom)
+- ✅ Reaper Codex shows Grim Cryious at +99 and Maytradalis at -99
+
+
 
 **Phase A — Animated 3D Holographic Projector Boot**
 - Replaced static `holo_projector.jpg` with a full Three.js mini-scene rendered into a dedicated `#boot-projector-canvas`

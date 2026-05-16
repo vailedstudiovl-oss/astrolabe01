@@ -842,52 +842,64 @@
             .scanline { background-size: 100% 6px; opacity: 0.18; }
         }
 
-        /* --- Mobile Top Bar (responsive across small-phone → tablet widths) --- */
+        /* --- Mobile Top Bar (responsive across small-phone → tablet widths) ---
+           Uses `min-height` (NOT fixed height) so the safe-area-inset-top on
+           notched phones doesn't crunch the inner button row. Adds a unified
+           cyan outline so the bar reads as one cohesive UI box instead of
+           three floating buttons. */
         .m-topbar {
             position: fixed; top: 0; left: 0; right: 0;
-            /* Scales 40 → 56 px between ~570 px wide and ~800 px wide viewports */
-            height: clamp(40px, 7vh, 56px);
+            /* Effective inner content height — clamped 44 → 60 px so the 30-40 px burger
+               always fits comfortably. The safe-top is ADDED on top via padding so a
+               notch never squeezes the content. */
+            min-height: clamp(44px, 8vh, 60px);
+            height: auto;
             padding-top: var(--safe-top);
-            background: linear-gradient(180deg, rgba(0,5,10,0.95) 0%, rgba(0,5,10,0.7) 100%);
-            border-bottom: 1px solid rgba(0,255,204,0.4);
+            box-sizing: content-box;
+            background: linear-gradient(180deg, rgba(0,5,10,0.98) 0%, rgba(0,5,10,0.92) 100%);
+            border-bottom: 1px solid rgba(0,255,204,0.55);
+            box-shadow: 0 2px 14px rgba(0, 255, 204, 0.15);
             z-index: 45; display: flex; align-items: center; gap: 8px;
-            padding-left: 12px; padding-right: 12px;
+            padding-left: clamp(8px, 2.5vw, 14px);
+            padding-right: clamp(8px, 2.5vw, 14px);
             backdrop-filter: blur(10px);
         }
         .m-topbar .m-burger {
-            /* 30 → 40 px responsive square (preserves the 44 px tap target on mid+ phones) */
-            width: clamp(30px, 5vw, 40px);
-            height: clamp(30px, 5vw, 40px);
+            width: clamp(32px, 5.5vw, 42px);
+            height: clamp(32px, 5.5vw, 42px);
             flex-shrink: 0;
             background: rgba(0,255,204,0.08); border: 1px solid #00ffcc;
-            color: #00ffcc; font-size: clamp(13px, 3vw, 16px); cursor: pointer;
+            color: #00ffcc; font-size: clamp(14px, 3.2vw, 17px); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             transition: background 0.2s;
         }
         .m-topbar .m-burger:active { background: #00ffcc; color: #000; }
         .m-topbar .m-focus { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .m-topbar .m-eyebrow {
-            font-size: clamp(7px, 1.8vw, 10px);
-            letter-spacing: 4px; color: #666; text-transform: uppercase;
+            font-size: clamp(7px, 1.9vw, 10px);
+            letter-spacing: clamp(2px, 0.8vw, 4px);
+            color: #888; text-transform: uppercase;
         }
         .m-topbar .m-title {
-            font-size: clamp(9px, 2.2vw, 13px);
-            letter-spacing: 1.5px; color: #00ffcc;
+            font-size: clamp(10px, 2.6vw, 14px);
+            letter-spacing: clamp(0.8px, 0.35vw, 1.8px);
+            color: #00ffcc;
             text-shadow: 0 0 5px currentColor; font-weight: bold;
             max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
         }
         .m-topbar .m-seed {
             background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,204,0.4);
             color: #00ffcc;
-            font-size: clamp(8px, 1.9vw, 11px);
-            letter-spacing: 1px;
-            /* Padding scales proportionally so the chip doesn't dwarf the title on small screens */
-            padding: clamp(4px, 1.2vw, 7px) clamp(6px, 1.8vw, 10px);
+            font-size: clamp(8px, 2vw, 11px);
+            letter-spacing: clamp(0.5px, 0.3vw, 1.2px);
+            padding: clamp(5px, 1.4vw, 8px) clamp(7px, 2vw, 11px);
             display: flex; align-items: center; gap: 4px; cursor: pointer;
             font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
+            max-width: 38%;
+            overflow: hidden;
         }
         .m-topbar .m-seed:active { background: #00ffcc; color: #000; }
-        .m-topbar .m-seed .m-seed-val { color: #fff; font-weight: bold; }
+        .m-topbar .m-seed .m-seed-val { color: #fff; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         /* --- Mobile FAB Cluster (right side, vertical) --- */
         .m-fab-cluster {
@@ -1080,7 +1092,7 @@
             .btn-glitch, .filter-btn { min-height: 38px; }
             /* Reduce expensive holo effects */
             .holo-mode-toggle { min-height: 36px; padding: 6px 12px; }
-            #event-banner { left: 12px !important; right: 12px !important; transform: translateX(0) translateY(-150%) !important; width: auto !important; max-width: none !important; }
+            #event-banner { left: 12px !important; right: 12px !important; transform: translateX(0) translateY(calc(-100% - 100px)) !important; width: auto !important; max-width: none !important; }
             #event-banner.active { transform: translateX(0) translateY(0) !important; }
         }
 
@@ -1164,9 +1176,13 @@
         }
         .reaper-inline-link:hover { color: #fff !important; text-shadow: 0 0 8px #aa44ff; }
 
-        /* --- Reality Event Banner (top-of-screen slide-in) --- */
+        /* --- Reality Event Banner (top-of-screen slide-in) ---
+           Inactive state pushed all the way off the top (-100% of own height + an
+           extra 100px safety margin) so its inner `--` placeholder text never
+           peeks into the topbar area. */
         #event-banner {
-            position: fixed; top: calc(72px + var(--safe-top)); left: 50%; transform: translateX(-50%) translateY(-150%);
+            position: fixed; top: calc(72px + var(--safe-top)); left: 50%;
+            transform: translateX(-50%) translateY(calc(-100% - 100px));
             z-index: 90;
             width: 92%; max-width: 560px;
             background: linear-gradient(135deg, rgba(0,5,10,0.97) 0%, rgba(0,15,20,0.97) 100%);
@@ -1174,8 +1190,14 @@
             transition: transform 0.7s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             padding: 12px 18px;
             backdrop-filter: blur(10px);
+            visibility: hidden;
+            pointer-events: none;
         }
-        #event-banner.active { transform: translateX(-50%) translateY(0); }
+        #event-banner.active {
+            transform: translateX(-50%) translateY(0);
+            visibility: visible;
+            pointer-events: auto;
+        }
         #event-banner.type-birth { border-color: #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.5); }
         #event-banner.type-death { border-color: #ff5555; box-shadow: 0 0 40px rgba(255,85,85,0.5); }
         #event-banner.type-coup { border-color: #ffcc00; box-shadow: 0 0 40px rgba(255,204,0,0.5); }

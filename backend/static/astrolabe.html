@@ -494,6 +494,14 @@
     <!-- Stable Three.js & OrbitControls Links -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Cinematic post-processing pipeline -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 </head>
 <body class="text-sm md:text-base">
 
@@ -1206,6 +1214,12 @@
         const seedPathTubes = [];
         const seedData = [];
         let globalClock = null; // for smooth time-based animations
+        // Cinematic post-processing pipeline
+        let composer = null, bloomPass = null, holoPass = null, fxaaPass = null;
+        let cameraShake = { intensity: 0, decay: 0 };
+        let centralSpine = null; // volumetric god-ray beam
+        let starField = null; // procedural twinkling stars
+        let poiHalos = []; // soft glow sprites behind POI markers
 
         let filtersVisible = window.innerWidth >= 768; 
         let navVisible = window.innerWidth >= 768; 
@@ -1285,6 +1299,10 @@
             generateSoulSeedLanes();
             generateDeadZoneVolumes();
             generateFactionVolumes();
+            // === New cinematic scene elements ===
+            generateCentralSpine();
+            generateStarfield();
+            generatePOIHalos();
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
             scene.add(ambientLight);
@@ -1295,6 +1313,90 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
             globalClock = new THREE.Clock();
+
+            // === Cinematic post-processing pipeline ===
+            setupCinematicComposer();
+        }
+
+        function setupCinematicComposer() {
+            if (!THREE.EffectComposer) return; // graceful no-op if scripts didn't load
+            composer = new THREE.EffectComposer(renderer);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            composer.addPass(new THREE.RenderPass(scene, camera));
+
+            // Unreal Bloom — the headline effect
+            bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.1,   // strength (tuned: cinematic without blowing out fine disc detail)
+                0.7,   // radius
+                0.22   // threshold
+            );
+            composer.addPass(bloomPass);
+
+            // Hologram scan-lines + vignette + chromatic touch (custom shader)
+            const HoloShader = {
+                uniforms: {
+                    tDiffuse: { value: null },
+                    time: { value: 0 },
+                    resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    intensity: { value: 0.22 },
+                    vignette: { value: 0.6 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D tDiffuse;
+                    uniform float time;
+                    uniform vec2 resolution;
+                    uniform float intensity;
+                    uniform float vignette;
+                    varying vec2 vUv;
+                    
+                    void main() {
+                        // Slight chromatic aberration toward edges
+                        vec2 toCenter = vUv - 0.5;
+                        float dist = length(toCenter);
+                        vec2 caOffset = toCenter * dist * 0.004;
+                        float r = texture2D(tDiffuse, vUv + caOffset).r;
+                        float g = texture2D(tDiffuse, vUv).g;
+                        float b = texture2D(tDiffuse, vUv - caOffset).b;
+                        vec3 color = vec3(r, g, b);
+                        
+                        // Scrolling hologram scanlines
+                        float scan = sin((vUv.y * resolution.y * 0.6) + time * 6.0) * 0.5 + 0.5;
+                        color *= mix(1.0, scan, intensity * 0.4);
+                        
+                        // Subtle horizontal banding (CRT feel)
+                        float band = sin(vUv.y * resolution.y * 0.5 - time * 2.0) * 0.04;
+                        color += band * vec3(0.0, 1.0, 0.85);
+                        
+                        // Vignette darkening
+                        float vig = 1.0 - dist * vignette;
+                        color *= clamp(vig, 0.0, 1.0);
+                        
+                        // Cinematic color grading — lift shadows toward cyan, push highlights toward magenta tint
+                        color.r += (1.0 - color.r) * 0.02;
+                        color.b += (1.0 - color.b) * 0.04;
+                        
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `
+            };
+            holoPass = new THREE.ShaderPass(HoloShader);
+            composer.addPass(holoPass);
+
+            // FXAA for smoother edges (placed last)
+            fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+            const pixelRatio = renderer.getPixelRatio();
+            fxaaPass.material.uniforms['resolution'].value.x = 1 / (window.innerWidth * pixelRatio);
+            fxaaPass.material.uniforms['resolution'].value.y = 1 / (window.innerHeight * pixelRatio);
+            composer.addPass(fxaaPass);
             
             window.addEventListener('mousemove', onMouseMove, false);
             
@@ -1637,8 +1739,167 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            if (composer) {
+                composer.setSize(window.innerWidth, window.innerHeight);
+                if (holoPass && holoPass.uniforms.resolution) {
+                    holoPass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+                }
+                if (fxaaPass) {
+                    const pr = renderer.getPixelRatio();
+                    fxaaPass.material.uniforms['resolution'].value.x = 1 / (window.innerWidth * pr);
+                    fxaaPass.material.uniforms['resolution'].value.y = 1 / (window.innerHeight * pr);
+                }
+            }
             drawDiagramFromCurrentState();
         }
+
+        // -------------- CINEMATIC SCENE ELEMENTS --------------
+
+        // Generate a tall, glowing volumetric column at the origin — the actual Astrolabe spine
+        function generateCentralSpine() {
+            centralSpine = new THREE.Group();
+            const yMin = -99 * 0.6, yMax = 99 * 0.6;
+            const totalH = yMax - yMin;
+
+            // Outer soft beam (cylinder with vertical gradient texture, additive)
+            const beamCanvas = document.createElement('canvas');
+            beamCanvas.width = 4; beamCanvas.height = 256;
+            const bCtx = beamCanvas.getContext('2d');
+            const bGrad = bCtx.createLinearGradient(0, 0, 0, 256);
+            bGrad.addColorStop(0, 'rgba(0,255,200,0)');
+            bGrad.addColorStop(0.3, 'rgba(0,255,255,0.7)');
+            bGrad.addColorStop(0.5, 'rgba(255,255,255,1)');
+            bGrad.addColorStop(0.7, 'rgba(180,100,255,0.7)');
+            bGrad.addColorStop(1, 'rgba(170,0,255,0)');
+            bCtx.fillStyle = bGrad; bCtx.fillRect(0, 0, 4, 256);
+            const beamTex = new THREE.CanvasTexture(beamCanvas);
+
+            const outerBeam = new THREE.Mesh(
+                new THREE.CylinderGeometry(1.8, 1.8, totalH, 24, 1, true),
+                new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.55, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            outerBeam.position.y = (yMin + yMax) / 2;
+            outerBeam.userData = { spinSpeed: 0.002, pulse: 1.2, baseOpacity: 0.55 };
+            centralSpine.add(outerBeam);
+
+            const midBeam = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.6, 0.6, totalH, 16, 1, true),
+                new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.85, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            midBeam.position.y = (yMin + yMax) / 2;
+            midBeam.userData = { spinSpeed: -0.004, pulse: 1.7, baseOpacity: 0.85 };
+            centralSpine.add(midBeam);
+
+            // Razor-sharp core line (very bright, will bloom strongly)
+            const coreBeam = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.06, totalH, 8),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 })
+            );
+            coreBeam.position.y = (yMin + yMax) / 2;
+            centralSpine.add(coreBeam);
+
+            // Energy nodes traveling up the spine
+            for (let i = 0; i < 7; i++) {
+                const node = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.5, 12, 8),
+                    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
+                );
+                node.userData = { nodeIdx: i, spinSpeed: 0, pulse: 0, baseOpacity: 0.9, isSpineNode: true };
+                centralSpine.add(node);
+            }
+
+            scene.add(centralSpine);
+        }
+
+        // Procedural starfield with twinkle shader
+        function generateStarfield() {
+            const count = 2200;
+            const positions = new Float32Array(count * 3);
+            const phases = new Float32Array(count);
+            const sizes = new Float32Array(count);
+            for (let i = 0; i < count; i++) {
+                // Spherical shell around the scene
+                const u = Math.random(), v = Math.random();
+                const theta = u * Math.PI * 2;
+                const phi = Math.acos(2 * v - 1);
+                const r = 200 + Math.random() * 80;
+                positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i*3+2] = r * Math.cos(phi);
+                phases[i] = Math.random() * Math.PI * 2;
+                sizes[i] = 0.6 + Math.random() * 2.4;
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
+            geo.setAttribute('sz', new THREE.BufferAttribute(sizes, 1));
+
+            const starMat = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+                    attribute float phase;
+                    attribute float sz;
+                    uniform float time;
+                    varying float vTwinkle;
+                    void main() {
+                        vTwinkle = 0.6 + 0.4 * sin(time * 1.7 + phase);
+                        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = sz * (260.0 / -mv.z) * vTwinkle;
+                        gl_Position = projectionMatrix * mv;
+                    }
+                `,
+                fragmentShader: `
+                    varying float vTwinkle;
+                    void main() {
+                        vec2 c = gl_PointCoord - 0.5;
+                        float d = length(c);
+                        if (d > 0.5) discard;
+                        float alpha = pow(1.0 - d * 2.0, 2.0) * vTwinkle;
+                        vec3 col = mix(vec3(1.0, 0.95, 0.85), vec3(0.7, 0.85, 1.0), step(0.5, vTwinkle));
+                        gl_FragColor = vec4(col, alpha);
+                    }
+                `,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            starField = new THREE.Points(geo, starMat);
+            scene.add(starField);
+        }
+
+        // Soft glow halos behind every POI marker (sprite billboards)
+        function generatePOIHalos() {
+            // Halo gradient texture
+            const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+            const ctx = c.getContext('2d');
+            const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(0.25, 'rgba(255,255,150,0.5)');
+            grad.addColorStop(0.6, 'rgba(255,200,0,0.15)');
+            grad.addColorStop(1, 'rgba(255,200,0,0)');
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 128, 128);
+            const haloTex = new THREE.CanvasTexture(c);
+
+            poiMeshes.forEach(marker => {
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: haloTex, color: 0xffff66,
+                    transparent: true, opacity: 0.5,
+                    blending: THREE.AdditiveBlending, depthWrite: false
+                }));
+                sprite.position.copy(marker.position);
+                sprite.scale.set(4, 4, 1);
+                astrolabeGroup.add(sprite);
+                poiHalos.push(sprite);
+            });
+        }
+
+        // Cinematic camera shake — called from portal / scan events
+        function triggerCameraShake(intensity = 0.6, decay = 0.88) {
+            cameraShake.intensity = intensity;
+            cameraShake.decay = decay;
+        }
+
+        // -------------- end cinematic elements --------------
 
         function animate() {
             requestAnimationFrame(animate);
@@ -1698,7 +1959,55 @@
             }
 
             if (labelsGroup) labelsGroup.children.forEach(sprite => { sprite.quaternion.copy(camera.quaternion); });
-            renderer.render(scene, camera);
+
+            // Animate cinematic scene elements
+            if (centralSpine) {
+                const yMin = -99 * 0.6, yMax = 99 * 0.6;
+                centralSpine.children.forEach((c, i) => {
+                    if (c.userData.spinSpeed) c.rotation.y += c.userData.spinSpeed;
+                    if (c.userData.pulse) {
+                        c.material.opacity = c.userData.baseOpacity + Math.sin(t * c.userData.pulse) * 0.08;
+                    }
+                    if (c.userData.isSpineNode) {
+                        const span = yMax - yMin;
+                        const speed = 14;
+                        const offset = (c.userData.nodeIdx / 7) * span;
+                        c.position.y = yMin + (((t * speed + offset) % span + span) % span);
+                        c.material.opacity = 0.75 + Math.sin(t * 3 + i) * 0.25;
+                    }
+                });
+            }
+            if (starField && starField.material.uniforms) {
+                starField.material.uniforms.time.value = t;
+            }
+            // POI halo pulsing
+            poiHalos.forEach((halo, i) => {
+                halo.material.opacity = 0.4 + Math.sin(t * 1.4 + i * 0.5) * 0.2;
+                const s = 4 + Math.sin(t * 1.4 + i * 0.5) * 0.4;
+                halo.scale.set(s, s, 1);
+            });
+
+            // Camera shake (post-camera-update so it overrides the lerped position transiently)
+            let shakeX = 0, shakeY = 0, shakeZ = 0;
+            if (cameraShake.intensity > 0.001) {
+                shakeX = (Math.random() - 0.5) * cameraShake.intensity;
+                shakeY = (Math.random() - 0.5) * cameraShake.intensity;
+                shakeZ = (Math.random() - 0.5) * cameraShake.intensity;
+                camera.position.x += shakeX; camera.position.y += shakeY; camera.position.z += shakeZ;
+                cameraShake.intensity *= cameraShake.decay;
+            }
+
+            // Render through cinematic composer if available, otherwise fall back to raw render
+            if (composer) {
+                if (holoPass && holoPass.uniforms.time) holoPass.uniforms.time.value = t;
+                composer.render();
+            } else {
+                renderer.render(scene, camera);
+            }
+            // Undo shake offset so next frame's lerp starts clean
+            if (shakeX !== 0 || shakeY !== 0 || shakeZ !== 0) {
+                camera.position.x -= shakeX; camera.position.y -= shakeY; camera.position.z -= shakeZ;
+            }
         }
 
         // Returns true if any of the lore/codex/soul/sub-loc modals are open
@@ -2045,6 +2354,7 @@
             logMessage("Initiating deep sector ping...", 'info');
             const lvl = parseInt(document.getElementById('target-level').value);
             zoomToLevel(lvl);
+            triggerCameraShake(0.35, 0.85);
             
             setTimeout(() => {
                 const data = TERRITORY_DATA[lvl];
@@ -2126,6 +2436,7 @@
             label.style.color = isNightmare ? '#ff5555' : '#fff';
 
             overlay.classList.add('active');
+            triggerCameraShake(isNightmare ? 1.2 : 0.6, isNightmare ? 0.92 : 0.86);
             setTimeout(() => overlay.classList.remove('active'), 1100);
         }
 

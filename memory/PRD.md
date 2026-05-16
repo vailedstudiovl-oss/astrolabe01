@@ -31,6 +31,16 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - Nested Sub-location Lore (clickable orbiters → 10+ category-detected dossier types)
 - ESC universally closes modals
 
+### Iteration 5 — Cinematic 3D Graphics Pipeline
+- **UnrealBloomPass** post-processing (strength 1.1, radius 0.7, threshold 0.22) — every emissive/additive object now blooms. The signature sci-fi look.
+- **Volumetric Central Spine** — multi-layered (outer + mid + razor-sharp core) god-ray column from Y=-59.4 to Y=+59.4 with a vertical CanvasTexture gradient (cyan → white → magenta), counter-rotating cylinders, plus 7 traveling energy nodes drifting upward through the spine
+- **Procedural Starfield with shader twinkle** — 2200 stars on a 200–280 radius spherical shell, each with a unique phase; custom shader does per-vertex `0.6 + 0.4*sin(t + phase)` twinkle modulation, size attenuation, and warm/cool color flicker
+- **POI Glow Halos** — soft sprite billboard behind every POI marker pulses scale and opacity in sine, in front of bloom for beacon-like glow
+- **Hologram Scan-line Shader Pass** — custom post-process with scrolling scanlines, subtle horizontal CRT banding, chromatic aberration toward edges, vignette, and cinematic color grading
+- **FXAAShader pass** for clean edges at the end of the chain
+- **Camera Shake** — `triggerCameraShake(intensity, decay)` hooked into `playRealityPortal` (1.2/0.92 for nightmare strata, 0.6/0.86 for stable) and `scanSector` (0.35/0.85)
+- Composer + bloom + FXAA all properly resize on window resize
+
 ### Iteration 4 — Flicker Fixes + Better Improvements
 **Flicker reduction:**
 - Dead-reality opacity: replaced per-frame `Math.random()` strobe with smooth `sin(t)` breathing

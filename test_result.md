@@ -192,7 +192,7 @@ backend:
   - task: "Game Installer Launcher — chunked delivery architecture"
     implemented: true
     working: true
-    file: "backend/server.py, backend/static/launcher.html, backend/static/chunks/*"
+    file: "backend/server.py, backend/static/launcher.html, backend/static/chunks/*, backend/static/config.js, backend/scripts/*"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -200,31 +200,18 @@ backend:
         - working: true
           agent: "main"
           comment: |
-            Refactored the 437 KB monolithic astrolabe.html into a tiny ~27 KB cinematic
-            launcher + 3 lazy-loaded chunks (CSS / body HTML / engine.js, ~423 KB total)
-            served from /api/static/chunks/*. The launcher (served at /api/astrolabe)
-            shows a terminal-style installer UI with progress bar, live download log,
-            and a "LAUNCH ASTROLABE" button. Chunks are cached in IndexedDB keyed by
-            content hash for instant warm-cache auto-launch on subsequent visits.
-
-            Endpoints:
-              GET /api/astrolabe          → launcher.html (27 KB)
-              GET /api/astrolabe-legacy   → original monolithic HTML (fallback)
-              GET /api/static/chunks/manifest.json
-              GET /api/static/chunks/astrolabe.css        (72 KB)
-              GET /api/static/chunks/astrolabe-body.html  (53 KB)
-              GET /api/static/chunks/astrolabe-engine.js  (300 KB)
-
-            Verified end-to-end via screenshot tool: launcher renders, progress bar
-            fills, chunks download with cache hits visible in log, "LAUNCH ASTROLABE"
-            button enables, clicking it boots the full 3D game with all HUD panels,
-            Three.js scene, and lore systems intact. Warm-cache auto-launches in 1.2s.
-
-            Service worker (v3) bumped to pre-cache chunks/manifest.json so chunks
-            are also available offline. Late-binding of window.onload + window
-            .addEventListener('load', ...) handled via a patch that flushes pending
-            handlers after engine.js is injected (since the page is already loaded
-            by that point).
+            Refactored the 437 KB monolithic astrolabe.html into a tiny ~31 KB cinematic
+            launcher + 3 lazy-loaded chunks (CSS / body HTML / engine.js, ~423 KB total).
+            Hybrid hosting support added: launcher reads /api/static/config.js for an
+            optional apiBase, then installs a fetch() wrapper that transparently routes
+            /api/lore/* /api/saves/* /api/status/* to the remote backend while keeping
+            /api/static/* on the same origin. Verified end-to-end with the launcher
+            served from a different origin (port 7777) and the API on the live backend:
+            game booted, /api/saves returned 200 from cross-origin, /api/static stayed
+            local. Export script at backend/scripts/export_dist.py produces /app/dist
+            (22 files, 5.6 MB) with _redirects / _headers / netlify.toml / vercel.json
+            pre-configured for drag-and-drop deploy to Netlify / Cloudflare Pages /
+            Vercel / GitHub Pages.
 
 frontend:
   - task: "Astrolabe 3D scene (Three.js bloom, scanlines, holograms, music, pause menu, boot)"

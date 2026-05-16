@@ -41,6 +41,9 @@
       }
     </script>
 
+    <!-- Hybrid hosting config (edit /api/static/config.js to point at a remote backend) -->
+    <script src="/api/static/config.js"></script>
+
     <!-- Three.js libs are loaded EARLY (small, cached by CDN) so they're warm when engine boots -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -331,6 +334,7 @@
 
             <div class="meta">
                 <span id="cache-state">cache: cold</span>
+                <span id="api-state">api: same-origin</span>
                 <span>wanderer ▸ <span id="wid-display">—</span></span>
             </div>
         </div>
@@ -341,6 +345,72 @@
     (function () {
         'use strict';
 
+        // ============================================================
+        // HYBRID HOSTING — resolve apiBase + assetBase + install
+        // a fetch() interceptor BEFORE the engine ever runs so that
+        // every /api/lore /api/saves /api/status request that the
+        // engine fires is transparently routed to the remote backend.
+        // ============================================================
+        const CONFIG = Object.assign(
+            { apiBase: "", assetBase: "" },
+            (window.__ASTROLABE_CONFIG || {})
+        );
+        // Allow ?api=... override at runtime (handy for staging vs prod)
+        try {
+            const qs = new URLSearchParams(location.search);
+            if (qs.get('api')) CONFIG.apiBase   = qs.get('api');
+            if (qs.get('cdn')) CONFIG.assetBase = qs.get('cdn');
+        } catch (e) {}
+        // Strip trailing slashes
+        CONFIG.apiBase   = (CONFIG.apiBase   || '').replace(/\/+$/, '');
+        CONFIG.assetBase = (CONFIG.assetBase || '').replace(/\/+$/, '');
+        window.__ASTROLABE_RESOLVED_CONFIG = CONFIG;
+
+        // Paths under /api/* that are DYNAMIC backend endpoints (must hit apiBase).
+        // Everything else (e.g. /api/static/, /api/service-worker.js, /api/astrolabe)
+        // stays on the same origin (static host).
+        const DYNAMIC_API_PREFIXES = ['/api/lore', '/api/saves', '/api/status'];
+        function isDynamicApiPath(path) {
+            if (typeof path !== 'string') return false;
+            return DYNAMIC_API_PREFIXES.some(p => path === p || path.startsWith(p + '/') || path.startsWith(p + '?'));
+        }
+        function resolveApiUrl(path) {
+            if (!CONFIG.apiBase || !isDynamicApiPath(path)) return path;
+            return CONFIG.apiBase + path;
+        }
+        function resolveAssetUrl(path) {
+            if (!CONFIG.assetBase) return path;
+            // Only rewrite absolute /api/static/... paths
+            if (typeof path === 'string' && path.startsWith('/api/static/')) {
+                return CONFIG.assetBase + path;
+            }
+            return path;
+        }
+
+        // Install a global fetch wrapper.  We do this BEFORE the engine
+        // script runs (engine uses raw `fetch(path)` in apiGet/apiPost/apiDelete).
+        const _origFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+            try {
+                if (typeof input === 'string') {
+                    if (isDynamicApiPath(input)) {
+                        input = resolveApiUrl(input);
+                    } else if (CONFIG.assetBase && input.startsWith('/api/static/')) {
+                        input = resolveAssetUrl(input);
+                    }
+                } else if (input && typeof input.url === 'string' && isDynamicApiPath(new URL(input.url, location.origin).pathname)) {
+                    input = new Request(resolveApiUrl(new URL(input.url, location.origin).pathname + (new URL(input.url, location.origin).search || '')), input);
+                }
+            } catch (e) { /* fall through with original input */ }
+            return _origFetch(input, init);
+        };
+        // Expose resolvers so the engine can use them if needed
+        window.__astrolabeResolveApi   = resolveApiUrl;
+        window.__astrolabeResolveAsset = resolveAssetUrl;
+
+        // ============================================================
+        // LAUNCHER UI HELPERS
+        // ============================================================
         const $ = (id) => document.getElementById(id);
         const logEl  = $('log');
         const progressBar  = $('progress-bar');
@@ -351,8 +421,8 @@
         const cacheState   = $('cache-state');
         const widDisplay   = $('wid-display');
 
-        const MANIFEST_URL = '/api/static/chunks/manifest.json';
-        const CHUNKS_BASE  = '/api/static/chunks/';
+        const MANIFEST_URL = resolveAssetUrl('/api/static/chunks/manifest.json');
+        const CHUNKS_BASE  = resolveAssetUrl('/api/static/chunks/');
         const IDB_NAME     = 'astrolabe-installer-v1';
         const IDB_STORE    = 'chunks';
 
@@ -637,6 +707,17 @@
 
         // kick off install
         log('▸ <span class="info">installer online</span>');
+        // Reflect resolved config in the meta footer + log
+        try {
+            const apiState = $('api-state');
+            if (CONFIG.apiBase) {
+                apiState.textContent = 'api: ' + CONFIG.apiBase.replace(/^https?:\/\//, '');
+                log('▸ api uplink ▸ <span class="info">' + CONFIG.apiBase + '</span>');
+            } else {
+                apiState.textContent = 'api: same-origin';
+            }
+            if (CONFIG.assetBase) log('▸ asset cdn ▸ <span class="info">' + CONFIG.assetBase + '</span>');
+        } catch (e) {}
         run();
     })();
     </script>

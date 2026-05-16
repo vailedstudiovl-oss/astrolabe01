@@ -2190,6 +2190,9 @@
         let centralSpine = null; // volumetric god-ray beam
         let starField = null; // procedural twinkling stars
         let poiHalos = []; // soft glow sprites behind POI markers
+        let poiHolograms = []; // procedural 3D holographic constructs (planets / cities / relics / horrors)
+                               // shown only when camera is close to a strata (LOD)
+        const _tmpV3 = new THREE.Vector3(); // reused per-frame vector to avoid GC churn
 
         let filtersVisible = window.innerWidth >= 768; 
         let navVisible = window.innerWidth >= 768; 
@@ -2273,6 +2276,7 @@
             generateCentralSpine();
             generateStarfield();
             generatePOIHalos();
+            generatePOIHolograms();
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
             scene.add(ambientLight);
@@ -2865,6 +2869,388 @@
             });
         }
 
+        // ===== 3D HOLOGRAPHIC POI CONSTRUCTS =====
+        // Each POI gets a procedural, faction-tinted 3D model wrapped in a holographic
+        // shader. They stay hidden until the camera zooms close to a strata — fading in
+        // smoothly as planets / floating cities / relics / horrors / antennae etc.
+
+        // Holographic ShaderMaterial: fresnel edge, scanlines, time-flicker, faction tint.
+        // Cached uniforms so we can drive `time` and `opacityMul` from animate().
+        const HOLO_VERT = `
+            varying vec3 vNormal;
+            varying vec3 vWorldPos;
+            varying vec3 vViewDir;
+            void main() {
+                vec4 wp = modelMatrix * vec4(position, 1.0);
+                vWorldPos = wp.xyz;
+                vNormal = normalize(normalMatrix * normal);
+                vec4 vp = viewMatrix * wp;
+                vViewDir = normalize(-vp.xyz);
+                gl_Position = projectionMatrix * vp;
+            }`;
+        const HOLO_FRAG = `
+            precision mediump float;
+            uniform vec3  tint;
+            uniform float time;
+            uniform float opacityMul;
+            varying vec3 vNormal;
+            varying vec3 vWorldPos;
+            varying vec3 vViewDir;
+            void main() {
+                if (opacityMul <= 0.001) discard;
+                float fres = pow(1.0 - max(dot(normalize(vNormal), normalize(vViewDir)), 0.0), 2.0);
+                float scan = 0.82 + 0.18 * sin(vWorldPos.y * 8.0 + time * 6.0);
+                float flicker = 0.92 + 0.08 * sin(time * 28.0 + vWorldPos.x * 4.7 + vWorldPos.z * 3.1);
+                vec3 col = mix(tint * 0.55, vec3(1.0), fres * 0.9);
+                col *= scan * flicker;
+                float a = opacityMul * (0.18 + fres * 0.95);
+                gl_FragColor = vec4(col, a);
+            }`;
+
+        function makeHoloMaterial(tintHex) {
+            const c = new THREE.Color(tintHex);
+            return new THREE.ShaderMaterial({
+                vertexShader: HOLO_VERT,
+                fragmentShader: HOLO_FRAG,
+                uniforms: {
+                    tint: { value: new THREE.Vector3(c.r, c.g, c.b) },
+                    time: { value: 0 },
+                    opacityMul: { value: 0 }, // start invisible, fade in on close
+                },
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+            });
+        }
+
+        // Wireframe overlay material (cyan/faction outline) for that "blueprint" look
+        function makeHoloWireMaterial(tintHex) {
+            const c = new THREE.Color(tintHex);
+            return new THREE.ShaderMaterial({
+                vertexShader: HOLO_VERT,
+                fragmentShader: `
+                    precision mediump float;
+                    uniform vec3 tint; uniform float time; uniform float opacityMul;
+                    varying vec3 vNormal; varying vec3 vWorldPos; varying vec3 vViewDir;
+                    void main() {
+                        if (opacityMul <= 0.001) discard;
+                        float flicker = 0.85 + 0.15 * sin(time * 18.0 + vWorldPos.y * 2.0);
+                        gl_FragColor = vec4(tint * flicker, opacityMul * 0.85);
+                    }`,
+                uniforms: {
+                    tint: { value: new THREE.Vector3(c.r, c.g, c.b) },
+                    time: { value: 0 },
+                    opacityMul: { value: 0 },
+                },
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                wireframe: true,
+            });
+        }
+
+        // ---- Procedural builders per category ----
+        // All builders return a THREE.Group sized to ~6 units tall, centered at origin.
+        // mats = { fill: ShaderMaterial, wire: ShaderMaterial } shared across the group.
+
+        function buildPlanet(mats, seedRng) {
+            const g = new THREE.Group();
+            const r = 2.0 + seedRng() * 0.6;
+            // Solid hologram sphere
+            const planet = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 22), mats.fill);
+            g.add(planet);
+            // Wireframe overlay
+            const wire = new THREE.Mesh(new THREE.SphereGeometry(r * 1.001, 18, 14), mats.wire);
+            g.add(wire);
+            // Ring
+            const ring = new THREE.Mesh(new THREE.RingGeometry(r * 1.7, r * 2.2, 64), mats.wire);
+            ring.rotation.x = Math.PI / 2.5;
+            ring.userData.spin = 0.004;
+            g.add(ring);
+            // 1-2 moons
+            const moons = 1 + Math.floor(seedRng() * 2);
+            for (let i = 0; i < moons; i++) {
+                const moon = new THREE.Mesh(new THREE.IcosahedronGeometry(0.25 + seedRng() * 0.15, 1), mats.wire);
+                const a = seedRng() * Math.PI * 2;
+                const d = r * (2.6 + seedRng() * 0.6);
+                moon.position.set(Math.cos(a) * d, (seedRng() - 0.5) * 0.6, Math.sin(a) * d);
+                moon.userData.orbit = { radius: d, speed: 0.005 + seedRng() * 0.008, phase: a };
+                g.add(moon);
+            }
+            g.userData.spin = 0.006;
+            g.userData.bob = 0.2;
+            return g;
+        }
+
+        function buildFloatingCity(mats, seedRng) {
+            const g = new THREE.Group();
+            // Inverted cone "underbelly" (classic floating city silhouette)
+            const belly = new THREE.Mesh(new THREE.ConeGeometry(2.0, 1.6, 8, 1, true), mats.fill);
+            belly.position.y = -0.4; belly.rotation.x = Math.PI; g.add(belly);
+            const bellyW = new THREE.Mesh(new THREE.ConeGeometry(2.0, 1.6, 8, 1, true), mats.wire);
+            bellyW.position.y = -0.4; bellyW.rotation.x = Math.PI; g.add(bellyW);
+            // Platform
+            const plat = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.25, 24), mats.fill);
+            plat.position.y = 0.55; g.add(plat);
+            // Buildings / spires on top
+            const towers = 5 + Math.floor(seedRng() * 4);
+            for (let i = 0; i < towers; i++) {
+                const a = (i / towers) * Math.PI * 2;
+                const d = 0.4 + seedRng() * 1.1;
+                const h = 0.8 + seedRng() * 2.0;
+                const w = 0.18 + seedRng() * 0.18;
+                const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), mats.wire);
+                tower.position.set(Math.cos(a) * d, 0.7 + h / 2, Math.sin(a) * d);
+                g.add(tower);
+            }
+            // Central spire
+            const spire = new THREE.Mesh(new THREE.ConeGeometry(0.35, 3.0, 8), mats.fill);
+            spire.position.y = 2.2; g.add(spire);
+            // Window dots (point cloud)
+            const dotsGeo = new THREE.BufferGeometry();
+            const dotsArr = [];
+            for (let i = 0; i < 80; i++) {
+                const a = seedRng() * Math.PI * 2;
+                const d = 0.3 + seedRng() * 1.5;
+                dotsArr.push(Math.cos(a) * d, 0.6 + seedRng() * 2.5, Math.sin(a) * d);
+            }
+            dotsGeo.setAttribute('position', new THREE.Float32BufferAttribute(dotsArr, 3));
+            const dots = new THREE.Points(dotsGeo, new THREE.PointsMaterial({
+                color: 0xffffaa, size: 0.06, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+            }));
+            dots.userData.isCityWindow = true;
+            g.add(dots);
+            g.userData.spin = 0.002;
+            g.userData.bob = 0.3;
+            return g;
+        }
+
+        function buildObeliskSpire(mats, seedRng) {
+            const g = new THREE.Group();
+            // Base ring
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 0.3, 16), mats.wire);
+            base.position.y = -1.8; g.add(base);
+            // Tall obelisk
+            const ob = new THREE.Mesh(new THREE.BoxGeometry(0.7, 4.5, 0.7), mats.fill);
+            ob.position.y = 0.4; g.add(ob);
+            const obW = new THREE.Mesh(new THREE.BoxGeometry(0.72, 4.52, 0.72), mats.wire);
+            obW.position.y = 0.4; g.add(obW);
+            // Crown
+            const crown = new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), mats.fill);
+            crown.position.y = 3.0; g.add(crown);
+            // Pulse rings (3 stacked)
+            for (let i = 0; i < 3; i++) {
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.4, 0.04, 6, 32), mats.wire);
+                ring.position.y = -1.0 + i * 0.4;
+                ring.rotation.x = Math.PI / 2;
+                ring.userData.spin = 0.01 * (i + 1);
+                g.add(ring);
+            }
+            g.userData.bob = 0.15;
+            g.userData.spin = 0.003;
+            return g;
+        }
+
+        function buildGothicCathedral(mats, seedRng) {
+            const g = new THREE.Group();
+            // Main body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.0, 1.4), mats.fill);
+            body.position.y = 0.5; g.add(body);
+            const bodyW = new THREE.Mesh(new THREE.BoxGeometry(1.42, 2.02, 1.42), mats.wire);
+            bodyW.position.y = 0.5; g.add(bodyW);
+            // Tall central spire
+            const centerSpire = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.8, 6), mats.fill);
+            centerSpire.position.y = 2.9; g.add(centerSpire);
+            // 4 corner spires
+            for (let i = 0; i < 4; i++) {
+                const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+                const sp = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.6, 4), mats.wire);
+                sp.position.set(Math.cos(a) * 0.8, 1.7, Math.sin(a) * 0.8);
+                g.add(sp);
+            }
+            // Cross / sigil on top
+            const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.08), mats.fill);
+            crossV.position.y = 4.6; g.add(crossV);
+            const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.08), mats.fill);
+            crossH.position.y = 4.5; g.add(crossH);
+            g.userData.spin = 0.0015;
+            g.userData.bob = 0.1;
+            return g;
+        }
+
+        function buildHorror(mats, seedRng) {
+            const g = new THREE.Group();
+            // Central pulsing core (eye)
+            const core = new THREE.Mesh(new THREE.SphereGeometry(0.9, 20, 16), mats.fill);
+            g.add(core);
+            // Outer fractured shell
+            const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4, 1), mats.wire);
+            shell.userData.pulse = true;
+            g.add(shell);
+            // Tentacles — curved bezier tubes radiating outward
+            const tentCount = 6;
+            for (let i = 0; i < tentCount; i++) {
+                const a = (i / tentCount) * Math.PI * 2;
+                const dir = new THREE.Vector3(Math.cos(a), -0.2 + Math.sin(i * 0.7) * 0.5, Math.sin(a));
+                const curvePts = [];
+                for (let s = 0; s <= 6; s++) {
+                    const t = s / 6;
+                    const wob = Math.sin(t * Math.PI * 2 + i) * 0.5;
+                    curvePts.push(new THREE.Vector3(
+                        dir.x * t * 3.5 + wob * dir.z,
+                        dir.y * t * 3.0 + Math.sin(t * Math.PI) * 0.6,
+                        dir.z * t * 3.5 - wob * dir.x,
+                    ));
+                }
+                const curve = new THREE.CatmullRomCurve3(curvePts);
+                const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 18, 0.12, 6, false), mats.wire);
+                tube.userData.tentacleIdx = i;
+                g.add(tube);
+            }
+            // Inner iris dot
+            const iris = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), mats.fill);
+            iris.position.set(0, 0, 0);
+            g.add(iris);
+            g.userData.spin = -0.005;
+            g.userData.bob = 0.4;
+            g.userData.isHorror = true;
+            return g;
+        }
+
+        function buildRelicShards(mats, seedRng) {
+            const g = new THREE.Group();
+            // Broken obelisk base
+            const stub = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 0.9), mats.fill);
+            stub.position.y = -1.0;
+            stub.rotation.z = (seedRng() - 0.5) * 0.4;
+            g.add(stub);
+            // Floating shards around
+            for (let i = 0; i < 9; i++) {
+                const a = seedRng() * Math.PI * 2;
+                const d = 1.0 + seedRng() * 1.8;
+                const y = -0.3 + seedRng() * 2.5;
+                const shard = new THREE.Mesh(new THREE.TetrahedronGeometry(0.25 + seedRng() * 0.35, 0), mats.wire);
+                shard.position.set(Math.cos(a) * d, y, Math.sin(a) * d);
+                shard.rotation.set(seedRng() * Math.PI, seedRng() * Math.PI, seedRng() * Math.PI);
+                shard.userData.float = { amp: 0.1 + seedRng() * 0.25, phase: seedRng() * Math.PI * 2, baseY: y };
+                shard.userData.spin = (seedRng() - 0.5) * 0.02;
+                g.add(shard);
+            }
+            // Central glowing core where the obelisk broke
+            const orb = new THREE.Mesh(new THREE.SphereGeometry(0.35, 14, 10), mats.fill);
+            orb.position.y = 0.3;
+            g.add(orb);
+            g.userData.bob = 0.15;
+            return g;
+        }
+
+        function buildMagicalNebula(mats, seedRng) {
+            const g = new THREE.Group();
+            // Swirling rings
+            for (let i = 0; i < 3; i++) {
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.5, 0.06, 8, 64), mats.wire);
+                ring.rotation.x = Math.PI / 2 + (seedRng() - 0.5) * 0.6;
+                ring.rotation.z = (seedRng() - 0.5) * 0.6;
+                ring.userData.spin = (0.01 + i * 0.005) * (i % 2 ? -1 : 1);
+                g.add(ring);
+            }
+            // Central energy core
+            const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.8, 1), mats.fill);
+            g.add(core);
+            // Floating runes (small crystals)
+            for (let i = 0; i < 8; i++) {
+                const a = seedRng() * Math.PI * 2;
+                const r = 1.4 + seedRng() * 0.8;
+                const rune = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), mats.fill);
+                rune.position.set(Math.cos(a) * r, (seedRng() - 0.5) * 1.5, Math.sin(a) * r);
+                rune.userData.orbit = { radius: r, speed: 0.004 + seedRng() * 0.008, phase: a };
+                g.add(rune);
+            }
+            g.userData.spin = 0.004;
+            g.userData.bob = 0.25;
+            return g;
+        }
+
+        // Tiny mulberry32-style RNG seeded per POI so each construct stays deterministic
+        function poiRng(level, idx) {
+            let s = ((Number(level) + 100) * 1000 + idx * 17 + (window.UNIVERSE_SEED || 1)) >>> 0;
+            return function() {
+                s = (s + 0x6D2B79F5) >>> 0;
+                let t = s;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        // Choose a construct builder based on POI type + faction
+        function classifyPOI(poi) {
+            const t = (poi.type || '').toLowerCase();
+            const f = (poi.faction && poi.faction.id) || '';
+            // Horror first — Lovecraftian / Abyss / Soul Repository
+            if (t.includes('lovecraftian') || t.includes('horror') || t.includes('nightmare') || f === 'abyss_followers' || f === 'unholy_ones') return 'horror';
+            // Vampiric / gothic
+            if (t.includes('vampiric') || t.includes('court') || f === 'vamperica') return 'gothic';
+            // Floating city / hub / sanctuary
+            if (t.includes('city') || t.includes('hub') || t.includes('sanctuary') || t.includes('base') || t.includes('capital')) return 'city';
+            // Media / nexus / broadcast / construct (spire-shape)
+            if (t.includes('nexus') || t.includes('media') || t.includes('broadcast') || t.includes('construct')) return 'spire';
+            // Magical / arcane nebula
+            if (t.includes('magical') || t.includes('anomaly') || t.includes('arcane') || f === 'magic_whisperers') return 'nebula';
+            // Repository / soul / vault / relic / shattered
+            if (t.includes('repository') || t.includes('vault') || t.includes('relic') || t.includes('shattered') || t.includes('soul')) return 'relic';
+            // Plane / realm = planet (default)
+            if (t.includes('plane') || t.includes('realm')) return 'planet';
+            return 'planet';
+        }
+
+        function generatePOIHolograms() {
+            const factionFallback = 0x00ffcc;
+            poiMeshes.forEach(marker => {
+                const { level, poiIndex } = marker.userData;
+                const poi = (POIS[level] && POIS[level][poiIndex]) || null;
+                if (!poi) return;
+
+                const tint = (poi.faction && typeof poi.faction.color === 'number') ? poi.faction.color : factionFallback;
+                const fillMat = makeHoloMaterial(tint);
+                const wireMat = makeHoloWireMaterial(tint);
+                const mats = { fill: fillMat, wire: wireMat };
+
+                const rng = poiRng(level, poiIndex);
+                const category = classifyPOI(poi);
+                let group;
+                switch (category) {
+                    case 'horror':  group = buildHorror(mats, rng); break;
+                    case 'gothic':  group = buildGothicCathedral(mats, rng); break;
+                    case 'city':    group = buildFloatingCity(mats, rng); break;
+                    case 'spire':   group = buildObeliskSpire(mats, rng); break;
+                    case 'nebula':  group = buildMagicalNebula(mats, rng); break;
+                    case 'relic':   group = buildRelicShards(mats, rng); break;
+                    default:        group = buildPlanet(mats, rng); break;
+                }
+
+                // Position the hologram next to the POI marker, lifted above the strata disc
+                // so it's clearly distinct from the bloom-heavy spindle.
+                group.position.copy(marker.position);
+                group.position.y += 4.5;
+                // Slightly bigger so they read clearly against the bloom-heavy background
+                group.scale.setScalar(1.6);
+                // Start hidden, will fade in on close approach
+                group.visible = false;
+                group.userData.category = category;
+                group.userData.mats = mats;
+                group.userData.baseY = group.position.y;
+                group.userData.opacity = 0; // current LOD opacity multiplier
+                group.userData.level = level;
+                group.userData.poiIndex = poiIndex;
+                group.userData.bobPhase = rng() * Math.PI * 2;
+
+                astrolabeGroup.add(group);
+                poiHolograms.push(group);
+            });
+        }
+
         // Cinematic camera shake — called from portal / scan events
         function triggerCameraShake(intensity = 0.6, decay = 0.88) {
             cameraShake.intensity = intensity;
@@ -2958,6 +3344,83 @@
                 const s = 4 + Math.sin(t * 1.4 + i * 0.5) * 0.4;
                 halo.scale.set(s, s, 1);
             });
+
+            // === 3D Holographic POI Constructs — LOD + animation ===
+            // Fade in when camera approaches a POI strata, fade out when far away.
+            // Constants chosen so the holograms appear when the user actually zooms in.
+            if (poiHolograms.length) {
+                const FADE_IN_DIST  = 60;   // start fading in inside this distance
+                const FADE_OUT_DIST = 90;   // fully invisible outside
+                const camWorld = camera.position;
+                poiHolograms.forEach((holo, idx) => {
+                    // Distance from camera to this hologram's world position
+                    holo.getWorldPosition(_tmpV3);
+                    const d = camWorld.distanceTo(_tmpV3);
+                    // Map distance → target visibility (0..1)
+                    let target;
+                    if (d <= FADE_IN_DIST) target = 1.0;
+                    else if (d >= FADE_OUT_DIST) target = 0.0;
+                    else target = 1.0 - (d - FADE_IN_DIST) / (FADE_OUT_DIST - FADE_IN_DIST);
+                    // Lerp current opacity
+                    holo.userData.opacity += (target - holo.userData.opacity) * 0.08;
+                    const op = holo.userData.opacity;
+                    holo.visible = op > 0.01;
+
+                    // Fade the original simple yellow icosa marker INVERSELY so it doesn't
+                    // visually clash with the rich hologram once close.
+                    const marker = poiMeshes[idx];
+                    if (marker && marker.material) {
+                        marker.material.opacity = 0.8 * (1 - op * 0.85);
+                        marker.material.transparent = true;
+                    }
+                    if (!holo.visible) return;
+                    // Push opacity + time into shader uniforms
+                    const mats = holo.userData.mats;
+                    if (mats) {
+                        mats.fill.uniforms.opacityMul.value = op;
+                        mats.fill.uniforms.time.value = t;
+                        mats.wire.uniforms.opacityMul.value = op;
+                        mats.wire.uniforms.time.value = t;
+                    }
+                    // Group-level rotation
+                    if (holo.userData.spin) holo.rotation.y += holo.userData.spin;
+                    // Y-bob
+                    if (holo.userData.bob) {
+                        holo.position.y = holo.userData.baseY + Math.sin(t * 1.6 + holo.userData.bobPhase) * holo.userData.bob;
+                    }
+                    // Horror category: pulse the outer shell scale
+                    if (holo.userData.isHorror) {
+                        holo.children.forEach((c, ci) => {
+                            if (c.userData.pulse) {
+                                const s = 1.0 + Math.sin(t * 3.0 + ci) * 0.08;
+                                c.scale.setScalar(s);
+                            }
+                            // Tentacle squirm via rotation
+                            if (c.userData.tentacleIdx !== undefined) {
+                                c.rotation.z = Math.sin(t * 1.2 + c.userData.tentacleIdx) * 0.15;
+                            }
+                        });
+                    }
+                    // Child-level animations: orbits, individual spins, floats, ring spins
+                    holo.children.forEach(c => {
+                        if (c.userData.spin) c.rotation.y += c.userData.spin;
+                        if (c.userData.orbit) {
+                            const o = c.userData.orbit;
+                            o.phase += o.speed;
+                            c.position.x = Math.cos(o.phase) * o.radius;
+                            c.position.z = Math.sin(o.phase) * o.radius;
+                        }
+                        if (c.userData.float) {
+                            const f = c.userData.float;
+                            c.position.y = f.baseY + Math.sin(t * 1.4 + f.phase) * f.amp;
+                        }
+                        if (c.userData.isCityWindow) {
+                            // Window dots fade in with construct
+                            c.material.opacity = op * 0.9;
+                        }
+                    });
+                });
+            }
 
             // Camera shake (post-camera-update so it overrides the lerped position transiently)
             let shakeX = 0, shakeY = 0, shakeZ = 0;

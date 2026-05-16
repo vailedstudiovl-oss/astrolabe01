@@ -133,7 +133,63 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
-### Iteration 5 — Cinematic 3D Foundation
+### Iteration 9 — Phase B: 3D Holographic POI Constructs
+**Goal:** Replace flat POI dots with rich procedural 3D models that fade in when zoomed-in, giving each strata a distinct visual identity (planet / floating city / relic / horror / etc.).
+
+**Architecture:**
+- New `poiHolograms[]` array of `THREE.Group` constructs, one per POI. Hidden by default; fade in via LOD when camera approaches.
+- **Custom holographic ShaderMaterial** (`HOLO_VERT` / `HOLO_FRAG`) with:
+  - Fresnel rim glow (`pow(1 - dot(N,V), 2.0)` — boosts alpha at glancing edges)
+  - World-Y scanlines (`sin(vWorldPos.y * 8.0 + time * 6.0)`)
+  - High-frequency flicker (`sin(time * 28.0 + ...)`)
+  - Faction color tint passed as uniform
+  - Additive blending, depth-write disabled, transparent
+  - Companion `wireMat` for blueprint-style outline overlays
+- Deterministic per-POI RNG (`poiRng(level, idx)`) seeded by `level + poiIndex + UNIVERSE_SEED` so each construct is unique but stable across sessions for the same seed.
+
+**Procedural builders (one per category):**
+- `buildPlanet` — sphere + wireframe + ring + 1-2 orbiting moons (with phase-driven orbit)
+- `buildFloatingCity` — inverted-cone underbelly + platform + 5-8 towers + central spire + 80-point window dots cloud
+- `buildObeliskSpire` — base ring + tall obelisk + octahedron crown + 3 spinning pulse-rings
+- `buildGothicCathedral` — body + central spire + 4 corner spires + cross sigil
+- `buildHorror` — pulsing inner core + fractured outer shell + 6 squirming tentacle tubes (CatmullRom)
+- `buildRelicShards` — broken obelisk stub + 9 floating tetrahedron shards + glowing central orb
+- `buildMagicalNebula` — 3 counter-spinning rings + central icosa core + 8 orbiting rune crystals
+
+**Category classifier (`classifyPOI`):**
+Inspects `poi.type` + `poi.faction.id`. Order: horror → gothic → city → spire → nebula → relic → planet (default).
+Verified mapping across all 14 canon POIs (relic for Vault of Echoes, horror for Abyssal Root + Damnation Forge, gothic for Sanguine Court, spire for Zero Point + Centura Broadcast, city for Centurion + Golden Spire + Watrari + Trigon Hub, nebula for Arcane Nebula, etc.)
+
+**LOD system (in animate loop):**
+- For each hologram: `dist = camera→holo`
+- `dist ≤ 60` → target opacity 1.0
+- `dist ≥ 90` → target opacity 0.0
+- Linear lerp between, smoothed by `op += (target - op) * 0.08` per frame
+- Pushes `opacityMul` and `time` uniforms into shader; discards in fragment shader when `opacityMul < 0.001`
+- **Inverse fade** on the original yellow icosa marker (`marker.material.opacity = 0.8 * (1 - op * 0.85)`) so they smoothly hand off without visual conflict
+
+**Per-frame animations:**
+- Group-level: `spin` (Y rotation) + Y-bob (sine wave with per-POI phase offset)
+- Children: individual spin, orbits (radius + phase + speed), float (amp + phase + baseY)
+- Horror category: shell-pulse scale + tentacle squirm rotation
+- City: window dots material opacity tracks LOD opacity
+
+**Positioning:**
+- Hologram placed at `marker.position + Y(4.5)` (lifted above the strata disc so it's distinct from spindle bloom)
+- `scale = 1.6` for stronger visual presence against the bright bloom-heavy background
+
+**Verified (deterministic seed=42, 14 holograms, zero JS errors):**
+- POI 0 (Zero Point) → spire ✅
+- POI 45 (Golden Spire) → city ✅
+- POI -5 (Arcane Nebula) → nebula ✅
+- POI -25 (Vault of Echoes) → relic ✅
+- POI -50 (Sanguine Court) → gothic ✅
+- POI -66 (Damnation Forge) → horror ✅
+- POI -99 (Abyssal Root) → horror ✅
+- LOD: opacity 0.86 at d=29, 0.00 at d=104 ✅
+- Mobile viewport (390×844) renders without performance issues ✅
+
+
 - **Volumetric Central Spine** — multi-layered (outer + mid + razor-sharp core) god-ray column from Y=-59.4 to Y=+59.4 with a vertical CanvasTexture gradient (cyan → white → magenta), counter-rotating cylinders, plus 7 traveling energy nodes drifting upward through the spine
 - **Procedural Starfield with shader twinkle** — 2200 stars on a 200–280 radius spherical shell, each with a unique phase; custom shader does per-vertex `0.6 + 0.4*sin(t + phase)` twinkle modulation, size attenuation, and warm/cool color flicker
 - **POI Glow Halos** — soft sprite billboard behind every POI marker pulses scale and opacity in sine, in front of bloom for beacon-like glow

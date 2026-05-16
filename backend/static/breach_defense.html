@@ -19,6 +19,8 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@600&display=swap');
@@ -600,10 +602,37 @@
 
         function resizeRenderer() {
             const w = window.innerWidth, h = window.innerHeight;
+            const aspect = w / h;
+            const dpr = Math.min(window.devicePixelRatio || 1, 1.5);  // cap DPR on mobile to avoid 3K+ render targets
+            renderer.setPixelRatio(dpr);
             renderer.setSize(w, h, false);
-            camera.aspect = w / h; camera.updateProjectionMatrix();
-            if (composer) composer.setSize(w, h);
-            if (bloomPass) bloomPass.resolution.set(w, h);
+            camera.aspect = aspect; camera.updateProjectionMatrix();
+            if (composer) { composer.setSize(w, h); composer.setPixelRatio(dpr); }
+            if (bloomPass) bloomPass.resolution.set(w * dpr, h * dpr);
+
+            // ===== Mobile-portrait adaptation =====
+            // Phone screens are tall+narrow (aspect < 0.7). Standard FOV crops the action
+            // off-frame and leaves the player tiny in a giant blank floor. Compensate by:
+            //   - widening FOV to fit more vertical world
+            //   - pulling camera in closer + lifting it
+            //   - re-aiming look-at slightly higher
+            if (aspect < 0.75) {
+                // Portrait phones
+                camera.fov = 70;
+                camera.position.set(0, 11, 7.5);
+                camera.lookAt(0, 1.2, -2.0);
+            } else if (aspect < 1.2) {
+                // Tablets / squarish windows
+                camera.fov = 60;
+                camera.position.set(0, 12, 8.5);
+                camera.lookAt(0, 1.1, -1.8);
+            } else {
+                // Landscape desktop
+                camera.fov = 52;
+                camera.position.set(0, CAM_HEIGHT, CAM_TILT);
+                camera.lookAt(0, 1.0, -1.5);
+            }
+            camera.updateProjectionMatrix();
         }
         window.addEventListener('resize', resizeRenderer);
         resizeRenderer();
@@ -639,19 +668,99 @@
         scene.add(redLight);
 
         // ========== INDUSTRIAL ENVIRONMENT ==========
-        // Floor (mesh-grate look via subtle gridline noise)
+        // ====== SCI-FI INDUSTRIAL FLOOR (procedural CanvasTexture) ======
+        // Builds a 1024×1024 floor texture: dark steel base + grate panels + hazard stripes
+        // + rivets + faded yellow caution markers. Looks like an industrial hangar deck.
+        function buildIndustrialFloorTexture() {
+            const SZ = 1024;
+            const cvs = document.createElement('canvas');
+            cvs.width = cvs.height = SZ;
+            const ctx = cvs.getContext('2d');
+            // Base: dark steel
+            ctx.fillStyle = '#2a3530';
+            ctx.fillRect(0, 0, SZ, SZ);
+            // Diagonal hatch noise for metal grain
+            ctx.strokeStyle = 'rgba(180, 220, 200, 0.04)';
+            ctx.lineWidth = 1;
+            for (let i = -SZ; i < SZ * 2; i += 3) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + SZ, SZ); ctx.stroke();
+            }
+            // Floor panel grid (8x8 panels)
+            const P = SZ / 8;
+            ctx.strokeStyle = 'rgba(15, 25, 20, 0.85)';
+            ctx.lineWidth = 4;
+            for (let i = 0; i <= 8; i++) {
+                ctx.beginPath(); ctx.moveTo(i * P, 0); ctx.lineTo(i * P, SZ); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i * P); ctx.lineTo(SZ, i * P); ctx.stroke();
+            }
+            // Bevel highlight on top/left of each panel
+            ctx.strokeStyle = 'rgba(110, 160, 140, 0.35)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    ctx.beginPath(); ctx.moveTo(i*P+2, j*P+2); ctx.lineTo((i+1)*P-2, j*P+2);
+                    ctx.lineTo((i+1)*P-2, (j+1)*P-2); ctx.stroke();
+                }
+            }
+            // Rivets at panel corners
+            ctx.fillStyle = '#5a7565';
+            for (let i = 0; i <= 8; i++) {
+                for (let j = 0; j <= 8; j++) {
+                    ctx.beginPath(); ctx.arc(i*P, j*P, 3, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            // Hazard caution stripes — diagonal yellow/black along 2 panels
+            const stripeBands = [
+                { x: P*1, y: P*0, w: P*1, h: P*1 },
+                { x: P*6, y: P*7, w: P*1, h: P*1 },
+                { x: P*0, y: P*5, w: P*1, h: P*1 },
+            ];
+            stripeBands.forEach(b => {
+                ctx.save();
+                ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip();
+                for (let k = -b.w; k < b.w * 2; k += 24) {
+                    ctx.fillStyle = (Math.floor(k / 12) % 2 === 0) ? '#c8a020' : '#1a1a1a';
+                    ctx.beginPath();
+                    ctx.moveTo(b.x + k,      b.y);
+                    ctx.lineTo(b.x + k + 12, b.y);
+                    ctx.lineTo(b.x + k + 12 + b.h, b.y + b.h);
+                    ctx.lineTo(b.x + k + b.h, b.y + b.h);
+                    ctx.closePath(); ctx.fill();
+                }
+                ctx.restore();
+            });
+            // Faint orange numerals / pictograms
+            ctx.fillStyle = 'rgba(255, 180, 80, 0.32)';
+            ctx.font = 'bold 64px monospace';
+            ctx.fillText('07-A', P*3 + 18, P*4 + 70);
+            ctx.fillText('NO STEP', P*4 + 12, P*1 + 70);
+            ctx.fillStyle = 'rgba(80, 220, 180, 0.25)';
+            ctx.font = 'bold 28px monospace';
+            ctx.fillText('CONT-BEACON SECTOR', P*1 + 8, P*7 + 50);
+
+            const tex = new THREE.CanvasTexture(cvs);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 2);  // tile across the 60x60 plane (so each 30x30 region gets one texture)
+            tex.anisotropy = 4;
+            return tex;
+        }
+        const floorTex = buildIndustrialFloorTexture();
+
+        // Floor (industrial hangar deck)
         const floorGeo = new THREE.PlaneGeometry(60, 60, 1, 1);
         const floorMat = new THREE.MeshLambertMaterial({
-            color: 0x3a5b4c,
-            emissive: 0x1a3528, emissiveIntensity: 0.55,
+            map: floorTex,
+            color: 0xb8c8c0,                  // tints the texture cooler
+            emissive: 0x0e1a18, emissiveIntensity: 0.25,
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        // Grate pattern overlay — subtle, with colors very close to floor so perspective foreshortening doesn't darken bands
-        const grate = new THREE.GridHelper(60, 15, 0x5a8a72, 0x4a7060);
-        grate.material.opacity = 0.4; grate.material.transparent = true;
+        // Grate overlay no longer needed — floor has a baked industrial pattern.
+        // (Keeping a single very subtle large-grid line for visual scale reference.)
+        const grate = new THREE.GridHelper(60, 6, 0x4a6055, 0x2a3530);
+        grate.material.opacity = 0.25; grate.material.transparent = true;
         grate.position.y = 0.015;
         scene.add(grate);
 
@@ -1071,6 +1180,65 @@
         playerGroup.position.set(0, 0, 1.5);
         playerGroup.scale.setScalar(1.35);  // larger silhouette so the Centurion is the focal point
         scene.add(playerGroup);
+
+        // ====== TEXTURED 3D CENTURION MODEL (Meshy AI export) ======
+        // Loads the OBJ + texture. While loading, the procedural Centurion (built above) is shown.
+        // Once the model loads successfully, we hide the procedural body meshes (kept = gun group only).
+        let centurionModel = null;
+        // Collect every Mesh under playerGroup EXCEPT the ones under gunGroup (we keep the gun visible
+        // since the OBJ has no weapon attached).
+        const proceduralBodyMeshes = [];
+        playerGroup.traverse(obj => {
+            if (obj.isMesh) {
+                // Walk up parent chain; if any ancestor is gunGroup, skip
+                let p = obj.parent;
+                let underGun = false;
+                while (p) { if (p === gunGroup) { underGun = true; break; } p = p.parent; }
+                if (!underGun) proceduralBodyMeshes.push(obj);
+            }
+        });
+        try {
+            const mtlLoader = new THREE.MTLLoader();
+            mtlLoader.setPath('/api/static/models/centurion/');
+            mtlLoader.load('centurion.mtl', materials => {
+                materials.preload();
+                const objLoader = new THREE.OBJLoader();
+                objLoader.setMaterials(materials);
+                objLoader.setPath('/api/static/models/centurion/');
+                objLoader.load('centurion.obj', obj => {
+                    centurionModel = obj;
+                    // Center + scale: model is ~1.89 units tall, centered at y=0. Push feet to y=0 and scale up.
+                    centurionModel.position.set(0, 0.955, 0);
+                    centurionModel.scale.setScalar(1.85);
+                    // Meshy OBJ faces +Z by default — flip 180° around Y so it faces away from camera
+                    // (toward the beacon at z<0), same direction as the procedural body used to face.
+                    centurionModel.rotation.y = Math.PI;
+                    // Slight emissive boost on the material so the model is readable in dark scene.
+                    centurionModel.traverse(c => {
+                        if (c.isMesh && c.material) {
+                            c.material.emissive = new THREE.Color(0x101820);
+                            c.material.emissiveIntensity = 0.25;
+                            c.material.needsUpdate = true;
+                        }
+                    });
+                    playerGroup.add(centurionModel);
+                    // Hide ALL procedural body parts so only the OBJ model + gun show.
+                    proceduralBodyMeshes.forEach(m => m.visible = false);
+                    // Reposition gun to look like it's held at the right hand of the OBJ model.
+                    // Model right-arm tip ≈ x=+0.42 in model coords, scale 1.85, plus baseline y offset 0.955
+                    // → world position ≈ (0.78, 1.55, 0.4). Pull slightly forward + adjust scale.
+                    gunGroup.position.set(0.78, 1.55, 0.55);
+                    gunGroup.scale.setScalar(0.9);
+                    console.log('[breach] Centurion 3D model loaded.');
+                }, undefined, err => {
+                    console.warn('[breach] OBJ load failed, keeping procedural model:', err);
+                });
+            }, undefined, err => {
+                console.warn('[breach] MTL load failed, keeping procedural model:', err);
+            });
+        } catch (e) {
+            console.warn('[breach] Loader unavailable, keeping procedural Centurion:', e);
+        }
 
         // Aim reticle on floor
         const reticleGeo = new THREE.RingGeometry(0.3, 0.4, 24);

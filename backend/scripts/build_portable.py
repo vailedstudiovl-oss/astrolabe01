@@ -74,6 +74,12 @@ chars_dst = DATA_DIR / "api" / "static" / "characters"
 if chars_src.exists():
     shutil.copytree(chars_src, chars_dst)
 
+# Copy 3D models folder (Centurion OBJ + texture for breach defense)
+models_src = STATIC_DIR / "models"
+models_dst = DATA_DIR / "api" / "static" / "models"
+if models_src.exists():
+    shutil.copytree(models_src, models_dst)
+
 # ---------- Patch HTML files for offline file:// loading ----------
 # Some browsers refuse to load absolute paths like /api/static/... when
 # using the file:// protocol. We rewrite them to relative paths.

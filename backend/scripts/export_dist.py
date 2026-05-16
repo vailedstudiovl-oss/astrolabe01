@@ -90,6 +90,14 @@ if chars_src.exists():
     shutil.copytree(chars_src, chars_dst)
     print(f"  · copied {sum(1 for _ in chars_dst.iterdir())} character art files")
 
+# Copy 3D models folder (Centurion OBJ + texture for breach defense)
+models_src = STATIC_DIR / "models"
+models_dst = DIST_DIR / "api" / "static" / "models"
+if models_src.exists():
+    shutil.copytree(models_src, models_dst)
+    total_model_files = sum(1 for _ in models_dst.rglob("*") if _.is_file())
+    print(f"  · copied {total_model_files} 3D model files")
+
 # Root index.html — tiny redirect to /api/astrolabe (handles users hitting "/")
 print("[4/6] Writing routing helpers …")
 (DIST_DIR / "index.html").write_text("""<!DOCTYPE html>

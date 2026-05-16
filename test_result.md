@@ -675,3 +675,40 @@ agent_communication:
       Centurion clearly readable, tracers/lightning firing, HUD nominal, beacon HP
       ticking when parasites touch it. Achievement toast verified working.
 
+
+
+  - agent: "main"
+    message: |
+      [2026-05-16 — Iteration 4: 3D Centurion model + Sci-Fi industrial environment]
+      User uploaded the Meshy AI Azure Enforcer .obj/.mtl/PNG and a mobile screenshot
+      showing the iso scene rendering broken on portrait phones.
+      Changes:
+        • Copied 3D model to /app/backend/static/models/centurion/; texture compressed
+          7.5 MB PNG → 312 KB JPEG (1024² LANCZOS, quality 88) via Pillow.
+        • Added MTLLoader + OBJLoader (Three.js r128 examples via jsdelivr).
+        • Async loader: keeps procedural Centurion visible during fetch, then hides
+          ALL procedural body meshes (except gunGroup) and reveals textured OBJ
+          scaled 1.85×, feet pinned to y=0, rotated 180° on Y to face away from
+          camera. Slight emissive 0x101820 @ 0.25 so it reads in dark scene.
+        • Procedural Loomgun moved to (0.78, 1.55, 0.55) scale 0.9× so it sits at
+          the model's right hand.
+        • resizeRenderer() now adapts camera to aspect ratio:
+          - aspect<0.75 (portrait phones) → FOV 70, pos (0,11,7.5), lookAt (0,1.2,-2)
+          - aspect<1.2 (tablets) → FOV 60, pos (0,12,8.5), lookAt (0,1.1,-1.8)
+          - else (landscape) → keeps original FOV 52 config.
+          Pixel ratio capped at 1.5 on mobile to avoid huge render targets.
+        • Procedural Sci-Fi floor texture (CanvasTexture 1024²): dark steel base +
+          panel grid + rivets + diagonal hazard-stripe tiles + "07-A" / "NO STEP" /
+          "CONT-BEACON SECTOR" stenciled markings. Tiles 2×2 across the 60×60 floor.
+        • Removed dense GridHelper overlay (redundant with textured floor); kept a
+          single subtle 6-div grid for scale reference.
+        • export_dist.py + build_portable.py patched to also copy /static/models/.
+        • Bundles re-exported: dist 32 MB / portable zip 32 MB (was 30 MB, +1.5 MB
+          for the model).
+      Verified on portrait phone (412×915) AND desktop (1280×800):
+        • Console log confirms "[breach] Centurion 3D model loaded."
+        • Model renders with proper texture, full body visible
+        • Industrial floor pattern visible (hazard stripes + sector labels + panels)
+        • Beacon, parasites, gun firing, HUD all functional
+        • No JS errors
+

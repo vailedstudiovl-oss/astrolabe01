@@ -534,14 +534,26 @@
            PAUSE MENU — Graphics + Audio settings + Quit
            ============================================================= */
         #pause-menu-backdrop {
-            position: fixed; inset: 0; z-index: 130; background: rgba(0,0,0,0.78);
+            position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.85);
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             display: none; align-items: center; justify-content: center;
             opacity: 0; transition: opacity .25s ease;
         }
         #pause-menu-backdrop.open { display: flex; opacity: 1; }
+        /* Hide transient notifications + bottom-sheet clutter behind the pause menu */
+        body.pause-menu-open #codex-panel,
+        body.pause-menu-open .codex-toast,
+        body.pause-menu-open .m-codex-toast,
+        body.pause-menu-open #intel-ticker,
+        body.pause-menu-open #achievement-toast,
+        body.pause-menu-open .reality-event-banner,
+        body.pause-menu-open #m-codex-badge { display: none !important; }
+        body.pause-menu-open .m-sheet,
+        body.pause-menu-open .m-topbar,
+        body.pause-menu-open .m-fab-cluster { opacity: 0; pointer-events: none; transition: opacity .2s; }
         #pause-menu {
             width: min(92vw, 480px); max-height: 88vh; overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             background: linear-gradient(160deg, rgba(0,15,20,0.98), rgba(5,5,15,0.98));
             border: 2px solid #00ffcc; box-shadow: 0 0 38px rgba(0,255,204,0.45), inset 0 0 40px rgba(0,255,204,0.05);
             color: #d0fff0;
@@ -553,6 +565,7 @@
             padding: 14px 18px; border-bottom: 1px solid #00ffcc;
             display: flex; justify-content: space-between; align-items: center;
             background: rgba(0,255,204,0.06);
+            position: sticky; top: 0; z-index: 2;
         }
         .pause-header h3 {
             font-size: 16px; letter-spacing: 6px; color: #00ffcc; font-weight: bold;
@@ -583,12 +596,12 @@
         }
         .pause-slider::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none;
-            width: 16px; height: 16px; background: #00ffcc;
+            width: 22px; height: 22px; background: #00ffcc;
             border: 1px solid #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.7);
             cursor: pointer; border-radius: 0;
         }
         .pause-slider::-moz-range-thumb {
-            width: 16px; height: 16px; background: #00ffcc;
+            width: 22px; height: 22px; background: #00ffcc;
             border: 1px solid #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.7);
             cursor: pointer; border-radius: 0;
         }
@@ -596,7 +609,8 @@
             display: inline-flex; align-items: center; gap: 6px;
             background: transparent; border: 1px solid rgba(0,255,204,0.5);
             color: #b0e8d8; padding: 4px 12px; cursor: pointer; font-family: inherit;
-            font-size: 10px; letter-spacing: 2px; transition: all .15s; min-height: 28px;
+            font-size: 10px; letter-spacing: 2px; transition: all .15s;
+            min-height: 32px; min-width: 56px;
         }
         .pause-toggle.on { background: #00ffcc; color: #000; border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.6); }
         .pause-toggle:active { transform: scale(0.96); }
@@ -618,9 +632,10 @@
             display: flex; gap: 6px; margin-top: 4px;
         }
         .pause-preset-row button {
-            flex: 1; padding: 6px; font-size: 9px; letter-spacing: 2px;
+            flex: 1; padding: 8px 4px; font-size: 9px; letter-spacing: 2px;
             background: transparent; border: 1px solid rgba(0,255,204,0.4);
             color: #b0e8d8; cursor: pointer; font-family: inherit; transition: all .15s;
+            min-height: 36px;
         }
         .pause-preset-row button:hover { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; }
 
@@ -634,6 +649,47 @@
         }
         #pause-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
         @media (max-width: 767px) { #pause-btn { display: none; } }
+
+        /* === MOBILE: Slide-up full-height sheet so the whole menu is always reachable === */
+        @media (max-width: 767px) {
+            #pause-menu-backdrop {
+                align-items: stretch;       /* let the sheet stretch full height */
+                justify-content: center;
+                padding: 0;
+            }
+            #pause-menu {
+                width: 100%;
+                max-width: 100%;
+                max-height: 100vh;
+                height: 100vh;
+                border-left: none; border-right: none; border-top: none;
+                border-bottom: none;
+                box-shadow: 0 -4px 40px rgba(0,255,204,0.35);
+                padding-top: env(safe-area-inset-top, 0);
+                padding-bottom: env(safe-area-inset-bottom, 0);
+                transform: translateY(40px);
+            }
+            #pause-menu-backdrop.open #pause-menu { transform: translateY(0); }
+            .pause-header {
+                padding: 12px 14px;
+                /* Add a drag-handle visual cue */
+            }
+            .pause-header::before {
+                content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+                width: 44px; height: 4px; background: rgba(0,255,204,0.4); border-radius: 2px;
+            }
+            .pause-header h3 { font-size: 13px; letter-spacing: 4px; }
+            .pause-body { padding: 12px 14px 28px; gap: 12px; }
+            .pause-row { padding: 2px 0; }
+            .pause-row .lbl { font-size: 11px; }
+            .pause-section-title { font-size: 9px; }
+            .pause-preset-row button { font-size: 9px; padding: 8px 2px; min-height: 38px; }
+            /* Bigger toggle hit-areas */
+            .pause-toggle { min-height: 38px; min-width: 64px; font-size: 11px; padding: 6px 14px; }
+            /* Bigger slider thumbs already applied (22px) */
+            .pause-btn { padding: 12px 6px; font-size: 11px; min-height: 48px; }
+            .pause-actions { gap: 8px; }
+        }
 
         /* =============================================================
            ITERATION 6 — MOBILE UI OVERHAUL (touch-first redesign)
@@ -685,7 +741,12 @@
             position: fixed; right: 8px; top: calc(60px + var(--safe-top));
             z-index: 45;
             display: flex; flex-direction: column; gap: 8px;
+            /* Keep cluster within viewport even on tiny / landscape devices */
+            max-height: calc(100vh - 80px - var(--safe-top) - var(--safe-bottom));
+            overflow-y: auto; overflow-x: hidden;
+            scrollbar-width: none;
         }
+        .m-fab-cluster::-webkit-scrollbar { display: none; }
         .m-fab {
             width: 44px; height: 44px; border-radius: 8px;
             background: rgba(0,5,10,0.85); border: 1px solid rgba(0,255,204,0.5);
@@ -694,6 +755,7 @@
             font-size: 18px; transition: all 0.15s;
             backdrop-filter: blur(8px);
             position: relative;
+            flex-shrink: 0;
         }
         .m-fab:active { background: #00ffcc; color: #000; transform: scale(0.92); }
         .m-fab.on { background: #00ffcc; color: #000; box-shadow: 0 0 12px rgba(0,255,204,0.6); }
@@ -4998,6 +5060,7 @@
             const bd = document.getElementById('pause-menu-backdrop');
             syncPauseMenuUI();
             bd.classList.add('open');
+            document.body.classList.add('pause-menu-open');
             // Pause auto-rotate while menu is up
             pauseWasAutoRotating = controls ? controls.autoRotate : true;
             if (controls) controls.autoRotate = false;
@@ -5005,6 +5068,7 @@
         function closePauseMenu() {
             const bd = document.getElementById('pause-menu-backdrop');
             bd.classList.remove('open');
+            document.body.classList.remove('pause-menu-open');
             if (controls && GFX.autoRotate && !anyModalOpen() && !TOUR.active) controls.autoRotate = true;
         }
         function isPauseMenuOpen() {

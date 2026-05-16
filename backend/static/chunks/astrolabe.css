@@ -274,70 +274,7 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* --- Achievement Codex --- */
-        #codex-btn {
-            position: absolute; top: 2px; right: 110px;
-            z-index: 50; cursor: pointer;
-        }
-        @media (min-width: 768px) { #codex-btn { top: 12px; right: clamp(70px, 11vw, 140px); } }
-        #codex-panel {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 200; width: 95%; max-width: 700px; max-height: 80vh;
-            background: rgba(10, 15, 20, 0.97); border: 2px solid #00ffcc;
-            box-shadow: 0 0 40px rgba(0,255,204,0.4); display: none; flex-direction: column;
-            backdrop-filter: blur(10px);
-        }
-        #codex-panel.open { display: flex; }
-        .codex-header { padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .codex-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-        .codex-badge {
-            border: 1px solid #333; padding: 12px; background: rgba(0,0,0,0.5);
-            display: flex; flex-direction: column; gap: 4px;
-            transition: all 0.3s;
-        }
-        .codex-badge.unlocked { border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.3); background: rgba(0,255,204,0.05); }
-        .codex-badge.unlocked .badge-icon { color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
-        .badge-icon { font-size: 22px; color: #444; }
-        .badge-name { font-size: 12px; font-weight: bold; color: #fff; letter-spacing: 1px; }
-        .badge-desc { font-size: 9px; color: #888; line-height: 1.4; }
-        .badge-progress { font-size: 9px; color: #00ffcc; margin-top: 4px; font-family: monospace; }
-
-        .codex-toast {
-            /* Pinned to TOP of viewport so it never overlaps the DIRECTORY / PING /
-               OPEN DATABANK button row at the bottom of the screen. */
-            position: fixed; top: 16px; left: 50%; z-index: 9999;
-            transform: translateX(-50%) translateY(-180%);
-            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 14px 12px 18px;
-            box-shadow: 0 0 30px rgba(0,255,204,0.5);
-            transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            display: flex; gap: 12px; align-items: center; min-width: 240px;
-            max-width: calc(100vw - 24px);
-            pointer-events: auto;          /* tap anywhere on the toast dismisses it */
-            cursor: pointer;
-            touch-action: manipulation;    /* avoids 300ms tap delay on mobile */
-        }
-        .codex-toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
-        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; flex-shrink: 0; }
-        .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
-        .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
-        .codex-toast .t-close {
-            background: transparent; border: 1px solid rgba(0,255,204,0.4);
-            color: #00ffcc; font-size: 22px; line-height: 1;
-            /* Mobile-friendly 44×44 hit target (Apple HIG / Material guidelines) */
-            min-width: 44px; min-height: 44px;
-            width: 44px; height: 44px;
-            cursor: pointer;
-            font-family: inherit; padding: 0; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.15s;
-            /* CRITICAL: must remain tappable even while the toast is still animating in. */
-            pointer-events: auto !important;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: rgba(0,255,204,0.35);
-        }
-        .codex-toast .t-close:hover, .codex-toast .t-close:active {
-            background: rgba(0,255,204,0.2); border-color: #00ffcc;
-        }
+        /* --- Achievement Codex CSS — REMOVED (codex deleted) --- */
 
         /* --- Holo POI canvas inside databank diagram pane --- */
         #poi-holo-container {
@@ -525,15 +462,9 @@
         }
         #pause-menu-backdrop.open { display: flex; opacity: 1; }
         /* Hide transient notifications + bottom-sheet clutter behind the pause menu */
-        body.pause-menu-open #codex-panel,
-        body.pause-menu-open .codex-toast,
-        body.pause-menu-open .m-codex-toast,
         body.pause-menu-open #intel-ticker,
-        body.pause-menu-open #achievement-toast,
-        body.pause-menu-open .reality-event-banner,
-        body.pause-menu-open #m-codex-badge { display: none !important; }
+        body.pause-menu-open .reality-event-banner { display: none !important; }
         body.pause-menu-open .m-sheet,
-        body.pause-menu-open .m-topbar,
         body.pause-menu-open .m-fab-cluster { opacity: 0; pointer-events: none; transition: opacity .2s; }
         #pause-menu {
             width: min(92vw, 480px); max-height: 88vh; overflow-y: auto;
@@ -780,7 +711,7 @@
             #mobile-ui-layer { display: block; }
             /* Hide all desktop panels & telemetry on mobile */
             #ui-layer { display: none !important; }
-            #seed-pill, #codex-btn, #ui-toggle-btn { display: none !important; }
+            #seed-pill, #ui-toggle-btn { display: none !important; }
             #telemetry-reticle, #reality-lens { display: none !important; }
             .scanline { background-size: 100% 6px; opacity: 0.18; }
         }
@@ -790,67 +721,17 @@
            notched phones doesn't crunch the inner button row. Adds a unified
            cyan outline so the bar reads as one cohesive UI box instead of
            three floating buttons. */
-        .m-topbar {
-            position: fixed; top: 0; left: 0; right: 0;
-            /* Effective inner content height — clamped 44 → 60 px so the 30-40 px burger
-               always fits comfortably. The safe-top is ADDED on top via padding so a
-               notch never squeezes the content. */
-            min-height: clamp(44px, 8vh, 60px);
-            height: auto;
-            padding-top: var(--safe-top);
-            box-sizing: content-box;
-            background: linear-gradient(180deg, rgba(0,5,10,0.98) 0%, rgba(0,5,10,0.92) 100%);
-            border-bottom: 1px solid rgba(0,255,204,0.55);
-            box-shadow: 0 2px 14px rgba(0, 255, 204, 0.15);
-            z-index: 45; display: flex; align-items: center; gap: 8px;
-            padding-left: clamp(8px, 2.5vw, 14px);
-            padding-right: clamp(8px, 2.5vw, 14px);
-            backdrop-filter: blur(10px);
-        }
-        .m-topbar .m-burger {
-            width: clamp(32px, 5.5vw, 42px);
-            height: clamp(32px, 5.5vw, 42px);
-            flex-shrink: 0;
-            background: rgba(0,255,204,0.08); border: 1px solid #00ffcc;
-            color: #00ffcc; font-size: clamp(14px, 3.2vw, 17px); cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
-        }
-        .m-topbar .m-burger:active { background: #00ffcc; color: #000; }
-        .m-topbar .m-focus { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .m-topbar .m-eyebrow {
-            font-size: clamp(7px, 1.9vw, 10px);
-            letter-spacing: clamp(2px, 0.8vw, 4px);
-            color: #888; text-transform: uppercase;
-        }
-        .m-topbar .m-title {
-            font-size: clamp(10px, 2.6vw, 14px);
-            letter-spacing: clamp(0.8px, 0.35vw, 1.8px);
-            color: #00ffcc;
-            text-shadow: 0 0 5px currentColor; font-weight: bold;
-            max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
-        }
-        .m-topbar .m-seed {
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,204,0.4);
-            color: #00ffcc;
-            font-size: clamp(8px, 2vw, 11px);
-            letter-spacing: clamp(0.5px, 0.3vw, 1.2px);
-            padding: clamp(5px, 1.4vw, 8px) clamp(7px, 2vw, 11px);
-            display: flex; align-items: center; gap: 4px; cursor: pointer;
-            font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
-            max-width: 38%;
-            overflow: hidden;
-        }
-        .m-topbar .m-seed:active { background: #00ffcc; color: #000; }
-        .m-topbar .m-seed .m-seed-val { color: #fff; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* --- Mobile Top Bar — REMOVED. Burger + share now live in the FAB cluster. --- */
 
-        /* --- Mobile FAB Cluster (right side, vertical) --- */
+        /* --- Mobile FAB Cluster (right side, vertical) ---
+           Now starts near the top edge (was offset by the deleted topbar). */
         .m-fab-cluster {
-            position: fixed; right: 8px; top: calc(60px + var(--safe-top));
+            position: fixed; right: 8px;
+            top: calc(env(safe-area-inset-top, 0px) + 12px);
             z-index: 45;
             display: flex; flex-direction: column; gap: 8px;
             /* Keep cluster within viewport even on tiny / landscape devices */
-            max-height: calc(100vh - 80px - var(--safe-top) - var(--safe-bottom));
+            max-height: calc(100vh - 32px - var(--safe-top) - var(--safe-bottom));
             overflow-y: auto; overflow-x: hidden;
             scrollbar-width: none;
         }
@@ -867,6 +748,12 @@
         }
         .m-fab:active { background: #00ffcc; color: #000; transform: scale(0.92); }
         .m-fab.on { background: #00ffcc; color: #000; box-shadow: 0 0 12px rgba(0,255,204,0.6); }
+        /* Primary FAB (burger) gets a stronger cyan ring so the drawer button reads first. */
+        .m-fab-primary {
+            background: rgba(0,255,204,0.12);
+            border-color: #00ffcc;
+            box-shadow: 0 0 14px rgba(0,255,204,0.35);
+        }
         .m-fab .m-badge {
             position: absolute; top: -4px; right: -4px;
             background: #ffcc00; color: #000; font-size: 9px; font-weight: bold;
@@ -1010,25 +897,7 @@
             #directory-panel .flex.flex-col.gap-4 { max-height: 56vh !important; }
             .soul-row, .subloc-stat .v, .subloc-desc { font-size: 13px !important; }
             #mini-target-panel { width: 84% !important; }
-            /* Mobile: full-width toast pinned to top, never overlaps the bottom button row */
-            .codex-toast {
-                left: 12px !important; right: 12px !important;
-                top: calc(56px + var(--safe-top)) !important;
-                bottom: auto !important;
-                transform: translateX(0) translateY(-180%) !important;
-                min-width: unset !important; z-index: 9999 !important;
-                pointer-events: auto !important;
-            }
-            .codex-toast.show { transform: translateX(0) translateY(0) !important; pointer-events: auto !important; }
-            .codex-toast .t-close {
-                /* 44×44 minimum hit target per Apple HIG / Material guidelines */
-                min-width: 44px !important; min-height: 44px !important;
-                width: 44px !important; height: 44px !important;
-                font-size: 22px !important;
-                pointer-events: auto !important;
-                touch-action: manipulation;
-                -webkit-tap-highlight-color: rgba(0,255,204,0.35);
-            }
+            /* (Codex toast styles removed — codex deleted) */
             #tour-overlay { bottom: calc(80px + var(--safe-bottom)) !important; width: 96% !important; }
             .tour-controls { bottom: calc(20px + var(--safe-bottom)) !important; }
             /* Bigger touch targets in modals */
@@ -1297,7 +1166,6 @@
         #soul-dossier.open, #subloc-dossier.open {
             animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
-        #codex-panel.open { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
         #directory-panel.flex { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
         @keyframes modalSlideIn {
             0% { opacity: 0; transform: translate(-50%, -42%) scale(0.92); filter: blur(8px); }

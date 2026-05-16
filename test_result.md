@@ -825,3 +825,84 @@ agent_communication:
         All three scripts ran clean. Chunks now reference the
         clamp()-based topbar and the latest 3D models/textures.
 
+
+  - agent: "main"
+    message: |
+      [2026-05-16 — Iteration 8: Delete Achievement System + Delete Mobile Topbar]
+
+      USER REQUEST: "Delete achievement system and delete top box in the
+      astrolabe interactive map".
+
+      ACHIEVEMENT / CODEX REMOVAL (full demolition):
+        JS:
+          • CODEX array → empty stub ([])
+          • renderCodex / checkAchievements / showAchievementToast /
+            hideAchievementToast / toggleCodex / trackAchievements →
+            all no-op stubs (kept signatures so callers don't break)
+          • Removed two override-wrappers that mirrored unlock counts into
+            mobile FAB + Reaper registry (lines ~7450-7459, ~7829-7836).
+          • Removed CODEX.push() for Reaper achievements.
+        HTML:
+          • Deleted desktop #codex-btn, #codex-panel, #codex-toast block.
+          • Deleted mobile FAB Codex button (▦) and m-codex-badge.
+          • Deleted mobile drawer "▦ EXPLORER CODEX" entry.
+        CSS:
+          • Removed entire "--- Achievement Codex ---" block (#codex-btn,
+            #codex-panel, .codex-grid, .codex-badge, .codex-toast, .t-close).
+          • Removed mobile media-query @ codex-toast overrides.
+          • Cleaned pause-menu-open selectors (no longer hide codex stuff).
+          • Removed #codex-panel.open modal animation.
+          • Removed dead `#codex-btn` reference in mobile-hide rule.
+        JS callers (anyModalOpen, ESC keydown handler): removed codex-panel
+        checks. trackAchievements / checkAchievements callers untouched —
+        they now hit no-op stubs.
+
+      TOPBAR (.m-topbar) REMOVAL (full demolition):
+        HTML:
+          • Deleted the entire <div class="m-topbar"> block (☰ burger
+            + STRATA/title eyebrow + ⌬ seed share).
+        CSS:
+          • Removed .m-topbar + .m-topbar .m-burger + .m-topbar .m-focus
+            + .m-topbar .m-eyebrow + .m-topbar .m-title + .m-topbar .m-seed
+            + .m-topbar .m-seed .m-seed-val.
+          • Removed `body.pause-menu-open .m-topbar` opacity rule.
+          • Re-anchored .m-fab-cluster: was top: calc(60px + safe-top)
+            (offset by deleted topbar) → now top: calc(safe-top + 12px)
+            so the cluster sits at the very top edge of the viewport.
+          • Added new `.m-fab-primary` cyan-ring variant for the burger.
+        JS:
+          • copyUniverseLink() retained (works against desktop #seed-pill).
+          • openMobileDrawer() / closeMobileDrawer() retained.
+          • updateMobileFocus() still tries to write into m-title /
+            m-eyebrow / m-seed-val but guards with `if (titleEl)` so it's
+            a safe no-op now. Bottom-sheet m-anchor-display still updates.
+
+      Drawer-access compensation — added 2 new FABs at top of cluster:
+          ☰  Primary burger (cyan ring) → openMobileDrawer()
+          ⌬  Seed/share → copyUniverseLink()
+          ⌖  Search (unchanged)
+          ✦  Soul Tracker (unchanged)
+          ▶  Cinematic Tour (unchanged)
+          ⚙  Pause / Settings (unchanged)
+          ◐  Hide HUD (unchanged)
+        Cluster is overflow-y:auto so scrolls on tiny landscape devices.
+
+      VERIFICATION — screenshot tool at 320×568, 412×915, and 1280×800:
+        • 320×568: topbar GONE, 3D map fills full vertical, 7-FAB
+          cluster at top:12px, primary ☰ has cyan glow. Bottom sheet
+          (FOCUS / FACTION / DIRECTORY / OPEN DATABANK) all reachable.
+        • 412×915: burger tapped → drawer slides in correctly, no
+          codex entry, hasCodexEntry=false. EXPLORATION MODES list
+          now reads: Cinematic Tour → Soul Tracker → Reaper Registry
+          → Advance Cycle (codex line removed).
+        • 1280×800 desktop: #codex-btn / #codex-panel / #codex-toast
+          all null; seed pill still functional; CODEX.length === 0;
+          no console errors during 5s of idle.
+
+      BUILDS:
+        • split_astrolabe.py → astrolabe.css 76.1 KB (was 83.5 KB,
+          -7.4 KB), body 53.2 KB (was 55.7), engine 327.4 KB
+          (was 335.1). Total bundle shrank 474.3 KB → 456.8 KB (-17.5 KB).
+        • export_dist.py → /app/dist 53 files · 38.87 MB
+        • build_portable.py → DimensionLock_Astrolabe_Portable.zip 38.88 MB
+

@@ -2180,10 +2180,9 @@
             }
         }
 
-        // Returns true if any of the lore/codex/soul/sub-loc modals are open
+        // Returns true if any of the lore/soul/sub-loc modals are open
         function anyModalOpen() {
             return !document.getElementById('lore-panel').classList.contains('hidden')
-                || document.getElementById('codex-panel').classList.contains('open')
                 || document.getElementById('soul-dossier').classList.contains('open')
                 || document.getElementById('subloc-dossier').classList.contains('open')
                 || !document.getElementById('directory-panel').classList.contains('hidden')
@@ -2200,7 +2199,6 @@
             if (!uiVisible || isCamTweening) return;
             // Suppress clicks while modals or tour are active
             if (!document.getElementById('lore-panel').classList.contains('hidden')) return;
-            if (document.getElementById('codex-panel').classList.contains('open')) return;
             if (document.getElementById('soul-dossier').classList.contains('open')) return;
             if (document.getElementById('subloc-dossier').classList.contains('open')) return;
             if (TOUR.active) return;
@@ -3284,126 +3282,24 @@
         buildIntelTicker();
         setInterval(buildIntelTicker, 90000);
 
-        // --- Achievement Codex ---
-        const CODEX = [
-            { id: 'first', icon: '◈', name: 'FIRST CONTACT', desc: 'Open your first reality databank.', check: (s) => s.databanksOpened >= 1 },
-            { id: 'cart50', icon: '◉', name: 'CARTOGRAPHER I', desc: 'Discover 50 distinct strata.', check: (s) => s.discoveredStrata.size >= 50, prog: (s) => `${s.discoveredStrata.size}/50` },
-            { id: 'cart100', icon: '◎', name: 'CARTOGRAPHER II', desc: 'Discover 100 distinct strata.', check: (s) => s.discoveredStrata.size >= 100, prog: (s) => `${s.discoveredStrata.size}/100` },
-            { id: 'cart199', icon: '★', name: 'OMNISCIENT', desc: 'Discover every strata in The Endless.', check: (s) => s.discoveredStrata.size >= 199, prog: (s) => `${s.discoveredStrata.size}/199` },
-            { id: 'dead', icon: '☠', name: 'NEKROMANCER', desc: 'Survive a Dead Reality databank.', check: (s) => s.openedDead },
-            { id: 'diplomat', icon: '⌖', name: 'FACTION DIPLOMAT', desc: 'View intel on 10+ different factions.', check: (s) => s.factionsVisited.size >= 10, prog: (s) => `${s.factionsVisited.size}/10` },
-            { id: 'poi', icon: '♦', name: 'POI HUNTER', desc: 'Open 5 Points-of-Interest databanks.', check: (s) => s.poisOpened >= 5, prog: (s) => `${s.poisOpened}/5` },
-            { id: 'extremes', icon: '∞', name: 'EDGE-WALKER', desc: 'Visit both Strata +99 and -99.', check: (s) => s.discoveredStrata.has(99) && s.discoveredStrata.has(-99) }
-        ];
+        // --- Achievement Codex (REMOVED) -----------------------------
+        // The Codex / Achievement system has been deleted per design
+        // decision. All callers reference the no-op stubs below so the
+        // rest of the engine continues to run untouched.
+        const CODEX = [];
         GAME_STATE.databanksOpened = 0;
         GAME_STATE.poisOpened = 0;
         GAME_STATE.openedDead = false;
         GAME_STATE.factionsVisited = new Set();
         GAME_STATE.unlockedAchievements = new Set();
 
-        function renderCodex() {
-            const grid = document.getElementById('codex-grid');
-            const countEl = document.getElementById('codex-count');
-            if (!grid) return;
-            grid.innerHTML = '';
-            let unlockedCount = 0;
-            CODEX.forEach(a => {
-                const unlocked = GAME_STATE.unlockedAchievements.has(a.id);
-                if (unlocked) unlockedCount++;
-                const div = document.createElement('div');
-                div.className = 'codex-badge' + (unlocked ? ' unlocked' : '');
-                div.innerHTML = `
-                    <div class="badge-icon">${a.icon}</div>
-                    <div class="badge-name">${unlocked ? a.name : '████ ██████'}</div>
-                    <div class="badge-desc">${a.desc}</div>
-                    ${a.prog ? `<div class="badge-progress">${a.prog(GAME_STATE)}</div>` : ''}
-                `;
-                grid.appendChild(div);
-            });
-            countEl.innerText = `${unlockedCount}/${CODEX.length}`;
-        }
-        function checkAchievements() {
-            let newUnlocks = [];
-            CODEX.forEach(a => {
-                if (!GAME_STATE.unlockedAchievements.has(a.id) && a.check(GAME_STATE)) {
-                    GAME_STATE.unlockedAchievements.add(a.id);
-                    newUnlocks.push(a);
-                }
-            });
-            renderCodex();
-            newUnlocks.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 2200));
-        }
-        let __toastTimer = null;
-        function showAchievementToast(a) {
-            // Bail out silently if there's no real achievement data (prevents
-            // empty "ACHIEVEMENT UNLOCKED --" cards bleeding through the UI).
-            if (!a || !a.name || String(a.name).trim() === '' || String(a.name).trim() === '--') return;
-            const toast = document.getElementById('codex-toast');
-            if (!toast) return;
-            // Clear any previous timer so a fresh achievement resets the 4.5 s window
-            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
-            document.getElementById('toast-icon').innerText = a.icon || '★';
-            document.getElementById('toast-name').innerText = a.name;
-            toast.classList.add('show');
-            __toastTimer = setTimeout(() => {
-                toast.classList.remove('show');
-                __toastTimer = null;
-            }, 4500);
-            try { logMessage(`ACHIEVEMENT: ${a.name}`, 'success'); } catch (e) {}
-        }
-        // Tap-to-dismiss / × close button handler — must be on window so the
-        // toast's inline onclick can find it.
-        window.hideAchievementToast = function(e) {
-            if (e) {
-                try { e.stopPropagation(); } catch(_) {}
-                try { e.preventDefault();  } catch(_) {}
-            }
-            const toast = document.getElementById('codex-toast');
-            if (toast) toast.classList.remove('show');
-            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
-        };
-        // === PROGRAMMATIC FALLBACK LISTENERS ===
-        // Inline onclick attributes can fail silently on some mobile browsers when
-        // the toast is mid-animation. Bind explicit click + touchstart listeners
-        // directly on both the toast body and the × close button so dismissal
-        // always works, regardless of animation state.
-        (function bindToastDismissal() {
-            const toast = document.getElementById('codex-toast');
-            if (!toast) return;
-            const closeBtn = toast.querySelector('.t-close');
-            const dismiss = (e) => window.hideAchievementToast(e);
-            // Tap anywhere on the toast (or on the close button) dismisses it.
-            ['click', 'touchstart'].forEach(ev => {
-                toast.addEventListener(ev, dismiss, { passive: false });
-                if (closeBtn) closeBtn.addEventListener(ev, dismiss, { passive: false });
-            });
-        })();
-        // Failsafe: if the page is hidden/restored, ensure no orphan toast lingers.
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                const t = document.getElementById('codex-toast');
-                if (t && t.classList.contains('show') && !__toastTimer) {
-                    // No active dismissal scheduled but toast is visible — re-arm.
-                    __toastTimer = setTimeout(() => {
-                        t.classList.remove('show');
-                        __toastTimer = null;
-                    }, 2500);
-                }
-            }
-        });
-        function toggleCodex() {
-            document.getElementById('codex-panel').classList.toggle('open');
-            renderCodex();
-        }
-        function trackAchievements(level, data, poi) {
-            GAME_STATE.databanksOpened++;
-            if (poi) GAME_STATE.poisOpened++;
-            if (data && data.isDead) GAME_STATE.openedDead = true;
-            const f = (poi && poi.faction) ? poi.faction : (data ? data.faction : null);
-            if (f && f.id !== 'unclaimed') GAME_STATE.factionsVisited.add(f.id);
-            checkAchievements();
-        }
-        renderCodex();
+        function renderCodex() { /* no-op: codex deleted */ }
+        function checkAchievements() { /* no-op: codex deleted */ }
+        function showAchievementToast(_a) { /* no-op: codex deleted */ }
+        window.hideAchievementToast = function(_e) { /* no-op: codex deleted */ };
+        function toggleCodex() { /* no-op: codex deleted */ }
+        function trackAchievements(_level, _data, _poi) { /* no-op: codex deleted */ }
+
 
         // --- Holographic POI Viewer (mini Three.js scene inside the lore panel) ---
         let holoScene = null, holoCam = null, holoRenderer = null, holoGroup = null;
@@ -4711,13 +4607,11 @@
             const sub  = document.getElementById('subloc-dossier');
             const soul = document.getElementById('soul-dossier');
             const lore = document.getElementById('lore-panel');
-            const codex= document.getElementById('codex-panel');
             const dir  = document.getElementById('directory-panel');
             if (sub  && sub.classList.contains('open'))           closeSubLocDossier();
             else if (soul && soul.classList.contains('open'))      closeSoulDossier();
             else if (typeof TOUR !== 'undefined' && TOUR.active)   endCinematicTour();
             else if (lore && !lore.classList.contains('hidden'))   closeLore();
-            else if (codex && codex.classList.contains('open'))    toggleCodex();
             else if (dir  && !dir.classList.contains('hidden'))    closeStrataDirectory();
             else openPauseMenu();
         });
@@ -5033,18 +4927,7 @@
         // Initial mirror
         logMessage(`Mobile UI ready. Tap ☰ for filters and modes.`, 'info');
 
-        // === Mirror Codex unlock count into mobile FAB + drawer ===
-        const _origCheckAchievements = checkAchievements;
-        checkAchievements = function() {
-            _origCheckAchievements();
-            const count = GAME_STATE.unlockedAchievements.size;
-            const total = CODEX.length;
-            const badge = document.getElementById('m-codex-badge');
-            const drawerCount = document.getElementById('m-drawer-codex-count');
-            if (badge) badge.innerText = `${count}`;
-            if (drawerCount) drawerCount.innerText = `${count}/${total}`;
-        };
-        checkAchievements(); // initial paint
+        // === Codex mirror REMOVED (codex deleted) ====================
 
         // === Tour/Soul mode mobile sync wrappers ===
         const _origStartTour = startCinematicTour;
@@ -5400,13 +5283,8 @@
             }
         });
 
-        // Add new achievements for Reapers
-        CODEX.push(
-            { id: 'reaper_first', icon: '☠', name: 'FIRST RITES', desc: 'Open your first Reaper dossier.', check: (s) => REAPERS_MET.size >= 1 },
-            { id: 'reaper_council', icon: '✶', name: 'REAPER COUNCIL', desc: 'Meet 8 distinct Reapers across The Endless.', check: (s) => REAPERS_MET.size >= 8, prog: (s) => `${REAPERS_MET.size}/8` },
-            { id: 'cycle_witness', icon: '⌛', name: 'CYCLE WITNESS', desc: 'Witness 5 reality-cycle events.', check: (s) => (s.eventsWitnessed || 0) >= 5, prog: (s) => `${s.eventsWitnessed || 0}/5` },
-            { id: 'harbinger',     icon: '★', name: 'HARBINGER',     desc: 'Witness 3 Reapers fall.', check: (s) => (s.realityDeathsWitnessed || 0) >= 3, prog: (s) => `${s.realityDeathsWitnessed || 0}/3` }
-        );
+        // Reaper achievements REMOVED (codex deleted). Keep counters
+        // only because they are referenced elsewhere (e.g. cycle events).
         // Hook reality death event into Harbinger counter
         const _origEventRealityDeath = eventRealityDeath;
         eventRealityDeath = function() {
@@ -5424,15 +5302,9 @@
             const dr = document.getElementById('m-drawer-reaper-count');
             if (dr) dr.innerText = `${REAPERS_MET.size}/${total}`;
         }
-        const _origCheckAchievementsR = checkAchievements;
-        checkAchievements = function() {
-            _origCheckAchievementsR();
-            refreshReaperCounts();
-            renderCodex();
-        };
         refreshReaperCounts();
-        renderCodex();
         logMessage(`Reaper registry online — ${Object.keys(REAPER_REGISTRY).length} sworn custodians of the soul cycle.`, 'purple');
+
         function buildHoloModel(poi, data, color) {
             const group = new THREE.Group();
             const matWire = (c, o = 0.85) => new THREE.MeshBasicMaterial({ color: c, wireframe: true, transparent: true, opacity: o });

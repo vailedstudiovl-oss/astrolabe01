@@ -331,70 +331,7 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* --- Achievement Codex --- */
-        #codex-btn {
-            position: absolute; top: 2px; right: 110px;
-            z-index: 50; cursor: pointer;
-        }
-        @media (min-width: 768px) { #codex-btn { top: 12px; right: clamp(70px, 11vw, 140px); } }
-        #codex-panel {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 200; width: 95%; max-width: 700px; max-height: 80vh;
-            background: rgba(10, 15, 20, 0.97); border: 2px solid #00ffcc;
-            box-shadow: 0 0 40px rgba(0,255,204,0.4); display: none; flex-direction: column;
-            backdrop-filter: blur(10px);
-        }
-        #codex-panel.open { display: flex; }
-        .codex-header { padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .codex-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-        .codex-badge {
-            border: 1px solid #333; padding: 12px; background: rgba(0,0,0,0.5);
-            display: flex; flex-direction: column; gap: 4px;
-            transition: all 0.3s;
-        }
-        .codex-badge.unlocked { border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.3); background: rgba(0,255,204,0.05); }
-        .codex-badge.unlocked .badge-icon { color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
-        .badge-icon { font-size: 22px; color: #444; }
-        .badge-name { font-size: 12px; font-weight: bold; color: #fff; letter-spacing: 1px; }
-        .badge-desc { font-size: 9px; color: #888; line-height: 1.4; }
-        .badge-progress { font-size: 9px; color: #00ffcc; margin-top: 4px; font-family: monospace; }
-
-        .codex-toast {
-            /* Pinned to TOP of viewport so it never overlaps the DIRECTORY / PING /
-               OPEN DATABANK button row at the bottom of the screen. */
-            position: fixed; top: 16px; left: 50%; z-index: 9999;
-            transform: translateX(-50%) translateY(-180%);
-            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 14px 12px 18px;
-            box-shadow: 0 0 30px rgba(0,255,204,0.5);
-            transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            display: flex; gap: 12px; align-items: center; min-width: 240px;
-            max-width: calc(100vw - 24px);
-            pointer-events: auto;          /* tap anywhere on the toast dismisses it */
-            cursor: pointer;
-            touch-action: manipulation;    /* avoids 300ms tap delay on mobile */
-        }
-        .codex-toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
-        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; flex-shrink: 0; }
-        .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
-        .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
-        .codex-toast .t-close {
-            background: transparent; border: 1px solid rgba(0,255,204,0.4);
-            color: #00ffcc; font-size: 22px; line-height: 1;
-            /* Mobile-friendly 44×44 hit target (Apple HIG / Material guidelines) */
-            min-width: 44px; min-height: 44px;
-            width: 44px; height: 44px;
-            cursor: pointer;
-            font-family: inherit; padding: 0; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.15s;
-            /* CRITICAL: must remain tappable even while the toast is still animating in. */
-            pointer-events: auto !important;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: rgba(0,255,204,0.35);
-        }
-        .codex-toast .t-close:hover, .codex-toast .t-close:active {
-            background: rgba(0,255,204,0.2); border-color: #00ffcc;
-        }
+        /* --- Achievement Codex CSS — REMOVED (codex deleted) --- */
 
         /* --- Holo POI canvas inside databank diagram pane --- */
         #poi-holo-container {
@@ -582,15 +519,9 @@
         }
         #pause-menu-backdrop.open { display: flex; opacity: 1; }
         /* Hide transient notifications + bottom-sheet clutter behind the pause menu */
-        body.pause-menu-open #codex-panel,
-        body.pause-menu-open .codex-toast,
-        body.pause-menu-open .m-codex-toast,
         body.pause-menu-open #intel-ticker,
-        body.pause-menu-open #achievement-toast,
-        body.pause-menu-open .reality-event-banner,
-        body.pause-menu-open #m-codex-badge { display: none !important; }
+        body.pause-menu-open .reality-event-banner { display: none !important; }
         body.pause-menu-open .m-sheet,
-        body.pause-menu-open .m-topbar,
         body.pause-menu-open .m-fab-cluster { opacity: 0; pointer-events: none; transition: opacity .2s; }
         #pause-menu {
             width: min(92vw, 480px); max-height: 88vh; overflow-y: auto;
@@ -837,7 +768,7 @@
             #mobile-ui-layer { display: block; }
             /* Hide all desktop panels & telemetry on mobile */
             #ui-layer { display: none !important; }
-            #seed-pill, #codex-btn, #ui-toggle-btn { display: none !important; }
+            #seed-pill, #ui-toggle-btn { display: none !important; }
             #telemetry-reticle, #reality-lens { display: none !important; }
             .scanline { background-size: 100% 6px; opacity: 0.18; }
         }
@@ -847,67 +778,17 @@
            notched phones doesn't crunch the inner button row. Adds a unified
            cyan outline so the bar reads as one cohesive UI box instead of
            three floating buttons. */
-        .m-topbar {
-            position: fixed; top: 0; left: 0; right: 0;
-            /* Effective inner content height — clamped 44 → 60 px so the 30-40 px burger
-               always fits comfortably. The safe-top is ADDED on top via padding so a
-               notch never squeezes the content. */
-            min-height: clamp(44px, 8vh, 60px);
-            height: auto;
-            padding-top: var(--safe-top);
-            box-sizing: content-box;
-            background: linear-gradient(180deg, rgba(0,5,10,0.98) 0%, rgba(0,5,10,0.92) 100%);
-            border-bottom: 1px solid rgba(0,255,204,0.55);
-            box-shadow: 0 2px 14px rgba(0, 255, 204, 0.15);
-            z-index: 45; display: flex; align-items: center; gap: 8px;
-            padding-left: clamp(8px, 2.5vw, 14px);
-            padding-right: clamp(8px, 2.5vw, 14px);
-            backdrop-filter: blur(10px);
-        }
-        .m-topbar .m-burger {
-            width: clamp(32px, 5.5vw, 42px);
-            height: clamp(32px, 5.5vw, 42px);
-            flex-shrink: 0;
-            background: rgba(0,255,204,0.08); border: 1px solid #00ffcc;
-            color: #00ffcc; font-size: clamp(14px, 3.2vw, 17px); cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
-        }
-        .m-topbar .m-burger:active { background: #00ffcc; color: #000; }
-        .m-topbar .m-focus { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .m-topbar .m-eyebrow {
-            font-size: clamp(7px, 1.9vw, 10px);
-            letter-spacing: clamp(2px, 0.8vw, 4px);
-            color: #888; text-transform: uppercase;
-        }
-        .m-topbar .m-title {
-            font-size: clamp(10px, 2.6vw, 14px);
-            letter-spacing: clamp(0.8px, 0.35vw, 1.8px);
-            color: #00ffcc;
-            text-shadow: 0 0 5px currentColor; font-weight: bold;
-            max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;
-        }
-        .m-topbar .m-seed {
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,204,0.4);
-            color: #00ffcc;
-            font-size: clamp(8px, 2vw, 11px);
-            letter-spacing: clamp(0.5px, 0.3vw, 1.2px);
-            padding: clamp(5px, 1.4vw, 8px) clamp(7px, 2vw, 11px);
-            display: flex; align-items: center; gap: 4px; cursor: pointer;
-            font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
-            max-width: 38%;
-            overflow: hidden;
-        }
-        .m-topbar .m-seed:active { background: #00ffcc; color: #000; }
-        .m-topbar .m-seed .m-seed-val { color: #fff; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* --- Mobile Top Bar — REMOVED. Burger + share now live in the FAB cluster. --- */
 
-        /* --- Mobile FAB Cluster (right side, vertical) --- */
+        /* --- Mobile FAB Cluster (right side, vertical) ---
+           Now starts near the top edge (was offset by the deleted topbar). */
         .m-fab-cluster {
-            position: fixed; right: 8px; top: calc(60px + var(--safe-top));
+            position: fixed; right: 8px;
+            top: calc(env(safe-area-inset-top, 0px) + 12px);
             z-index: 45;
             display: flex; flex-direction: column; gap: 8px;
             /* Keep cluster within viewport even on tiny / landscape devices */
-            max-height: calc(100vh - 80px - var(--safe-top) - var(--safe-bottom));
+            max-height: calc(100vh - 32px - var(--safe-top) - var(--safe-bottom));
             overflow-y: auto; overflow-x: hidden;
             scrollbar-width: none;
         }
@@ -924,6 +805,12 @@
         }
         .m-fab:active { background: #00ffcc; color: #000; transform: scale(0.92); }
         .m-fab.on { background: #00ffcc; color: #000; box-shadow: 0 0 12px rgba(0,255,204,0.6); }
+        /* Primary FAB (burger) gets a stronger cyan ring so the drawer button reads first. */
+        .m-fab-primary {
+            background: rgba(0,255,204,0.12);
+            border-color: #00ffcc;
+            box-shadow: 0 0 14px rgba(0,255,204,0.35);
+        }
         .m-fab .m-badge {
             position: absolute; top: -4px; right: -4px;
             background: #ffcc00; color: #000; font-size: 9px; font-weight: bold;
@@ -1067,25 +954,7 @@
             #directory-panel .flex.flex-col.gap-4 { max-height: 56vh !important; }
             .soul-row, .subloc-stat .v, .subloc-desc { font-size: 13px !important; }
             #mini-target-panel { width: 84% !important; }
-            /* Mobile: full-width toast pinned to top, never overlaps the bottom button row */
-            .codex-toast {
-                left: 12px !important; right: 12px !important;
-                top: calc(56px + var(--safe-top)) !important;
-                bottom: auto !important;
-                transform: translateX(0) translateY(-180%) !important;
-                min-width: unset !important; z-index: 9999 !important;
-                pointer-events: auto !important;
-            }
-            .codex-toast.show { transform: translateX(0) translateY(0) !important; pointer-events: auto !important; }
-            .codex-toast .t-close {
-                /* 44×44 minimum hit target per Apple HIG / Material guidelines */
-                min-width: 44px !important; min-height: 44px !important;
-                width: 44px !important; height: 44px !important;
-                font-size: 22px !important;
-                pointer-events: auto !important;
-                touch-action: manipulation;
-                -webkit-tap-highlight-color: rgba(0,255,204,0.35);
-            }
+            /* (Codex toast styles removed — codex deleted) */
             #tour-overlay { bottom: calc(80px + var(--safe-bottom)) !important; width: 96% !important; }
             .tour-controls { bottom: calc(20px + var(--safe-bottom)) !important; }
             /* Bigger touch targets in modals */
@@ -1354,7 +1223,6 @@
         #soul-dossier.open, #subloc-dossier.open {
             animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
-        #codex-panel.open { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
         #directory-panel.flex { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
         @keyframes modalSlideIn {
             0% { opacity: 0; transform: translate(-50%, -42%) scale(0.92); filter: blur(8px); }
@@ -1733,10 +1601,7 @@
         </div>
     </div>
 
-    <!-- CODEX BUTTON -->
-    <button id="codex-btn" onclick="toggleCodex()" class="interactive-panel p-1.5 md:p-2 text-[#00ffcc] text-[10px] md:text-xs font-bold hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm">
-        [ CODEX ]
-    </button>
+    <!-- CODEX BUTTON / PANEL / ACHIEVEMENT TOAST — DELETED -->
 
     <!-- UNIVERSE SEED PILL -->
     <button id="seed-pill" onclick="copyUniverseLink()" title="Copy shareable universe link">
@@ -1746,30 +1611,6 @@
         <span class="seed-icon" style="margin-left:4px;">⎘</span>
     </button>
 
-    <!-- CODEX PANEL -->
-    <div id="codex-panel">
-        <div class="codex-header">
-            <div>
-                <div class="text-[10px] text-gray-500 tracking-widest">DLDS ASTROLABE</div>
-                <h2 class="text-xl font-bold text-[#00ffcc] tracking-widest">EXPLORER CODEX</h2>
-                <div class="text-[10px] text-gray-400 mt-1">Achievements unlocked: <span id="codex-count" class="text-[#00ffcc]">0/8</span></div>
-            </div>
-            <button onclick="toggleCodex()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors">[ X ]</button>
-        </div>
-        <div class="codex-grid" id="codex-grid"><!-- JS injects --></div>
-    </div>
-
-    <!-- ACHIEVEMENT TOAST — pinned to TOP of screen so it never overlaps
-         the DIRECTORY / PING / OPEN DATABANK button row at the bottom.
-         Tapping ANYWHERE on the toast (or the × button) dismisses it. -->
-    <div id="codex-toast" class="codex-toast" role="alert" aria-live="polite" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)">
-        <div class="t-icon" id="toast-icon">★</div>
-        <div style="flex:1;min-width:0;">
-            <div class="t-label">ACHIEVEMENT UNLOCKED</div>
-            <div class="t-name" id="toast-name"></div>
-        </div>
-        <button class="t-close" type="button" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)" aria-label="Dismiss achievement" title="Dismiss" style="pointer-events:auto !important;">×</button>
-    </div>
 
     <!-- CINEMATIC TOUR OVERLAY -->
     <div id="tour-overlay">
@@ -2028,28 +1869,15 @@
     <!-- MOBILE UI LAYER — Touch-first redesign for ≤767px viewports     -->
     <!-- ============================================================== -->
     <div id="mobile-ui-layer">
-        <!-- Top Bar -->
-        <div class="m-topbar">
-            <button class="m-burger" onclick="openMobileDrawer()" aria-label="Open menu">☰</button>
-            <div class="m-focus">
-                <div class="m-eyebrow" id="m-eyebrow">ASTROLABE</div>
-                <div class="m-title" id="m-title">ZERO POINT</div>
-            </div>
-            <button class="m-seed" onclick="copyUniverseLink()" aria-label="Share universe">
-                <span>⌬</span>
-                <span class="m-seed-val" id="m-seed-val">--</span>
-            </button>
-        </div>
+        <!-- Top Bar — REMOVED. Drawer + share now live in the FAB cluster. -->
 
         <!-- FAB Cluster (vertical, right edge) -->
         <div class="m-fab-cluster">
+            <button class="m-fab m-fab-primary" onclick="openMobileDrawer()" aria-label="Open menu">☰</button>
+            <button class="m-fab" onclick="copyUniverseLink()" aria-label="Share universe">⌬</button>
             <button class="m-fab" onclick="focusMobileSearch()" aria-label="Search">⌖</button>
             <button class="m-fab" onclick="toggleSoulMode(); updateMobileFabStates();" id="m-fab-soul" aria-label="Soul mode">✦</button>
             <button class="m-fab" onclick="startCinematicTour()" id="m-fab-tour" aria-label="Tour">▶</button>
-            <button class="m-fab" onclick="toggleCodex()" aria-label="Codex">
-                ▦
-                <span class="m-badge" id="m-codex-badge">0</span>
-            </button>
             <button class="m-fab" onclick="openPauseMenu()" aria-label="Settings menu">⚙</button>
             <button class="m-fab" onclick="toggleUI()" aria-label="Hide HUD">◐</button>
         </div>
@@ -2141,9 +1969,6 @@
                     </button>
                     <button class="m-drawer-btn" id="m-drawer-soul" onclick="toggleSoulMode(); updateMobileModeUI();">
                         <span>✦ SOUL TRACKER</span><span class="badge-state" id="m-drawer-soul-state">OFF</span>
-                    </button>
-                    <button class="m-drawer-btn" onclick="toggleCodex(); closeMobileDrawer();">
-                        <span>▦ EXPLORER CODEX</span><span class="badge-state" id="m-drawer-codex-count">0/8</span>
                     </button>
                     <button class="m-drawer-btn" onclick="openReaperRegistry(); closeMobileDrawer();" style="border-color:#aa44ff;color:#aa44ff;">
                         <span>☠ REAPER REGISTRY</span><span class="badge-state" id="m-drawer-reaper-count">0/10</span>
@@ -4695,10 +4520,9 @@
             }
         }
 
-        // Returns true if any of the lore/codex/soul/sub-loc modals are open
+        // Returns true if any of the lore/soul/sub-loc modals are open
         function anyModalOpen() {
             return !document.getElementById('lore-panel').classList.contains('hidden')
-                || document.getElementById('codex-panel').classList.contains('open')
                 || document.getElementById('soul-dossier').classList.contains('open')
                 || document.getElementById('subloc-dossier').classList.contains('open')
                 || !document.getElementById('directory-panel').classList.contains('hidden')
@@ -4715,7 +4539,6 @@
             if (!uiVisible || isCamTweening) return;
             // Suppress clicks while modals or tour are active
             if (!document.getElementById('lore-panel').classList.contains('hidden')) return;
-            if (document.getElementById('codex-panel').classList.contains('open')) return;
             if (document.getElementById('soul-dossier').classList.contains('open')) return;
             if (document.getElementById('subloc-dossier').classList.contains('open')) return;
             if (TOUR.active) return;
@@ -5799,126 +5622,24 @@
         buildIntelTicker();
         setInterval(buildIntelTicker, 90000);
 
-        // --- Achievement Codex ---
-        const CODEX = [
-            { id: 'first', icon: '◈', name: 'FIRST CONTACT', desc: 'Open your first reality databank.', check: (s) => s.databanksOpened >= 1 },
-            { id: 'cart50', icon: '◉', name: 'CARTOGRAPHER I', desc: 'Discover 50 distinct strata.', check: (s) => s.discoveredStrata.size >= 50, prog: (s) => `${s.discoveredStrata.size}/50` },
-            { id: 'cart100', icon: '◎', name: 'CARTOGRAPHER II', desc: 'Discover 100 distinct strata.', check: (s) => s.discoveredStrata.size >= 100, prog: (s) => `${s.discoveredStrata.size}/100` },
-            { id: 'cart199', icon: '★', name: 'OMNISCIENT', desc: 'Discover every strata in The Endless.', check: (s) => s.discoveredStrata.size >= 199, prog: (s) => `${s.discoveredStrata.size}/199` },
-            { id: 'dead', icon: '☠', name: 'NEKROMANCER', desc: 'Survive a Dead Reality databank.', check: (s) => s.openedDead },
-            { id: 'diplomat', icon: '⌖', name: 'FACTION DIPLOMAT', desc: 'View intel on 10+ different factions.', check: (s) => s.factionsVisited.size >= 10, prog: (s) => `${s.factionsVisited.size}/10` },
-            { id: 'poi', icon: '♦', name: 'POI HUNTER', desc: 'Open 5 Points-of-Interest databanks.', check: (s) => s.poisOpened >= 5, prog: (s) => `${s.poisOpened}/5` },
-            { id: 'extremes', icon: '∞', name: 'EDGE-WALKER', desc: 'Visit both Strata +99 and -99.', check: (s) => s.discoveredStrata.has(99) && s.discoveredStrata.has(-99) }
-        ];
+        // --- Achievement Codex (REMOVED) -----------------------------
+        // The Codex / Achievement system has been deleted per design
+        // decision. All callers reference the no-op stubs below so the
+        // rest of the engine continues to run untouched.
+        const CODEX = [];
         GAME_STATE.databanksOpened = 0;
         GAME_STATE.poisOpened = 0;
         GAME_STATE.openedDead = false;
         GAME_STATE.factionsVisited = new Set();
         GAME_STATE.unlockedAchievements = new Set();
 
-        function renderCodex() {
-            const grid = document.getElementById('codex-grid');
-            const countEl = document.getElementById('codex-count');
-            if (!grid) return;
-            grid.innerHTML = '';
-            let unlockedCount = 0;
-            CODEX.forEach(a => {
-                const unlocked = GAME_STATE.unlockedAchievements.has(a.id);
-                if (unlocked) unlockedCount++;
-                const div = document.createElement('div');
-                div.className = 'codex-badge' + (unlocked ? ' unlocked' : '');
-                div.innerHTML = `
-                    <div class="badge-icon">${a.icon}</div>
-                    <div class="badge-name">${unlocked ? a.name : '████ ██████'}</div>
-                    <div class="badge-desc">${a.desc}</div>
-                    ${a.prog ? `<div class="badge-progress">${a.prog(GAME_STATE)}</div>` : ''}
-                `;
-                grid.appendChild(div);
-            });
-            countEl.innerText = `${unlockedCount}/${CODEX.length}`;
-        }
-        function checkAchievements() {
-            let newUnlocks = [];
-            CODEX.forEach(a => {
-                if (!GAME_STATE.unlockedAchievements.has(a.id) && a.check(GAME_STATE)) {
-                    GAME_STATE.unlockedAchievements.add(a.id);
-                    newUnlocks.push(a);
-                }
-            });
-            renderCodex();
-            newUnlocks.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 2200));
-        }
-        let __toastTimer = null;
-        function showAchievementToast(a) {
-            // Bail out silently if there's no real achievement data (prevents
-            // empty "ACHIEVEMENT UNLOCKED --" cards bleeding through the UI).
-            if (!a || !a.name || String(a.name).trim() === '' || String(a.name).trim() === '--') return;
-            const toast = document.getElementById('codex-toast');
-            if (!toast) return;
-            // Clear any previous timer so a fresh achievement resets the 4.5 s window
-            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
-            document.getElementById('toast-icon').innerText = a.icon || '★';
-            document.getElementById('toast-name').innerText = a.name;
-            toast.classList.add('show');
-            __toastTimer = setTimeout(() => {
-                toast.classList.remove('show');
-                __toastTimer = null;
-            }, 4500);
-            try { logMessage(`ACHIEVEMENT: ${a.name}`, 'success'); } catch (e) {}
-        }
-        // Tap-to-dismiss / × close button handler — must be on window so the
-        // toast's inline onclick can find it.
-        window.hideAchievementToast = function(e) {
-            if (e) {
-                try { e.stopPropagation(); } catch(_) {}
-                try { e.preventDefault();  } catch(_) {}
-            }
-            const toast = document.getElementById('codex-toast');
-            if (toast) toast.classList.remove('show');
-            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
-        };
-        // === PROGRAMMATIC FALLBACK LISTENERS ===
-        // Inline onclick attributes can fail silently on some mobile browsers when
-        // the toast is mid-animation. Bind explicit click + touchstart listeners
-        // directly on both the toast body and the × close button so dismissal
-        // always works, regardless of animation state.
-        (function bindToastDismissal() {
-            const toast = document.getElementById('codex-toast');
-            if (!toast) return;
-            const closeBtn = toast.querySelector('.t-close');
-            const dismiss = (e) => window.hideAchievementToast(e);
-            // Tap anywhere on the toast (or on the close button) dismisses it.
-            ['click', 'touchstart'].forEach(ev => {
-                toast.addEventListener(ev, dismiss, { passive: false });
-                if (closeBtn) closeBtn.addEventListener(ev, dismiss, { passive: false });
-            });
-        })();
-        // Failsafe: if the page is hidden/restored, ensure no orphan toast lingers.
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                const t = document.getElementById('codex-toast');
-                if (t && t.classList.contains('show') && !__toastTimer) {
-                    // No active dismissal scheduled but toast is visible — re-arm.
-                    __toastTimer = setTimeout(() => {
-                        t.classList.remove('show');
-                        __toastTimer = null;
-                    }, 2500);
-                }
-            }
-        });
-        function toggleCodex() {
-            document.getElementById('codex-panel').classList.toggle('open');
-            renderCodex();
-        }
-        function trackAchievements(level, data, poi) {
-            GAME_STATE.databanksOpened++;
-            if (poi) GAME_STATE.poisOpened++;
-            if (data && data.isDead) GAME_STATE.openedDead = true;
-            const f = (poi && poi.faction) ? poi.faction : (data ? data.faction : null);
-            if (f && f.id !== 'unclaimed') GAME_STATE.factionsVisited.add(f.id);
-            checkAchievements();
-        }
-        renderCodex();
+        function renderCodex() { /* no-op: codex deleted */ }
+        function checkAchievements() { /* no-op: codex deleted */ }
+        function showAchievementToast(_a) { /* no-op: codex deleted */ }
+        window.hideAchievementToast = function(_e) { /* no-op: codex deleted */ };
+        function toggleCodex() { /* no-op: codex deleted */ }
+        function trackAchievements(_level, _data, _poi) { /* no-op: codex deleted */ }
+
 
         // --- Holographic POI Viewer (mini Three.js scene inside the lore panel) ---
         let holoScene = null, holoCam = null, holoRenderer = null, holoGroup = null;
@@ -7226,13 +6947,11 @@
             const sub  = document.getElementById('subloc-dossier');
             const soul = document.getElementById('soul-dossier');
             const lore = document.getElementById('lore-panel');
-            const codex= document.getElementById('codex-panel');
             const dir  = document.getElementById('directory-panel');
             if (sub  && sub.classList.contains('open'))           closeSubLocDossier();
             else if (soul && soul.classList.contains('open'))      closeSoulDossier();
             else if (typeof TOUR !== 'undefined' && TOUR.active)   endCinematicTour();
             else if (lore && !lore.classList.contains('hidden'))   closeLore();
-            else if (codex && codex.classList.contains('open'))    toggleCodex();
             else if (dir  && !dir.classList.contains('hidden'))    closeStrataDirectory();
             else openPauseMenu();
         });
@@ -7548,18 +7267,7 @@
         // Initial mirror
         logMessage(`Mobile UI ready. Tap ☰ for filters and modes.`, 'info');
 
-        // === Mirror Codex unlock count into mobile FAB + drawer ===
-        const _origCheckAchievements = checkAchievements;
-        checkAchievements = function() {
-            _origCheckAchievements();
-            const count = GAME_STATE.unlockedAchievements.size;
-            const total = CODEX.length;
-            const badge = document.getElementById('m-codex-badge');
-            const drawerCount = document.getElementById('m-drawer-codex-count');
-            if (badge) badge.innerText = `${count}`;
-            if (drawerCount) drawerCount.innerText = `${count}/${total}`;
-        };
-        checkAchievements(); // initial paint
+        // === Codex mirror REMOVED (codex deleted) ====================
 
         // === Tour/Soul mode mobile sync wrappers ===
         const _origStartTour = startCinematicTour;
@@ -7915,13 +7623,8 @@
             }
         });
 
-        // Add new achievements for Reapers
-        CODEX.push(
-            { id: 'reaper_first', icon: '☠', name: 'FIRST RITES', desc: 'Open your first Reaper dossier.', check: (s) => REAPERS_MET.size >= 1 },
-            { id: 'reaper_council', icon: '✶', name: 'REAPER COUNCIL', desc: 'Meet 8 distinct Reapers across The Endless.', check: (s) => REAPERS_MET.size >= 8, prog: (s) => `${REAPERS_MET.size}/8` },
-            { id: 'cycle_witness', icon: '⌛', name: 'CYCLE WITNESS', desc: 'Witness 5 reality-cycle events.', check: (s) => (s.eventsWitnessed || 0) >= 5, prog: (s) => `${s.eventsWitnessed || 0}/5` },
-            { id: 'harbinger',     icon: '★', name: 'HARBINGER',     desc: 'Witness 3 Reapers fall.', check: (s) => (s.realityDeathsWitnessed || 0) >= 3, prog: (s) => `${s.realityDeathsWitnessed || 0}/3` }
-        );
+        // Reaper achievements REMOVED (codex deleted). Keep counters
+        // only because they are referenced elsewhere (e.g. cycle events).
         // Hook reality death event into Harbinger counter
         const _origEventRealityDeath = eventRealityDeath;
         eventRealityDeath = function() {
@@ -7939,15 +7642,9 @@
             const dr = document.getElementById('m-drawer-reaper-count');
             if (dr) dr.innerText = `${REAPERS_MET.size}/${total}`;
         }
-        const _origCheckAchievementsR = checkAchievements;
-        checkAchievements = function() {
-            _origCheckAchievementsR();
-            refreshReaperCounts();
-            renderCodex();
-        };
         refreshReaperCounts();
-        renderCodex();
         logMessage(`Reaper registry online — ${Object.keys(REAPER_REGISTRY).length} sworn custodians of the soul cycle.`, 'purple');
+
         function buildHoloModel(poi, data, color) {
             const group = new THREE.Group();
             const matWire = (c, o = 0.85) => new THREE.MeshBasicMaterial({ color: c, wireframe: true, transparent: true, opacity: o });

@@ -129,10 +129,7 @@
         </div>
     </div>
 
-    <!-- CODEX BUTTON -->
-    <button id="codex-btn" onclick="toggleCodex()" class="interactive-panel p-1.5 md:p-2 text-[#00ffcc] text-[10px] md:text-xs font-bold hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm">
-        [ CODEX ]
-    </button>
+    <!-- CODEX BUTTON / PANEL / ACHIEVEMENT TOAST — DELETED -->
 
     <!-- UNIVERSE SEED PILL -->
     <button id="seed-pill" onclick="copyUniverseLink()" title="Copy shareable universe link">
@@ -142,30 +139,6 @@
         <span class="seed-icon" style="margin-left:4px;">⎘</span>
     </button>
 
-    <!-- CODEX PANEL -->
-    <div id="codex-panel">
-        <div class="codex-header">
-            <div>
-                <div class="text-[10px] text-gray-500 tracking-widest">DLDS ASTROLABE</div>
-                <h2 class="text-xl font-bold text-[#00ffcc] tracking-widest">EXPLORER CODEX</h2>
-                <div class="text-[10px] text-gray-400 mt-1">Achievements unlocked: <span id="codex-count" class="text-[#00ffcc]">0/8</span></div>
-            </div>
-            <button onclick="toggleCodex()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors">[ X ]</button>
-        </div>
-        <div class="codex-grid" id="codex-grid"><!-- JS injects --></div>
-    </div>
-
-    <!-- ACHIEVEMENT TOAST — pinned to TOP of screen so it never overlaps
-         the DIRECTORY / PING / OPEN DATABANK button row at the bottom.
-         Tapping ANYWHERE on the toast (or the × button) dismisses it. -->
-    <div id="codex-toast" class="codex-toast" role="alert" aria-live="polite" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)">
-        <div class="t-icon" id="toast-icon">★</div>
-        <div style="flex:1;min-width:0;">
-            <div class="t-label">ACHIEVEMENT UNLOCKED</div>
-            <div class="t-name" id="toast-name"></div>
-        </div>
-        <button class="t-close" type="button" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)" aria-label="Dismiss achievement" title="Dismiss" style="pointer-events:auto !important;">×</button>
-    </div>
 
     <!-- CINEMATIC TOUR OVERLAY -->
     <div id="tour-overlay">
@@ -424,28 +397,15 @@
     <!-- MOBILE UI LAYER — Touch-first redesign for ≤767px viewports     -->
     <!-- ============================================================== -->
     <div id="mobile-ui-layer">
-        <!-- Top Bar -->
-        <div class="m-topbar">
-            <button class="m-burger" onclick="openMobileDrawer()" aria-label="Open menu">☰</button>
-            <div class="m-focus">
-                <div class="m-eyebrow" id="m-eyebrow">ASTROLABE</div>
-                <div class="m-title" id="m-title">ZERO POINT</div>
-            </div>
-            <button class="m-seed" onclick="copyUniverseLink()" aria-label="Share universe">
-                <span>⌬</span>
-                <span class="m-seed-val" id="m-seed-val">--</span>
-            </button>
-        </div>
+        <!-- Top Bar — REMOVED. Drawer + share now live in the FAB cluster. -->
 
         <!-- FAB Cluster (vertical, right edge) -->
         <div class="m-fab-cluster">
+            <button class="m-fab m-fab-primary" onclick="openMobileDrawer()" aria-label="Open menu">☰</button>
+            <button class="m-fab" onclick="copyUniverseLink()" aria-label="Share universe">⌬</button>
             <button class="m-fab" onclick="focusMobileSearch()" aria-label="Search">⌖</button>
             <button class="m-fab" onclick="toggleSoulMode(); updateMobileFabStates();" id="m-fab-soul" aria-label="Soul mode">✦</button>
             <button class="m-fab" onclick="startCinematicTour()" id="m-fab-tour" aria-label="Tour">▶</button>
-            <button class="m-fab" onclick="toggleCodex()" aria-label="Codex">
-                ▦
-                <span class="m-badge" id="m-codex-badge">0</span>
-            </button>
             <button class="m-fab" onclick="openPauseMenu()" aria-label="Settings menu">⚙</button>
             <button class="m-fab" onclick="toggleUI()" aria-label="Hide HUD">◐</button>
         </div>
@@ -537,9 +497,6 @@
                     </button>
                     <button class="m-drawer-btn" id="m-drawer-soul" onclick="toggleSoulMode(); updateMobileModeUI();">
                         <span>✦ SOUL TRACKER</span><span class="badge-state" id="m-drawer-soul-state">OFF</span>
-                    </button>
-                    <button class="m-drawer-btn" onclick="toggleCodex(); closeMobileDrawer();">
-                        <span>▦ EXPLORER CODEX</span><span class="badge-state" id="m-drawer-codex-count">0/8</span>
                     </button>
                     <button class="m-drawer-btn" onclick="openReaperRegistry(); closeMobileDrawer();" style="border-color:#aa44ff;color:#aa44ff;">
                         <span>☠ REAPER REGISTRY</span><span class="badge-state" id="m-drawer-reaper-count">0/10</span>

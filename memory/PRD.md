@@ -31,7 +31,48 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - Nested Sub-location Lore (clickable orbiters → 10+ category-detected dossier types)
 - ESC universally closes modals
 
-### Iteration 6 — Mobile UI Overhaul (touch-first redesign)
+### Iteration 7 — Reaper Lore (canon-accurate)
+**Reframing per canon:**
+- 199 stacked rings = **LAYERS of Creation** (not realities)
+- Each layer contains many realities (we render only the lore-canon POIs as realities)
+- Each reality = **Soul Plane → Universe → Galaxy → Solar System → Planet** (5-level nested hierarchy)
+- One Reaper per **reality** (not per layer) — born as the firstborn of that reality
+- Reaper rank scales with |level|: Apprentice (<10) → Tribunal (≥10) → Wanderer (≥30) → Greater (≥60) → Soul-Sovereign (≥90)
+- Reapers have no souls / are void of emotion / can only reap contracted souls
+- Each Reaper carries a **unique scythe** forged from the geometry of their mortal-soul memory
+- **Dead realities = Reaper died** — soul-parasites tore the strata apart (this is canon lore for why dead realities exist)
+- Reborn realities get a **brand-new firstborn Reaper**
+
+**Implementation:**
+- `NAMED_REAPER_BINDINGS` for 10 canon-named Reapers tied to specific POI strata (Aurum at 0, Mordren-7 at 2, Harrow-12 at -12, Sephira at -66, Null-9 at 99, Obolus-Δ at -99, etc.)
+- Procedural Reaper generation for the other POI realities — seeded by UNIVERSE_SEED + level → deterministic per seed
+- `REAPER_REGISTRY` keyed by `${level}_${poiIndex}`, 14 entries total currently
+- `buildHierarchy(poi, level)` generates Soul Plane / Universe / Galaxy / System / Planet names per POI
+- `TERRITORY_DATA[i].realityCount` = `9000 * exp(-|level|/15)` — exponential falloff per canon ("weight of deeds gets harder to reach")
+
+**UI surfaces:**
+- **Reaper Dossier modal** (violet death-aesthetic) with spinning sigil, status badge, full canon scythe-form line, recent activity feed
+- **Reality Hierarchy block** prepended to every POI databank (5-level breadcrumb)
+- **Reaper-of-this-reality card** inline in every POI databank with [ DOSSIER ▸ ] button
+- **Layer Summary** prepended to every non-POI databank (estimated realities + canon explanation)
+- **Mini-target popup** gains a sigil + name line, clickable to open dossier
+- **Soul Dossier** reaper name made clickable (`reaper-inline-link` style)
+- **Mobile bottom sheet** focus card shows reaper sigil + name inline, click to open dossier
+- **Nav-computer** + **mobile drawer** gain REAPER REGISTRY + ADVANCE CYCLE buttons
+
+**Reality Event Cycles (4 types, 45s auto-tick + manual ADVANCE):**
+- **REALITY BIRTH** — pick a dead POI, generate a new firstborn Reaper, revive the strata, cinematic cyan banner + camera shake + strata flash + Reaper activity log
+- **REALITY DEATH** — pick a live POI, kill the Reaper (status → DECEASED), mark strata dead, red banner + shake + log
+- **FACTION COUP** — pick a live POI, swap faction, yellow banner, disc color updates, Reaper logs "remained neutral by Law"
+- **REAPER SHIFT** — pick a live POI, log a slice-of-life activity for that Reaper (refused a Soul Contract, training a younger Reaper, etc.), violet banner
+
+**4 new achievements:**
+- **FIRST RITES** — open first Reaper dossier
+- **REAPER COUNCIL** — meet 8 distinct Reapers
+- **CYCLE WITNESS** — witness 5 reality-cycle events
+- **HARBINGER** — witness 3 Reapers fall
+
+
 **Architecture for ≤767px viewports:**
 - Desktop panels (#ui-layer, seed-pill, codex-btn, hud-toggle, telemetry reticle, reality lens) all hidden via media query
 - New `#mobile-ui-layer` with 4 components:

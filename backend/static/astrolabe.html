@@ -623,7 +623,7 @@
         @media (max-width: 767px) {
             #lore-panel { padding: 0 !important; }
             #lore-panel > div { height: 100% !important; max-height: 100% !important; border: none !important; }
-            #directory-panel, #soul-dossier, #subloc-dossier { width: 92% !important; max-width: 92% !important; max-height: 80vh !important; }
+            #directory-panel, #soul-dossier, #subloc-dossier, #reaper-dossier { width: 92% !important; max-width: 92% !important; max-height: 80vh !important; }
             #directory-panel .flex.flex-col.gap-4 { max-height: 56vh !important; }
             .soul-row, .subloc-stat .v, .subloc-desc { font-size: 13px !important; }
             #mini-target-panel { width: 84% !important; }
@@ -635,6 +635,120 @@
             .btn-glitch, .filter-btn { min-height: 38px; }
             /* Reduce expensive holo effects */
             .holo-mode-toggle { min-height: 36px; padding: 6px 12px; }
+            #event-banner { left: 12px !important; right: 12px !important; transform: translateX(0) translateY(-150%) !important; width: auto !important; max-width: none !important; }
+            #event-banner.active { transform: translateX(0) translateY(0) !important; }
+        }
+
+        /* =============================================================
+           ITERATION 7 — REAPER LORE FEATURE
+           ============================================================= */
+
+        /* --- Reaper Dossier Modal (death-violet aesthetic) --- */
+        #reaper-dossier {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 118; width: 92%; max-width: 520px; max-height: 85vh;
+            background: linear-gradient(180deg, rgba(20,0,30,0.97) 0%, rgba(5,0,10,0.97) 100%);
+            border: 2px solid #aa44ff;
+            box-shadow: 0 0 50px rgba(170,68,255,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(10px);
+            color: #fff; font-size: 12px; overflow: hidden;
+        }
+        #reaper-dossier.open { display: flex; animation: modalSlideIn 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .reaper-header { padding: 16px 18px; border-bottom: 1px solid #aa44ff; background: rgba(0,0,0,0.4); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .reaper-header .sub { font-size: 9px; color: #888; letter-spacing: 4px; }
+        .reaper-header h3 { color: #ddaaff; letter-spacing: 4px; font-size: 22px; margin-top: 2px; text-shadow: 0 0 12px currentColor; }
+        .reaper-rank-pill {
+            display: inline-block; padding: 3px 10px; margin-top: 6px;
+            background: rgba(170,68,255,0.2); border: 1px solid #aa44ff;
+            color: #aa44ff; font-size: 10px; letter-spacing: 2px; font-weight: bold;
+        }
+        .reaper-body { padding: 14px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .reaper-sigil-row {
+            display: flex; gap: 14px; align-items: center; margin-bottom: 8px;
+            padding: 10px; background: rgba(0,0,0,0.4); border-left: 3px solid #aa44ff;
+        }
+        .reaper-sigil {
+            width: 56px; height: 56px; flex-shrink: 0;
+            border: 2px solid #aa44ff; border-radius: 50%;
+            background: radial-gradient(circle, rgba(170,68,255,0.4) 0%, rgba(0,0,0,0.9) 80%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; color: #aa44ff; text-shadow: 0 0 10px currentColor;
+            animation: sigilSpin 6s linear infinite;
+        }
+        @keyframes sigilSpin { to { transform: rotate(360deg); } }
+        .reaper-quick-stats { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .reaper-quick-stats .stat-pair { display: flex; justify-content: space-between; font-size: 10px; }
+        .reaper-quick-stats .stat-pair .k { color: #888; letter-spacing: 2px; }
+        .reaper-quick-stats .stat-pair .v { color: #fff; text-shadow: 0 0 4px currentColor; font-weight: bold; }
+        .reaper-quick-stats .stat-pair .v.status-wandering { color: #aaaaff; }
+        .reaper-quick-stats .stat-pair .v.status-bound { color: #aaffaa; }
+        .reaper-quick-stats .stat-pair .v.status-hunted { color: #ff5555; animation: huntedPulse 2s ease-in-out infinite; }
+        .reaper-quick-stats .stat-pair .v.status-ascended { color: #ffffaa; text-shadow: 0 0 10px currentColor; }
+        @keyframes huntedPulse { 50% { text-shadow: 0 0 12px currentColor; } }
+        .reaper-lore {
+            padding: 12px; background: rgba(0,0,0,0.5); border-left: 2px solid #aa44ff;
+            font-style: italic; color: #d0c0e0; line-height: 1.6; font-size: 12px;
+        }
+        .reaper-section-title {
+            font-size: 9px; letter-spacing: 4px; color: #aa44ff; margin-top: 12px;
+            border-bottom: 1px dashed rgba(170,68,255,0.3); padding-bottom: 3px;
+        }
+        .reaper-activity-list { display: flex; flex-direction: column; gap: 4px; font-size: 11px; max-height: 160px; overflow-y: auto; }
+        .reaper-activity-item {
+            display: flex; gap: 8px; padding: 5px 8px;
+            background: rgba(170,68,255,0.05); border-left: 2px solid rgba(170,68,255,0.4);
+            font-size: 10px; color: #ccc;
+        }
+        .reaper-activity-item .time { color: #666; font-family: 'Share Tech Mono', monospace; min-width: 55px; }
+        .reaper-activity-item .type {
+            font-size: 8px; letter-spacing: 2px; padding: 0 4px; font-weight: bold;
+            display: inline-flex; align-items: center;
+        }
+        .reaper-activity-item .type.birth { color: #00ffcc; }
+        .reaper-activity-item .type.death { color: #ff5555; }
+        .reaper-activity-item .type.coup { color: #ffcc00; }
+        .reaper-activity-item .type.shift { color: #aaaaff; }
+        .reaper-activity-item .text { flex: 1; min-width: 0; }
+        .reaper-empty-log { color: #555; font-style: italic; padding: 12px; text-align: center; font-size: 10px; letter-spacing: 1px; }
+
+        /* Reaper line inside other modals (Soul, Strata Databank, mini-target) */
+        .reaper-inline-link {
+            color: #aa44ff !important; cursor: pointer; text-decoration: none;
+            border-bottom: 1px dashed rgba(170,68,255,0.6); padding-bottom: 1px;
+            transition: all 0.2s; font-weight: bold;
+        }
+        .reaper-inline-link:hover { color: #fff !important; text-shadow: 0 0 8px #aa44ff; }
+
+        /* --- Reality Event Banner (top-of-screen slide-in) --- */
+        #event-banner {
+            position: fixed; top: calc(72px + var(--safe-top)); left: 50%; transform: translateX(-50%) translateY(-150%);
+            z-index: 90;
+            width: 92%; max-width: 560px;
+            background: linear-gradient(135deg, rgba(0,5,10,0.97) 0%, rgba(0,15,20,0.97) 100%);
+            border: 2px solid #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.5);
+            transition: transform 0.7s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            padding: 12px 18px;
+            backdrop-filter: blur(10px);
+        }
+        #event-banner.active { transform: translateX(-50%) translateY(0); }
+        #event-banner.type-birth { border-color: #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.5); }
+        #event-banner.type-death { border-color: #ff5555; box-shadow: 0 0 40px rgba(255,85,85,0.5); }
+        #event-banner.type-coup { border-color: #ffcc00; box-shadow: 0 0 40px rgba(255,204,0,0.5); }
+        #event-banner.type-shift { border-color: #aa44ff; box-shadow: 0 0 40px rgba(170,68,255,0.5); }
+        #event-banner .eb-eyebrow { font-size: 9px; letter-spacing: 4px; opacity: 0.8; margin-bottom: 4px; }
+        #event-banner .eb-title { font-size: 14px; font-weight: bold; letter-spacing: 2px; line-height: 1.3; color: #fff; }
+        #event-banner .eb-subtitle { font-size: 11px; color: #b8b8b8; margin-top: 4px; line-height: 1.5; }
+        #event-banner .eb-icon { font-size: 32px; line-height: 1; margin-right: 12px; vertical-align: middle; }
+        #event-banner.type-birth .eb-eyebrow, #event-banner.type-birth .eb-icon { color: #00ffcc; }
+        #event-banner.type-death .eb-eyebrow, #event-banner.type-death .eb-icon { color: #ff5555; }
+        #event-banner.type-coup .eb-eyebrow, #event-banner.type-coup .eb-icon { color: #ffcc00; }
+        #event-banner.type-shift .eb-eyebrow, #event-banner.type-shift .eb-icon { color: #aa44ff; }
+        #event-banner .eb-flex { display: flex; align-items: center; }
+
+        /* Strata flash effect when affected by an event */
+        @keyframes strataFlash {
+            0%, 100% { filter: brightness(1); }
+            30% { filter: brightness(3) saturate(2); }
         }
 
         /* === ITERATION 4: Modal slide-in animations, seed UI, search, soul-path highlight === */
@@ -988,7 +1102,53 @@
                     <button class="m-drawer-btn" onclick="toggleCodex(); closeMobileDrawer();">
                         <span>▦ EXPLORER CODEX</span><span class="badge-state" id="m-drawer-codex-count">0/8</span>
                     </button>
+                    <button class="m-drawer-btn" onclick="openReaperRegistry(); closeMobileDrawer();" style="border-color:#aa44ff;color:#aa44ff;">
+                        <span>☠ REAPER REGISTRY</span><span class="badge-state" id="m-drawer-reaper-count">0/10</span>
+                    </button>
+                    <button class="m-drawer-btn" onclick="advanceCycle(); closeMobileDrawer();" style="border-color:#ffcc00;color:#ffcc00;">
+                        <span>⌛ ADVANCE CYCLE</span><span class="badge-state">EVENT</span>
+                    </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REAPER DOSSIER MODAL -->
+    <div id="reaper-dossier">
+        <div class="reaper-header">
+            <div style="min-width:0;flex:1;">
+                <div class="sub">REAPER REGISTRY · DEATH TRIBUNAL</div>
+                <h3 id="reaper-name">--</h3>
+                <div class="reaper-rank-pill" id="reaper-rank-pill">--</div>
+            </div>
+            <button onclick="closeReaperDossier()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs" style="flex-shrink:0;">[ X ]</button>
+        </div>
+        <div class="reaper-body">
+            <div class="reaper-sigil-row">
+                <div class="reaper-sigil" id="reaper-sigil">☠</div>
+                <div class="reaper-quick-stats">
+                    <div class="stat-pair"><span class="k">STATUS</span><span class="v" id="reaper-status">--</span></div>
+                    <div class="stat-pair"><span class="k">TERRITORY</span><span class="v" id="reaper-territory">--</span></div>
+                    <div class="stat-pair"><span class="k">SPECIALTY</span><span class="v" id="reaper-specialty" style="text-align:right;text-shadow:none;font-weight:normal;font-size:9px;">--</span></div>
+                    <div class="stat-pair"><span class="k">SOULS CLAIMED</span><span class="v" id="reaper-kills">--</span></div>
+                    <div class="stat-pair"><span class="k">STRATA PATROLLED</span><span class="v" id="reaper-strata-count">--</span></div>
+                </div>
+            </div>
+            <div class="reaper-section-title">CASE FILE</div>
+            <div class="reaper-lore" id="reaper-lore">--</div>
+            <div class="reaper-section-title">RECENT ACTIVITY</div>
+            <div class="reaper-activity-list" id="reaper-activity"><!-- JS injects --></div>
+        </div>
+    </div>
+
+    <!-- REALITY EVENT BANNER -->
+    <div id="event-banner">
+        <div class="eb-flex">
+            <div class="eb-icon" id="eb-icon">★</div>
+            <div style="flex:1;min-width:0;">
+                <div class="eb-eyebrow" id="eb-eyebrow">EVENT</div>
+                <div class="eb-title" id="eb-title">--</div>
+                <div class="eb-subtitle" id="eb-subtitle">--</div>
             </div>
         </div>
     </div>
@@ -1108,6 +1268,12 @@
                     </button>
                     <button id="lens-btn" class="nav-mode-btn" onclick="toggleLensMode()">
                         <span><span class="ico">◎</span> REALITY LENS</span><span id="lens-btn-state">OFF</span>
+                    </button>
+                    <button id="reaper-registry-btn" class="nav-mode-btn" onclick="openReaperRegistry()" style="border-color:#aa44ff;color:#aa44ff;">
+                        <span><span class="ico">☠</span> REAPER REGISTRY</span><span id="reaper-registry-state">10</span>
+                    </button>
+                    <button id="cycle-btn" class="nav-mode-btn" onclick="advanceCycle()" style="border-color:#ffcc00;color:#ffcc00;">
+                        <span><span class="ico">⌛</span> ADVANCE CYCLE</span><span>EVENT</span>
                     </button>
                     
                 </div>
@@ -1465,6 +1631,101 @@
         const proceduralNames2 = ["Expanse", "Reach", "Sector", "Void", "Strata", "Grid", "Matrix", "Ruins", "Spire", "Vanguard"];
         const proceduralSubNodes = ["Sector Alpha", "Ruined Outpost", "Data Silo", "Scavenger Camp", "Plasma Rift", "Observation Deck", "Smuggler Den", "Derelict Hull", "Temporal Anomaly"];
 
+        // ===== REAPER LORE — Death's Custodians of the Soul Cycle =====
+        // CANON: Every reality has exactly ONE Reaper, born as the firstborn of that strata.
+        // Reaper power scales with |level| (further from Zero Point = greater authority).
+        // Reapers have no souls, show no emotion, carry a unique scythe forged from
+        // their mortal-soul memory, and may only reap souls they are contracted to.
+        // A Reaper's death cuts their reality off from the soul cycle — soul-parasites
+        // build up until the reality is torn apart (this is why DEAD REALITIES exist).
+        // A reality reborn gets a brand-new firstborn Reaper.
+
+        // Lore-canon named Reapers bound to specific notable strata
+        const NAMED_REAPER_BINDINGS = {
+            '0':   { name: 'Aurum, the Firstborn',   sigil: '⊕', specialty: "Death's own apprentice",                       backstory: "The first Reaper ever manifested. Death's own apprentice. Aurum's scythe was forged from a sliver of Death itself — the only Reaper weapon that can both kill and process a soul in a single motion. Aurum has never broken Reaper Law and never will." },
+            '2':   { name: 'Mordren-7',               sigil: '☠', specialty: 'Death-Tribunal Executor',                     backstory: "A senior arbiter of the Death Tribunal who carved his sigils into the Asphodel Plains. Mordren-7 enforces the Old Pact: souls whose ledgers balance are granted passage. The rest he unmakes with a precision some call mercy and others call cruelty." },
+            '-12': { name: 'Harrow-12',               sigil: '☥', specialty: 'Border Shepherd of the Training Plane',       backstory: "Harrow walks the contested fringe between Trigon and Reaper territories. She rarely speaks. When she does, the words rearrange themselves in the listener's skull until the right meaning settles in." },
+            '33':  { name: 'Thane-IX',                sigil: '⚖', specialty: 'Ascension Tribunal Speaker',                  backstory: "Thane-IX presides over upward souls of Trinity Leviticus. His judgments are televised on Centura News at peak viewership. He has never lost a case, and his closing arguments are studied across the strata." },
+            '-25': { name: 'Veilwing',                sigil: '✸', specialty: 'Soul-Smuggler of the Vault',                  backstory: "Veilwing trades favors with the Supremes Finest at Trigon Trading Hub — a violation no Reaper Law explicitly forbids, but every Reaper despises. She is wanted by the Reaper Hunters for trafficking souls the Death Tribunal had not yet released." },
+            '-66': { name: 'Sephira',                 sigil: '✶', specialty: 'Twin-Souled Empress of Sorrow',               backstory: "Once mortal, twice-killed, thrice-reborn. Sephira commands the Damnation Forge Plane and is feared by Soul Collectors. Her two voices speak in unison and contradiction — and both are correct." },
+            '-38': { name: 'Grim-3X',                 sigil: '✟', specialty: 'First-Death Officer',                          backstory: "Manifested only three cycles ago at Astra -38. Grim-3X handles the inexperienced — souls who didn't see their end coming. Often gentle, occasionally apologetic, always carrying a fresh ledger." },
+            '-50': { name: 'Siltbinder',              sigil: '✻', specialty: 'Cleanup of Forgotten Realities',               backstory: "Newly-formed and assigned the unglamorous work of the Sanguine Court: sweeping up after collapsed realities and Vamperica thrall-deaths. Siltbinder has a tally of every name they've filed away, and the tally bothers them." },
+            '99':  { name: 'Null-9',                  sigil: '⊛', specialty: 'Last Reaper of Peak Divinity',                 backstory: "Operates so close to the gods that her silhouette is sometimes mistaken for one. She delivers souls into the Centurion vaults and walks out lighter than air. Her scythe is folded sun-metal — it does not cut so much as it agrees with the world that the soul is ready." },
+            '-99': { name: 'Obolus-Δ',                sigil: '◈', specialty: 'Coin-Carrier of the Last Crossing',           backstory: "Obolus walks the Lovecraftian depths of The Abyssal Root, ferrying the unwilling and unwell. Pays in scars. The toll is steeper than mortals believe — but he has never lost a passenger." }
+        };
+
+        // Procedural Reaper name + scythe parts for the other ~189 strata
+        const REAPER_FIRST_PARTS = ['Mordren','Harrow','Grim','Sephira','Thane','Korax','Veilwing','Sloth','Null','Obol','Cresh','Marrow','Echtor','Pyx','Quill','Sallow','Wraith','Zinder','Helix','Vren','Iris','Cantor','Bellum','Hush','Pallor','Tenebris','Murk','Caul','Stoss','Vesper','Cresh','Halt','Wend','Threnody','Coda','Knell','Veil','Suth','Reek','Mir'];
+        const REAPER_SUF_PARTS = ['','-7','-12','-3X','-IX','-Δ','-9','-V','-Ω','-α','-13','-K','-77','-Σ','-2','-X','-Δ7','-Mark-II'];
+        const REAPER_EPITHETS = ['the Quiet','the Patient','of the Threshold','the Solemn','Pale-Handed','of the Hush','the Folded','Twice-Vowed','the Untouched','the Cold','of the Long Walk','the Ferryman','Bone-Footed','Shroud-Eyed','the Pale','of Last Whispers','the Mourner','of Stilled Wings','the Without','the Empty-Cup'];
+        const SCYTHE_FORMS = ['Crescent-Blade','Twin-Crescent','Hooked Glaive','Curved Sickle','Skeletal Pole-Edge','Obsidian Reapinghook','Crystal Reaper','Folded-Steel Crescent','Voidedge Scythe','Bone-Inlaid Hook','Mirror-Edge','Shard-Sickle','Singing Curve','Soundless Edge','Bloodglass Crescent','Twin-Fang Glaive'];
+        const REAPER_ORIGINS = ['a mortal warrior','an arcane scholar','an ascetic priestess','a farmer of the under-fields','a tribunal scribe','a ghost-walker child','an elderion vatborn','a dimensional courier','a siren-tongued bard','a centurion castaway','a watrari saboteur','a muggai junker','a vamperica thrall','a leviathan-priest'];
+        const REAPER_SIGILS = ['☠','☥','✟','✶','◈','⚖','◊','✸','⊛','✻','♰','♱','✝','⚚','✠','☥','✦'];
+        const REAPER_RECENT_TEMPLATES = [
+            "Processed a {n}-soul ledger drop overnight; no breaches reported.",
+            "Witnessed a Trigon merchant attempt to barter for a contracted soul. Refused. Soul delivered correctly.",
+            "Burned a malformed Soul Parasite from the strata's underflow. Hands shook slightly. Reaper Law requires no emotion.",
+            "Stood vigil at the Crossing for 41 cycles. No mortals approached.",
+            "Sent off a demon born of dark nature; the scythe sang afterward, as it always does.",
+            "Trained a younger Reaper from the +{n} strata on the proper Ferrying Stance.",
+            "Refused a Soul Contract offered by Veilwing. Filed report with the Death Tribunal."
+        ];
+
+        function getReaperRankByLevel(level) {
+            const a = Math.abs(level);
+            if (a >= 90) return 'SOUL-SOVEREIGN';
+            if (a >= 60) return 'GREATER REAPER';
+            if (a >= 30) return 'WANDERER REAPER';
+            if (a >= 10) return 'TRIBUNAL REAPER';
+            return 'APPRENTICE REAPER';
+        }
+
+        function generateReaperForStrata(level, isDead) {
+            const bound = NAMED_REAPER_BINDINGS[level];
+            let name, sigil, specialty, backstory, idBase;
+            if (bound) {
+                name = bound.name; sigil = bound.sigil;
+                specialty = bound.specialty; backstory = bound.backstory;
+                idBase = bound.name.split(',')[0].trim().toUpperCase().replace(/[^A-Z0-9-]/g, '-');
+            } else {
+                // Procedural via seeded RNG (deterministic per UNIVERSE_SEED + level)
+                const r = (n) => {
+                    const s = level * 31 + UNIVERSE_SEED * 17 + n * 5;
+                    return Math.abs(Math.sin(s)) * 9999 % 1;
+                };
+                const fi = Math.floor(r(1) * REAPER_FIRST_PARTS.length);
+                const si = Math.floor(r(2) * REAPER_SUF_PARTS.length);
+                const useEpithet = r(3) > 0.4;
+                const ei = Math.floor(r(4) * REAPER_EPITHETS.length);
+                const fn = REAPER_FIRST_PARTS[fi] + REAPER_SUF_PARTS[si];
+                name = useEpithet ? `${fn}, ${REAPER_EPITHETS[ei]}` : fn;
+                sigil = REAPER_SIGILS[Math.floor(r(5) * REAPER_SIGILS.length)];
+                const oi = Math.floor(r(6) * REAPER_ORIGINS.length);
+                specialty = `Custodian of Strata ${level > 0 ? '+'+level : level}`;
+                backstory = `Born of ${REAPER_ORIGINS[oi]} who died as firstborn of this reality. By Reaper Law, this is the only soul-territory they may reap from. Their scythe was shaped by the geometry of their mortal soul, and the markings on their faceless mask reflect that origin.`;
+                idBase = `R-${level}-${fi}${si}`;
+            }
+            const scytheIdx = Math.abs(level * 13 + (idBase.charCodeAt(0) || 0)) % SCYTHE_FORMS.length;
+            const seed = level * 47 + UNIVERSE_SEED;
+            const reaperKills = Math.floor((Math.abs(Math.sin(seed)) * 9999) % 99999);
+            return {
+                id: idBase,
+                name, sigil, specialty, backstory,
+                level,
+                rank: getReaperRankByLevel(level),
+                scythe: SCYTHE_FORMS[scytheIdx],
+                // CANON: every Reaper of every strata exists. Dead realities have a DECEASED reaper.
+                status: isDead ? 'DECEASED' : 'INTACT',
+                kills: reaperKills, // souls reaped this cycle
+                activity: [], // recent simulated events involving this Reaper
+                deathNote: isDead ? `Cause of strata collapse — Reaper died. Soul-parasites accumulated unchecked until the reality tore itself apart. The body of ${name} was never recovered.` : null
+            };
+        }
+        // The full registry — one Reaper per strata
+        const REAPER_REGISTRY = {};
+        // Player-side: which Reapers has the user opened a dossier for?
+        const REAPERS_MET = new Set();
+
         // Generate base procedural territory for ALL levels
         for(let i = -99; i <= 99; i++) {
             let faction = FACTIONS.UNCLAIMED;
@@ -1510,6 +1771,11 @@
             let isStable = !isDead && (faction !== FACTIONS.UNCLAIMED || Math.random() > 0.4);
             TERRITORY_DATA[i] = { title, faction, isDead, isStable };
 
+            // CANON: Each LAYER contains many realities. Higher |level| → fewer realities
+            // ("the weight of deeds gets harder to reach"). Approx exponential falloff.
+            // Realities themselves carry the Reapers — see POI-Reaper loop below.
+            TERRITORY_DATA[i].realityCount = Math.max(1, Math.round(9000 * Math.exp(-Math.abs(i) / 15)));
+
             // If a POI explicitly defines the reality for this strata, overwrite the procedural one
             if (POIS[i]) {
                 let realityPoi = POIS[i].find(p => p.isReality);
@@ -1518,11 +1784,49 @@
                         title: realityPoi.name, 
                         faction: realityPoi.faction, 
                         isDead: i === -66 || i === -99, 
-                        isStable: true 
+                        isStable: true,
+                        realityCount: TERRITORY_DATA[i].realityCount
                     };
                 }
             }
         }
+
+        // === Build the reality hierarchy + Reaper for every POI ===
+        // Per canon: each reality = Soul Plane → Universe → Galaxy → Solar System → Planet,
+        // and each reality has exactly one Reaper born of (or reborn into) it.
+        const SOUL_PLANE_NAMES = ['Asphodel Tier','Empyrean Strand','Threshold Mist','Veiled Choir','Stilled River','Ashen Procession','Hollow Crossing','Pall Antechamber','Coalescent Span','Twin-Wreath Spire','Tenebrous Veil','Quiet Furrow'];
+        const UNIVERSE_NAMES = ['Coriax-7','Theyra-IV','Mer\'Quill','Ven Sigma','Aeolus-12','Pall Maris','Tor-Helix','Iridian-3','Cendros Major','Vael-Prime','Helion-9','Mirror-Walk'];
+        const GALAXY_NAMES = ['Spiral-12','Ringed Ascendant','Bone Cluster','Twin-Spindle','Cold Wheel','Folded Disc','The Long Sweep','Sable Hub','Bright Coil','Pearl Vortex','Black Filigree'];
+        const SYSTEM_NAMES = ['Demos Sequence','Pyx Cradle','Iron Halo','Dim Pyre','Quiet Aubade','Threshold Star','Last Light','First Hush','Bloom Reach','Tower Star','Coda Beacon'];
+
+        function buildHierarchy(poi, level) {
+            const s = (poi.name.length * 41) + Math.abs(level) * 7 + (poi.name.charCodeAt(0) || 0);
+            const pick = (arr, n) => arr[Math.floor(Math.abs(Math.sin(s + n)) * 9999 % 1 * arr.length)];
+            return {
+                soulPlane: pick(SOUL_PLANE_NAMES, 1),
+                universe: pick(UNIVERSE_NAMES, 2),
+                galaxy: pick(GALAXY_NAMES, 3),
+                system: pick(SYSTEM_NAMES, 4),
+                planet: poi.name
+            };
+        }
+
+        // Assign one Reaper to every POI-reality + attach the nested hierarchy
+        Object.keys(POIS).forEach(lvlStr => {
+            const lvl = parseInt(lvlStr);
+            const layerIsDead = TERRITORY_DATA[lvl] ? TERRITORY_DATA[lvl].isDead : false;
+            POIS[lvlStr].forEach((poi, pIndex) => {
+                poi.hierarchy = buildHierarchy(poi, lvl);
+                // Reality is considered dead only if the LAYER is dead AND poi.isReality
+                // (multiple POIs at the same layer share death fate)
+                const realityIsDead = layerIsDead && poi.isReality;
+                const reaper = generateReaperForStrata(lvl, realityIsDead);
+                reaper.realityName = poi.name;
+                reaper.poiIndex = pIndex;
+                poi.reaper = reaper;
+                REAPER_REGISTRY[`${lvl}_${pIndex}`] = reaper;
+            });
+        });
 
         // Pseudo-random generator for procedural sublocations
         function getProceduralSublocations(level) {
@@ -3890,6 +4194,376 @@
             // Also disable telemetry reticle hover detection on mobile
             window.removeEventListener('mousemove', onMouseMove);
         }
+
+        // =============================================================
+        //  ITERATION 7 — REAPER LORE FEATURE
+        //  Per canon: 199 LAYERS in Creation, each layer holds many realities.
+        //  We render POIs as the lore-canon realities. Each reality = 5-level
+        //  hierarchy (Soul Plane → Universe → Galaxy → Solar System → Planet)
+        //  and is custodied by exactly one Reaper, born or reborn into it.
+        // =============================================================
+
+        // --- Reaper Dossier open/close ---
+        function openReaperDossier(reaper) {
+            if (!reaper) return;
+            REAPERS_MET.add(reaper.id);
+            document.getElementById('reaper-name').innerText = reaper.name;
+            document.getElementById('reaper-sigil').innerText = reaper.sigil;
+            document.getElementById('reaper-rank-pill').innerText = reaper.rank;
+            const statusEl = document.getElementById('reaper-status');
+            statusEl.innerText = reaper.status;
+            statusEl.className = 'v status-' + reaper.status.toLowerCase();
+            // Reality + layer breadcrumb
+            const layerLabel = (reaper.level > 0 ? '+' + reaper.level : reaper.level);
+            const realityLabel = reaper.realityName ? `${reaper.realityName} (Layer ${layerLabel})` : `Layer ${layerLabel}`;
+            document.getElementById('reaper-territory').innerText = realityLabel;
+            document.getElementById('reaper-specialty').innerText = reaper.specialty;
+            document.getElementById('reaper-kills').innerText = reaper.kills.toLocaleString();
+            document.getElementById('reaper-strata-count').innerText = `1 REALITY (CANON: 1 PER)`;
+            // Lore body, with canon scythe line
+            let lore = reaper.backstory + `<br><br><span style="color:#aa44ff;">Scythe Form:</span> ${reaper.scythe}. Forged from the geometry of their mortal soul; in The Endless it cuts, in a Reality it merely guides.`;
+            if (reaper.status === 'DECEASED' && reaper.deathNote) {
+                lore = `<span style="color:#ff6666;font-weight:bold;">★ DECEASED ★</span><br>${reaper.deathNote}<br><br>` + lore;
+            }
+            document.getElementById('reaper-lore').innerHTML = lore;
+
+            // Recent activity
+            const list = document.getElementById('reaper-activity');
+            if (reaper.activity.length === 0) {
+                list.innerHTML = `<div class="reaper-empty-log">// no recent dispatches logged //</div>`;
+            } else {
+                list.innerHTML = reaper.activity.slice().reverse().slice(0, 8).map(a =>
+                    `<div class="reaper-activity-item"><span class="time">CYCLE ${a.cycle}</span><span class="type ${a.type}">${a.type.toUpperCase()}</span><span class="text">${a.text}</span></div>`
+                ).join('');
+            }
+            document.getElementById('reaper-dossier').classList.add('open');
+            logMessage(`Reaper file accessed: ${reaper.name}.`, 'purple');
+            checkAchievements();
+        }
+        function closeReaperDossier() {
+            document.getElementById('reaper-dossier').classList.remove('open');
+        }
+
+        // --- Reaper Registry list mode: opens dossier panel showing ALL POI Reapers ---
+        function openReaperRegistry() {
+            // Pick the most "interesting" Reaper (least visited but discovered) to show
+            // first; otherwise the first POI Reaper at the current strata, otherwise the
+            // first in the registry.
+            const all = Object.values(REAPER_REGISTRY);
+            const lvl = GAME_STATE.currentLevel;
+            let target = (POIS[lvl] && POIS[lvl][0]) ? POIS[lvl][0].reaper : null;
+            if (!target) target = all.find(r => !REAPERS_MET.has(r.id)) || all[0];
+            if (target) openReaperDossier(target);
+            else logMessage('No Reapers in the registry yet.', 'normal');
+        }
+
+        // Inject a "VIEW REAPER" link into the strata databank lore + mini-target
+        // Hook into existing openLoreDatabank
+        const _origOpenLoreDatabank = openLoreDatabank;
+        openLoreDatabank = function(level, poiIndex = null) {
+            _origOpenLoreDatabank(level, poiIndex);
+            // After the lore body is set, prepend hierarchy + Reaper info for POIs,
+            // or layer summary for non-POI strata
+            setTimeout(() => {
+                const data = TERRITORY_DATA[level];
+                const poi = poiIndex !== null && POIS[level] ? POIS[level][poiIndex] : null;
+                const bodyEl = document.getElementById('lore-body');
+                if (!bodyEl) return;
+                let prefix = '';
+                if (poi && poi.hierarchy) {
+                    const h = poi.hierarchy;
+                    prefix += `<div style="background:rgba(0,0,0,0.4);border-left:3px solid #aa44ff;padding:10px;margin-bottom:14px;">
+                        <div style="font-size:9px;letter-spacing:4px;color:#aa44ff;margin-bottom:6px;">REALITY HIERARCHY</div>
+                        <div style="font-size:11px;line-height:1.7;color:#ddd;">
+                            <span style="color:#777;">SOUL PLANE</span> → ${h.soulPlane}<br>
+                            <span style="color:#777;">UNIVERSE</span> → ${h.universe}<br>
+                            <span style="color:#777;">GALAXY</span> → ${h.galaxy}<br>
+                            <span style="color:#777;">SOLAR SYSTEM</span> → ${h.system}<br>
+                            <span style="color:#777;">PLANET</span> → <span style="color:#fff;font-weight:bold;">${h.planet}</span>
+                        </div>
+                    </div>`;
+                }
+                if (poi && poi.reaper) {
+                    const r = poi.reaper;
+                    const statusColor = r.status === 'DECEASED' ? '#ff5555' : '#aa44ff';
+                    prefix += `<div style="background:rgba(170,68,255,0.08);border:1px solid rgba(170,68,255,0.4);padding:10px;margin-bottom:14px;">
+                        <div style="font-size:9px;letter-spacing:4px;color:#aa44ff;margin-bottom:4px;">REAPER OF THIS REALITY</div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div style="font-size:24px;color:${statusColor};text-shadow:0 0 8px currentColor;">${r.sigil}</div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:14px;font-weight:bold;color:#fff;text-shadow:0 0 6px ${statusColor};">${r.name}</div>
+                                <div style="font-size:10px;color:#aaaaff;">${r.rank} · ${r.status}</div>
+                            </div>
+                            <button onclick="openReaperDossier(POIS['${level}'][${poiIndex}].reaper)" style="background:rgba(170,68,255,0.2);border:1px solid #aa44ff;color:#aa44ff;font-size:10px;padding:6px 10px;cursor:pointer;font-family:'Share Tech Mono',monospace;letter-spacing:1px;">DOSSIER ▸</button>
+                        </div>
+                    </div>`;
+                } else if (!poi) {
+                    // Non-POI layer view: show the layer summary
+                    const realityWord = data.realityCount === 1 ? 'reality' : 'realities';
+                    prefix += `<div style="background:rgba(0,0,0,0.4);border-left:3px solid #00ffcc;padding:10px;margin-bottom:14px;">
+                        <div style="font-size:9px;letter-spacing:4px;color:#00ffcc;margin-bottom:6px;">LAYER SUMMARY</div>
+                        <div style="font-size:11px;line-height:1.6;color:#ddd;">
+                            Estimated <span style="color:#fff;font-weight:bold;">${data.realityCount.toLocaleString()} ${realityWord}</span> reside in this layer.<br>
+                            Per canon, every reality holds its own Reaper. Only locations of interest are charted by the Astrolabe — minor realities pass below scan resolution.
+                        </div>
+                    </div>`;
+                }
+                bodyEl.innerHTML = prefix + bodyEl.innerHTML;
+            }, 50);
+        };
+
+        // Surface a Reaper line in the mini-target popup
+        const _origShowMiniTarget = showMiniTarget;
+        showMiniTarget = function(level, isPOI, pIndex) {
+            _origShowMiniTarget(level, isPOI, pIndex);
+            const data = TERRITORY_DATA[level];
+            const poi = isPOI && POIS[level] ? POIS[level][pIndex] : null;
+            const subtitleEl = document.getElementById('mini-subtitle');
+            if (!subtitleEl) return;
+            const orig = subtitleEl.innerHTML;
+            if (poi && poi.reaper) {
+                const r = poi.reaper;
+                const color = r.status === 'DECEASED' ? '#ff5555' : '#aa44ff';
+                subtitleEl.innerHTML = orig + `<br><span style="font-size:10px;color:${color};letter-spacing:1px;cursor:pointer;border-bottom:1px dashed currentColor;" onclick="openReaperDossier(POIS['${level}'][${pIndex}].reaper)" class="reaper-inline-link">${r.sigil} REAPER: ${r.name}</span>`;
+            } else if (!poi) {
+                subtitleEl.innerHTML = orig + `<br><span style="font-size:10px;color:#888;">Layer holds ~${data.realityCount.toLocaleString()} realities</span>`;
+            }
+        };
+
+        // Make the Reaper line clickable inside the Soul Dossier
+        const _origOpenSoulDossier = openSoulDossier;
+        openSoulDossier = function(particleIndex) {
+            _origOpenSoulDossier(particleIndex);
+            const reaperEl = document.getElementById('soul-reaper');
+            if (!reaperEl) return;
+            const reaperName = reaperEl.innerText;
+            // Find a Reaper by name (closest by name across the REAPER_REGISTRY)
+            const match = Object.values(REAPER_REGISTRY).find(r => r.name === reaperName || r.id === reaperName);
+            if (match) {
+                reaperEl.classList.add('reaper-inline-link');
+                reaperEl.style.cursor = 'pointer';
+                reaperEl.onclick = () => openReaperDossier(match);
+            }
+        };
+
+        // Update mobile bottom-sheet to show Reaper for POI strata
+        const _origUpdateMobileFocus = updateMobileFocus;
+        updateMobileFocus = function() {
+            _origUpdateMobileFocus();
+            const lvl = GAME_STATE.currentLevel;
+            const poi = (POIS[lvl] && POIS[lvl][0]) ? POIS[lvl][0] : null;
+            const factionEl = document.getElementById('m-anchor-faction');
+            if (!factionEl) return;
+            if (poi && poi.reaper) {
+                const r = poi.reaper;
+                const color = r.status === 'DECEASED' ? '#ff5555' : '#aa44ff';
+                factionEl.innerHTML = `${TERRITORY_DATA[lvl].faction.name.toUpperCase()} · <span style="color:${color};cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation(); openReaperDossier(POIS['${lvl}'][0].reaper)">${r.sigil} ${r.name}</span>`;
+            }
+        };
+
+        // ----- REALITY EVENT CYCLES -----
+        let CYCLE_NUMBER = 1;
+        const ACTIVE_REALITIES_LIST = []; // for event-cycle targeting
+        Object.keys(POIS).forEach(lvlStr => {
+            const lvl = parseInt(lvlStr);
+            POIS[lvlStr].forEach((poi, pIndex) => {
+                ACTIVE_REALITIES_LIST.push({ level: lvl, poiIndex: pIndex });
+            });
+        });
+
+        function showEventBanner(type, title, subtitle, icon) {
+            const banner = document.getElementById('event-banner');
+            banner.className = ''; void banner.offsetWidth; // restart animation
+            banner.classList.add('type-' + type);
+            const eyebrow = {
+                birth: 'REALITY BIRTH · CYCLE ' + CYCLE_NUMBER,
+                death: 'REALITY DEATH · CYCLE ' + CYCLE_NUMBER,
+                coup:  'FACTION COUP · CYCLE ' + CYCLE_NUMBER,
+                shift: 'REAPER SHIFT · CYCLE ' + CYCLE_NUMBER
+            }[type] || 'EVENT';
+            document.getElementById('eb-eyebrow').innerText = eyebrow;
+            document.getElementById('eb-icon').innerText = icon;
+            document.getElementById('eb-title').innerText = title;
+            document.getElementById('eb-subtitle').innerText = subtitle;
+            requestAnimationFrame(() => banner.classList.add('active'));
+            setTimeout(() => banner.classList.remove('active'), 7000);
+        }
+
+        function flashStrata(level) {
+            const disc = discMeshes[level];
+            if (!disc) return;
+            const orig = disc.material.color.getHex();
+            disc.material.color.setHex(0xffffff);
+            const oldOpacity = disc.material.opacity;
+            disc.material.opacity = 1.0;
+            setTimeout(() => { disc.material.color.setHex(orig); disc.material.opacity = oldOpacity; }, 800);
+        }
+
+        function recordReaperActivity(reaper, type, text) {
+            reaper.activity.push({ cycle: CYCLE_NUMBER, type, text });
+            if (reaper.activity.length > 20) reaper.activity.shift();
+        }
+
+        // The 4 event types
+        function eventRealityBirth() {
+            // Pick a DEAD POI (its reaper is DECEASED) and re-birth it with a new Reaper
+            const candidates = ACTIVE_REALITIES_LIST.filter(({ level, poiIndex }) => {
+                const p = POIS[level][poiIndex]; return p.reaper.status === 'DECEASED';
+            });
+            if (!candidates.length) return null;
+            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+            const poi = POIS[pick.level][pick.poiIndex];
+            // Generate a brand-new firstborn Reaper for the reborn reality
+            const newReaper = generateReaperForStrata(pick.level, false);
+            newReaper.realityName = poi.name;
+            newReaper.poiIndex = pick.poiIndex;
+            poi.reaper = newReaper;
+            REAPER_REGISTRY[`${pick.level}_${pick.poiIndex}`] = newReaper;
+            recordReaperActivity(newReaper, 'birth', `Firstborn of newly-restored ${poi.name} (Layer ${pick.level > 0 ? '+'+pick.level : pick.level}). Death has called me into form.`);
+            // Strata visual: undead-ify
+            TERRITORY_DATA[pick.level].isDead = false;
+            TERRITORY_DATA[pick.level].isStable = true;
+            flashStrata(pick.level);
+            triggerCameraShake(0.4, 0.86);
+            showEventBanner('birth', `REALITY BIRTH AT ${poi.name.toUpperCase()}`,
+                `Layer ${pick.level > 0 ? '+'+pick.level : pick.level} · Reaper ${newReaper.name} is born to its custody.`, '✦');
+            logMessage(`REALITY BIRTH: ${poi.name} reborn. Reaper ${newReaper.name} (firstborn) installed.`, 'success');
+            return pick;
+        }
+
+        function eventRealityDeath() {
+            // Pick a non-dead POI and kill it
+            const candidates = ACTIVE_REALITIES_LIST.filter(({ level, poiIndex }) => {
+                const p = POIS[level][poiIndex]; return p.reaper.status !== 'DECEASED';
+            });
+            if (!candidates.length) return null;
+            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+            const poi = POIS[pick.level][pick.poiIndex];
+            poi.reaper.status = 'DECEASED';
+            poi.reaper.deathNote = `Lost during the ${CYCLE_NUMBER}th cycle. Soul-parasites have begun infesting the strata. The reality is now in slow collapse.`;
+            recordReaperActivity(poi.reaper, 'death', `${poi.reaper.name} fell. ${poi.name} is no longer processing souls.`);
+            TERRITORY_DATA[pick.level].isDead = true;
+            TERRITORY_DATA[pick.level].isStable = false;
+            flashStrata(pick.level);
+            triggerCameraShake(0.6, 0.9);
+            showEventBanner('death', `REAPER FALLS — ${poi.reaper.name}`,
+                `${poi.name} (Layer ${pick.level > 0 ? '+'+pick.level : pick.level}) is now cut off from the soul cycle. Soul-parasites accumulating.`, '☠');
+            logMessage(`REALITY DEATH: Reaper ${poi.reaper.name} of ${poi.name} has fallen.`, 'alert');
+            return pick;
+        }
+
+        function eventFactionCoup() {
+            // Pick a non-dead POI and shift faction
+            const candidates = ACTIVE_REALITIES_LIST.filter(({ level, poiIndex }) => {
+                const p = POIS[level][poiIndex]; return p.reaper.status !== 'DECEASED' && p.isReality;
+            });
+            if (!candidates.length) return null;
+            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+            const poi = POIS[pick.level][pick.poiIndex];
+            const factions = Object.values(FACTIONS).filter(f => f !== FACTIONS.UNCLAIMED && f !== poi.faction);
+            const newF = factions[Math.floor(Math.random() * factions.length)];
+            const oldName = poi.faction.name;
+            poi.faction = newF;
+            TERRITORY_DATA[pick.level].faction = newF;
+            recordReaperActivity(poi.reaper, 'coup', `${oldName} routed from ${poi.name}. ${newF.name} now claims dominion. The Reaper remained neutral, by Law.`);
+            // Update disc color
+            const disc = discMeshes[pick.level];
+            if (disc) disc.material.color.setHex(newF.color);
+            flashStrata(pick.level);
+            showEventBanner('coup', `FACTION COUP AT ${poi.name.toUpperCase()}`,
+                `${oldName} → ${newF.name}. Reaper ${poi.reaper.name} watches without comment, as Law demands.`, '⚔');
+            logMessage(`FACTION COUP: ${poi.name} now under ${newF.name}.`, 'normal');
+            return pick;
+        }
+
+        function eventReaperShift() {
+            // A random alive POI's Reaper rotates between WANDERING / BOUND statuses
+            const candidates = ACTIVE_REALITIES_LIST.filter(({ level, poiIndex }) => {
+                const p = POIS[level][poiIndex]; return p.reaper.status === 'INTACT';
+            });
+            if (!candidates.length) return null;
+            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+            const poi = POIS[pick.level][pick.poiIndex];
+            const moods = ['Reaping at peak efficiency.', 'Investigating a soul anomaly.', 'Refused a Soul Contract today.', 'Reported in to the Death Tribunal.', 'Training a younger Reaper.'];
+            const mood = moods[Math.floor(Math.random() * moods.length)];
+            recordReaperActivity(poi.reaper, 'shift', mood);
+            triggerCameraShake(0.2, 0.85);
+            showEventBanner('shift', `REAPER ACTIVITY: ${poi.reaper.name}`,
+                `${poi.name} (Layer ${pick.level > 0 ? '+'+pick.level : pick.level}) — ${mood}`, poi.reaper.sigil);
+            logMessage(`Reaper ${poi.reaper.name}: ${mood}`, 'purple');
+            return pick;
+        }
+
+        function advanceCycle() {
+            CYCLE_NUMBER++;
+            const roll = Math.random();
+            // Bias: more shifts + coups, rarer deaths + births
+            let result;
+            if (roll < 0.4) result = eventReaperShift();
+            else if (roll < 0.7) result = eventFactionCoup();
+            else if (roll < 0.88) result = eventRealityDeath();
+            else result = eventRealityBirth();
+            // Stat tracking
+            if (!GAME_STATE.eventsWitnessed) GAME_STATE.eventsWitnessed = 0;
+            if (!GAME_STATE.realityDeathsWitnessed) GAME_STATE.realityDeathsWitnessed = 0;
+            GAME_STATE.eventsWitnessed++;
+            if (result === null) { /* no candidates */ } 
+            // For death events specifically
+            if (typeof result === 'object' && result) {
+                // result is { level, poiIndex }
+            }
+            // Reaper Council achievement check
+            const poiReapers = Object.values(REAPER_REGISTRY);
+            GAME_STATE.reapersDiscovered = REAPERS_MET.size;
+            checkAchievements();
+            // Refresh mobile/desktop UI to reflect any color/status changes
+            updateUI(true);
+        }
+
+        // Auto-tick every 45s in the background
+        setInterval(advanceCycle, 45000);
+
+        // Wrap close handlers to ensure ESC closes reaper dossier too
+        const _origEscHandlerRD = function(){};
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('reaper-dossier').classList.contains('open')) {
+                closeReaperDossier();
+            }
+        });
+
+        // Add new achievements for Reapers
+        CODEX.push(
+            { id: 'reaper_first', icon: '☠', name: 'FIRST RITES', desc: 'Open your first Reaper dossier.', check: (s) => REAPERS_MET.size >= 1 },
+            { id: 'reaper_council', icon: '✶', name: 'REAPER COUNCIL', desc: 'Meet 8 distinct Reapers across The Endless.', check: (s) => REAPERS_MET.size >= 8, prog: (s) => `${REAPERS_MET.size}/8` },
+            { id: 'cycle_witness', icon: '⌛', name: 'CYCLE WITNESS', desc: 'Witness 5 reality-cycle events.', check: (s) => (s.eventsWitnessed || 0) >= 5, prog: (s) => `${s.eventsWitnessed || 0}/5` },
+            { id: 'harbinger',     icon: '★', name: 'HARBINGER',     desc: 'Witness 3 Reapers fall.', check: (s) => (s.realityDeathsWitnessed || 0) >= 3, prog: (s) => `${s.realityDeathsWitnessed || 0}/3` }
+        );
+        // Hook reality death event into Harbinger counter
+        const _origEventRealityDeath = eventRealityDeath;
+        eventRealityDeath = function() {
+            const r = _origEventRealityDeath();
+            if (r !== null) {
+                GAME_STATE.realityDeathsWitnessed = (GAME_STATE.realityDeathsWitnessed || 0) + 1;
+            }
+            return r;
+        };
+        // Update Reaper count display in nav-computer + mobile drawer
+        function refreshReaperCounts() {
+            const total = Object.keys(REAPER_REGISTRY).length;
+            const reg = document.getElementById('reaper-registry-state');
+            if (reg) reg.innerText = total;
+            const dr = document.getElementById('m-drawer-reaper-count');
+            if (dr) dr.innerText = `${REAPERS_MET.size}/${total}`;
+        }
+        const _origCheckAchievementsR = checkAchievements;
+        checkAchievements = function() {
+            _origCheckAchievementsR();
+            refreshReaperCounts();
+            renderCodex();
+        };
+        refreshReaperCounts();
+        renderCodex();
+        logMessage(`Reaper registry online — ${Object.keys(REAPER_REGISTRY).length} sworn custodians of the soul cycle.`, 'purple');
         function buildHoloModel(poi, data, color) {
             const group = new THREE.Group();
             const matWire = (c, o = 0.85) => new THREE.MeshBasicMaterial({ color: c, wireframe: true, transparent: true, opacity: o });

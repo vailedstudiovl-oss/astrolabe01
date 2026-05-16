@@ -361,15 +361,29 @@
 
         .codex-toast {
             position: fixed; bottom: 24px; right: 24px; z-index: 250;
-            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 18px;
+            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 14px 12px 18px;
             box-shadow: 0 0 30px rgba(0,255,204,0.5);
             transform: translateX(120%); transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             display: flex; gap: 12px; align-items: center; min-width: 240px;
+            max-width: calc(100vw - 24px);
+            pointer-events: none;  /* hidden by default */
+            cursor: pointer;
         }
-        .codex-toast.show { transform: translateX(0); }
-        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+        .codex-toast.show { transform: translateX(0); pointer-events: auto; }
+        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; flex-shrink: 0; }
         .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
         .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
+        .codex-toast .t-close {
+            background: transparent; border: 1px solid rgba(0,255,204,0.4);
+            color: #00ffcc; font-size: 16px; line-height: 1;
+            width: 28px; height: 28px; cursor: pointer;
+            font-family: inherit; padding: 0; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .codex-toast .t-close:hover, .codex-toast .t-close:active {
+            background: rgba(0,255,204,0.2); border-color: #00ffcc;
+        }
 
         /* --- Holo POI canvas inside databank diagram pane --- */
         #poi-holo-container {
@@ -1566,12 +1580,13 @@
     </div>
 
     <!-- ACHIEVEMENT TOAST -->
-    <div id="codex-toast" class="codex-toast">
+    <div id="codex-toast" class="codex-toast" onclick="hideAchievementToast(event)">
         <div class="t-icon" id="toast-icon">★</div>
-        <div>
+        <div style="flex:1;min-width:0;">
             <div class="t-label">ACHIEVEMENT UNLOCKED</div>
-            <div class="t-name" id="toast-name">--</div>
+            <div class="t-name" id="toast-name"></div>
         </div>
+        <button class="t-close" onclick="hideAchievementToast(event)" aria-label="Dismiss" title="Dismiss">×</button>
     </div>
 
     <!-- CINEMATIC TOUR OVERLAY -->
@@ -5636,17 +5651,45 @@
             renderCodex();
             newUnlocks.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 2200));
         }
+        let __toastTimer = null;
         function showAchievementToast(a) {
             // Bail out silently if there's no real achievement data (prevents
             // empty "ACHIEVEMENT UNLOCKED --" cards bleeding through the UI).
-            if (!a || !a.name || a.name === '--') return;
+            if (!a || !a.name || String(a.name).trim() === '' || String(a.name).trim() === '--') return;
             const toast = document.getElementById('codex-toast');
+            if (!toast) return;
+            // Clear any previous timer so a fresh achievement resets the 4.5 s window
+            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
             document.getElementById('toast-icon').innerText = a.icon || '★';
             document.getElementById('toast-name').innerText = a.name;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 4500);
-            logMessage(`ACHIEVEMENT: ${a.name}`, 'success');
+            __toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                __toastTimer = null;
+            }, 4500);
+            try { logMessage(`ACHIEVEMENT: ${a.name}`, 'success'); } catch (e) {}
         }
+        // Tap-to-dismiss / × close button handler — must be on window so the
+        // toast's inline onclick can find it.
+        window.hideAchievementToast = function(e) {
+            if (e) { try { e.stopPropagation(); } catch(_) {} }
+            const toast = document.getElementById('codex-toast');
+            if (toast) toast.classList.remove('show');
+            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
+        };
+        // Failsafe: if the page is hidden/restored, ensure no orphan toast lingers.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const t = document.getElementById('codex-toast');
+                if (t && t.classList.contains('show') && !__toastTimer) {
+                    // No active dismissal scheduled but toast is visible — re-arm.
+                    __toastTimer = setTimeout(() => {
+                        t.classList.remove('show');
+                        __toastTimer = null;
+                    }, 2500);
+                }
+            }
+        });
         function toggleCodex() {
             document.getElementById('codex-panel').classList.toggle('open');
             renderCodex();

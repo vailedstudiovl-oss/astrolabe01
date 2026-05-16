@@ -304,15 +304,29 @@
 
         .codex-toast {
             position: fixed; bottom: 24px; right: 24px; z-index: 250;
-            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 18px;
+            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 14px 12px 18px;
             box-shadow: 0 0 30px rgba(0,255,204,0.5);
             transform: translateX(120%); transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             display: flex; gap: 12px; align-items: center; min-width: 240px;
+            max-width: calc(100vw - 24px);
+            pointer-events: none;  /* hidden by default */
+            cursor: pointer;
         }
-        .codex-toast.show { transform: translateX(0); }
-        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+        .codex-toast.show { transform: translateX(0); pointer-events: auto; }
+        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; flex-shrink: 0; }
         .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
         .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
+        .codex-toast .t-close {
+            background: transparent; border: 1px solid rgba(0,255,204,0.4);
+            color: #00ffcc; font-size: 16px; line-height: 1;
+            width: 28px; height: 28px; cursor: pointer;
+            font-family: inherit; padding: 0; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .codex-toast .t-close:hover, .codex-toast .t-close:active {
+            background: rgba(0,255,204,0.2); border-color: #00ffcc;
+        }
 
         /* --- Holo POI canvas inside databank diagram pane --- */
         #poi-holo-container {

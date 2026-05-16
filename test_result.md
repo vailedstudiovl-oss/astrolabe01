@@ -189,7 +189,54 @@ backend:
           agent: "main"
           comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
 
-  - task: "Main Menu + 2 Mini-Games + Lore Expansion + Portable Bundle"
+  - task: "UI bug fixes + Music & video integration"
+    implemented: true
+    working: true
+    file: "backend/static/main_menu.html, backend/static/breach_defense.html, backend/static/astrolabe.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            BUG FIXES:
+            • Achievement toast was getting stuck on screen with "--" placeholder
+              and no way to dismiss. Fixed by: (1) adding a × close button, (2) the
+              whole toast is now tap-to-dismiss, (3) safer guard against empty
+              name strings (trimmed), (4) storing setTimeout id so successive
+              achievements properly reset the dismiss timer, (5) a visibilitychange
+              failsafe that re-arms the dismiss if the toast lingers after the page
+              regains focus. Toast also resets innerText so the literal "--" can
+              never bleed through.
+            • Main menu mobile overflow — three+ buttons were below the fold on
+              tall mobiles/tablets. Added: tight mobile media queries (lore block
+              max-height 26vh with feathered mask, compact splash, condensed
+              button padding), proper safe-area-inset-bottom respect, single-column
+              menu grid, html/body overflow-y:auto fallback.
+            MUSIC + VIDEO:
+            • User-supplied Theenderswar (instrumental) wired as the main menu /
+              ambient theme at /api/static/dimensionlock_theme.mp3 (5.7 MB, 192k
+              MP3 transcoded from the 62 MB WAV via ffmpeg). The menu's existing
+              audio system auto-detects and plays it on first user gesture.
+            • DL_Opening_Theme wired as the Reality Breach Defense soundtrack at
+              /api/static/dl_opening_theme.mp3 (2.4 MB) — auto-plays on first
+              click/tap with ♪ mute toggle.
+            • Two cinematic videos (fun_1.mp4 / aa_2.mp4) are now accessible from
+              a new fourth main-menu card "LORE ARCHIVES" that opens a modal
+              video player with FRAGMENT 01 / FRAGMENT 02 tabs, native HTML5
+              controls, ESC-to-close, click-outside-to-close. Pauses the menu
+              music during playback and resumes on close.
+            • Service worker bumped to v5 and pre-caches both MP3s.
+            • Updated /app/dist (28 files, 19.7 MB) and /app/portable/...zip (19.7
+              MB) — both include the music + videos. Portable bundle's PLAY.html
+              still drag-and-drop double-clickable.
+
+            Verified end-to-end via screenshot tool:
+              • Main menu mobile (390×750) — all 4 buttons visible, no overflow
+              • Main menu tablet (820×1180) — clean layout
+              • LORE ARCHIVES modal — opens, video player renders, tabs visible
+              • Breach Defense — music auto-plays on first click (currentTime > 0)
     implemented: true
     working: true
     file: "backend/static/main_menu.html, backend/static/breach_defense.html, backend/static/astrolabe.html, backend/scripts/build_portable.py"

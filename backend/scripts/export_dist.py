@@ -65,6 +65,11 @@ ASSETS = [
     "icon-512.png",
     "icon-maskable-512.png",
     "icon-apple.png",
+    # Music + video assets uploaded by the user
+    "dimensionlock_theme.mp3",
+    "dl_opening_theme.mp3",
+    "fun_1.mp4",
+    "aa_2.mp4",
 ]
 for asset in ASSETS:
     src = STATIC_DIR / asset

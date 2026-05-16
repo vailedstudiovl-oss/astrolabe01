@@ -6,7 +6,7 @@
 //   - stale-while-revalidate for cross-origin CDN assets (Three.js, Tailwind, Google Fonts)
 //     so the app launches offline once it has been opened once.
 
-const VERSION       = 'v4-2025-06-mainmenu';
+const VERSION       = 'v5-2025-06-music';
 const SHELL_CACHE   = `astrolabe-shell-${VERSION}`;
 const RUNTIME_CACHE = `astrolabe-runtime-${VERSION}`;
 const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;
@@ -26,6 +26,10 @@ const SHELL_ASSETS = [
   '/api/static/icon-512.png',
   '/api/static/icon-maskable-512.png',
   '/api/static/icon-apple.png',
+  // music + video (cached on demand by runtime strategy; listed here so they
+  // pre-cache on install for offline replay)
+  '/api/static/dimensionlock_theme.mp3',
+  '/api/static/dl_opening_theme.mp3',
 ];
 
 // Hostnames we want to cache cross-origin (stale-while-revalidate).

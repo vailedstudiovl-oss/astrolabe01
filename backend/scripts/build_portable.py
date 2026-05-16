@@ -55,6 +55,9 @@ ASSETS = [
     "config.js", "manifest.json", "dlds_splash.png",
     "reality_red.gif", "reality_violet.gif", "holo_projector.jpg",
     "icon-192.png", "icon-512.png", "icon-maskable-512.png", "icon-apple.png",
+    # User-supplied music + video assets (cached/bundled offline)
+    "dimensionlock_theme.mp3", "dl_opening_theme.mp3",
+    "fun_1.mp4", "aa_2.mp4",
 ]
 for a in ASSETS:
     src = STATIC_DIR / a

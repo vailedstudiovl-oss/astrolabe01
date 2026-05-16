@@ -3333,17 +3333,45 @@
             renderCodex();
             newUnlocks.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 2200));
         }
+        let __toastTimer = null;
         function showAchievementToast(a) {
             // Bail out silently if there's no real achievement data (prevents
             // empty "ACHIEVEMENT UNLOCKED --" cards bleeding through the UI).
-            if (!a || !a.name || a.name === '--') return;
+            if (!a || !a.name || String(a.name).trim() === '' || String(a.name).trim() === '--') return;
             const toast = document.getElementById('codex-toast');
+            if (!toast) return;
+            // Clear any previous timer so a fresh achievement resets the 4.5 s window
+            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
             document.getElementById('toast-icon').innerText = a.icon || '★';
             document.getElementById('toast-name').innerText = a.name;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 4500);
-            logMessage(`ACHIEVEMENT: ${a.name}`, 'success');
+            __toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                __toastTimer = null;
+            }, 4500);
+            try { logMessage(`ACHIEVEMENT: ${a.name}`, 'success'); } catch (e) {}
         }
+        // Tap-to-dismiss / × close button handler — must be on window so the
+        // toast's inline onclick can find it.
+        window.hideAchievementToast = function(e) {
+            if (e) { try { e.stopPropagation(); } catch(_) {} }
+            const toast = document.getElementById('codex-toast');
+            if (toast) toast.classList.remove('show');
+            if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
+        };
+        // Failsafe: if the page is hidden/restored, ensure no orphan toast lingers.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const t = document.getElementById('codex-toast');
+                if (t && t.classList.contains('show') && !__toastTimer) {
+                    // No active dismissal scheduled but toast is visible — re-arm.
+                    __toastTimer = setTimeout(() => {
+                        t.classList.remove('show');
+                        __toastTimer = null;
+                    }, 2500);
+                }
+            }
+        });
         function toggleCodex() {
             document.getElementById('codex-panel').classList.toggle('open');
             renderCodex();

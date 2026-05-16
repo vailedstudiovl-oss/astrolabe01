@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reality Breach Defense — Dimension Lock</title>
+
+    <link rel="manifest" href="/api/static/manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="/api/static/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/api/static/icon-apple.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background: #020608; color: #00ff88;
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        /* === STARFIELD + SCANLINES === */
+        #stars { position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(1.5px 1.5px at 18% 28%, rgba(0,255,136,0.6), transparent),
+                radial-gradient(1px 1px at 64% 72%, rgba(255,68,119,0.5), transparent),
+                radial-gradient(2px 2px at 80% 20%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 38% 84%, rgba(0,255,204,0.5), transparent),
+                radial-gradient(1.5px 1.5px at 70% 50%, rgba(180,120,255,0.45), transparent);
+            opacity: 0.55;
+            animation: stars-drift 80s linear infinite;
+        }
+        @keyframes stars-drift { from { transform: translateY(0); } to { transform: translateY(-30px); } }
+
+        #scanlines { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                rgba(0,255,136,0.035) 0px, rgba(0,255,136,0.035) 1px,
+                transparent 1px, transparent 3px);
+            mix-blend-mode: screen; opacity: 0.5;
+        }
+
+        /* === BACK BUTTON === */
+        .back-btn {
+            position: fixed; top: 16px; left: 16px; z-index: 100;
+            padding: 8px 14px;
+            background: rgba(0, 30, 25, 0.7);
+            border: 1px solid #00ff88; color: #00ff88;
+            font-family: inherit; font-size: 11px; letter-spacing: 3px;
+            text-decoration: none; cursor: pointer;
+            transition: all 0.18s;
+            backdrop-filter: blur(4px);
+        }
+        .back-btn:hover { background: #00ff88; color: #000; box-shadow: 0 0 16px rgba(0,255,136,0.5); }
+
+        /* === STAGE === */
+        #stage {
+            position: fixed; inset: 0; z-index: 10;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 60px 14px 14px;
+        }
+
+        .title {
+            font-size: 11px; letter-spacing: 5px;
+            color: rgba(0, 255, 136, 0.6);
+            margin-bottom: 4px;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+        }
+        .heading {
+            font-size: clamp(20px, 3.5vw, 28px);
+            letter-spacing: 5px;
+            color: #d4ffe5;
+            text-shadow: 0 0 14px rgba(0, 255, 136, 0.6);
+            margin: 0 0 14px;
+        }
+
+        .game-shell {
+            background: rgba(2, 10, 8, 0.94);
+            border: 1px solid #00ff88;
+            box-shadow: 0 0 36px rgba(0, 255, 136, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.6);
+            display: flex; flex-direction: column; align-items: center;
+            position: relative;
+            width: min(520px, 95vw);
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+
+        .game-header {
+            width: 100%; padding: 10px 16px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+            background: rgba(0, 255, 136, 0.05);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; letter-spacing: 3px;
+        }
+
+        .game-hud {
+            width: 100%; padding: 8px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 10px; letter-spacing: 2px; color: #b0e8d8;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        .game-hud .label { font-size: 9px; color: #666; letter-spacing: 2px; }
+        .game-hud .score   { color: #00ff88; font-size: 14px; }
+        .game-hud .shields { color: #ff4477; font-size: 13px; letter-spacing: 3px; }
+        .game-hud .hi      { color: #888; font-size: 10px; }
+
+        canvas#breach-canvas {
+            display: block;
+            background: #020810;
+            border-top: 1px solid rgba(0, 255, 136, 0.15);
+            border-bottom: 1px solid rgba(0, 255, 136, 0.15);
+            cursor: crosshair;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .instructions {
+            padding: 10px 16px 12px; font-size: 9px;
+            color: #556; letter-spacing: 2px;
+            text-align: center; line-height: 1.8;
+        }
+
+        .gameover {
+            display: none; position: absolute; inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            flex-direction: column; justify-content: center; align-items: center;
+            gap: 14px; z-index: 10;
+        }
+        .gameover.show { display: flex; }
+        .gameover h2 { font-size: 22px; letter-spacing: 6px; color: #ff4477; margin: 0; }
+        .gameover .go-score { font-size: 14px; color: #00ff88; letter-spacing: 3px; }
+        .gameover .go-hi { font-size: 11px; color: #888; letter-spacing: 2px; }
+        .gameover button {
+            margin-top: 6px; padding: 10px 28px;
+            font-family: inherit; font-size: 11px; letter-spacing: 3px;
+            background: transparent; border: 1px solid #00ff88; color: #00ff88;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .gameover button:hover { background: #00ff88; color: #000; }
+
+        .level-banner {
+            position: absolute; top: 44px; left: 50%; transform: translateX(-50%);
+            font-size: 12px; letter-spacing: 4px; color: #ffcc00;
+            pointer-events: none; opacity: 0; transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        .level-banner.show { opacity: 1; }
+
+        @media (max-width: 480px) {
+            #stage { padding-top: 56px; }
+            .heading { font-size: 18px; letter-spacing: 3px; }
+            .title { font-size: 9px; letter-spacing: 3px; }
+            .back-btn { font-size: 10px; padding: 6px 10px; letter-spacing: 2px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="stars"></div>
+    <div id="scanlines"></div>
+
+    <a class="back-btn" href="/api/astrolabe">◂ MENU</a>
+
+    <main id="stage">
+        <div class="title">▸ ARCADE :: STABILIZE THE 199 ◂</div>
+        <h1 class="heading">REALITY BREACH DEFENSE</h1>
+
+        <div class="game-shell">
+            <div class="game-header">
+                <span style="color:#00ff88">[ ENDLESS MODE ]</span>
+                <span style="color:#888">LEVEL <span id="lvl-display">1</span></span>
+            </div>
+
+            <div class="game-hud">
+                <div>
+                    <div class="label">SCORE</div>
+                    <div class="score" id="score">0</div>
+                </div>
+                <div style="text-align:center;">
+                    <div class="label">SHIELDS</div>
+                    <div class="shields" id="shields">♥ ♥ ♥</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="label">BEST</div>
+                    <div class="hi" id="hiscore">0</div>
+                </div>
+            </div>
+
+            <canvas id="breach-canvas" width="500" height="380"></canvas>
+
+            <div class="instructions">
+                CLICK / TAP RED REALITIES BEFORE THEY BREACH<br>
+                EACH BREACH COSTS A SHIELD · STABILIZE 10 TO LEVEL UP
+            </div>
+
+            <div class="gameover" id="gameover">
+                <h2>[ REALITY COLLAPSE ]</h2>
+                <div class="go-score" id="go-score">SCORE: 0</div>
+                <div class="go-hi"   id="go-hi">BEST: 0</div>
+                <button id="btn-restart">[ RESTART ]</button>
+                <a href="/api/astrolabe" style="margin-top:2px;padding:10px 28px;font-size:11px;letter-spacing:3px;border:1px solid #ff4477;color:#ff4477;text-decoration:none;">[ MAIN MENU ]</a>
+            </div>
+
+            <div class="level-banner" id="level-banner">▲ INSTABILITY RISING</div>
+        </div>
+    </main>
+
+    <script>
+    (function() {
+        'use strict';
+        const FACTION_COLORS = ['#00ffcc','#ff44cc','#ffcc00','#44aaff','#ff8844','#88ff44','#cc44ff','#ff4477'];
+        const ORB_COUNT = 10;
+        const SHIELD_MAX = 3;
+        const STABLE_SPAWN_INTERVAL_BASE = 2800;
+        const BREACH_WINDOW_BASE = 3500;
+
+        const canvas = document.getElementById('breach-canvas');
+        const ctx = canvas.getContext('2d');
+        let W, H;
+
+        let orbs = [], particles = [];
+        let score = 0, shields = SHIELD_MAX, hiScore = 0;
+        let stabilized = 0, diffLevel = 1, spawnTimer = 0, lastTime = 0;
+        let running = false, raf = null;
+
+        function resizeCanvas() {
+            const cssWidth = canvas.clientWidth;
+            const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            W = Math.round(cssWidth);
+            H = Math.round(cssWidth * 380 / 500);
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+            canvas.style.height = H + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function makeOrb(i) {
+            const r = 14 + Math.random() * 10;
+            return {
+                x: r + Math.random() * (W - r * 2),
+                y: r + Math.random() * (H - r * 2),
+                vx: (Math.random() - 0.5) * 0.9,
+                vy: (Math.random() - 0.5) * 0.9,
+                r,
+                color: FACTION_COLORS[i % FACTION_COLORS.length],
+                state: 'stable',
+                instableAt: 0,
+                breachWindow: BREACH_WINDOW_BASE,
+                pulse: 0,
+                id: i,
+            };
+        }
+
+        function startGame() {
+            hiScore = parseInt(localStorage.getItem('breach_hiscore') || '0', 10);
+            document.getElementById('hiscore').textContent = hiScore;
+            resizeCanvas();
+            orbs = Array.from({ length: ORB_COUNT }, (_, i) => makeOrb(i));
+            score = 0; shields = SHIELD_MAX; stabilized = 0; diffLevel = 1;
+            particles = []; spawnTimer = 0; lastTime = 0;
+            running = true;
+            updateHUD();
+            hideGameOver();
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(loop);
+        }
+
+        function stopGame() {
+            running = false;
+            if (raf) { cancelAnimationFrame(raf); raf = null; }
+        }
+
+        function loop(ts) {
+            if (!running) return;
+            const dt = lastTime ? Math.min(ts - lastTime, 80) : 16;
+            lastTime = ts;
+            update(dt, ts);
+            draw(ts);
+            raf = requestAnimationFrame(loop);
+        }
+
+        function update(dt, ts) {
+            const speed = 1 + (diffLevel - 1) * 0.25;
+            for (const o of orbs) {
+                o.x += o.vx * speed; o.y += o.vy * speed;
+                if (o.x - o.r < 0) { o.x = o.r; o.vx = Math.abs(o.vx); }
+                if (o.x + o.r > W) { o.x = W - o.r; o.vx = -Math.abs(o.vx); }
+                if (o.y - o.r < 0) { o.y = o.r; o.vy = Math.abs(o.vy); }
+                if (o.y + o.r > H) { o.y = H - o.r; o.vy = -Math.abs(o.vy); }
+                o.pulse = (o.pulse + dt * 0.006) % (Math.PI * 2);
+
+                if (o.state === 'stabilizing' && ts - o.instableAt > 400) o.state = 'stable';
+                if (o.state === 'unstable') {
+                    if (ts - o.instableAt > o.breachWindow) breach(o, ts);
+                }
+            }
+            spawnTimer += dt;
+            const interval = Math.max(800, STABLE_SPAWN_INTERVAL_BASE - (diffLevel - 1) * 250);
+            if (spawnTimer > interval) {
+                spawnTimer = 0;
+                const stableOrbs = orbs.filter(o => o.state === 'stable');
+                if (stableOrbs.length > 0) {
+                    const target = stableOrbs[Math.floor(Math.random() * stableOrbs.length)];
+                    target.state = 'unstable';
+                    target.instableAt = ts;
+                    target.breachWindow = Math.max(1200, BREACH_WINDOW_BASE - (diffLevel - 1) * 300);
+                }
+            }
+            particles = particles.filter(p => p.life > 0);
+            for (const p of particles) {
+                p.x += p.vx; p.y += p.vy;
+                p.life -= dt * 0.003;
+                p.vy += 0.05;
+            }
+        }
+
+        function breach(orb, ts) {
+            orb.state = 'stable';
+            shields--;
+            spawnParticles(orb.x, orb.y, '#ff4477', 18);
+            updateHUD();
+            if (shields <= 0) { gameOver(); return; }
+            orb.instableAt = ts;
+        }
+
+        function stabilize(orb, ts) {
+            orb.state = 'stabilizing';
+            orb.instableAt = ts;
+            score += 10;
+            stabilized++;
+            spawnParticles(orb.x, orb.y, '#00ffcc', 12);
+            updateHUD();
+            const newLevel = Math.floor(stabilized / 10) + 1;
+            if (newLevel > diffLevel) {
+                diffLevel = newLevel;
+                showLevelBanner();
+            }
+        }
+
+        function spawnParticles(x, y, color, n) {
+            for (let i = 0; i < n; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1 + Math.random() * 3;
+                particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1, color, life: 1 });
+            }
+        }
+
+        function draw(ts) {
+            ctx.clearRect(0, 0, W, H);
+            ctx.strokeStyle = 'rgba(0,255,136,0.04)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+            for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+            for (const p of particles) {
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            for (const o of orbs) {
+                const pulse = Math.sin(o.pulse);
+                if (o.state === 'unstable') {
+                    const elapsed = ts - o.instableAt;
+                    const progress = elapsed / o.breachWindow;
+                    const urgency = Math.min(1, progress * 1.4);
+                    const flickerAlpha = 0.6 + 0.4 * Math.sin(o.pulse * (4 + urgency * 6));
+
+                    const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r * 2.5);
+                    grad.addColorStop(0, `rgba(255,${Math.round(100 - urgency * 80)},${Math.round(40 - urgency * 40)},${0.5 * flickerAlpha})`);
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 2.5, 0, Math.PI * 2); ctx.fill();
+
+                    const startAngle = -Math.PI / 2;
+                    const endAngle = startAngle + (1 - progress) * Math.PI * 2;
+                    ctx.strokeStyle = `rgba(255,${Math.round(200 - urgency * 160)},0,0.95)`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 6, startAngle, endAngle); ctx.stroke();
+
+                    ctx.fillStyle = `rgba(255,${Math.round(80 - urgency * 60)},0,${0.85 * flickerAlpha})`;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = `rgba(255,100,0,${flickerAlpha})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `bold ${Math.round(o.r * 0.75)}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('!!', o.x, o.y);
+                } else if (o.state === 'stabilizing') {
+                    const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r * 2);
+                    grad.addColorStop(0, 'rgba(0,255,204,0.55)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = 'rgba(0,255,204,0.92)';
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = '#000';
+                    ctx.font = `bold ${Math.round(o.r * 0.65)}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('✓', o.x, o.y);
+                } else {
+                    const alpha = 0.15 + 0.05 * pulse;
+                    ctx.fillStyle = o.color.replace('#', 'rgba(').replace(/(..)(..)(..)/, (_, r, g, b) =>
+                        `${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},${alpha})`);
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = o.color + (Math.round((0.4 + 0.2 * pulse) * 255)).toString(16).padStart(2, '0');
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = o.color + 'aa';
+                    ctx.font = `${Math.round(o.r * 0.5)}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText((o.id + 1).toString(), o.x, o.y);
+                }
+            }
+
+            ctx.fillStyle = 'rgba(0,255,136,0.03)';
+            for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 2);
+        }
+
+        function updateHUD() {
+            document.getElementById('score').textContent = score;
+            const shieldStr = Array.from({ length: SHIELD_MAX }, (_, i) => i < shields ? '♥' : '♡').join(' ');
+            document.getElementById('shields').textContent = shieldStr;
+            hiScore = Math.max(hiScore, score);
+            document.getElementById('hiscore').textContent = hiScore;
+            document.getElementById('lvl-display').textContent = diffLevel;
+        }
+
+        function gameOver() {
+            running = false;
+            if (score > parseInt(localStorage.getItem('breach_hiscore') || '0', 10)) {
+                localStorage.setItem('breach_hiscore', score);
+                hiScore = score;
+            }
+            document.getElementById('go-score').textContent = 'SCORE: ' + score;
+            document.getElementById('go-hi').textContent = 'BEST: ' + hiScore;
+            document.getElementById('hiscore').textContent = hiScore;
+            document.getElementById('gameover').classList.add('show');
+        }
+
+        function hideGameOver() { document.getElementById('gameover').classList.remove('show'); }
+
+        function showLevelBanner() {
+            const el = document.getElementById('level-banner');
+            el.textContent = '▲ INSTABILITY RISING — LEVEL ' + diffLevel;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2000);
+        }
+
+        function handleClick(e) {
+            if (!running) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = W / rect.width, scaleY = H / rect.height;
+            let cx, cy;
+            if (e.touches) {
+                cx = (e.touches[0].clientX - rect.left) * scaleX;
+                cy = (e.touches[0].clientY - rect.top) * scaleY;
+            } else {
+                cx = (e.clientX - rect.left) * scaleX;
+                cy = (e.clientY - rect.top) * scaleY;
+            }
+            const ts = performance.now();
+            for (const o of orbs) {
+                if (o.state === 'unstable') {
+                    const dx = cx - o.x, dy = cy - o.y;
+                    if (dx * dx + dy * dy < (o.r + 8) * (o.r + 8)) {
+                        stabilize(o, ts);
+                        return;
+                    }
+                }
+            }
+        }
+
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); handleClick(e); }, { passive: false });
+        document.getElementById('btn-restart').addEventListener('click', startGame);
+        window.addEventListener('resize', () => {
+            if (running) { resizeCanvas(); }
+        });
+
+        // boot
+        startGame();
+    })();
+    </script>
+</body>
+</html>

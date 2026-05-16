@@ -45,15 +45,32 @@ async def root():
 
 
 @api_router.get("/astrolabe")
-async def astrolabe_terminal():
-    """Serves the lightweight Astrolabe INSTALLER LAUNCHER.
+async def astrolabe_main_menu():
+    """Serves the Dimension Lock MAIN MENU (new entry point).
 
-    The launcher (~12 KB) shows a cinematic install screen, downloads the
-    heavy game chunks (CSS, body HTML, engine.js) from /api/static/chunks/
-    with progress indicators, caches them in IndexedDB for instant
-    subsequent boots, then boots the game.
+    The main menu presents:
+      - ASTROLABE TERMINAL  → /api/astrolabe-game     (chunked launcher)
+      - REALITY BREACH DEFENSE → /api/breach-defense  (standalone arcade)
+      - READ THE COMIC → https://globalcomix.com/c/dimensionlock
+    Plus the Maytradalis / Death / Flybutt / Lurker lore intro and the
+    ambient Dimensionlock procedural theme (auto-falls-back to a custom
+    /api/static/dimensionlock_theme.mp3 if uploaded).
     """
+    html_path = ROOT_DIR / "static" / "main_menu.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
+@api_router.get("/astrolabe-game")
+async def astrolabe_game():
+    """Serves the chunked launcher that boots the 3D Astrolabe Terminal."""
     html_path = ROOT_DIR / "static" / "launcher.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
+@api_router.get("/breach-defense")
+async def breach_defense_standalone():
+    """Standalone Reality Breach Defense mini-game (fullscreen arcade)."""
+    html_path = ROOT_DIR / "static" / "breach_defense.html"
     return FileResponse(html_path, media_type="text/html")
 
 

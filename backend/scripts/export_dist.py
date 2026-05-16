@@ -11,14 +11,16 @@ backend URL.
 
 Layout:
     dist/
-    ├── index.html          ← root: redirects to /api/astrolabe
+    ├── index.html          ← root: redirects to /api/astrolabe (main menu)
     ├── _redirects          ← Netlify/Cloudflare Pages routing
     ├── _headers            ← service-worker scope header (Netlify)
     ├── netlify.toml        ← Netlify config (headers/redirects)
     ├── vercel.json         ← Vercel routing rewrites
     ├── DEPLOY.md           ← Deployment guide
     └── api/
-        ├── astrolabe.html  ← the launcher itself
+        ├── astrolabe.html       ← MAIN MENU (entry point)
+        ├── astrolabe-game.html  ← chunked launcher → 3D Astrolabe
+        ├── breach-defense.html  ← standalone arcade mini-game
         ├── service-worker.js
         └── static/
             ├── config.js
@@ -44,10 +46,12 @@ if DIST_DIR.exists():
     shutil.rmtree(DIST_DIR)
 (DIST_DIR / "api" / "static" / "chunks").mkdir(parents=True, exist_ok=True)
 
-# Copy launcher to /api/astrolabe.html  (so URL `/api/astrolabe` resolves natively)
-print("[3/6] Copying launcher + chunks + assets …")
-shutil.copy(STATIC_DIR / "launcher.html",   DIST_DIR / "api" / "astrolabe.html")
-shutil.copy(STATIC_DIR / "service-worker.js", DIST_DIR / "api" / "service-worker.js")
+# Copy main entry pages
+print("[3/6] Copying main menu + launcher + breach defense + chunks + assets …")
+shutil.copy(STATIC_DIR / "main_menu.html",       DIST_DIR / "api" / "astrolabe.html")
+shutil.copy(STATIC_DIR / "launcher.html",        DIST_DIR / "api" / "astrolabe-game.html")
+shutil.copy(STATIC_DIR / "breach_defense.html",  DIST_DIR / "api" / "breach-defense.html")
+shutil.copy(STATIC_DIR / "service-worker.js",    DIST_DIR / "api" / "service-worker.js")
 
 # Static assets
 ASSETS = [
@@ -89,11 +93,14 @@ print("[4/6] Writing routing helpers …")
 
 # Netlify / Cloudflare Pages routing — /_redirects file
 (DIST_DIR / "_redirects").write_text(
-    # Map clean path `/api/astrolabe` (no extension) → the actual .html file
-    "/api/astrolabe    /api/astrolabe.html   200\n"
-    "/api/astrolabe/   /api/astrolabe.html   200\n"
-    # SPA-style fallback so client routing works even if user refreshes a deep link
-    "/api/astrolabe/*  /api/astrolabe.html   200\n",
+    # Clean URL → .html file
+    "/api/astrolabe         /api/astrolabe.html         200\n"
+    "/api/astrolabe-game    /api/astrolabe-game.html    200\n"
+    "/api/breach-defense    /api/breach-defense.html    200\n"
+    # Trailing-slash variants
+    "/api/astrolabe/        /api/astrolabe.html         200\n"
+    "/api/astrolabe-game/   /api/astrolabe-game.html    200\n"
+    "/api/breach-defense/   /api/breach-defense.html    200\n",
     encoding="utf-8",
 )
 
@@ -104,6 +111,9 @@ print("[4/6] Writing routing helpers …")
     "  Cache-Control: no-cache\n"
     "\n"
     "/api/astrolabe*\n"
+    "  Cache-Control: no-cache\n"
+    "\n"
+    "/api/breach-defense*\n"
     "  Cache-Control: no-cache\n"
     "\n"
     "/api/static/config.js\n"
@@ -122,8 +132,13 @@ print("[4/6] Writing routing helpers …")
   status = 200
 
 [[redirects]]
-  from = "/api/astrolabe/*"
-  to   = "/api/astrolabe.html"
+  from = "/api/astrolabe-game"
+  to   = "/api/astrolabe-game.html"
+  status = 200
+
+[[redirects]]
+  from = "/api/breach-defense"
+  to   = "/api/breach-defense.html"
   status = 200
 
 [[headers]]
@@ -136,6 +151,11 @@ print("[4/6] Writing routing helpers …")
   for = "/api/astrolabe*"
   [headers.values]
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/api/breach-defense*"
+  [headers.values]
+    Cache-Control = "no-cache"
 """,
     encoding="utf-8",
 )
@@ -144,9 +164,12 @@ print("[4/6] Writing routing helpers …")
 (DIST_DIR / "vercel.json").write_text(json.dumps({
     "cleanUrls": False,
     "rewrites": [
-        {"source": "/api/astrolabe",   "destination": "/api/astrolabe.html"},
-        {"source": "/api/astrolabe/",  "destination": "/api/astrolabe.html"},
-        {"source": "/api/astrolabe/(.*)", "destination": "/api/astrolabe.html"},
+        {"source": "/api/astrolabe",        "destination": "/api/astrolabe.html"},
+        {"source": "/api/astrolabe-game",   "destination": "/api/astrolabe-game.html"},
+        {"source": "/api/breach-defense",   "destination": "/api/breach-defense.html"},
+        {"source": "/api/astrolabe/",       "destination": "/api/astrolabe.html"},
+        {"source": "/api/astrolabe-game/",  "destination": "/api/astrolabe-game.html"},
+        {"source": "/api/breach-defense/",  "destination": "/api/breach-defense.html"},
     ],
     "headers": [
         {
@@ -158,6 +181,10 @@ print("[4/6] Writing routing helpers …")
         },
         {
             "source": "/api/astrolabe(.*)",
+            "headers": [{"key": "Cache-Control", "value": "no-cache"}],
+        },
+        {
+            "source": "/api/breach-defense(.*)",
             "headers": [{"key": "Cache-Control", "value": "no-cache"}],
         },
     ],
@@ -234,15 +261,24 @@ to your backend while serving everything else from the static host.
 | File                                      | Size   | Purpose                              |
 |-------------------------------------------|--------|--------------------------------------|
 | `index.html`                              | 0.4 KB | Root redirect → /api/astrolabe       |
-| `api/astrolabe.html`                      | 28 KB  | The cinematic installer launcher     |
-| `api/static/config.js`                    | 1 KB   | ⚙️ Edit this to point at the backend  |
+| `api/astrolabe.html`                      | 22 KB  | 🌟 MAIN MENU (entry point)            |
+| `api/astrolabe-game.html`                 | 31 KB  | Chunked launcher → 3D Astrolabe      |
+| `api/breach-defense.html`                 | 22 KB  | Standalone arcade mini-game          |
+| `api/static/config.js`                    | 2 KB   | ⚙️ Edit this to point at the backend  |
 | `api/static/chunks/manifest.json`         | 0.3 KB | Chunk hash manifest                  |
-| `api/static/chunks/astrolabe.css`         | 72 KB  | Game UI styles                       |
-| `api/static/chunks/astrolabe-body.html`   | 53 KB  | Game DOM scaffold                    |
-| `api/static/chunks/astrolabe-engine.js`   | 300 KB | Three.js scene + game logic          |
+| `api/static/chunks/astrolabe.css`         | 75 KB  | Game UI styles                       |
+| `api/static/chunks/astrolabe-body.html`   | 54 KB  | Game DOM scaffold                    |
+| `api/static/chunks/astrolabe-engine.js`   | 316 KB | Three.js scene + game logic          |
 | `api/service-worker.js`                   | 5 KB   | PWA offline support                  |
 | `api/static/manifest.json`                | 1 KB   | PWA manifest                         |
+| `api/static/dimensionlock_theme.mp3`      | (opt)  | Your custom theme music (optional)   |
 | `api/static/*.png/.gif/.jpg`              | ~5 MB  | Icons, splash, reality animations    |
+
+## 🎵 Custom theme music (optional)
+
+The main menu plays a procedural Dimensionlock dirge by default. To use
+your own track, drop an MP3 file at `api/static/dimensionlock_theme.mp3`
+in the bundle — the menu auto-detects and uses it.
 """,
     encoding="utf-8",
 )

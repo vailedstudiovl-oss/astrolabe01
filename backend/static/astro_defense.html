@@ -1,4 +1,2291 @@
-// ==========================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dimension Lock: Deathly Stories — Astrolabe Terminal</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/api/static/manifest.json">
+    <meta name="theme-color" content="#00ffcc">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Astrolabe">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="/api/static/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/api/static/icon-apple.png">
+    <script>
+      // Register service worker (silent fail if unsupported). Auto-activate updates
+      // so users transparently upgrade from v1 → v2 etc.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/api/service-worker.js', { scope: '/api/' })
+            .then((reg) => {
+              console.log('[SW] Registered:', reg.scope);
+
+              // If a new SW is found, tell it to skipWaiting so it becomes active immediately.
+              const triggerUpdate = (worker) => {
+                if (!worker) return;
+                worker.addEventListener('statechange', () => {
+                  if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[SW] Update installed — activating new version.');
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              };
+
+              if (reg.waiting) triggerUpdate(reg.waiting);
+              reg.addEventListener('updatefound', () => triggerUpdate(reg.installing));
+
+              // When the active SW changes, reload once so the page is served by the new one.
+              let reloaded = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (reloaded) return;
+                reloaded = true;
+                console.log('[SW] Controller changed — reloading for fresh assets.');
+                // Give SW a tick to take over before reload
+                setTimeout(() => window.location.reload(), 50);
+              });
+            })
+            .catch((err) => console.warn('[SW] Registration failed:', err));
+        });
+      }
+    </script>
+    
+    <!-- CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #050505; 
+            background-image: url('/api/static/holo_projector.jpg');
+            background-size: cover;
+            background-position: center;
+            font-family: 'Share Tech Mono', monospace; 
+            color: #00ffcc; 
+            user-select: none;
+            touch-action: none;
+        }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        
+        .bg-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0;
+            background: rgba(10, 5, 20, 0.3); /* Slight dark/purple tint so UI pops over the bright clouds */
+            pointer-events: none;
+        }
+        
+        .interactive-panel { 
+            pointer-events: auto; background: rgba(10, 15, 20, 0.65); 
+            border: 1px solid rgba(0, 255, 204, 0.4); box-shadow: 0 0 15px rgba(0, 255, 204, 0.1); 
+            backdrop-filter: blur(8px); transition: background-color 0.3s, border-color 0.3s;
+        }
+        .interactive-panel:hover {
+            background: rgba(10, 15, 20, 0.95);
+            border: 1px solid #00ffcc;
+        }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.5); }
+        ::-webkit-scrollbar-thumb { background: #00ffcc; border-radius: 2px;}
+        
+        .scanline { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0, 255, 204, 0.1) 50%, rgba(0, 255, 204, 0.1)); 
+            background-size: 100% 4px; pointer-events: none; z-index: 20; opacity: 0.3; 
+        }
+        .btn-glitch:hover, .filter-btn:hover { 
+            background-color: #00ffcc; color: #000; box-shadow: 0 0 10px #00ffcc, inset 0 0 10px #000; cursor: pointer; 
+        }
+        .filter-btn.active { background-color: #00ffcc; color: #000; font-weight: bold; }
+        .text-glow { text-shadow: 0 0 5px currentColor; }
+        
+        /* Specific scrollbar for lore content */
+        .lore-scroll::-webkit-scrollbar { width: 6px; }
+        .lore-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.8); }
+        .lore-scroll::-webkit-scrollbar-thumb { background: #00ffcc; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #00ffcc; }
+
+        /* ============================================================
+           NEW: CINEMATIC SYSTEMS — Boot intro, Portal transitions,
+           Telemetry reticle, Intelligence ticker, Codex, Holo POI
+           ============================================================ */
+
+        /* --- Cinematic Boot Sequence — NEW: multi-phase with DLDS splash title --- */
+        #boot-overlay {
+            position: fixed; inset: 0; z-index: 9999; background: #000;
+            overflow: hidden;
+            transition: opacity 1.2s ease-out;
+        }
+        #boot-overlay::before {
+            /* Faint starfield backdrop */
+            content: ''; position: absolute; inset: 0; opacity: 0.6;
+            background:
+                radial-gradient(2px 2px at 12% 18%, #fff, transparent 60%),
+                radial-gradient(1px 1px at 87% 22%, #99ccff, transparent 60%),
+                radial-gradient(1.5px 1.5px at 33% 71%, #ffcccc, transparent 60%),
+                radial-gradient(1px 1px at 78% 84%, #fff, transparent 60%),
+                radial-gradient(2px 2px at 45% 50%, #fff, transparent 60%),
+                radial-gradient(1.5px 1.5px at 9% 88%, #aaeeff, transparent 60%),
+                radial-gradient(1px 1px at 62% 36%, #fff, transparent 60%);
+        }
+        .boot-stage {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 28px;
+        }
+        /* PHASE 1 — DLDS Splash Title */
+        .boot-splash-wrap {
+            opacity: 0; transform: scale(1.4); filter: blur(40px) brightness(2);
+            animation: bootSplashIn 1.6s 0.4s forwards cubic-bezier(0.16, 1, 0.3, 1),
+                       bootSplashGlow 2.5s 2.0s forwards ease-in-out,
+                       bootSplashOut 1.3s 4.2s forwards cubic-bezier(0.55, 0, 0.55, 1);
+            max-width: 88vw;
+        }
+        .boot-splash-wrap img {
+            width: 100%; max-width: 720px; height: auto;
+            filter: drop-shadow(0 0 30px rgba(0,255,204,0.4));
+        }
+        @keyframes bootSplashIn {
+            0% { opacity: 0; transform: scale(1.4); filter: blur(40px) brightness(2); }
+            60% { opacity: 1; filter: blur(0) brightness(1.2); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+        }
+        @keyframes bootSplashGlow {
+            0% { filter: drop-shadow(0 0 30px rgba(0,255,204,0.4)) brightness(1); }
+            50% { filter: drop-shadow(0 0 90px rgba(0,255,255,1)) drop-shadow(0 0 180px rgba(170,0,255,0.8)) brightness(1.5); }
+            100% { filter: drop-shadow(0 0 60px rgba(0,255,204,0.6)) brightness(1.2); }
+        }
+        @keyframes bootSplashOut {
+            0% { opacity: 1; transform: scale(1); filter: blur(0); }
+            50% { opacity: 1; transform: scale(0.8); filter: blur(2px) brightness(3); }
+            100% { opacity: 0; transform: scale(0.2); filter: blur(40px) brightness(0); }
+        }
+        /* PHASE 2 — Implosion-burst that bridges splash → projector */
+        .boot-burst {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 0; height: 0; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(0,255,255,0.8) 30%, rgba(170,0,255,0.6) 60%, transparent 100%);
+            opacity: 0;
+            animation: bootBurst 1.4s 4.6s forwards ease-out;
+            pointer-events: none;
+        }
+        @keyframes bootBurst {
+            0%   { opacity: 0; width: 0; height: 0; }
+            30%  { opacity: 1; width: 100vmax; height: 100vmax; }
+            100% { opacity: 0; width: 200vmax; height: 200vmax; filter: blur(50px); }
+        }
+        /* PHASE 3 — Projector & beam (now driven by Three.js boot scene) */
+        .boot-projector-stage {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: min(640px, 90vw); height: min(640px, 60vh);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0;
+            animation: bootProjectorFadeIn 1.2s 4.8s forwards ease-out;
+        }
+        #boot-projector-canvas {
+            width: 100%; height: 100%;
+            display: block;
+            filter: drop-shadow(0 0 30px rgba(0,255,204,0.5));
+        }
+        @keyframes bootProjectorFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        /* PHASE 4 — Status text */
+        .boot-text-stack {
+            position: absolute; bottom: 12vh; left: 50%; transform: translateX(-50%);
+            text-align: center; opacity: 0;
+            animation: bootTextIn 0.8s 6.7s forwards;
+        }
+        .boot-title { font-size: 14px; color: #00ffcc; letter-spacing: 6px; text-shadow: 0 0 8px #00ffcc; }
+        .boot-sub { font-size: 9px; color: #777; letter-spacing: 4px; margin-top: 6px; }
+        .boot-progress { width: 260px; max-width: 60vw; height: 2px; background: rgba(0,255,204,0.2); margin: 14px auto 0; overflow: hidden; }
+        .boot-progress::before {
+            content: ''; display: block; height: 100%; width: 0;
+            background: #00ffcc; box-shadow: 0 0 8px #00ffcc;
+            animation: bootProgress 1.4s 6.9s forwards linear;
+        }
+        @keyframes bootProjectorIn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(20px); }
+            50% { opacity: 1; filter: blur(0); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+        }
+        @keyframes bootBeamRise {
+            0% { opacity: 0; height: 0; }
+            100% { opacity: 1; height: 100%; }
+        }
+        @keyframes bootTextIn { to { opacity: 1; } }
+        @keyframes bootProgress { to { width: 100%; } }
+        .boot-fadeout { opacity: 0; pointer-events: none; }
+
+        /* Skip Intro button (top-right of boot overlay) */
+        #boot-skip-btn {
+            position: absolute; top: calc(24px + env(safe-area-inset-top, 0));
+            right: 24px; z-index: 10000;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace; font-size: 10px;
+            letter-spacing: 3px; padding: 8px 14px; cursor: pointer;
+            transition: all .15s; opacity: 0;
+            animation: bootSkipIn .6s 1.4s forwards;
+            min-height: 36px;
+        }
+        #boot-skip-btn:hover {
+            background: #00ffcc; color: #000;
+            box-shadow: 0 0 12px rgba(0,255,204,0.6);
+        }
+        #boot-skip-btn:active { transform: scale(0.95); }
+        @keyframes bootSkipIn { to { opacity: 0.85; } }
+
+        /* --- Reality Portal Transition (used when opening databanks) --- */
+        #portal-overlay {
+            position: fixed; inset: 0; z-index: 95;
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 70%);
+            opacity: 0;
+            transition: opacity 0.35s ease-in;
+        }
+        #portal-overlay.active { opacity: 1; }
+        #portal-vortex {
+            width: 100vmin; height: 100vmin;
+            background-size: cover; background-position: center;
+            mix-blend-mode: screen; filter: brightness(1.4) contrast(1.2);
+            transform: scale(0.2); opacity: 0;
+            transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s;
+            border-radius: 50%;
+        }
+        #portal-overlay.active #portal-vortex {
+            transform: scale(2.2) rotate(45deg); opacity: 1;
+        }
+        #portal-label {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 18px; letter-spacing: 6px; font-weight: bold;
+            color: #fff; text-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+            opacity: 0; transition: opacity 0.3s 0.3s; white-space: nowrap;
+        }
+        #portal-overlay.active #portal-label { opacity: 1; }
+
+        /* --- Hover Telemetry Reticle --- */
+        #telemetry-reticle {
+            position: fixed; pointer-events: none; z-index: 30;
+            width: 120px; height: 120px;
+            transform: translate(-50%, -50%);
+            opacity: 0; transition: opacity 0.2s ease-out;
+        }
+        #telemetry-reticle.visible { opacity: 0.95; }
+        .reticle-ring {
+            position: absolute; inset: 0; border: 1px dashed #00ffcc;
+            border-radius: 50%; animation: reticleSpin 6s linear infinite;
+        }
+        .reticle-ring.inner { inset: 22%; border-style: solid; border-width: 1px; opacity: 0.6; animation-direction: reverse; animation-duration: 4s; }
+        .reticle-corner {
+            position: absolute; width: 12px; height: 12px;
+            border-color: #00ffcc; border-style: solid; border-width: 0;
+        }
+        .reticle-corner.tl { top: -2px; left: -2px; border-top-width: 2px; border-left-width: 2px; }
+        .reticle-corner.tr { top: -2px; right: -2px; border-top-width: 2px; border-right-width: 2px; }
+        .reticle-corner.bl { bottom: -2px; left: -2px; border-bottom-width: 2px; border-left-width: 2px; }
+        .reticle-corner.br { bottom: -2px; right: -2px; border-bottom-width: 2px; border-right-width: 2px; }
+        .reticle-data {
+            position: absolute; left: 130%; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.85); border-left: 2px solid #00ffcc;
+            padding: 8px 12px; min-width: 180px;
+            font-size: 10px; letter-spacing: 2px; color: #00ffcc;
+            white-space: nowrap;
+        }
+        .reticle-data .r-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+        .reticle-data .r-key { color: #666; }
+        .reticle-data .r-val { color: #fff; text-shadow: 0 0 4px currentColor; }
+        @keyframes reticleSpin { to { transform: rotate(360deg); } }
+
+        /* --- Intelligence Feed Ticker --- */
+        #intel-bar {
+            position: relative; overflow: hidden; height: 22px;
+            background: rgba(0,0,0,0.4); border-top: 1px solid rgba(0,255,204,0.25); border-bottom: 1px solid rgba(0,255,204,0.25);
+            font-size: 10px; letter-spacing: 1px;
+        }
+        #intel-bar::before {
+            content: 'INTEL ▶'; position: absolute; left: 0; top: 0; height: 100%;
+            display: flex; align-items: center; padding: 0 10px;
+            background: #00ffcc; color: #000; font-weight: bold; font-size: 9px; letter-spacing: 2px;
+            z-index: 2; box-shadow: 4px 0 8px rgba(0,255,204,0.5);
+        }
+        #intel-ticker {
+            display: flex; gap: 60px; padding-left: 70px; height: 100%; align-items: center;
+            animation: intelScroll 60s linear infinite;
+            white-space: nowrap; width: max-content;
+        }
+        .intel-item { color: #d0d0d0; }
+        .intel-item .tag { color: #00ffcc; font-weight: bold; margin-right: 6px; }
+        .intel-item.alert .tag { color: #ff4444; }
+        .intel-item.trade .tag { color: #ffcc00; }
+        .intel-item.shadow .tag { color: #ff8800; }
+        @keyframes intelScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* --- Achievement Codex --- */
+        #codex-btn {
+            position: absolute; top: 2px; right: 110px;
+            z-index: 50; cursor: pointer;
+        }
+        @media (min-width: 768px) { #codex-btn { top: 12px; right: 140px; } }
+        #codex-panel {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 200; width: 95%; max-width: 700px; max-height: 80vh;
+            background: rgba(10, 15, 20, 0.97); border: 2px solid #00ffcc;
+            box-shadow: 0 0 40px rgba(0,255,204,0.4); display: none; flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+        #codex-panel.open { display: flex; }
+        .codex-header { padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .codex-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .codex-badge {
+            border: 1px solid #333; padding: 12px; background: rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 4px;
+            transition: all 0.3s;
+        }
+        .codex-badge.unlocked { border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.3); background: rgba(0,255,204,0.05); }
+        .codex-badge.unlocked .badge-icon { color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+        .badge-icon { font-size: 22px; color: #444; }
+        .badge-name { font-size: 12px; font-weight: bold; color: #fff; letter-spacing: 1px; }
+        .badge-desc { font-size: 9px; color: #888; line-height: 1.4; }
+        .badge-progress { font-size: 9px; color: #00ffcc; margin-top: 4px; font-family: monospace; }
+
+        .codex-toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 250;
+            background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 18px;
+            box-shadow: 0 0 30px rgba(0,255,204,0.5);
+            transform: translateX(120%); transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            display: flex; gap: 12px; align-items: center; min-width: 240px;
+        }
+        .codex-toast.show { transform: translateX(0); }
+        .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
+        .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
+        .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
+
+        /* --- Holo POI canvas inside databank diagram pane --- */
+        #poi-holo-container {
+            position: absolute; inset: 0; z-index: 5;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: radial-gradient(ellipse at center bottom, rgba(0,255,204,0.15) 0%, transparent 60%);
+        }
+        #poi-holo-canvas { width: 100%; height: 100%; display: block; }
+        .holo-platform-label {
+            position: absolute; bottom: 14px; left: 0; right: 0; text-align: center;
+            font-size: 10px; letter-spacing: 4px; color: #00ffcc;
+            text-shadow: 0 0 6px #00ffcc; opacity: 0.85;
+        }
+        .holo-mode-toggle {
+            position: absolute; top: 12px; right: 12px; z-index: 12;
+            background: rgba(0,0,0,0.7); border: 1px solid #00ffcc;
+            color: #00ffcc; padding: 4px 10px; font-size: 9px; letter-spacing: 2px;
+            cursor: pointer; transition: all 0.2s;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .holo-mode-toggle:hover { background: #00ffcc; color: #000; }
+
+        /* =================================================
+           ITERATION 3 — Tour · Soul · Lens · Sub-Lore
+           ================================================= */
+
+        /* --- Cinematic Tour Narration Overlay --- */
+        #tour-overlay {
+            position: fixed; bottom: 12%; left: 50%; transform: translateX(-50%);
+            z-index: 80; pointer-events: none; opacity: 0;
+            transition: opacity 0.5s ease-out;
+            width: 92%; max-width: 720px;
+            text-align: center;
+        }
+        #tour-overlay.active { opacity: 1; pointer-events: auto; }
+        .tour-card {
+            background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,30,30,0.75) 100%);
+            border: 1px solid #00ffcc; border-left: 4px solid #00ffcc;
+            padding: 16px 24px; box-shadow: 0 0 30px rgba(0,255,204,0.3);
+            backdrop-filter: blur(10px);
+        }
+        .tour-eyebrow { font-size: 9px; letter-spacing: 5px; color: #00ffcc; margin-bottom: 6px; opacity: 0.8; }
+        .tour-title { font-size: 22px; color: #fff; letter-spacing: 3px; text-shadow: 0 0 10px currentColor; line-height: 1.1; }
+        .tour-faction { font-size: 10px; color: #888; letter-spacing: 2px; margin-top: 4px; }
+        .tour-body { font-size: 12px; color: #d0d0d0; margin-top: 12px; line-height: 1.6; min-height: 60px; }
+        .tour-body .typer-cursor { animation: typerBlink 0.7s steps(2) infinite; color: #00ffcc; }
+        @keyframes typerBlink { to { opacity: 0; } }
+        .tour-progress {
+            display: flex; justify-content: center; gap: 4px; margin-top: 14px; font-size: 9px; color: #666;
+        }
+        .tour-controls {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            z-index: 82; display: flex; gap: 8px;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        #tour-overlay.active ~ .tour-controls { opacity: 1; pointer-events: auto; }
+        .tour-controls button {
+            background: rgba(0,0,0,0.8); color: #00ffcc; border: 1px solid #00ffcc;
+            padding: 6px 14px; font-size: 10px; letter-spacing: 2px;
+            cursor: pointer; font-family: 'Share Tech Mono', monospace;
+            transition: all 0.2s;
+        }
+        .tour-controls button:hover { background: #00ffcc; color: #000; }
+        .tour-controls button.danger { border-color: #ff4444; color: #ff4444; }
+        .tour-controls button.danger:hover { background: #ff4444; color: #000; }
+
+        /* --- Soul Dossier Modal --- */
+        #soul-dossier {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 110; width: 92%; max-width: 480px;
+            background: rgba(5,10,15,0.97); border: 2px solid #00ffff;
+            box-shadow: 0 0 40px rgba(0,255,255,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(8px);
+            color: #fff; font-size: 12px;
+        }
+        #soul-dossier.open { display: flex; }
+        .soul-header { padding: 14px 18px; border-bottom: 1px solid #00ffff; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .soul-header h3 { color: #00ffff; letter-spacing: 3px; font-size: 18px; text-shadow: 0 0 8px currentColor; }
+        .soul-header .sub { font-size: 9px; color: #666; letter-spacing: 3px; margin-bottom: 4px; }
+        .soul-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+        .soul-vis {
+            height: 80px; position: relative; background: linear-gradient(180deg, #002233 0%, #110033 100%);
+            border: 1px solid rgba(0,255,255,0.3); overflow: hidden;
+        }
+        .soul-vis .light-side, .soul-vis .dark-side {
+            position: absolute; top: 0; bottom: 0; width: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 9px; letter-spacing: 2px;
+        }
+        .soul-vis .light-side { left: 0; color: #ffffaa; background: linear-gradient(90deg, rgba(255,255,150,0.15), transparent); }
+        .soul-vis .dark-side { right: 0; color: #aa44ff; background: linear-gradient(-90deg, rgba(170,68,255,0.15), transparent); }
+        .soul-vis .soul-marker {
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 18px; height: 18px; border-radius: 50%;
+            background: radial-gradient(circle, #fff 0%, #00ffff 70%, transparent 100%);
+            box-shadow: 0 0 12px #00ffff;
+            animation: soulPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes soulPulse { 50% { transform: translate(-50%, -50%) scale(1.3); box-shadow: 0 0 24px #00ffff; } }
+        .soul-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(0,255,255,0.15); }
+        .soul-row .k { color: #555; font-size: 10px; letter-spacing: 2px; }
+        .soul-row .v { color: #fff; text-shadow: 0 0 4px currentColor; }
+        .soul-memories {
+            margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.4); border-left: 2px solid #00ffff;
+            font-style: italic; color: #aaa; font-size: 11px; line-height: 1.5;
+        }
+
+        /* --- Reality Lens (volumetric magnifier) --- */
+        #reality-lens {
+            position: fixed; width: 240px; height: 240px;
+            pointer-events: none; z-index: 35;
+            transform: translate(-50%, -50%); opacity: 0;
+            transition: opacity 0.2s, width 0.3s, height 0.3s;
+        }
+        #reality-lens.visible { opacity: 1; }
+        #reality-lens.locked { pointer-events: auto; }
+        .lens-frame {
+            position: absolute; inset: 0; border-radius: 50%;
+            border: 2px solid #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.6), inset 0 0 30px rgba(0,255,204,0.3);
+            overflow: hidden; background: #000;
+        }
+        .lens-vortex {
+            position: absolute; inset: -20%; background-size: cover; background-position: center;
+            animation: lensSpin 8s linear infinite;
+            opacity: 0.55; filter: brightness(1.4) saturate(1.3);
+        }
+        .lens-content {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 8px;
+        }
+        .lens-mini-canvas { width: 100px; height: 100px; }
+        .lens-title { font-size: 11px; color: #fff; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 6px #000, 0 0 4px #000; }
+        .lens-faction { font-size: 9px; letter-spacing: 2px; text-shadow: 0 0 6px #000; }
+        .lens-status { font-size: 8px; letter-spacing: 3px; color: #00ffcc; margin-top: 4px; text-shadow: 0 0 6px #000; }
+        .lens-strata-label {
+            position: absolute; top: -22px; left: 0; right: 0; text-align: center;
+            font-size: 10px; letter-spacing: 4px; color: #00ffcc; text-shadow: 0 0 6px #00ffcc;
+        }
+        @keyframes lensSpin { to { transform: rotate(360deg); } }
+
+        /* Mode toggle buttons inside nav-computer */
+        .nav-mode-btn {
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #00ffcc; padding: 4px 8px;
+            font-size: 9px; letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
+            font-family: 'Share Tech Mono', monospace; background: transparent; color: #00ffcc;
+        }
+        .nav-mode-btn:hover { background: rgba(0,255,204,0.15); }
+        .nav-mode-btn.on { background: #00ffcc; color: #000; font-weight: bold; }
+        .nav-mode-btn .ico { font-size: 11px; }
+
+        /* --- Sub-location Dossier modal --- */
+        #subloc-dossier {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 115; width: 92%; max-width: 440px;
+            background: rgba(0,5,10,0.97); border: 2px solid #ffcc00;
+            box-shadow: 0 0 35px rgba(255,204,0,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(8px);
+            color: #fff;
+        }
+        #subloc-dossier.open { display: flex; }
+        .subloc-header { padding: 14px 18px; border-bottom: 1px solid #ffcc00; display: flex; justify-content: space-between; align-items: flex-start; }
+        .subloc-header h3 { color: #ffcc00; letter-spacing: 3px; font-size: 16px; text-shadow: 0 0 8px currentColor; }
+        .subloc-header .sub { font-size: 9px; color: #666; letter-spacing: 3px; }
+        .subloc-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+        .subloc-tag { display: inline-block; font-size: 9px; letter-spacing: 2px; padding: 2px 8px; background: rgba(255,204,0,0.15); border: 1px solid #ffcc00; color: #ffcc00; align-self: flex-start; }
+        .subloc-desc { color: #d0d0d0; line-height: 1.6; font-size: 12px; }
+        .subloc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .subloc-stat { background: rgba(0,0,0,0.4); border-left: 2px solid #ffcc00; padding: 6px 10px; }
+        .subloc-stat .k { font-size: 8px; letter-spacing: 2px; color: #666; }
+        .subloc-stat .v { font-size: 13px; color: #fff; font-weight: bold; text-shadow: 0 0 4px currentColor; }
+        .subloc-flavor {
+            background: rgba(0,0,0,0.5); padding: 10px; font-style: italic; color: #aaa;
+            border-left: 2px solid #ffcc00; font-size: 11px; line-height: 1.5;
+        }
+
+        /* =============================================================
+           PAUSE MENU — Graphics + Audio settings + Quit
+           ============================================================= */
+        #pause-menu-backdrop {
+            position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity .25s ease;
+        }
+        #pause-menu-backdrop.open { display: flex; opacity: 1; }
+        /* Hide transient notifications + bottom-sheet clutter behind the pause menu */
+        body.pause-menu-open #codex-panel,
+        body.pause-menu-open .codex-toast,
+        body.pause-menu-open .m-codex-toast,
+        body.pause-menu-open #intel-ticker,
+        body.pause-menu-open #achievement-toast,
+        body.pause-menu-open .reality-event-banner,
+        body.pause-menu-open #m-codex-badge { display: none !important; }
+        body.pause-menu-open .m-sheet,
+        body.pause-menu-open .m-topbar,
+        body.pause-menu-open .m-fab-cluster { opacity: 0; pointer-events: none; transition: opacity .2s; }
+        #pause-menu {
+            width: min(92vw, 480px); max-height: 88vh; overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: linear-gradient(160deg, rgba(0,15,20,0.98), rgba(5,5,15,0.98));
+            border: 2px solid #00ffcc; box-shadow: 0 0 38px rgba(0,255,204,0.45), inset 0 0 40px rgba(0,255,204,0.05);
+            color: #d0fff0;
+            transform: scale(0.95) translateY(8px);
+            transition: transform .28s cubic-bezier(.2,1.4,.4,1);
+        }
+        #pause-menu-backdrop.open #pause-menu { transform: scale(1) translateY(0); }
+        .pause-header {
+            padding: 14px 18px; border-bottom: 1px solid #00ffcc;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,204,0.06);
+            position: sticky; top: 0; z-index: 2;
+        }
+        .pause-header h3 {
+            font-size: 16px; letter-spacing: 6px; color: #00ffcc; font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,255,204,0.6);
+        }
+        .pause-close {
+            background: transparent; border: 1px solid #ff4477; color: #ff4477;
+            padding: 4px 10px; font-size: 11px; letter-spacing: 2px; cursor: pointer;
+            transition: all .15s; font-family: inherit;
+        }
+        .pause-close:hover { background: #ff4477; color: #000; }
+        .pause-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 16px; }
+        .pause-section-title {
+            font-size: 9px; letter-spacing: 4px; color: #888; margin-bottom: 4px;
+            border-bottom: 1px dashed rgba(0,255,204,0.2); padding-bottom: 4px;
+        }
+        .pause-row {
+            display: grid; grid-template-columns: 1fr auto; gap: 10px;
+            align-items: center; padding: 4px 0;
+        }
+        .pause-row .lbl { font-size: 11px; color: #b0e8d8; letter-spacing: 1.5px; }
+        .pause-row .val { font-size: 10px; color: #00ffcc; min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+        .pause-slider {
+            grid-column: 1 / -1;
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 4px; background: rgba(0,255,204,0.18);
+            border: 1px solid rgba(0,255,204,0.35); outline: none; cursor: pointer;
+        }
+        .pause-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 22px; height: 22px; background: #00ffcc;
+            border: 1px solid #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.7);
+            cursor: pointer; border-radius: 0;
+        }
+        .pause-slider::-moz-range-thumb {
+            width: 22px; height: 22px; background: #00ffcc;
+            border: 1px solid #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.7);
+            cursor: pointer; border-radius: 0;
+        }
+        .pause-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: transparent; border: 1px solid rgba(0,255,204,0.5);
+            color: #b0e8d8; padding: 4px 12px; cursor: pointer; font-family: inherit;
+            font-size: 10px; letter-spacing: 2px; transition: all .15s;
+            min-height: 32px; min-width: 56px;
+        }
+        .pause-toggle.on { background: #00ffcc; color: #000; border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.6); }
+        .pause-toggle:active { transform: scale(0.96); }
+        .pause-actions {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-top: 6px;
+        }
+        .pause-btn {
+            padding: 10px; background: rgba(0,255,204,0.08);
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: inherit; font-size: 11px; letter-spacing: 3px;
+            cursor: pointer; transition: all .15s; min-height: 44px;
+        }
+        .pause-btn:hover { background: #00ffcc; color: #000; }
+        .pause-btn.danger { border-color: #ff4477; color: #ff4477; background: rgba(255,68,119,0.05); }
+        .pause-btn.danger:hover { background: #ff4477; color: #000; }
+        .pause-btn:active { transform: scale(0.97); }
+        .pause-preset-row {
+            display: flex; gap: 6px; margin-top: 4px;
+        }
+        .pause-preset-row button {
+            flex: 1; padding: 8px 4px; font-size: 9px; letter-spacing: 2px;
+            background: transparent; border: 1px solid rgba(0,255,204,0.4);
+            color: #b0e8d8; cursor: pointer; font-family: inherit; transition: all .15s;
+            min-height: 36px;
+        }
+        .pause-preset-row button:hover { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; }
+
+        /* Pause / Settings button in desktop HUD (top-right area) */
+        #pause-btn {
+            position: fixed; top: 14px; right: 250px; z-index: 60;
+            background: rgba(0,0,0,0.7); border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace; font-size: 11px;
+            letter-spacing: 2px; padding: 6px 12px; cursor: pointer;
+            transition: all .15s;
+        }
+        #pause-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) { #pause-btn { display: none; } }
+
+        /* === MOBILE: Slide-up full-height sheet so the whole menu is always reachable === */
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
+            #pause-menu-backdrop {
+                align-items: stretch;       /* let the sheet stretch full height */
+                justify-content: center;
+                padding: 0;
+            }
+            #pause-menu {
+                width: 100%;
+                max-width: 100%;
+                max-height: 100vh;
+                height: 100vh;
+                border-left: none; border-right: none; border-top: none;
+                border-bottom: none;
+                box-shadow: 0 -4px 40px rgba(0,255,204,0.35);
+                padding-top: env(safe-area-inset-top, 0);
+                padding-bottom: env(safe-area-inset-bottom, 0);
+                transform: translateY(40px);
+            }
+            #pause-menu-backdrop.open #pause-menu { transform: translateY(0); }
+            .pause-header {
+                padding: 12px 14px;
+                /* Add a drag-handle visual cue */
+            }
+            .pause-header::before {
+                content: ''; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+                width: 44px; height: 4px; background: rgba(0,255,204,0.4); border-radius: 2px;
+            }
+            .pause-header h3 { font-size: 13px; letter-spacing: 4px; }
+            .pause-body { padding: 12px 14px 28px; gap: 12px; }
+            .pause-row { padding: 2px 0; }
+            .pause-row .lbl { font-size: 11px; }
+            .pause-section-title { font-size: 9px; }
+            .pause-preset-row button { font-size: 9px; padding: 8px 2px; min-height: 38px; }
+            /* Bigger toggle hit-areas */
+            .pause-toggle { min-height: 38px; min-width: 64px; font-size: 11px; padding: 6px 14px; }
+            /* Bigger slider thumbs already applied (22px) */
+            .pause-btn { padding: 12px 6px; font-size: 11px; min-height: 48px; }
+            .pause-actions { gap: 8px; }
+        }
+
+        /* =============================================================
+           PHASE D — COMMUNITY MODALS (lore contributions + universe saves)
+           ============================================================= */
+        .community-modal-backdrop {
+            position: fixed; inset: 0; z-index: 350;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity .25s ease;
+        }
+        .community-modal-backdrop.open { display: flex; opacity: 1; }
+        .community-modal {
+            width: min(94vw, 560px); max-height: 88vh; overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: linear-gradient(160deg, rgba(0,15,20,0.98), rgba(5,5,15,0.98));
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 38px rgba(0,255,204,0.45), inset 0 0 40px rgba(0,255,204,0.05);
+            color: #d0fff0;
+            transform: scale(0.95);
+            transition: transform .25s cubic-bezier(.2,1.4,.4,1);
+        }
+        .community-modal-backdrop.open .community-modal { transform: scale(1); }
+        .community-modal-header {
+            padding: 14px 18px; border-bottom: 1px solid #00ffcc;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,204,0.06);
+            position: sticky; top: 0; z-index: 2;
+        }
+        .community-modal-header h3 {
+            font-size: 14px; letter-spacing: 4px; color: #00ffcc; font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,255,204,0.6);
+        }
+        .community-modal-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+        .community-modal-body label {
+            font-size: 9px; letter-spacing: 3px; color: #888; display: block; margin-bottom: 4px;
+        }
+        .community-modal-body input[type="text"],
+        .community-modal-body textarea {
+            width: 100%; background: rgba(0,0,0,0.55); border: 1px solid rgba(0,255,204,0.45);
+            color: #d0fff0; font-family: inherit; font-size: 13px; padding: 8px 10px;
+            outline: none; transition: border-color .15s;
+        }
+        .community-modal-body input[type="text"]:focus,
+        .community-modal-body textarea:focus { border-color: #00ffcc; }
+        .community-modal-body textarea { min-height: 130px; resize: vertical; line-height: 1.5; }
+        .community-modal-body .counter { font-size: 10px; color: #666; text-align: right; margin-top: 2px; letter-spacing: 1px; }
+        .community-modal-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 6px; }
+        .community-btn {
+            padding: 10px; background: rgba(0,255,204,0.08);
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: inherit; font-size: 11px; letter-spacing: 3px;
+            cursor: pointer; transition: all .15s; min-height: 44px;
+        }
+        .community-btn.primary { background: #00ffcc; color: #000; }
+        .community-btn.primary:hover { box-shadow: 0 0 12px rgba(0,255,204,0.7); }
+        .community-btn.cancel { border-color: #888; color: #888; }
+        .community-btn.cancel:hover { border-color: #ff4477; color: #ff4477; }
+        .community-btn:active { transform: scale(0.97); }
+
+        /* Wanderer ID badge */
+        .wid-badge {
+            display: inline-block; padding: 2px 8px;
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: inherit; font-size: 10px; letter-spacing: 2px;
+            background: rgba(0,255,204,0.08);
+        }
+
+        .saves-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+        .saves-tab {
+            flex: 1; padding: 6px; font-size: 10px; letter-spacing: 2px;
+            background: transparent; border: 1px solid rgba(0,255,204,0.4);
+            color: #b0e8d8; cursor: pointer; font-family: inherit; transition: all .15s;
+        }
+        .saves-tab.active { background: rgba(0,255,204,0.18); color: #00ffcc; border-color: #00ffcc; }
+
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
+            .community-modal-backdrop { align-items: stretch; padding: 0; }
+            .community-modal {
+                width: 100%; max-width: 100%; height: 100vh; max-height: 100vh;
+                border-left: none; border-right: none; border-top: none; border-bottom: none;
+            }
+            .community-modal-actions { grid-template-columns: 1fr; }
+        }
+
+        /* =============================================================
+           ITERATION 6 — MOBILE UI OVERHAUL (touch-first redesign)
+           ============================================================= */
+        :root { --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px); }
+
+        #mobile-ui-layer { display: none; }
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
+            #mobile-ui-layer { display: block; }
+            /* Hide all desktop panels & telemetry on mobile */
+            #ui-layer { display: none !important; }
+            #seed-pill, #codex-btn, #ui-toggle-btn { display: none !important; }
+            #telemetry-reticle, #reality-lens { display: none !important; }
+            .scanline { background-size: 100% 6px; opacity: 0.18; }
+        }
+
+        /* --- Mobile Top Bar --- */
+        .m-topbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 52px;
+            padding-top: var(--safe-top);
+            background: linear-gradient(180deg, rgba(0,5,10,0.95) 0%, rgba(0,5,10,0.7) 100%);
+            border-bottom: 1px solid rgba(0,255,204,0.4);
+            z-index: 45; display: flex; align-items: center; gap: 8px;
+            padding-left: 12px; padding-right: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .m-topbar .m-burger {
+            width: 36px; height: 36px; flex-shrink: 0;
+            background: rgba(0,255,204,0.08); border: 1px solid #00ffcc;
+            color: #00ffcc; font-size: 16px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .m-topbar .m-burger:active { background: #00ffcc; color: #000; }
+        .m-topbar .m-focus { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .m-topbar .m-eyebrow { font-size: 8px; letter-spacing: 4px; color: #666; text-transform: uppercase; }
+        .m-topbar .m-title { font-size: 11px; letter-spacing: 1.5px; color: #00ffcc; text-shadow: 0 0 5px currentColor; font-weight: bold; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+        .m-topbar .m-seed {
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(0,255,204,0.4);
+            color: #00ffcc; font-size: 9px; letter-spacing: 1px; padding: 6px 8px;
+            display: flex; align-items: center; gap: 4px; cursor: pointer;
+            font-family: 'Share Tech Mono', monospace; flex-shrink: 0;
+        }
+        .m-topbar .m-seed:active { background: #00ffcc; color: #000; }
+        .m-topbar .m-seed .m-seed-val { color: #fff; font-weight: bold; }
+
+        /* --- Mobile FAB Cluster (right side, vertical) --- */
+        .m-fab-cluster {
+            position: fixed; right: 8px; top: calc(60px + var(--safe-top));
+            z-index: 45;
+            display: flex; flex-direction: column; gap: 8px;
+            /* Keep cluster within viewport even on tiny / landscape devices */
+            max-height: calc(100vh - 80px - var(--safe-top) - var(--safe-bottom));
+            overflow-y: auto; overflow-x: hidden;
+            scrollbar-width: none;
+        }
+        .m-fab-cluster::-webkit-scrollbar { display: none; }
+        .m-fab {
+            width: 44px; height: 44px; border-radius: 8px;
+            background: rgba(0,5,10,0.85); border: 1px solid rgba(0,255,204,0.5);
+            color: #00ffcc; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; transition: all 0.15s;
+            backdrop-filter: blur(8px);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .m-fab:active { background: #00ffcc; color: #000; transform: scale(0.92); }
+        .m-fab.on { background: #00ffcc; color: #000; box-shadow: 0 0 12px rgba(0,255,204,0.6); }
+        .m-fab .m-badge {
+            position: absolute; top: -4px; right: -4px;
+            background: #ffcc00; color: #000; font-size: 9px; font-weight: bold;
+            min-width: 16px; height: 16px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 4px;
+        }
+
+        /* --- Mobile Bottom Sheet --- */
+        .m-sheet {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            padding-bottom: var(--safe-bottom);
+            background: linear-gradient(0deg, rgba(0,5,10,0.97) 0%, rgba(0,5,10,0.85) 100%);
+            border-top: 1px solid #00ffcc; box-shadow: 0 -2px 20px rgba(0,255,204,0.2);
+            z-index: 44;
+            transform: translateY(0); transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            backdrop-filter: blur(10px);
+        }
+        .m-sheet.expanded { transform: translateY(0); }
+        .m-sheet .m-handle {
+            display: flex; flex-direction: column; align-items: center; padding: 6px 0; cursor: pointer;
+        }
+        .m-sheet .m-handle .m-handle-bar {
+            width: 36px; height: 3px; background: rgba(0,255,204,0.5); border-radius: 2px;
+        }
+        .m-sheet .m-handle .m-handle-label {
+            font-size: 8px; letter-spacing: 3px; color: #666; margin-top: 4px;
+        }
+        .m-sheet-body { padding: 4px 16px 16px; }
+        .m-sheet-row {
+            display: flex; align-items: center; gap: 8px; padding: 6px 0;
+            border-bottom: 1px dashed rgba(0,255,204,0.15);
+        }
+        .m-sheet-row .lbl { font-size: 9px; color: #555; letter-spacing: 2px; width: 60px; flex-shrink: 0; }
+        .m-sheet-row .val { font-size: 12px; color: #fff; flex: 1; text-shadow: 0 0 4px currentColor; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .m-sheet-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+        .m-sheet-btn {
+            background: rgba(0,255,204,0.08); border: 1px solid #00ffcc; color: #00ffcc;
+            padding: 10px 4px; font-size: 10px; letter-spacing: 1.5px; cursor: pointer;
+            font-family: 'Share Tech Mono', monospace; font-weight: bold;
+            transition: all 0.15s; text-align: center;
+        }
+        .m-sheet-btn:active { background: #00ffcc; color: #000; }
+        .m-sheet-btn.primary { background: rgba(0,255,204,0.18); }
+        .m-sheet-expand { display: none; overflow: hidden; max-height: 0; transition: max-height 0.4s ease-out; }
+        .m-sheet.expanded .m-sheet-expand { display: block; max-height: 280px; }
+        .m-sheet-section-header {
+            font-size: 8px; letter-spacing: 3px; color: #666; margin-top: 12px; margin-bottom: 4px;
+            border-bottom: 1px solid #222; padding-bottom: 3px;
+        }
+        .m-intel-strip {
+            height: 22px; overflow: hidden; position: relative;
+            border: 1px solid rgba(0,255,204,0.2); margin-top: 6px;
+        }
+        .m-intel-strip-inner {
+            display: flex; gap: 32px; padding-left: 8px; height: 100%; align-items: center;
+            animation: intelScroll 60s linear infinite; white-space: nowrap; width: max-content;
+            font-size: 9px;
+        }
+        .m-logs { max-height: 100px; overflow-y: auto; font-size: 10px; line-height: 1.5; padding: 4px 0; }
+        .m-logs > div { margin-bottom: 2px; }
+
+        /* --- Mobile Drawer (slide-in from left) --- */
+        .m-drawer-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 46; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .m-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+        .m-drawer {
+            position: fixed; top: 0; bottom: 0; left: 0; width: 86%; max-width: 380px;
+            background: linear-gradient(180deg, rgba(0,5,10,0.98) 0%, rgba(5,10,20,0.98) 100%);
+            border-right: 2px solid #00ffcc; box-shadow: 4px 0 30px rgba(0,255,204,0.25);
+            z-index: 47;
+            transform: translateX(-105%); transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex; flex-direction: column;
+            padding-top: var(--safe-top);
+        }
+        .m-drawer.open { transform: translateX(0); }
+        .m-drawer-header {
+            padding: 14px 16px; border-bottom: 1px solid rgba(0,255,204,0.3);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .m-drawer-header .title { font-size: 14px; letter-spacing: 4px; color: #00ffcc; font-weight: bold; }
+        .m-drawer-close {
+            background: transparent; color: #ff5555; border: 1px solid #ff5555;
+            width: 32px; height: 32px; cursor: pointer; font-size: 14px;
+        }
+        .m-drawer-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+        .m-drawer-section { margin-bottom: 18px; }
+        .m-drawer-section-title { font-size: 9px; letter-spacing: 3px; color: #666; margin-bottom: 6px; }
+        .m-drawer-search-wrap { position: relative; margin-bottom: 12px; }
+        .m-drawer-search {
+            width: 100%; background: rgba(0,0,0,0.6); color: #00ffcc;
+            border: 1px solid #00ffcc; padding: 10px 12px; font-size: 12px;
+            font-family: 'Share Tech Mono', monospace; outline: none; letter-spacing: 1.5px;
+        }
+        .m-drawer-search:focus { box-shadow: 0 0 12px rgba(0,255,204,0.4); }
+        .m-drawer-search::placeholder { color: #555; }
+        .m-drawer-results {
+            margin-top: 4px; border: 1px solid rgba(0,255,204,0.3);
+            max-height: 200px; overflow-y: auto; display: none;
+        }
+        .m-drawer-results.open { display: block; }
+        .m-drawer-btn {
+            width: 100%; padding: 12px; font-size: 11px; letter-spacing: 2px;
+            background: rgba(0,255,204,0.05); border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace; cursor: pointer; text-align: left;
+            margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;
+            transition: all 0.15s;
+        }
+        .m-drawer-btn:active, .m-drawer-btn.active { background: #00ffcc; color: #000; }
+        .m-drawer-btn.dead { border-color: #ff5555; color: #ff5555; }
+        .m-drawer-btn.dead:active, .m-drawer-btn.dead.active { background: #ff5555; color: #000; }
+        .m-drawer-btn.stable { border-color: #00aaff; color: #00aaff; }
+        .m-drawer-btn.stable:active, .m-drawer-btn.stable.active { background: #00aaff; color: #000; }
+        .m-drawer-btn .badge-state { font-size: 9px; font-weight: bold; }
+
+        .m-faction-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;
+        }
+        .m-faction-chip {
+            display: flex; align-items: center; gap: 6px; padding: 7px 8px;
+            border: 1px solid; background: rgba(0,0,0,0.4);
+            font-size: 9px; letter-spacing: 1px; cursor: pointer;
+            transition: all 0.15s;
+            overflow: hidden;
+        }
+        .m-faction-chip .dot {
+            width: 8px; height: 8px; flex-shrink: 0;
+        }
+        .m-faction-chip .lbl {
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .m-faction-chip:active { background: rgba(255,255,255,0.1); }
+
+        /* Make modals fill more space on mobile */
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
+            #lore-panel { padding: 0 !important; }
+            #lore-panel > div { height: 100% !important; max-height: 100% !important; border: none !important; }
+            #directory-panel, #soul-dossier, #subloc-dossier, #reaper-dossier { width: 92% !important; max-width: 92% !important; max-height: 80vh !important; }
+            #directory-panel .flex.flex-col.gap-4 { max-height: 56vh !important; }
+            .soul-row, .subloc-stat .v, .subloc-desc { font-size: 13px !important; }
+            #mini-target-panel { width: 84% !important; }
+            .codex-toast { left: 12px !important; right: 12px !important; bottom: calc(220px + var(--safe-bottom)) !important; transform: translateY(150%) !important; min-width: unset !important; }
+            .codex-toast.show { transform: translateY(0) !important; }
+            #tour-overlay { bottom: calc(80px + var(--safe-bottom)) !important; width: 96% !important; }
+            .tour-controls { bottom: calc(20px + var(--safe-bottom)) !important; }
+            /* Bigger touch targets in modals */
+            .btn-glitch, .filter-btn { min-height: 38px; }
+            /* Reduce expensive holo effects */
+            .holo-mode-toggle { min-height: 36px; padding: 6px 12px; }
+            #event-banner { left: 12px !important; right: 12px !important; transform: translateX(0) translateY(-150%) !important; width: auto !important; max-width: none !important; }
+            #event-banner.active { transform: translateX(0) translateY(0) !important; }
+        }
+
+        /* =============================================================
+           ITERATION 7 — REAPER LORE FEATURE
+           ============================================================= */
+
+        /* --- Reaper Dossier Modal (death-violet aesthetic) --- */
+        #reaper-dossier {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 118; width: 92%; max-width: 520px; max-height: 85vh;
+            background: linear-gradient(180deg, rgba(20,0,30,0.97) 0%, rgba(5,0,10,0.97) 100%);
+            border: 2px solid #aa44ff;
+            box-shadow: 0 0 50px rgba(170,68,255,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(10px);
+            color: #fff; font-size: 12px; overflow: hidden;
+        }
+        #reaper-dossier.open { display: flex; animation: modalSlideIn 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .reaper-header { padding: 16px 18px; border-bottom: 1px solid #aa44ff; background: rgba(0,0,0,0.4); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .reaper-header .sub { font-size: 9px; color: #888; letter-spacing: 4px; }
+        .reaper-header h3 { color: #ddaaff; letter-spacing: 4px; font-size: 22px; margin-top: 2px; text-shadow: 0 0 12px currentColor; }
+        .reaper-rank-pill {
+            display: inline-block; padding: 3px 10px; margin-top: 6px;
+            background: rgba(170,68,255,0.2); border: 1px solid #aa44ff;
+            color: #aa44ff; font-size: 10px; letter-spacing: 2px; font-weight: bold;
+        }
+        .reaper-body { padding: 14px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .reaper-sigil-row {
+            display: flex; gap: 14px; align-items: center; margin-bottom: 8px;
+            padding: 10px; background: rgba(0,0,0,0.4); border-left: 3px solid #aa44ff;
+        }
+        .reaper-sigil {
+            width: 56px; height: 56px; flex-shrink: 0;
+            border: 2px solid #aa44ff; border-radius: 50%;
+            background: radial-gradient(circle, rgba(170,68,255,0.4) 0%, rgba(0,0,0,0.9) 80%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; color: #aa44ff; text-shadow: 0 0 10px currentColor;
+            animation: sigilSpin 6s linear infinite;
+        }
+        @keyframes sigilSpin { to { transform: rotate(360deg); } }
+        .reaper-quick-stats { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .reaper-quick-stats .stat-pair { display: flex; justify-content: space-between; font-size: 10px; }
+        .reaper-quick-stats .stat-pair .k { color: #888; letter-spacing: 2px; }
+        .reaper-quick-stats .stat-pair .v { color: #fff; text-shadow: 0 0 4px currentColor; font-weight: bold; }
+        .reaper-quick-stats .stat-pair .v.status-wandering { color: #aaaaff; }
+        .reaper-quick-stats .stat-pair .v.status-bound { color: #aaffaa; }
+        .reaper-quick-stats .stat-pair .v.status-hunted { color: #ff5555; animation: huntedPulse 2s ease-in-out infinite; }
+        .reaper-quick-stats .stat-pair .v.status-ascended { color: #ffffaa; text-shadow: 0 0 10px currentColor; }
+        @keyframes huntedPulse { 50% { text-shadow: 0 0 12px currentColor; } }
+        .reaper-lore {
+            padding: 12px; background: rgba(0,0,0,0.5); border-left: 2px solid #aa44ff;
+            font-style: italic; color: #d0c0e0; line-height: 1.6; font-size: 12px;
+        }
+        .reaper-section-title {
+            font-size: 9px; letter-spacing: 4px; color: #aa44ff; margin-top: 12px;
+            border-bottom: 1px dashed rgba(170,68,255,0.3); padding-bottom: 3px;
+        }
+        .reaper-activity-list { display: flex; flex-direction: column; gap: 4px; font-size: 11px; max-height: 160px; overflow-y: auto; }
+        .reaper-activity-item {
+            display: flex; gap: 8px; padding: 5px 8px;
+            background: rgba(170,68,255,0.05); border-left: 2px solid rgba(170,68,255,0.4);
+            font-size: 10px; color: #ccc;
+        }
+        .reaper-activity-item .time { color: #666; font-family: 'Share Tech Mono', monospace; min-width: 55px; }
+        .reaper-activity-item .type {
+            font-size: 8px; letter-spacing: 2px; padding: 0 4px; font-weight: bold;
+            display: inline-flex; align-items: center;
+        }
+        .reaper-activity-item .type.birth { color: #00ffcc; }
+        .reaper-activity-item .type.death { color: #ff5555; }
+        .reaper-activity-item .type.coup { color: #ffcc00; }
+        .reaper-activity-item .type.shift { color: #aaaaff; }
+        .reaper-activity-item .text { flex: 1; min-width: 0; }
+        .reaper-empty-log { color: #555; font-style: italic; padding: 12px; text-align: center; font-size: 10px; letter-spacing: 1px; }
+
+        /* Reaper line inside other modals (Soul, Strata Databank, mini-target) */
+        .reaper-inline-link {
+            color: #aa44ff !important; cursor: pointer; text-decoration: none;
+            border-bottom: 1px dashed rgba(170,68,255,0.6); padding-bottom: 1px;
+            transition: all 0.2s; font-weight: bold;
+        }
+        .reaper-inline-link:hover { color: #fff !important; text-shadow: 0 0 8px #aa44ff; }
+
+        /* --- Reality Event Banner (top-of-screen slide-in) --- */
+        #event-banner {
+            position: fixed; top: calc(72px + var(--safe-top)); left: 50%; transform: translateX(-50%) translateY(-150%);
+            z-index: 90;
+            width: 92%; max-width: 560px;
+            background: linear-gradient(135deg, rgba(0,5,10,0.97) 0%, rgba(0,15,20,0.97) 100%);
+            border: 2px solid #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.5);
+            transition: transform 0.7s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            padding: 12px 18px;
+            backdrop-filter: blur(10px);
+        }
+        #event-banner.active { transform: translateX(-50%) translateY(0); }
+        #event-banner.type-birth { border-color: #00ffcc; box-shadow: 0 0 40px rgba(0,255,204,0.5); }
+        #event-banner.type-death { border-color: #ff5555; box-shadow: 0 0 40px rgba(255,85,85,0.5); }
+        #event-banner.type-coup { border-color: #ffcc00; box-shadow: 0 0 40px rgba(255,204,0,0.5); }
+        #event-banner.type-shift { border-color: #aa44ff; box-shadow: 0 0 40px rgba(170,68,255,0.5); }
+        #event-banner .eb-eyebrow { font-size: 9px; letter-spacing: 4px; opacity: 0.8; margin-bottom: 4px; }
+        #event-banner .eb-title { font-size: 14px; font-weight: bold; letter-spacing: 2px; line-height: 1.3; color: #fff; }
+        #event-banner .eb-subtitle { font-size: 11px; color: #b8b8b8; margin-top: 4px; line-height: 1.5; }
+        #event-banner .eb-icon { font-size: 32px; line-height: 1; margin-right: 12px; vertical-align: middle; }
+        #event-banner.type-birth .eb-eyebrow, #event-banner.type-birth .eb-icon { color: #00ffcc; }
+        #event-banner.type-death .eb-eyebrow, #event-banner.type-death .eb-icon { color: #ff5555; }
+        #event-banner.type-coup .eb-eyebrow, #event-banner.type-coup .eb-icon { color: #ffcc00; }
+        #event-banner.type-shift .eb-eyebrow, #event-banner.type-shift .eb-icon { color: #aa44ff; }
+        #event-banner .eb-flex { display: flex; align-items: center; }
+
+        /* Strata flash effect when affected by an event */
+        @keyframes strataFlash {
+            0%, 100% { filter: brightness(1); }
+            30% { filter: brightness(3) saturate(2); }
+        }
+
+        /* =============================================================
+           ITERATION 8 — Reaper Law · Tour Variants · Soul Seed Economy
+           ============================================================= */
+
+        /* --- Reaper Law Modal --- */
+        #reaper-law {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 119; width: 92%; max-width: 540px; max-height: 86vh;
+            background: linear-gradient(180deg, rgba(15,0,25,0.97) 0%, rgba(0,0,10,0.97) 100%);
+            border: 2px solid #aa44ff;
+            box-shadow: 0 0 50px rgba(170,68,255,0.5);
+            display: none; flex-direction: column; backdrop-filter: blur(10px);
+            color: #fff; font-size: 12px; overflow: hidden;
+        }
+        #reaper-law.open { display: flex; animation: modalSlideIn 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .law-header { padding: 14px 18px; border-bottom: 1px solid #aa44ff; display: flex; justify-content: space-between; align-items: center; }
+        .law-header .sub { font-size: 9px; color: #888; letter-spacing: 4px; }
+        .law-header h3 { color: #ddaaff; letter-spacing: 4px; font-size: 18px; }
+        .law-body { padding: 12px 18px; flex: 1; overflow-y: auto; }
+        .law-row {
+            display: flex; gap: 12px; padding: 12px; margin-bottom: 8px;
+            background: rgba(170,68,255,0.05); border-left: 3px solid #aa44ff;
+        }
+        .law-row .law-num {
+            font-size: 22px; color: #aa44ff; font-weight: bold; min-width: 34px;
+            text-shadow: 0 0 8px currentColor;
+        }
+        .law-row .law-body-text { flex: 1; }
+        .law-row .law-title { font-size: 13px; color: #fff; letter-spacing: 2px; font-weight: bold; margin-bottom: 4px; }
+        .law-row .law-detail { font-size: 11px; color: #bbb; line-height: 1.5; }
+        .law-row.violated {
+            border-color: #ff5555;
+            background: rgba(255,85,85,0.08);
+        }
+        .law-row.violated .law-num { color: #ff5555; }
+        .law-violation-tag {
+            display: inline-block; margin-top: 6px;
+            padding: 2px 8px; background: rgba(255,85,85,0.2);
+            border: 1px solid #ff5555; color: #ff8888;
+            font-size: 9px; letter-spacing: 2px; font-weight: bold;
+        }
+
+        /* --- Tour Variant Picker --- */
+        #tour-picker {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 95; width: 92%; max-width: 480px;
+            background: rgba(0,5,10,0.97); border: 2px solid #00ffcc;
+            box-shadow: 0 0 35px rgba(0,255,204,0.5);
+            display: none; flex-direction: column;
+            backdrop-filter: blur(10px); color: #fff;
+        }
+        #tour-picker.open { display: flex; animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .tp-header { padding: 14px 18px; border-bottom: 1px solid #00ffcc; display: flex; justify-content: space-between; align-items: center; }
+        .tp-header h3 { color: #00ffcc; font-size: 16px; letter-spacing: 3px; }
+        .tp-body { padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; }
+        .tour-variant-btn {
+            display: flex; flex-direction: column; gap: 4px; padding: 12px;
+            background: rgba(0,255,204,0.05); border: 1px solid #00ffcc; color: #00ffcc;
+            cursor: pointer; font-family: 'Share Tech Mono', monospace; text-align: left;
+            transition: all 0.15s;
+        }
+        .tour-variant-btn:hover { background: rgba(0,255,204,0.18); }
+        .tour-variant-btn .v-name { font-size: 13px; font-weight: bold; letter-spacing: 2px; }
+        .tour-variant-btn .v-desc { font-size: 10px; color: #aaa; }
+        .tour-variant-btn.divine { border-color: #ffdd00; color: #ffdd00; }
+        .tour-variant-btn.divine:hover { background: rgba(255,221,0,0.15); }
+        .tour-variant-btn.descent { border-color: #ff5555; color: #ff5555; }
+        .tour-variant-btn.descent:hover { background: rgba(255,85,85,0.15); }
+        .tour-variant-btn.faction { border-color: #aa44ff; color: #aa44ff; }
+        .tour-variant-btn.faction:hover { background: rgba(170,68,255,0.15); }
+        .faction-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+        .faction-picker-grid button {
+            display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+            background: rgba(0,0,0,0.4); border: 1px solid;
+            font-size: 9px; letter-spacing: 1px; cursor: pointer; font-family: 'Share Tech Mono', monospace;
+            transition: all 0.15s; overflow: hidden;
+        }
+        .faction-picker-grid button:hover { background: rgba(255,255,255,0.1); }
+        .faction-picker-grid button .dot { width: 8px; height: 8px; flex-shrink: 0; }
+        .faction-picker-grid button .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- Soul Seed Economy Panel --- */
+        #soul-economy {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 119; width: 92%; max-width: 560px; max-height: 86vh;
+            background: linear-gradient(180deg, rgba(0,15,15,0.97) 0%, rgba(0,5,10,0.97) 100%);
+            border: 2px solid #ffcc00;
+            box-shadow: 0 0 40px rgba(255,204,0,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(10px);
+            color: #fff;
+        }
+        #soul-economy.open { display: flex; animation: modalSlideIn 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .se-header { padding: 14px 18px; border-bottom: 1px solid #ffcc00; display: flex; justify-content: space-between; align-items: flex-start; }
+        .se-header .sub { font-size: 9px; color: #888; letter-spacing: 4px; }
+        .se-header h3 { color: #ffcc00; font-size: 18px; letter-spacing: 3px; text-shadow: 0 0 8px currentColor; }
+        .se-body { padding: 14px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .se-canon-blurb {
+            background: rgba(0,0,0,0.45); padding: 10px; border-left: 3px solid #ffcc00;
+            font-style: italic; font-size: 11px; color: #d0c08a; line-height: 1.6;
+        }
+        .se-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;
+        }
+        .se-cell {
+            background: rgba(255,204,0,0.06); border: 1px solid rgba(255,204,0,0.4);
+            padding: 10px; text-align: center;
+        }
+        .se-cell .k { font-size: 8px; letter-spacing: 3px; color: #886600; }
+        .se-cell .v { font-size: 18px; font-weight: bold; color: #ffcc00; text-shadow: 0 0 6px currentColor; margin-top: 2px; }
+        .se-cell .sub { font-size: 9px; color: #aaa; margin-top: 2px; }
+        .se-light-bar {
+            height: 18px; background: rgba(0,0,0,0.5); border: 1px solid #ffcc00; position: relative; overflow: hidden;
+        }
+        .se-light-fill {
+            height: 100%; background: linear-gradient(90deg, #ffcc00 0%, #ffffff 100%);
+            box-shadow: 0 0 12px #ffcc00; transition: width 0.6s ease-out;
+        }
+        .se-light-label {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 9px; letter-spacing: 2px; color: #000; font-weight: bold; mix-blend-mode: difference;
+        }
+        .se-row {
+            display: flex; justify-content: space-between; padding: 6px 10px;
+            background: rgba(0,0,0,0.3); border-left: 2px solid rgba(255,204,0,0.5);
+            font-size: 11px;
+        }
+        .se-row .label { color: #aaa; }
+        .se-row .value { color: #fff; font-weight: bold; }
+        .se-section-title { font-size: 9px; color: #ffcc00; letter-spacing: 4px; border-bottom: 1px dashed rgba(255,204,0,0.3); padding-bottom: 4px; margin-top: 4px; }
+        .se-vendor-list { display: flex; flex-direction: column; gap: 4px; }
+        .se-vendor-list .se-row .label { color: #ddd; }
+
+        /* === ITERATION 4: Modal slide-in animations, seed UI, search, soul-path highlight === */
+        #soul-dossier.open, #subloc-dossier.open {
+            animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        #codex-panel.open { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        #directory-panel.flex { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        @keyframes modalSlideIn {
+            0% { opacity: 0; transform: translate(-50%, -42%) scale(0.92); filter: blur(8px); }
+            70% { filter: blur(0); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+        }
+        #lore-panel.flex { animation: modalFadeIn 0.45s ease-out; }
+        @keyframes modalFadeIn { from { opacity: 0; backdrop-filter: blur(0); } to { opacity: 1; backdrop-filter: blur(8px); } }
+        #mini-target-panel.flex { animation: modalSlideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+
+        /* --- Universe Seed display + share button --- */
+        #seed-pill {
+            position: absolute; top: 2px; right: 200px;
+            z-index: 50; display: flex; align-items: center; gap: 4px;
+            font-size: 9px; letter-spacing: 1px;
+            padding: 4px 8px; border: 1px solid rgba(0,255,204,0.4);
+            background: rgba(10,15,20,0.7); color: #00ffcc; cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            transition: all 0.2s;
+        }
+        @media (min-width: 768px) { #seed-pill { top: 12px; right: 240px; font-size: 10px; padding: 6px 10px; } }
+        #seed-pill:hover { background: #00ffcc; color: #000; }
+        #seed-pill .seed-val { color: #fff; font-weight: bold; }
+        #seed-pill .seed-icon { font-size: 11px; }
+        .seed-copied { animation: seedFlash 1s ease-out; }
+        @keyframes seedFlash { 0%, 100% { background: rgba(10,15,20,0.7); } 50% { background: #00ffcc; color: #000; } }
+
+        /* --- Strata Search Bar --- */
+        .search-wrap {
+            position: relative; margin-top: 4px;
+        }
+        #strata-search {
+            width: 100%; background: rgba(0,0,0,0.7); color: #00ffcc;
+            border: 1px solid #00ffcc; padding: 5px 8px; font-size: 10px;
+            font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+            outline: none;
+        }
+        #strata-search:focus { box-shadow: 0 0 12px rgba(0,255,204,0.5); border-color: #fff; }
+        #strata-search::placeholder { color: #666; }
+        #search-results {
+            position: absolute; left: 0; right: 0; top: 100%; max-height: 220px; overflow-y: auto;
+            background: rgba(0,5,10,0.97); border: 1px solid #00ffcc; border-top: none;
+            display: none; z-index: 50;
+        }
+        #search-results.open { display: block; }
+        .search-item {
+            padding: 5px 8px; cursor: pointer; transition: all 0.15s;
+            border-bottom: 1px dashed rgba(0,255,204,0.15); display: flex; align-items: center; gap: 6px;
+            font-size: 10px;
+        }
+        .search-item:hover, .search-item.focus { background: rgba(0,255,204,0.15); }
+        .search-item .lvl-tag {
+            color: #888; font-size: 9px; min-width: 32px;
+        }
+        .search-item .label-text { color: #d0d0d0; flex: 1; }
+        .search-item .faction-dot { width: 6px; height: 6px; flex-shrink: 0; }
+        .search-item.poi .label-text { color: #ffcc00; }
+        .search-item .badge {
+            font-size: 8px; padding: 1px 4px; border: 1px solid currentColor; letter-spacing: 1px;
+        }
+        .search-item .badge.dead { color: #ff5555; }
+        .search-item .badge.poi { color: #ffcc00; }
+
+        /* === BREACH DEFENSE MINI-GAME === */
+        #breach-modal-backdrop {
+            display: none; position: fixed; inset: 0; z-index: 9000;
+            background: rgba(0,0,0,0.85); justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        #breach-modal-backdrop.open { display: flex; opacity: 1; }
+        #breach-modal {
+            background: rgba(5, 10, 15, 0.97); border: 1px solid #00ffcc;
+            box-shadow: 0 0 40px rgba(0,255,204,0.3), inset 0 0 60px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0; width: min(500px, 96vw); max-height: 96vh;
+            overflow-y: auto; position: relative;
+        }
+        #breach-modal-header {
+            width: 100%; padding: 10px 16px; border-bottom: 1px solid rgba(0,255,204,0.3);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,204,0.05);
+        }
+        #breach-modal-header h3 { font-size: 12px; letter-spacing: 4px; color: #00ffcc; margin: 0; }
+        #breach-game-canvas {
+            display: block; background: #020810;
+            border-top: 1px solid rgba(0,255,204,0.15);
+            border-bottom: 1px solid rgba(0,255,204,0.15);
+            cursor: crosshair;
+        }
+        #breach-hud {
+            width: 100%; padding: 8px 16px; display: flex; justify-content: space-between;
+            align-items: center; font-size: 10px; letter-spacing: 2px; color: #b0e8d8;
+            border-bottom: 1px solid rgba(0,255,204,0.2);
+        }
+        #breach-hud .hud-score { color: #00ffcc; font-size: 13px; }
+        #breach-hud .hud-shields { color: #ff4477; letter-spacing: 3px; }
+        #breach-hud .hud-hi { color: #888; font-size: 9px; }
+        #breach-instructions {
+            padding: 8px 16px 12px; font-size: 9px; color: #556; letter-spacing: 2px;
+            text-align: center; line-height: 1.8;
+        }
+        #breach-gameover {
+            display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.82);
+            flex-direction: column; justify-content: center; align-items: center;
+            gap: 14px; z-index: 10;
+        }
+        #breach-gameover.show { display: flex; }
+        #breach-gameover h2 { font-size: 18px; letter-spacing: 6px; color: #ff4477; margin: 0; }
+        #breach-gameover .go-score { font-size: 13px; color: #00ffcc; letter-spacing: 3px; }
+        #breach-gameover .go-hi { font-size: 10px; color: #888; letter-spacing: 2px; }
+        #breach-gameover button {
+            margin-top: 6px; padding: 8px 24px; font-family: inherit; font-size: 11px;
+            letter-spacing: 3px; background: transparent; border: 1px solid #00ffcc;
+            color: #00ffcc; cursor: pointer; transition: all 0.2s;
+        }
+        #breach-gameover button:hover { background: #00ffcc; color: #000; }
+        #breach-level-banner {
+            position: absolute; top: 44px; left: 50%; transform: translateX(-50%);
+            font-size: 11px; letter-spacing: 4px; color: #ffcc00; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s; white-space: nowrap;
+        }
+        #breach-level-banner.show { opacity: 1; }
+    </style>
+
+    <!-- Stable Three.js & OrbitControls Links -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Cinematic post-processing pipeline -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+</head>
+<body class="text-sm md:text-base">
+
+    <!-- CINEMATIC BOOT SEQUENCE — Phase 1: DLDS Splash, Phase 2: Burst, Phase 3: 3D Holographic Projector, Phase 4: Status -->
+    <div id="boot-overlay">
+        <button id="boot-skip-btn" onclick="skipBootSequence()">[ SKIP INTRO ▸ ]</button>
+        <div class="boot-stage">
+            <div class="boot-splash-wrap">
+                <img src="/api/static/dlds_splash.png" alt="Dimension Lock: Deathly Stories">
+            </div>
+        </div>
+        <div class="boot-burst"></div>
+        <div class="boot-projector-stage">
+            <canvas id="boot-projector-canvas"></canvas>
+        </div>
+        <div class="boot-text-stack">
+            <div class="boot-title">ASTROLABE TERMINAL</div>
+            <div class="boot-sub">CALIBRATING 199 LAYERS · SOUL-LANE ALIGNMENT</div>
+            <div class="boot-progress"></div>
+            <div class="boot-sub" style="margin-top:8px;color:#555;">DEATH TRIBUNAL HANDSHAKE</div>
+        </div>
+    </div>
+
+    <!-- PHASE D — CONTRIBUTE LORE MODAL -->
+    <div id="contribute-lore-modal" class="community-modal-backdrop" onclick="if(event.target===this)closeContributeLoreModal()">
+        <div class="community-modal" role="dialog">
+            <div class="community-modal-header">
+                <h3>[ ADD COMMUNITY LORE ]</h3>
+                <button class="pause-close" onclick="closeContributeLoreModal()">[ X ]</button>
+            </div>
+            <div class="community-modal-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#888;letter-spacing:1.5px;">
+                    <span>POSTING TO: <span id="contribute-target-display" style="color:#00ffcc;">--</span></span>
+                    <span class="wid-badge" id="contribute-wid-display">--</span>
+                </div>
+                <div>
+                    <label>DISPLAY NAME (optional)</label>
+                    <input type="text" id="contribute-lore-name" placeholder="Anonymous Wanderer" maxlength="24">
+                </div>
+                <div>
+                    <label>FRAGMENT TITLE (optional)</label>
+                    <input type="text" id="contribute-lore-title" placeholder="e.g. The Last Echo" maxlength="80">
+                </div>
+                <div>
+                    <label>LORE CONTENT (10 - 1000 CHARS)</label>
+                    <textarea id="contribute-lore-content" maxlength="1000" oninput="document.getElementById('contribute-lore-counter').textContent = this.value.length + ' / 1000';" placeholder="Add your fragment to the community archive. Stories, observations, theories, witness accounts — all welcome."></textarea>
+                    <div class="counter" id="contribute-lore-counter">0 / 1000</div>
+                </div>
+                <div class="community-modal-actions">
+                    <button class="community-btn cancel" onclick="closeContributeLoreModal()">[ CANCEL ]</button>
+                    <button class="community-btn primary" onclick="submitContributeLore()">[ SUBMIT TO ARCHIVE ▸ ]</button>
+                </div>
+                <div style="font-size:9px;color:#555;letter-spacing:1px;text-align:center;">
+                    Auto-publishes immediately • Vote / flag from any device • Edit / delete via your Wanderer ID
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHASE D — UNIVERSE SAVES MODAL -->
+    <div id="saves-modal" class="community-modal-backdrop" onclick="if(event.target===this)closeSavesModal()">
+        <div class="community-modal" style="width: min(94vw, 640px);">
+            <div class="community-modal-header">
+                <h3>[ COMMUNITY UNIVERSES ]</h3>
+                <button class="pause-close" onclick="closeSavesModal()">[ X ]</button>
+            </div>
+            <div class="community-modal-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#888;letter-spacing:1.5px;">
+                    <span>YOUR WANDERER ID:</span>
+                    <span class="wid-badge" id="saves-wid-display">--</span>
+                </div>
+
+                <!-- Create save form -->
+                <div style="border:1px dashed rgba(0,255,204,0.3);padding:12px;background:rgba(0,255,204,0.03);">
+                    <div style="color:#00ffcc;letter-spacing:3px;font-weight:bold;font-size:11px;margin-bottom:8px;">▣ SAVE CURRENT UNIVERSE</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>
+                            <label>SAVE NAME</label>
+                            <input type="text" id="save-name-input" placeholder="e.g. Reapers' Awakening" maxlength="48">
+                        </div>
+                        <div>
+                            <label>AUTHOR NAME (optional)</label>
+                            <input type="text" id="save-author-input" placeholder="Anonymous Wanderer" maxlength="24">
+                        </div>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <label>DESCRIPTION (optional)</label>
+                        <input type="text" id="save-desc-input" placeholder="What's special about this universe?" maxlength="280">
+                    </div>
+                    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="font-size:10px;color:#666;letter-spacing:1px;">Saves: seed + event history + GFX</div>
+                        <button class="community-btn primary" onclick="submitSaveUniverse()" style="min-height:36px;padding:6px 16px;font-size:10px;">[ SAVE ▸ ]</button>
+                    </div>
+                </div>
+
+                <!-- Browse saves -->
+                <div>
+                    <div style="color:#00ffcc;letter-spacing:3px;font-weight:bold;font-size:11px;margin-bottom:8px;">▣ BROWSE COMMUNITY SAVES</div>
+                    <div class="saves-tabs">
+                        <button class="saves-tab active" onclick="switchSavesTab('trending', this)">TRENDING</button>
+                        <button class="saves-tab" onclick="switchSavesTab('recent', this)">RECENT</button>
+                        <button class="saves-tab" onclick="switchSavesTab('top', this)">TOP VOTED</button>
+                    </div>
+                    <div id="saves-list" style="max-height:50vh;overflow-y:auto;">Loading…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REALITY PORTAL TRANSITION (used when opening databanks) -->
+    <div id="portal-overlay">
+        <div id="portal-vortex"></div>
+        <div id="portal-label">ANCHORING REALITY</div>
+    </div>
+
+    <!-- HOVER TELEMETRY RETICLE -->
+    <div id="telemetry-reticle">
+        <div class="reticle-ring"></div>
+        <div class="reticle-ring inner"></div>
+        <div class="reticle-corner tl"></div>
+        <div class="reticle-corner tr"></div>
+        <div class="reticle-corner bl"></div>
+        <div class="reticle-corner br"></div>
+        <div class="reticle-data" id="reticle-data">
+            <div class="r-row"><span class="r-key">STRATA</span><span class="r-val" id="rt-level">--</span></div>
+            <div class="r-row"><span class="r-key">FACTION</span><span class="r-val" id="rt-faction">--</span></div>
+            <div class="r-row"><span class="r-key">STATUS</span><span class="r-val" id="rt-status">--</span></div>
+            <div class="r-row"><span class="r-key">POIs</span><span class="r-val" id="rt-pois">--</span></div>
+            <div class="r-row"><span class="r-key">FLUX</span><span class="r-val" id="rt-flux">--</span></div>
+        </div>
+    </div>
+
+    <!-- CODEX BUTTON -->
+    <button id="codex-btn" onclick="toggleCodex()" class="interactive-panel p-1.5 md:p-2 text-[#00ffcc] text-[10px] md:text-xs font-bold hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm">
+        [ CODEX ]
+    </button>
+
+    <!-- UNIVERSE SEED PILL -->
+    <button id="seed-pill" onclick="copyUniverseLink()" title="Copy shareable universe link">
+        <span class="seed-icon">⌬</span>
+        <span>SEED:</span>
+        <span class="seed-val" id="seed-value">--</span>
+        <span class="seed-icon" style="margin-left:4px;">⎘</span>
+    </button>
+
+    <!-- CODEX PANEL -->
+    <div id="codex-panel">
+        <div class="codex-header">
+            <div>
+                <div class="text-[10px] text-gray-500 tracking-widest">DLDS ASTROLABE</div>
+                <h2 class="text-xl font-bold text-[#00ffcc] tracking-widest">EXPLORER CODEX</h2>
+                <div class="text-[10px] text-gray-400 mt-1">Achievements unlocked: <span id="codex-count" class="text-[#00ffcc]">0/8</span></div>
+            </div>
+            <button onclick="toggleCodex()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors">[ X ]</button>
+        </div>
+        <div class="codex-grid" id="codex-grid"><!-- JS injects --></div>
+    </div>
+
+    <!-- ACHIEVEMENT TOAST -->
+    <div id="codex-toast" class="codex-toast">
+        <div class="t-icon" id="toast-icon">★</div>
+        <div>
+            <div class="t-label">ACHIEVEMENT UNLOCKED</div>
+            <div class="t-name" id="toast-name">--</div>
+        </div>
+    </div>
+
+    <!-- CINEMATIC TOUR OVERLAY -->
+    <div id="tour-overlay">
+        <div class="tour-card">
+            <div class="tour-eyebrow" id="tour-eyebrow">DLDS PILGRIMAGE LOG</div>
+            <div class="tour-title" id="tour-title">--</div>
+            <div class="tour-faction" id="tour-faction">--</div>
+            <div class="tour-body" id="tour-body">--<span class="typer-cursor">▌</span></div>
+            <div class="tour-progress" id="tour-progress">STOP 0 / 0</div>
+        </div>
+    </div>
+    <div class="tour-controls" id="tour-controls">
+        <button onclick="tourSkip()">[ NEXT ▶ ]</button>
+        <button class="danger" onclick="endCinematicTour()">[ ABORT ]</button>
+    </div>
+
+    <!-- SOUL DOSSIER -->
+    <div id="soul-dossier">
+        <div class="soul-header">
+            <div>
+                <div class="sub">SOUL FORENSIC SCAN</div>
+                <h3 id="soul-id">--</h3>
+            </div>
+            <button onclick="closeSoulDossier()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="soul-body">
+            <div class="soul-vis">
+                <div class="light-side">PEAK<br>DIVINITY</div>
+                <div class="dark-side">LOVECRAFTIAN<br>ABYSS</div>
+                <div class="soul-marker" id="soul-marker"></div>
+            </div>
+            <div class="soul-row"><span class="k">ORIGIN STRATA</span><span class="v" id="soul-origin">--</span></div>
+            <div class="soul-row"><span class="k">CURRENT STRATA</span><span class="v" id="soul-current">--</span></div>
+            <div class="soul-row"><span class="k">TRAJECTORY</span><span class="v" id="soul-traj">--</span></div>
+            <div class="soul-row"><span class="k">KARMIC ALIGNMENT</span><span class="v" id="soul-karma">--</span></div>
+            <div class="soul-row"><span class="k">ASSIGNED REAPER</span><span class="v" id="soul-reaper">--</span></div>
+            <div class="soul-row"><span class="k">FRAGMENT INTEGRITY</span><span class="v" id="soul-integrity">--</span></div>
+            <div class="soul-memories" id="soul-memory">--</div>
+        </div>
+    </div>
+
+    <!-- SUB-LOCATION DOSSIER -->
+    <div id="subloc-dossier">
+        <div class="subloc-header">
+            <div>
+                <div class="sub" id="subloc-parent">PARENT</div>
+                <h3 id="subloc-name">--</h3>
+            </div>
+            <button onclick="closeSubLocDossier()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="subloc-body">
+            <span class="subloc-tag" id="subloc-tag">SUB-NODE</span>
+            <div class="subloc-desc" id="subloc-desc">--</div>
+            <div class="subloc-stats">
+                <div class="subloc-stat"><div class="k">POPULATION</div><div class="v" id="subloc-pop">--</div></div>
+                <div class="subloc-stat"><div class="k">RISK LEVEL</div><div class="v" id="subloc-risk">--</div></div>
+                <div class="subloc-stat"><div class="k">ANOMALY INDEX</div><div class="v" id="subloc-anomaly">--</div></div>
+                <div class="subloc-stat"><div class="k">CONTROL</div><div class="v" id="subloc-control">--</div></div>
+            </div>
+            <div class="subloc-flavor" id="subloc-flavor">--</div>
+        </div>
+    </div>
+
+    <!-- REALITY LENS (volumetric magnifier) -->
+    <div id="reality-lens">
+        <div class="lens-strata-label" id="lens-strata-label">STRATA --</div>
+        <div class="lens-frame">
+            <div class="lens-vortex" id="lens-vortex"></div>
+            <div class="lens-content">
+                <canvas class="lens-mini-canvas" id="lens-mini-canvas"></canvas>
+                <div class="lens-title" id="lens-title">--</div>
+                <div class="lens-faction" id="lens-faction">--</div>
+                <div class="lens-status" id="lens-status">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DESKTOP PAUSE / SETTINGS BUTTON -->
+    <button id="pause-btn" onclick="openPauseMenu()" aria-label="Settings menu" title="Settings (Esc)">[ ⏸ SETTINGS ]</button>
+
+    <!-- PAUSE MENU MODAL -->
+    <div id="pause-menu-backdrop" onclick="if(event.target===this)closePauseMenu()">
+        <div id="pause-menu" role="dialog" aria-labelledby="pause-title">
+            <div class="pause-header">
+                <h3 id="pause-title">[ ASTROLABE · SETTINGS ]</h3>
+                <button class="pause-close" onclick="closePauseMenu()">[ X ]</button>
+            </div>
+            <div class="pause-body">
+
+                <!-- GRAPHICS -->
+                <div>
+                    <div class="pause-section-title">▣ GRAPHICS</div>
+
+                    <div class="pause-preset-row">
+                        <button onclick="applyGfxPreset('low')">LOW</button>
+                        <button onclick="applyGfxPreset('medium')">MEDIUM</button>
+                        <button onclick="applyGfxPreset('high')">HIGH</button>
+                        <button onclick="applyGfxPreset('cinematic')">CINEMATIC</button>
+                    </div>
+
+                    <div class="pause-row" style="margin-top: 12px">
+                        <span class="lbl">BLOOM STRENGTH</span>
+                        <span class="val" id="gfx-bloom-strength-val">1.10</span>
+                        <input type="range" min="0" max="2.5" step="0.05" value="1.1"
+                            class="pause-slider" id="gfx-bloom-strength"
+                            oninput="updateGfx('bloomStrength', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">BLOOM RADIUS</span>
+                        <span class="val" id="gfx-bloom-radius-val">0.70</span>
+                        <input type="range" min="0" max="1.5" step="0.05" value="0.7"
+                            class="pause-slider" id="gfx-bloom-radius"
+                            oninput="updateGfx('bloomRadius', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">BLOOM THRESHOLD</span>
+                        <span class="val" id="gfx-bloom-threshold-val">0.22</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.22"
+                            class="pause-slider" id="gfx-bloom-threshold"
+                            oninput="updateGfx('bloomThreshold', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">VIGNETTE</span>
+                        <span class="val" id="gfx-vignette-val">0.60</span>
+                        <input type="range" min="0" max="1.5" step="0.05" value="0.6"
+                            class="pause-slider" id="gfx-vignette"
+                            oninput="updateGfx('vignette', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">SCAN-LINES</span>
+                        <span class="val" id="gfx-scanline-val">0.22</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.22"
+                            class="pause-slider" id="gfx-scanline"
+                            oninput="updateGfx('scanline', this.value)">
+                    </div>
+
+                    <div class="pause-row" style="margin-top: 10px">
+                        <span class="lbl">CAMERA SHAKE</span>
+                        <button class="pause-toggle on" id="gfx-shake-toggle" onclick="toggleGfx('cameraShake', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">CENTRAL SPINE (god-rays)</span>
+                        <button class="pause-toggle on" id="gfx-spine-toggle" onclick="toggleGfx('centralSpine', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">STARFIELD</span>
+                        <button class="pause-toggle on" id="gfx-stars-toggle" onclick="toggleGfx('starfield', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">AUTO-ROTATE</span>
+                        <button class="pause-toggle on" id="gfx-rotate-toggle" onclick="toggleGfx('autoRotate', this)">ON</button>
+                    </div>
+                </div>
+
+                <!-- AUDIO -->
+                <div>
+                    <div class="pause-section-title">♪ AUDIO</div>
+                    <div class="pause-row">
+                        <span class="lbl">MUSIC</span>
+                        <button class="pause-toggle" id="audio-music-toggle" onclick="toggleAudio('music', this)">OFF</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">MUSIC VOLUME</span>
+                        <span class="val" id="audio-music-vol-val">0.40</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.4"
+                            class="pause-slider" id="audio-music-vol"
+                            oninput="updateAudio('musicVolume', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">SFX VOLUME</span>
+                        <span class="val" id="audio-sfx-vol-val">0.50</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.5"
+                            class="pause-slider" id="audio-sfx-vol"
+                            oninput="updateAudio('sfxVolume', this.value)">
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="pause-actions">
+                    <button class="pause-btn" onclick="resetGfxSettings()">[ RESET ]</button>
+                    <button class="pause-btn" onclick="closePauseMenu()">[ RESUME ▸ ]</button>
+                </div>
+                <button class="pause-btn" onclick="openSavesModal()" style="background:rgba(255,0,200,0.06);border-color:#ff44cc;color:#ff44cc;">[ ⚏ COMMUNITY UNIVERSES ]</button>
+                <button class="pause-btn" onclick="openBreachGame()" style="background:rgba(0,255,100,0.06);border-color:#00ff88;color:#00ff88;">[ ▷ BREACH DEFENSE ]</button>
+                <button class="pause-btn danger" onclick="quitAstrolabe()">[ ⏻ QUIT ASTROLABE ]</button>
+
+                <div style="font-size: 8px; color: #555; letter-spacing: 2px; text-align: center; margin-top: 4px;">
+                    PRESS [ESC] TO TOGGLE
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- BREACH DEFENSE MINI-GAME                                        -->
+    <!-- ============================================================== -->
+    <div id="breach-modal-backdrop" onclick="if(event.target===this)closeBreachGame()">
+        <div id="breach-modal" role="dialog" aria-labelledby="breach-title">
+            <div id="breach-modal-header">
+                <h3 id="breach-title">[ REALITY BREACH DEFENSE ]</h3>
+                <button class="pause-close" onclick="closeBreachGame()">[ X ]</button>
+            </div>
+            <div id="breach-hud">
+                <div>
+                    <div style="font-size:9px;color:#666;letter-spacing:2px;">SCORE</div>
+                    <div class="hud-score" id="bd-score">0</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:9px;color:#666;letter-spacing:2px;">SHIELDS</div>
+                    <div class="hud-shields" id="bd-shields">♥ ♥ ♥</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:9px;color:#666;letter-spacing:2px;">BEST</div>
+                    <div class="hud-hi" id="bd-hiscore">0</div>
+                </div>
+            </div>
+            <canvas id="breach-game-canvas" width="460" height="320"></canvas>
+            <div id="breach-instructions">
+                CLICK RED REALITIES BEFORE THEY BREACH · EACH BREACH COSTS A SHIELD<br>
+                DIFFICULTY INCREASES EVERY 10 STABILIZATIONS
+            </div>
+            <div id="breach-gameover">
+                <h2>[ REALITY COLLAPSE ]</h2>
+                <div class="go-score" id="bd-go-score">SCORE: 0</div>
+                <div class="go-hi" id="bd-go-hi">BEST: 0</div>
+                <button onclick="breachGameRestart()">[ RESTART ]</button>
+                <button onclick="closeBreachGame()" style="border-color:#ff4477;color:#ff4477;margin-top:2px;">[ EXIT ]</button>
+            </div>
+            <div id="breach-level-banner">▲ INSTABILITY RISING</div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MOBILE UI LAYER — Touch-first redesign for ≤767px viewports     -->
+    <!-- ============================================================== -->
+    <div id="mobile-ui-layer">
+        <!-- Top Bar -->
+        <div class="m-topbar">
+            <button class="m-burger" onclick="openMobileDrawer()" aria-label="Open menu">☰</button>
+            <div class="m-focus">
+                <div class="m-eyebrow" id="m-eyebrow">ASTROLABE</div>
+                <div class="m-title" id="m-title">ZERO POINT</div>
+            </div>
+            <button class="m-seed" onclick="copyUniverseLink()" aria-label="Share universe">
+                <span>⌬</span>
+                <span class="m-seed-val" id="m-seed-val">--</span>
+            </button>
+        </div>
+
+        <!-- FAB Cluster (vertical, right edge) -->
+        <div class="m-fab-cluster">
+            <button class="m-fab" onclick="focusMobileSearch()" aria-label="Search">⌖</button>
+            <button class="m-fab" onclick="toggleSoulMode(); updateMobileFabStates();" id="m-fab-soul" aria-label="Soul mode">✦</button>
+            <button class="m-fab" onclick="startCinematicTour()" id="m-fab-tour" aria-label="Tour">▶</button>
+            <button class="m-fab" onclick="toggleCodex()" aria-label="Codex">
+                ▦
+                <span class="m-badge" id="m-codex-badge">0</span>
+            </button>
+            <button class="m-fab" onclick="openPauseMenu()" aria-label="Settings menu">⚙</button>
+            <button class="m-fab" onclick="toggleUI()" aria-label="Hide HUD">◐</button>
+        </div>
+
+        <!-- Bottom Sheet -->
+        <div class="m-sheet" id="m-sheet">
+            <div class="m-handle" onclick="toggleMobileSheet()">
+                <div class="m-handle-bar"></div>
+                <div class="m-handle-label" id="m-sheet-label">TAP FOR DETAILS</div>
+            </div>
+            <div class="m-sheet-body">
+                <div class="m-sheet-row">
+                    <div class="lbl">FOCUS</div>
+                    <div class="val" id="m-anchor-display">LVL 0 · ZERO POINT</div>
+                </div>
+                <div class="m-sheet-row">
+                    <div class="lbl">FACTION</div>
+                    <div class="val" id="m-anchor-faction">DIMENSIONLOCK</div>
+                </div>
+                <div class="m-sheet-actions">
+                    <button class="m-sheet-btn" onclick="changeLevel(-1); updateMobileFocus();">▼ -1</button>
+                    <button class="m-sheet-btn primary" onclick="scanSector();">PING</button>
+                    <button class="m-sheet-btn" onclick="changeLevel(1); updateMobileFocus();">▲ +1</button>
+                </div>
+                <div class="m-sheet-actions" style="margin-top:6px;">
+                    <button class="m-sheet-btn primary" style="grid-column: span 1;" onclick="openStrataDirectory()">DIRECTORY</button>
+                    <button class="m-sheet-btn primary" style="grid-column: span 2; background: rgba(0,255,204,0.3);" onclick="openMobileDatabank()">[ OPEN DATABANK ]</button>
+                </div>
+
+                <div class="m-sheet-expand">
+                    <div class="m-sheet-section-header">INTEL FEED</div>
+                    <div class="m-intel-strip">
+                        <div class="m-intel-strip-inner" id="m-intel-ticker"><!-- mirror of intel --></div>
+                    </div>
+                    <div class="m-sheet-section-header">SYSTEM LOGS</div>
+                    <div class="m-logs" id="m-logs-mirror"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide-in Drawer Backdrop -->
+        <div class="m-drawer-backdrop" id="m-drawer-backdrop" onclick="closeMobileDrawer()"></div>
+
+        <!-- Slide-in Drawer -->
+        <div class="m-drawer" id="m-drawer">
+            <div class="m-drawer-header">
+                <div class="title">ASTROLABE</div>
+                <button class="m-drawer-close" onclick="closeMobileDrawer()">✕</button>
+            </div>
+            <div class="m-drawer-body">
+
+                <!-- Search -->
+                <div class="m-drawer-section">
+                    <div class="m-drawer-section-title">QUICK JUMP</div>
+                    <div class="m-drawer-search-wrap">
+                        <input id="m-drawer-search" class="m-drawer-search" type="text" placeholder="◎ Search POI or strata (+12, Trigon...)" autocomplete="off">
+                        <div id="m-drawer-results" class="m-drawer-results"></div>
+                    </div>
+                </div>
+
+                <!-- View Modes -->
+                <div class="m-drawer-section">
+                    <div class="m-drawer-section-title">VIEW MODES</div>
+                    <button class="m-drawer-btn active" data-mfilter="base" onclick="applyFilter('base'); updateMobileFilterUI();">
+                        <span>STANDARD</span><span class="badge-state">DEFAULT</span>
+                    </button>
+                    <button class="m-drawer-btn" data-mfilter="factions" onclick="applyFilter('factions'); updateMobileFilterUI();">
+                        <span>TERRITORY MAP</span><span class="badge-state">ALL</span>
+                    </button>
+                    <button class="m-drawer-btn stable" data-mfilter="stable" onclick="applyFilter('stable'); updateMobileFilterUI();">
+                        <span>STABLE REALITIES</span><span class="badge-state">◉</span>
+                    </button>
+                    <button class="m-drawer-btn dead" data-mfilter="dead" onclick="applyFilter('dead'); updateMobileFilterUI();">
+                        <span>DEAD REALITIES</span><span class="badge-state">☠</span>
+                    </button>
+                </div>
+
+                <!-- Faction Chips -->
+                <div class="m-drawer-section" id="m-faction-section">
+                    <div class="m-drawer-section-title">FACTIONS</div>
+                    <div class="m-faction-grid" id="m-faction-grid"><!-- JS injects --></div>
+                </div>
+
+                <!-- Exploration Modes -->
+                <div class="m-drawer-section">
+                    <div class="m-drawer-section-title">EXPLORATION MODES</div>
+                    <button class="m-drawer-btn" onclick="startCinematicTour(); closeMobileDrawer();">
+                        <span>▶ CINEMATIC TOUR</span><span class="badge-state">+99 → -99</span>
+                    </button>
+                    <button class="m-drawer-btn" id="m-drawer-soul" onclick="toggleSoulMode(); updateMobileModeUI();">
+                        <span>✦ SOUL TRACKER</span><span class="badge-state" id="m-drawer-soul-state">OFF</span>
+                    </button>
+                    <button class="m-drawer-btn" onclick="toggleCodex(); closeMobileDrawer();">
+                        <span>▦ EXPLORER CODEX</span><span class="badge-state" id="m-drawer-codex-count">0/8</span>
+                    </button>
+                    <button class="m-drawer-btn" onclick="openReaperRegistry(); closeMobileDrawer();" style="border-color:#aa44ff;color:#aa44ff;">
+                        <span>☠ REAPER REGISTRY</span><span class="badge-state" id="m-drawer-reaper-count">0/10</span>
+                    </button>
+                    <button class="m-drawer-btn" onclick="advanceCycle(); closeMobileDrawer();" style="border-color:#ffcc00;color:#ffcc00;">
+                        <span>⌛ ADVANCE CYCLE</span><span class="badge-state">EVENT</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REAPER DOSSIER MODAL -->
+    <div id="reaper-dossier">
+        <div class="reaper-header">
+            <div style="min-width:0;flex:1;">
+                <div class="sub">REAPER REGISTRY · DEATH TRIBUNAL</div>
+                <h3 id="reaper-name">--</h3>
+                <div class="reaper-rank-pill" id="reaper-rank-pill">--</div>
+            </div>
+            <button onclick="closeReaperDossier()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs" style="flex-shrink:0;">[ X ]</button>
+        </div>
+        <div class="reaper-body">
+            <div class="reaper-sigil-row">
+                <div class="reaper-sigil" id="reaper-sigil">☠</div>
+                <div class="reaper-quick-stats">
+                    <div class="stat-pair"><span class="k">STATUS</span><span class="v" id="reaper-status">--</span></div>
+                    <div class="stat-pair"><span class="k">TERRITORY</span><span class="v" id="reaper-territory">--</span></div>
+                    <div class="stat-pair"><span class="k">SPECIALTY</span><span class="v" id="reaper-specialty" style="text-align:right;text-shadow:none;font-weight:normal;font-size:9px;">--</span></div>
+                    <div class="stat-pair"><span class="k">SOULS CLAIMED</span><span class="v" id="reaper-kills">--</span></div>
+                    <div class="stat-pair"><span class="k">STRATA PATROLLED</span><span class="v" id="reaper-strata-count">--</span></div>
+                </div>
+            </div>
+            <div class="reaper-section-title">CASE FILE</div>
+            <div class="reaper-lore" id="reaper-lore">--</div>
+            <div class="reaper-section-title">RECENT ACTIVITY</div>
+            <div class="reaper-activity-list" id="reaper-activity"><!-- JS injects --></div>
+        </div>
+    </div>
+
+    <!-- REALITY EVENT BANNER -->
+    <div id="event-banner">
+        <div class="eb-flex">
+            <div class="eb-icon" id="eb-icon">★</div>
+            <div style="flex:1;min-width:0;">
+                <div class="eb-eyebrow" id="eb-eyebrow">EVENT</div>
+                <div class="eb-title" id="eb-title">--</div>
+                <div class="eb-subtitle" id="eb-subtitle">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REAPER LAW MODAL -->
+    <div id="reaper-law">
+        <div class="law-header">
+            <div>
+                <div class="sub">DEATH TRIBUNAL · CANON</div>
+                <h3>REAPER LAW</h3>
+            </div>
+            <button onclick="closeReaperLaw()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="law-body" id="law-body">
+            <!-- JS injects the 7 Laws here, marking violations based on the active Reaper (if any) -->
+        </div>
+    </div>
+
+    <!-- TOUR VARIANT PICKER -->
+    <div id="tour-picker">
+        <div class="tp-header">
+            <h3>SELECT PILGRIMAGE</h3>
+            <button onclick="closeTourPicker()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="tp-body">
+            <button class="tour-variant-btn divine" onclick="beginTourVariant('divine')">
+                <div class="v-name">▲ DIVINE ASCENSION</div>
+                <div class="v-desc">Layer 0 → +99. Tour only Peak Divinity strata.</div>
+            </button>
+            <button class="tour-variant-btn descent" onclick="beginTourVariant('descent')">
+                <div class="v-name">▼ THE DESCENT</div>
+                <div class="v-desc">Layer 0 → -99. Tour the Lovecraftian abyss.</div>
+            </button>
+            <button class="tour-variant-btn" onclick="beginTourVariant('full')">
+                <div class="v-name">∞ FULL PILGRIMAGE</div>
+                <div class="v-desc">Layer +99 → -99. The complete sweep.</div>
+            </button>
+            <button class="tour-variant-btn faction" onclick="toggleFactionTourPicker()">
+                <div class="v-name">⚑ FACTION-SPECIFIC</div>
+                <div class="v-desc">Tour realities of one faction only.</div>
+            </button>
+            <div id="faction-tour-grid" class="faction-picker-grid" style="display:none;">
+                <!-- JS injects faction buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SOUL SEED ECONOMY PANEL -->
+    <div id="soul-economy">
+        <div class="se-header">
+            <div>
+                <div class="sub">THE ENDLESS · MERCANTILE LEDGER</div>
+                <h3>☀ SOUL SEED ECONOMY</h3>
+            </div>
+            <button onclick="closeSoulEconomy()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="se-body">
+            <div class="se-canon-blurb">
+                Soul-seeds are the primary <span style="color:#ffcc00;">light source of The Endless</span> — for there are no suns, only clouds in all directions. Outside the realities, every flicker of warmth, every bushel of food, every drop of fuel is purchased in soul-seed currency. Reapers themselves trade their harvest at the Trigon Trading Hub, and faction wealth is measured in stored seeds.
+            </div>
+            <div class="se-section-title">CURRENT MARKET</div>
+            <div class="se-grid" id="se-market">
+                <!-- JS injects market cells -->
+            </div>
+            <div class="se-section-title">LIGHT OUTPUT (THE ENDLESS)</div>
+            <div class="se-light-bar">
+                <div class="se-light-fill" id="se-light-fill" style="width:74%;"></div>
+                <div class="se-light-label" id="se-light-label">74% LUMENS · ALL LANES STABLE</div>
+            </div>
+            <div class="se-section-title">EXCHANGE RATES</div>
+            <div class="se-vendor-list">
+                <div class="se-row"><span class="label">1 Soul Seed</span><span class="value" id="se-rate-cred">0.32 E-Credits</span></div>
+                <div class="se-row"><span class="label">1 Soul Seed →</span><span class="value">1 Meal of Endless-bread</span></div>
+                <div class="se-row"><span class="label">1 Soul Seed →</span><span class="value">2.5 hours of Trigon engine fuel</span></div>
+                <div class="se-row"><span class="label">100 Soul Seeds →</span><span class="value">1 Vamperica blood-tithe pass</span></div>
+                <div class="se-row"><span class="label">1,000 Soul Seeds →</span><span class="value">1 Reaper-grade scythe shard</span></div>
+            </div>
+            <div class="se-section-title">FACTION HOLDINGS (this cycle)</div>
+            <div class="se-vendor-list" id="se-holdings">
+                <!-- JS injects holdings -->
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-overlay"></div>
+
+    <!-- 3D Environment -->
+    <div id="canvas-container"></div>
+    <div class="scanline"></div>
+
+    <!-- HUD Toggle Button -->
+    <button id="ui-toggle-btn" onclick="toggleUI()" class="absolute top-2 right-2 md:top-3 md:right-4 z-50 interactive-panel p-1.5 md:p-2 text-[#00ffcc] text-[10px] md:text-xs font-bold hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm">
+        [ HUD: ON ]
+    </button>
+
+    <!-- Main UI Layer -->
+    <div id="ui-layer" class="absolute top-0 left-0 w-full h-full pointer-events-none z-40 flex flex-col justify-between p-2 md:p-4 transition-opacity duration-300 gap-2">
+        
+        <!-- TOP: Slim Stats Bar -->
+        <div class="interactive-panel pointer-events-auto w-[calc(100%-80px)] md:w-full max-w-4xl mx-auto p-2 flex flex-col md:flex-row justify-between items-center gap-1 md:gap-4 rounded-sm border-t-2 border-[#00ffcc]">
+            <!-- Left: Ship Stats -->
+            <div class="flex gap-3 md:gap-6 text-[10px] md:text-xs w-full md:w-auto justify-center md:justify-start font-bold">
+                <div class="hidden md:block"><span class="text-gray-500">SHIP:</span> <span class="text-white">VOID-WANDERER</span></div>
+                <div><span class="text-gray-500">POWER:</span> <span id="fuel-display" class="text-yellow-400 text-glow">OPTIMAL</span></div>
+                <div><span class="text-gray-500">CYCLE:</span> <span id="cred-display" class="text-green-400 text-glow">100 E-YRS</span></div>
+                <div class="hidden md:block"><span class="text-gray-500">DATA:</span> <span id="data-tracker" class="text-purple-400 text-glow">1/199 STRATA</span></div>
+            </div>
+            
+            <!-- Right/Center: Current Anchor -->
+            <div class="flex gap-2 items-center text-[10px] md:text-xs w-full md:w-auto justify-center md:justify-end border-t border-gray-800 md:border-none pt-1 md:pt-0 mt-1 md:mt-0">
+                <span class="text-gray-500">FOCUS:</span>
+                <span id="anchor-display" class="font-bold text-white text-glow">LVL 0</span>
+                <span id="anchor-name" class="text-cyan-300 truncate max-w-[150px] md:max-w-none">ZERO POINT</span>
+            </div>
+        </div>
+
+        <!-- INTEL FEED TICKER -->
+        <div class="interactive-panel pointer-events-auto w-[calc(100%-80px)] md:w-full max-w-4xl mx-auto rounded-sm" style="padding:0;">
+            <div id="intel-bar">
+                <div id="intel-ticker"><!-- JS injects --></div>
+            </div>
+        </div>
+
+        <!-- MIDDLE: Filters & Zoom -->
+        <div class="flex justify-between items-start w-full flex-1 min-h-0 relative pointer-events-none mt-1">
+            <!-- Left: Scan Filters -->
+            <div id="filter-panel" class="interactive-panel pointer-events-auto p-2 flex flex-col gap-1 text-[10px] md:text-xs w-36 md:w-48 shadow-lg transition-all rounded-sm max-h-full">
+                <button onclick="toggleFilters()" class="text-[#00ffcc] border-b border-[rgba(0,255,204,0.3)] pb-1 mb-1 font-bold tracking-widest hover:text-white transition-colors w-full flex justify-between items-center cursor-pointer">
+                    <span>FILTERS</span>
+                    <span id="filter-toggle-icon">[-]</span>
+                </button>
+                
+                <div id="filter-content" class="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
+                    <div class="text-gray-500 text-[9px] md:text-[10px] tracking-widest mt-1">VIEW MODES</div>
+                    <button id="filter-base" onclick="applyFilter('base')" class="filter-btn active border border-[#00ffcc] p-1 text-center transition-all">STANDARD</button>
+                    
+                    <div class="text-gray-500 text-[9px] md:text-[10px] tracking-widest mt-2 border-t border-gray-700 pt-1">FACTION DATA</div>
+                    <button id="filter-factions" onclick="applyFilter('factions')" class="filter-btn border border-[#00ffcc] p-1 text-center transition-all">TERRITORY MAP</button>
+                    
+                    <!-- Faction Sub-Filters -->
+                    <div id="sub-filter-factions" class="hidden flex-col gap-1 pl-1 border-l-2 border-[#00ffcc] ml-1 mb-1 bg-black bg-opacity-40 p-1">
+                        <button id="sub-factions" onclick="applyFilter('factions')" class="sub-filter-btn flex items-center gap-1.5 text-left text-[#00ffcc] hover:text-white hover:bg-white hover:bg-opacity-10 text-[9px] transition-all p-1 rounded-sm">
+                            <div class="w-1.5 h-1.5 bg-[#00ffcc]"></div> ALL FACTIONS
+                        </button>
+                        <!-- JS injects factions here -->
+                    </div>
+
+                    <div class="text-gray-500 text-[9px] md:text-[10px] tracking-widest mt-2 border-t border-gray-700 pt-1">ANOMALIES</div>
+                    <button id="filter-stable" onclick="applyFilter('stable')" class="filter-btn border border-[#00aaff] text-[#00aaff] hover:bg-[#00aaff] hover:text-black p-1 text-center transition-all">STABLE REALITIES</button>
+                    <button id="filter-dead" onclick="applyFilter('dead')" class="filter-btn border border-red-500 text-red-500 hover:bg-red-500 hover:text-black p-1 text-center transition-all">DEAD REALITIES</button>
+                </div>
+            </div>
+            
+            <!-- Right: Zoom Controls -->
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <button onclick="zoomHolo(-15)" class="interactive-panel w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-[#00ffcc] font-bold text-lg border border-[#00ffcc] hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm" title="Zoom In">+</button>
+                <button onclick="zoomHolo(15)" class="interactive-panel w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-[#00ffcc] font-bold text-lg border border-[#00ffcc] hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm" title="Zoom Out">-</button>
+            </div>
+        </div>
+
+        <!-- BOTTOM: Nav & Logs Container -->
+        <div class="flex flex-col md:flex-row justify-between items-end gap-2 w-full pointer-events-none mt-1">
+            
+            <!-- Compact Nav Computer -->
+            <div id="nav-panel" class="interactive-panel pointer-events-auto p-2 md:p-3 w-full md:w-[320px] rounded-sm flex flex-col gap-1.5 border-l-2 border-[#00ffcc]">
+                <button onclick="toggleNav()" class="flex justify-between items-center border-b border-gray-700 pb-1 text-[#00ffcc] hover:text-white transition-colors cursor-pointer w-full text-left">
+                    <span class="text-[10px] md:text-xs font-bold uppercase tracking-widest">NAV-COMPUTER</span>
+                    <span id="nav-toggle-icon">[-]</span>
+                </button>
+                
+                <div id="nav-content" class="flex flex-col gap-1.5">
+                    <!-- Strata search bar -->
+                    <div class="search-wrap">
+                        <input id="strata-search" type="text" placeholder="◎ JUMP TO STRATA OR POI..." autocomplete="off">
+                        <div id="search-results"></div>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-[9px] md:text-[10px] text-gray-400">INPUT TARGET STRATA:</span>
+                        <input type="number" id="target-level" value="0" min="-99" max="99" class="bg-black text-[#00ffcc] border border-[#00ffcc] p-0.5 w-10 text-center font-mono text-[10px]">
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-1">
+                        <button onclick="changeLevel(1)" class="btn-glitch border border-[#00ffcc] p-1 text-center transition-all text-[9px] md:text-[10px]">+1 UP</button>
+                        <button onclick="changeLevel(-1)" class="btn-glitch border border-[#00ffcc] p-1 text-center transition-all text-[9px] md:text-[10px]">-1 DN</button>
+                        <button onclick="scanSector()" class="btn-glitch border border-purple-500 text-purple-400 p-1 text-center transition-all text-[9px] md:text-[10px]">PING</button>
+                    </div>
+                    
+                    <button onclick="openStrataDirectory()" class="btn-glitch border border-[#00ffcc] bg-[#00ffcc] bg-opacity-10 p-1.5 font-bold tracking-widest transition-all text-[10px] md:text-xs mt-0.5 text-white shadow-[0_0_10px_rgba(0,255,204,0.3)]">VIEW STRATA DIRECTORY</button>
+
+                    <div class="text-gray-500 text-[9px] tracking-widest mt-2 border-t border-gray-700 pt-1">EXPLORATION MODES</div>
+                    <button id="tour-btn" class="nav-mode-btn" onclick="startCinematicTour()">
+                        <span><span class="ico">▶</span> CINEMATIC TOUR</span><span>+99 → -99</span>
+                    </button>
+                    <button id="soul-btn" class="nav-mode-btn" onclick="toggleSoulMode()">
+                        <span><span class="ico">✦</span> SOUL TRACKER</span><span id="soul-btn-state">OFF</span>
+                    </button>
+                    <button id="lens-btn" class="nav-mode-btn" onclick="toggleLensMode()">
+                        <span><span class="ico">◎</span> REALITY LENS</span><span id="lens-btn-state">OFF</span>
+                    </button>
+                    <button id="reaper-registry-btn" class="nav-mode-btn" onclick="openReaperRegistry()" style="border-color:#aa44ff;color:#aa44ff;">
+                        <span><span class="ico">☠</span> REAPER REGISTRY</span><span id="reaper-registry-state">10</span>
+                    </button>
+                    <button id="cycle-btn" class="nav-mode-btn" onclick="advanceCycle()" style="border-color:#ffcc00;color:#ffcc00;">
+                        <span><span class="ico">⌛</span> ADVANCE CYCLE</span><span>EVENT</span>
+                    </button>
+                    
+                </div>
+            </div>
+
+            <!-- System Logs -->
+            <div class="interactive-panel pointer-events-auto p-2 w-full md:w-[400px] h-24 md:h-40 flex flex-col rounded-sm border-r-2 border-[#00ffcc]">
+                <div class="text-[10px] md:text-xs text-gray-500 border-b border-gray-700 pb-1 mb-1 flex justify-between">
+                    <span class="font-bold">SYSTEM LOGS</span>
+                    <span id="coord-display" class="hidden md:inline">COORD: [0.00, 0.00]</span>
+                </div>
+                <div id="log-container" class="flex-1 overflow-y-auto flex flex-col gap-1.5 text-[9px] md:text-xs pr-1 custom-scrollbar">
+                    <div class="text-cyan-300">> Astrolabe Database initialized.</div>
+                    <div class="text-gray-300">> Select a strata to view its structural and geopolitical data.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Strata Directory Panel -->
+    <div id="directory-panel" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 interactive-panel p-4 md:p-6 z-[60] w-[95%] max-w-2xl rounded-sm border-2 border-[#00ffcc] shadow-[0_0_30px_rgba(0,255,204,0.3)] flex-col gap-4 bg-gray-900 bg-opacity-95">
+        <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+            <h2 class="text-lg md:text-2xl font-bold text-[#00ffcc] tracking-widest uppercase">STRATA <span id="dir-level">0</span> DIRECTORY</h2>
+            <button onclick="closeStrataDirectory()" class="text-red-500 hover:text-white font-bold px-2 py-1 border border-red-500 hover:bg-red-500 transition-colors">[ X ]</button>
+        </div>
+        
+        <div class="flex flex-col gap-4 overflow-y-auto max-h-[60vh] custom-scrollbar pr-2">
+            <!-- Dominant Reality -->
+            <div class="bg-black bg-opacity-50 p-3 border-l-4 border-[#00ffcc]">
+                <div class="text-[10px] text-gray-500 tracking-widest mb-1">DOMINANT REALITY</div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div id="dir-reality-name" class="text-base md:text-lg font-bold text-white uppercase">Reality Name</div>
+                        <div id="dir-reality-faction" class="text-xs text-gray-400">Faction Name</div>
+                    </div>
+                    <button onclick="openDatabankFromDir(null)" class="btn-glitch border border-[#00ffcc] text-[#00ffcc] hover:bg-[#00ffcc] hover:text-black p-1.5 text-xs font-bold transition-all">DATABANK</button>
+                </div>
+            </div>
+
+            <!-- POIs -->
+            <div>
+                <div class="text-[10px] text-gray-500 tracking-widest mb-2 border-b border-gray-800 pb-1">POINTS OF INTEREST & CONSTRUCTS</div>
+                <div id="dir-poi-list" class="flex flex-col gap-2">
+                    <!-- JS Injects Here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Target Popup -->
+    <div id="mini-target-panel" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 interactive-panel p-4 z-[70] w-[90%] max-w-[300px] rounded-sm border-2 border-[#00ffcc] shadow-[0_0_20px_rgba(0,255,204,0.3)] flex-col gap-2 bg-gray-900">
+        <button onclick="closeMiniTarget()" class="absolute top-1 right-1 text-red-500 hover:text-red-300 font-bold px-2 py-1 text-xs">[X]</button>
+        <div class="text-[10px] md:text-xs text-gray-500 tracking-widest border-b border-gray-700 pb-1 w-[85%]">TARGET LOCKED</div>
+        <h3 id="mini-title" class="text-base md:text-lg font-bold text-white text-glow truncate uppercase mt-1">TITLE</h3>
+        <p id="mini-subtitle" class="text-[10px] md:text-xs font-bold">FACTION</p>
+        <div class="flex mt-2 pt-2 border-t border-gray-700">
+            <button onclick="openDatabankFromMini()" class="w-full btn-glitch bg-[#00ffcc] text-black border border-[#00ffcc] hover:bg-transparent hover:text-[#00ffcc] p-2 text-[10px] md:text-xs font-bold transition-colors">[ OPEN DATABANK ]</button>
+        </div>
+    </div>
+
+    <!-- Massive Databank & Lore Modal -->
+    <div id="lore-panel" class="hidden absolute top-0 left-0 w-full h-full z-[100] bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center p-2 md:p-6">
+        <div class="interactive-panel w-full max-w-6xl h-full md:h-[90%] rounded-sm border-t-4 border-t-[#00ffcc] shadow-[0_0_50px_rgba(0,255,204,0.2)] flex flex-col overflow-hidden relative bg-gray-900 bg-opacity-95">
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center border-b border-gray-700 p-4 bg-black bg-opacity-50">
+                <div>
+                    <div class="text-[10px] md:text-xs text-[#00ffcc] tracking-widest font-bold">DLDS ASTROLABE DATABANK // LOCATIONS OF INTEREST</div>
+                    <h2 id="lore-title" class="text-xl md:text-3xl font-bold text-white text-glow uppercase leading-tight mt-1">LORE TITLE</h2>
+                    <p id="lore-subtitle" class="text-[10px] md:text-sm font-bold mt-1 text-gray-400">FACTION / STATUS</p>
+                </div>
+                <button onclick="closeLore()" class="text-red-500 hover:text-white font-bold px-4 py-2 border border-red-500 hover:bg-red-500 transition-colors text-xl">[ X ]</button>
+            </div>
+
+            <!-- Content Area (Split into Text and Diagram) -->
+            <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
+                
+                <!-- Left: Lore Text -->
+                <div class="w-full md:w-1/2 p-4 md:p-6 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-gray-700 lore-scroll overflow-y-auto h-full">
+                    <div id="macro-lore" class="text-xs md:text-sm text-gray-300 leading-relaxed bg-black bg-opacity-40 p-3 border-l-2 border-purple-500 italic">
+                        The Endless is a place between realities that resides in the sea called Creation. In The Endless, only mortals who possess soul protectors can exist...
+                    </div>
+                    
+                    <div class="text-[#00ffcc] text-xs tracking-widest border-b border-gray-800 pb-1">STRATA DESCRIPTION</div>
+                    <div id="lore-body" class="text-sm md:text-base text-gray-200 leading-relaxed">
+                        Lore description goes here...
+                    </div>
+                </div>
+
+                <!-- Right: Diagram Canvas -->
+                <div id="lore-diagram-container" class="w-full md:w-1/2 p-4 flex flex-col h-[400px] md:h-full relative bg-cover bg-center">
+                    <!-- Overlay to ensure text/diagram remains readable over the GIF -->
+                    <div class="absolute inset-0 bg-black bg-opacity-50 pointer-events-none z-0"></div>
+                    
+                    <div class="text-gray-400 text-[10px] md:text-xs tracking-widest border-b border-gray-800 pb-1 mb-2 relative z-10 text-shadow-md font-bold flex justify-between items-center">
+                        <span id="diagram-mode-label">HOLOGRAPHIC PROJECTION</span>
+                    </div>
+                    <button class="holo-mode-toggle" id="holo-toggle-btn" onclick="toggleHoloMode()">[ 2D MAP ]</button>
+                    
+                    <div class="flex-1 relative w-full h-full z-10" id="canvas-wrapper">
+                        <!-- Holographic 3D canvas (default) -->
+                        <div id="poi-holo-container">
+                            <canvas id="poi-holo-canvas"></canvas>
+                            <div class="holo-platform-label" id="holo-platform-label">--</div>
+                        </div>
+                        <!-- 2D Diagram Canvas (toggleable) -->
+                        <canvas id="diagram-canvas" class="absolute top-0 left-0 w-full h-full" style="display:none;"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
         // LORE, DATA & STATE
         // ==========================================
         const GAME_STATE = { 
@@ -237,31 +2524,7 @@
         const TERRITORY_DATA = {};
         const proceduralNames1 = ["Shattered", "Luminous", "Echoing", "Silent", "Crimson", "Fractured", "Radiant", "Hollow", "Ashen", "Veiled"];
         const proceduralNames2 = ["Expanse", "Reach", "Sector", "Void", "Strata", "Grid", "Matrix", "Ruins", "Spire", "Vanguard"];
-        const proceduralSubNodes = [
-            // -- Common nodes (rare procedural anchors — kept lean) --
-            "Ruined Outpost", "Data Silo", "Observation Deck", "Derelict Hull",
-            "Plasma Rift", "Temporal Anomaly", "Smuggler Den",
-            // -- LOVECRAFTIAN / COSMIC HORROR --
-            "The Whispering Fold", "Iridescent Eye-Well", "Mouthless Cathedral",
-            "Drowning Black Stratum", "Tendril Garden", "The Listener's Spire",
-            "Yog-Synaptic Lattice", "The Colour Out of Strata", "Non-Euclidean Vault",
-            "The Sleeper's Chamber", "Abyss-Mouth Hatchery", "Hollow-God Sarcophagus",
-            "The Eyeless Choir", "Reef of Forgotten Names", "Saw-Bladed Helix",
-            // -- DEMONIC / INFERNAL --
-            "Bone Forge", "Sulfur-Vent Arena", "Brimstone Market",
-            "The Crimson Tabernacle", "Sigil-Pact Pit", "Hate-Engine Ruin",
-            "Infernal Choir Chamber", "Pyre-Throne", "Pact-Broker's Coil",
-            "Goat-Throne Reliquary", "The Devil's Ledger House", "Marrowsmoke Cloister",
-            // -- ANGELIC / SACROSANCT --
-            "Halo-Forge", "The Mercy Spire", "Cantor's Sanctum",
-            "Annunciation Plateau", "Wing-Reliquary", "The Empyrean Conduit",
-            "Cherub Garden", "Vesper Lantern Court", "Throne of Echoes",
-            "Seraph's Anvil", "The Singing Halo", "Choir-Vault of First Light",
-            // -- MYSTERY / WONDER --
-            "Memory-Glass Lake", "The Singing Fault", "Echo Library",
-            "Unwritten Reliquary", "Doorway With No Hinge", "Vault of Last Words",
-            "Pilgrim's Footnote", "Inverse Cathedral"
-        ];
+        const proceduralSubNodes = ["Sector Alpha", "Ruined Outpost", "Data Silo", "Scavenger Camp", "Plasma Rift", "Observation Deck", "Smuggler Den", "Derelict Hull", "Temporal Anomaly"];
 
         // ===== REAPER LORE — Death's Custodians of the Soul Cycle =====
         // CANON: Every reality has exactly ONE Reaper, born as the firstborn of that strata.
@@ -587,7 +2850,6 @@
             generatePOIHalos();
             generatePOIHolograms();
             generatePolarCaps();        // chromatic shells + gravity-bend warp arcs at +99 / -99 axes
-            generateProjectorDais();    // persistent holographic projector at the base of the map
             generateSoulSeedWeb();      // spider-web network of soul-seed connections across creation
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
@@ -1156,35 +3418,37 @@
                 }`;
 
             function makeHemisphere(yPos, isTop, tintHex, edgeHex) {
-                // Smaller, contained cone — fits within the strata footprint rather than
-                // overwhelming the spindle. Uses NORMAL blending (not additive) so it
-                // tints the layers behind it instead of adding to them.
-                const geo = new THREE.ConeGeometry(POLE_RADIUS, POLE_RADIUS * 0.7, 64, 12, true);
+                // ConeBufferGeometry pointing toward the pole — open base, apex at pole
+                const geo = new THREE.ConeGeometry(POLE_RADIUS, POLE_RADIUS * 0.85, 64, 12, true);
+                // By default a cone points +Y. For the bottom pole, flip Y by rotating Pi.
                 const mat = new THREE.ShaderMaterial({
                     vertexShader: HEMI_VERT,
                     fragmentShader: HEMI_FRAG,
                     transparent: true,
                     depthWrite: false,
                     side: THREE.DoubleSide,
-                    blending: THREE.NormalBlending,
+                    blending: THREE.AdditiveBlending,
                     uniforms: {
-                        tint:     { value: new THREE.Vector3() },
-                        tintEdge: { value: new THREE.Vector3() },
+                        tint:     { value: new THREE.Color(tintHex).toArray ? new THREE.Vector3(...new THREE.Color(tintHex).toArray()) : new THREE.Color(tintHex) },
+                        tintEdge: { value: new THREE.Color(edgeHex) },
                         time:     { value: 0 },
-                        intensity:{ value: 0.32 },   // way down from 0.85 — was overwhelming the scene
+                        intensity:{ value: 0.85 },
                     },
                 });
+                // Build Vector3 from Color (manual to avoid version issues)
                 const tc = new THREE.Color(tintHex);
-                mat.uniforms.tint.value.set(tc.r, tc.g, tc.b);
+                mat.uniforms.tint.value = new THREE.Vector3(tc.r, tc.g, tc.b);
                 const ec = new THREE.Color(edgeHex);
-                mat.uniforms.tintEdge.value.set(ec.r, ec.g, ec.b);
+                mat.uniforms.tintEdge.value = new THREE.Vector3(ec.r, ec.g, ec.b);
 
                 const mesh = new THREE.Mesh(geo, mat);
+                // For top pole: cone apex up (+Y), base at strata
+                // For bottom pole: cone apex down (-Y), so rotate 180° on X
                 if (isTop) {
-                    mesh.position.y = yPos - (POLE_RADIUS * 0.7 * 0.5);
+                    mesh.position.y = yPos - (POLE_RADIUS * 0.85 * 0.5);
                 } else {
                     mesh.rotation.x = Math.PI;
-                    mesh.position.y = yPos + (POLE_RADIUS * 0.7 * 0.5);
+                    mesh.position.y = yPos + (POLE_RADIUS * 0.85 * 0.5);
                 }
                 mesh.userData.isPolarShell = true;
                 return mesh;
@@ -1263,7 +3527,7 @@
                     uniforms: {
                         tint:      { value: new THREE.Vector3(0, 1, 0.8) },
                         time:      { value: 0 },
-                        intensity: { value: 0.35 },   // way down — was washing out spindle
+                        intensity: { value: 0.75 },
                     },
                     transparent: true,
                     depthWrite: false,
@@ -1284,107 +3548,10 @@
         }
 
         // =====================================================================
-        // PERSISTENT HOLOGRAPHIC PROJECTOR — sits at the base of the spindle,
-        // projecting the entire 199-layer creation upward as a hologram.
-        // Visible at all times in the live map (not just boot).
+        // SOUL-SEED WEB — Spider-web network of dim glowing lines connecting
+        // random POIs across creation. Soul seeds spread "like a spider web".
+        // Lines have animated pulses that travel along them slowly.
         // =====================================================================
-        let projectorDaisGroup = null;
-        function generateProjectorDais() {
-            const Y_BOT = -99 * 0.6;
-            const DAIS_Y = Y_BOT - 6.5;   // a bit below the lowest stratum
-            projectorDaisGroup = new THREE.Group();
-
-            // --- Solid metal-feel dais base (cylinder) — NORMAL blending so it has substance
-            const baseGeo = new THREE.CylinderGeometry(5.5, 6.5, 1.2, 32);
-            const baseMat = new THREE.MeshBasicMaterial({
-                color: 0x101a22, transparent: true, opacity: 0.95, depthWrite: true,
-            });
-            const base = new THREE.Mesh(baseGeo, baseMat);
-            base.position.y = DAIS_Y;
-            projectorDaisGroup.add(base);
-
-            // Cyan top-lip ring (the actual "emitter" rim)
-            const lipGeo = new THREE.TorusGeometry(5.4, 0.18, 8, 64);
-            const lipMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-            const lip = new THREE.Mesh(lipGeo, lipMat);
-            lip.rotation.x = Math.PI / 2;
-            lip.position.y = DAIS_Y + 0.6;
-            projectorDaisGroup.add(lip);
-
-            // Wireframe outline on the dais itself (subtle blueprint feel)
-            const wireGeo = new THREE.CylinderGeometry(5.5, 6.5, 1.2, 32, 1, true);
-            const wireMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.45 });
-            const wire = new THREE.Mesh(wireGeo, wireMat);
-            wire.position.y = DAIS_Y;
-            projectorDaisGroup.add(wire);
-
-            // Spinning runic ring (magenta) below the lip
-            const runeGeo = new THREE.TorusGeometry(6.2, 0.06, 6, 96);
-            const runeMat = new THREE.MeshBasicMaterial({ color: 0xff00cc, transparent: true, opacity: 0.7 });
-            const rune = new THREE.Mesh(runeGeo, runeMat);
-            rune.rotation.x = Math.PI / 2.15;
-            rune.position.y = DAIS_Y;
-            rune.userData.isProjectorRune = true; // animated rotation
-            projectorDaisGroup.add(rune);
-
-            // 4 supporting spokes (tetrahedral "antennae") around the rim
-            for (let i = 0; i < 4; i++) {
-                const a = (i / 4) * Math.PI * 2;
-                const spk = new THREE.Mesh(
-                    new THREE.ConeGeometry(0.18, 0.8, 4),
-                    new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.85 })
-                );
-                spk.position.set(Math.cos(a) * 5.7, DAIS_Y + 1.1, Math.sin(a) * 5.7);
-                spk.rotation.z = Math.cos(a) * 0.15;
-                spk.rotation.x = Math.sin(a) * 0.15;
-                projectorDaisGroup.add(spk);
-            }
-
-            // Pedestal glow on the floor (a flat ring of soft light around the dais)
-            const floorGeo = new THREE.RingGeometry(6.8, 12, 64);
-            const floorMat = new THREE.MeshBasicMaterial({
-                color: 0x00ffcc, transparent: true, opacity: 0.10,
-                blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = DAIS_Y - 0.55;
-            projectorDaisGroup.add(floor);
-
-            // Faint vertical emitter beam from the dais up to the lowest stratum
-            // (sells "the whole spindle is being projected from here")
-            const BEAM_HEIGHT = (Y_BOT - DAIS_Y) - 0.5;          // ~6.0 units
-            const BEAM_HALF   = BEAM_HEIGHT / 2;
-            const beamGeo = new THREE.CylinderGeometry(0.12, 0.5, BEAM_HEIGHT, 16, 1, true);
-            const beamMat = new THREE.ShaderMaterial({
-                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-                uniforms: {
-                    time:        { value: 0 },
-                    beamHalf:    { value: BEAM_HALF },
-                    beamHeight:  { value: BEAM_HEIGHT },
-                },
-                vertexShader: `
-                    varying vec3 vP;
-                    void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-                fragmentShader: `
-                    uniform float time;
-                    uniform float beamHalf;
-                    uniform float beamHeight;
-                    varying vec3 vP;
-                    void main() {
-                        float h = (vP.y + beamHalf) / beamHeight;   // 0 at bottom → 1 at top
-                        float fade = 1.0 - h * 0.6;
-                        float stripe = 0.55 + 0.45 * sin(vP.y * 3.0 - time * 1.4);
-                        gl_FragColor = vec4(vec3(0.0, 1.0, 0.85), fade * stripe * 0.40);
-                    }`,
-            });
-            const beam = new THREE.Mesh(beamGeo, beamMat);
-            beam.position.y = DAIS_Y + 0.6 + BEAM_HALF;
-            beam.userData.isProjectorBeam = true;
-            projectorDaisGroup.add(beam);
-
-            astrolabeGroup.add(projectorDaisGroup);
-        }
         let soulSeedWebGroup = null;
         function generateSoulSeedWeb() {
             soulSeedWebGroup = new THREE.Group();
@@ -1877,30 +4044,24 @@
             };
         }
 
-        // Choose a construct builder based on POI type + name + faction
+        // Choose a construct builder based on POI type + faction
         function classifyPOI(poi) {
             const t = (poi.type || '').toLowerCase();
-            const n = (poi.name || '').toLowerCase();
-            const blob = t + ' ' + n;  // search both type and name for keywords
             const f = (poi.faction && poi.faction.id) || '';
-            // Horror first — Lovecraftian / Abyss / Soul Repository / cosmic horror
-            if (blob.match(/lovecraft|horror|nightmare|tendril|abyss|hollow|mouthless|whisper|eye-well|sleeper|colour out|non-euclid|eyeless choir|yog|listener|tendril garden|drowning black|reef of forgotten|saw-bladed/) || f === 'abyss_followers' || f === 'unholy_ones') return 'horror';
-            // Demonic / infernal — also map to horror visuals (red/black aesthetic)
-            if (blob.match(/demonic|infernal|brimstone|sulfur|pyre|pact|sigil|crimson tabernacle|hate-engine|devil|marrowsmoke|goat-throne|hellish/)) return 'horror';
-            // Angelic / sacrosanct — map to spire (tall radiant)
-            if (blob.match(/angelic|seraph|halo|cherub|empyrean|annunciation|vesper|mercy spire|cantor|wing-reliquary|throne of echoes|singing halo|choir-vault|first light/)) return 'spire';
+            // Horror first — Lovecraftian / Abyss / Soul Repository
+            if (t.includes('lovecraftian') || t.includes('horror') || t.includes('nightmare') || f === 'abyss_followers' || f === 'unholy_ones') return 'horror';
             // Vampiric / gothic
-            if (blob.match(/vampiric|court/) || f === 'vamperica') return 'gothic';
+            if (t.includes('vampiric') || t.includes('court') || f === 'vamperica') return 'gothic';
             // Floating city / hub / sanctuary
-            if (blob.match(/city|hub|sanctuary|base|capital/)) return 'city';
+            if (t.includes('city') || t.includes('hub') || t.includes('sanctuary') || t.includes('base') || t.includes('capital')) return 'city';
             // Media / nexus / broadcast / construct (spire-shape)
-            if (blob.match(/nexus|media|broadcast|construct/)) return 'spire';
+            if (t.includes('nexus') || t.includes('media') || t.includes('broadcast') || t.includes('construct')) return 'spire';
             // Magical / arcane nebula
-            if (blob.match(/magical|anomaly|arcane|memory-glass|echo library|unwritten|doorway with no hinge|inverse cathedral|singing fault/) || f === 'magic_whisperers') return 'nebula';
+            if (t.includes('magical') || t.includes('anomaly') || t.includes('arcane') || f === 'magic_whisperers') return 'nebula';
             // Repository / soul / vault / relic / shattered
-            if (blob.match(/repository|vault|relic|shattered|soul|last words|reliquary/)) return 'relic';
+            if (t.includes('repository') || t.includes('vault') || t.includes('relic') || t.includes('shattered') || t.includes('soul')) return 'relic';
             // Plane / realm = planet (default)
-            if (blob.match(/plane|realm/)) return 'planet';
+            if (t.includes('plane') || t.includes('realm')) return 'planet';
             return 'planet';
         }
 
@@ -1964,27 +4125,6 @@
             if(particlesMesh) particlesMesh.rotation.y += 0.0005;
             if (projectorGroup) projectorGroup.children.forEach(child => { if (child.userData.rotSpeed) child.rotation.z += child.userData.rotSpeed; });
             poiMeshes.forEach(marker => { marker.rotation.y += 0.02; marker.rotation.x += 0.01; });
-
-            // === Dynamic bloom attenuation when zooming in ===
-            // The closer the camera is to the spindle center, the less bloom we render
-            // — keeps close-up text/strata crisp, while still letting the bloom dazzle
-            // at long range. Lerps from 1.0× at distance ≥ FAR to 0.25× at distance ≤ NEAR.
-            if (bloomPass) {
-                const FAR  = 140;   // baseline bloom intensity past this distance
-                const NEAR =  25;   // minimum bloom intensity at or below this distance
-                const MIN_MUL = 0.25;
-                const dist = camera.position.length(); // distance from origin (spindle center)
-                let mul;
-                if (dist >= FAR)       mul = 1.0;
-                else if (dist <= NEAR) mul = MIN_MUL;
-                else {
-                    // Smooth ease-out so the falloff feels natural
-                    const tNorm = (dist - NEAR) / (FAR - NEAR); // 0 near .. 1 far
-                    const eased = tNorm * tNorm * (3 - 2 * tNorm); // smoothstep
-                    mul = MIN_MUL + (1.0 - MIN_MUL) * eased;
-                }
-                bloomPass.strength = GFX.bloomStrength * mul;
-            }
 
             if(soulSeedsGeometry) {
                 const positions = soulSeedsGeometry.attributes.position.array;
@@ -3989,11 +6129,11 @@
         // ----- Settings state with localStorage persistence -----
         const SETTINGS_KEY = 'astrolabe_settings_v1';
         const DEFAULT_SETTINGS = {
-            bloomStrength: 0.18,    // matches the "original look" reference — strata stay crisp
-            bloomRadius:   0.50,
-            bloomThreshold:0.65,    // only the brightest pixels bloom — keeps text legible
-            vignette:      0.40,
-            scanline:      0.16,
+            bloomStrength: 0.55,    // toned down for legibility (user feedback)
+            bloomRadius:   0.65,
+            bloomThreshold:0.40,    // higher threshold → less bloom on dim text/UI
+            vignette:      0.45,
+            scanline:      0.18,
             cameraShake:   true,
             centralSpine:  true,
             starfield:     true,
@@ -4119,55 +6259,6 @@
 
         // ----- Open / close pause menu -----
         let pauseWasAutoRotating = true;
-
-        // ----- Desktop Fullscreen toggle (uses Fullscreen API) -----
-        function isFullscreen() {
-            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
-        }
-        function toggleFullscreen() {
-            try {
-                if (!isFullscreen()) {
-                    const el = document.documentElement;
-                    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-                    if (req) {
-                        const p = req.call(el);
-                        if (p && p.catch) p.catch(err => console.warn('Fullscreen request blocked:', err));
-                    } else {
-                        alert('Fullscreen is not supported in this browser.\nTry pressing F11 instead.');
-                    }
-                } else {
-                    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-                    if (exit) exit.call(document);
-                }
-            } catch (e) { console.warn('Fullscreen toggle failed:', e); }
-        }
-        function updateFullscreenUI() {
-            const fs = isFullscreen();
-            const btn = document.getElementById('gfx-fullscreen-toggle');
-            const hudBtn = document.getElementById('fullscreen-btn');
-            if (btn) {
-                btn.classList.toggle('on', fs);
-                btn.textContent = fs ? 'EXIT' : 'ENTER';
-            }
-            if (hudBtn) {
-                hudBtn.textContent = fs ? '[ ⛶ EXIT FS ]' : '[ ⛶ FULLSCREEN ]';
-                hudBtn.title = fs ? 'Exit Fullscreen (F / Esc)' : 'Enter Fullscreen (F)';
-            }
-        }
-        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(ev =>
-            document.addEventListener(ev, updateFullscreenUI)
-        );
-        // F key (case-insensitive) toggles fullscreen — when not typing in an input
-        window.addEventListener('keydown', (e) => {
-            if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                const ae = document.activeElement;
-                if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
-                e.preventDefault();
-                toggleFullscreen();
-            }
-        });
-        window.toggleFullscreen = toggleFullscreen;
-
         function openPauseMenu() {
             const bd = document.getElementById('pause-menu-backdrop');
             syncPauseMenuUI();
@@ -5285,11 +7376,7 @@
         }
 
         // ================================================================
-        // BREACH DEFENSE MINI-GAME — Canvas arcade, accessible from Pause
-        // 10 faction-colored reality orbs float around; random ones become
-        // unstable (red pulse + countdown ring) — click them before they
-        // breach. Each missed breach costs a shield (3 total). Difficulty
-        // ramps every 10 stabilizations.
+        // BREACH DEFENSE MINI-GAME
         // ================================================================
         (function() {
             const FACTION_COLORS = ['#00ffcc','#ff44cc','#ffcc00','#44aaff','#ff8844','#88ff44','#cc44ff','#ff4477'];
@@ -5326,7 +7413,7 @@
                     vy: (Math.random() - 0.5) * 0.8,
                     r,
                     color: FACTION_COLORS[i % FACTION_COLORS.length],
-                    state: 'stable',
+                    state: 'stable',  // stable | unstable | stabilizing
                     instableAt: 0,
                     breachWindow: BREACH_WINDOW_BASE,
                     pulse: 0,
@@ -5362,6 +7449,7 @@
 
             function update(dt, ts) {
                 const speed = 1 + (diffLevel - 1) * 0.25;
+                // Move orbs
                 for (const o of orbs) {
                     o.x += o.vx * speed;
                     o.y += o.vy * speed;
@@ -5371,10 +7459,12 @@
                     if (o.y + o.r > H)  { o.y = H - o.r;  o.vy = -Math.abs(o.vy); }
                     o.pulse = (o.pulse + dt * 0.006) % (Math.PI * 2);
 
+                    // Transition back from stabilizing
                     if (o.state === 'stabilizing' && ts - o.instableAt > 400) {
                         o.state = 'stable';
                     }
 
+                    // Check breach timer
                     if (o.state === 'unstable') {
                         const elapsed = ts - o.instableAt;
                         if (elapsed > o.breachWindow) {
@@ -5383,6 +7473,7 @@
                     }
                 }
 
+                // Spawn instability
                 spawnTimer += dt;
                 const interval = Math.max(800, STABLE_SPAWN_INTERVAL_BASE - (diffLevel - 1) * 250);
                 if (spawnTimer > interval) {
@@ -5397,6 +7488,7 @@
                     }
                 }
 
+                // Update particles
                 particles = particles.filter(p => p.life > 0);
                 for (const p of particles) {
                     p.x += p.vx; p.y += p.vy;
@@ -5411,6 +7503,7 @@
                 spawnParticles(orb.x, orb.y, '#ff4477', 18);
                 updateHUD();
                 if (shields <= 0) { gameOver(); return; }
+                // Brief red flash
                 orb.instableAt = ts;
             }
 
@@ -5422,6 +7515,7 @@
                 spawnParticles(orb.x, orb.y, '#00ffcc', 12);
                 updateHUD();
 
+                // Level up every 10 stabilizations
                 const newLevel = Math.floor(stabilized / 10) + 1;
                 if (newLevel > diffLevel) {
                     diffLevel = newLevel;
@@ -5439,12 +7533,14 @@
 
             function draw(ts) {
                 ctx.clearRect(0, 0, W, H);
+                // Background grid
                 ctx.strokeStyle = 'rgba(0,255,204,0.04)';
                 ctx.lineWidth = 1;
                 const gStep = 40;
                 for (let x = 0; x < W; x += gStep) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
                 for (let y = 0; y < H; y += gStep) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
 
+                // Particles
                 for (const p of particles) {
                     ctx.globalAlpha = Math.max(0, p.life);
                     ctx.fillStyle = p.color;
@@ -5452,32 +7548,37 @@
                 }
                 ctx.globalAlpha = 1;
 
+                // Orbs
                 for (const o of orbs) {
                     const pulse = Math.sin(o.pulse);
                     if (o.state === 'unstable') {
                         const elapsed = ts - o.instableAt;
-                        const progress = elapsed / o.breachWindow;
+                        const progress = elapsed / o.breachWindow; // 0 → 1
                         const urgency = Math.min(1, progress * 1.4);
                         const flickerAlpha = 0.6 + 0.4 * Math.sin(o.pulse * (4 + urgency * 6));
 
+                        // Danger glow
                         const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r * 2.5);
                         grad.addColorStop(0, `rgba(255,${Math.round(100 - urgency*80)},${Math.round(40 - urgency*40)},${0.5 * flickerAlpha})`);
                         grad.addColorStop(1, 'rgba(0,0,0,0)');
                         ctx.fillStyle = grad;
                         ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 2.5, 0, Math.PI * 2); ctx.fill();
 
+                        // Countdown ring (drains clockwise)
                         const startAngle = -Math.PI / 2;
                         const endAngle = startAngle + (1 - progress) * Math.PI * 2;
                         ctx.strokeStyle = `rgba(255,${Math.round(200 - urgency*160)},0,0.9)`;
                         ctx.lineWidth = 3;
                         ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 5, startAngle, endAngle); ctx.stroke();
 
+                        // Orb body
                         ctx.fillStyle = `rgba(255,${Math.round(80 - urgency*60)},0,${0.8 * flickerAlpha})`;
                         ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
                         ctx.strokeStyle = `rgba(255,100,0,${flickerAlpha})`;
                         ctx.lineWidth = 2;
                         ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
 
+                        // !! label
                         ctx.fillStyle = '#fff';
                         ctx.font = `bold ${Math.round(o.r * 0.7)}px monospace`;
                         ctx.textAlign = 'center';
@@ -5503,6 +7604,7 @@
                         ctx.fillText('✓', o.x, o.y);
 
                     } else {
+                        // Stable orb — faction color, subtle breathing
                         const alpha = 0.15 + 0.05 * pulse;
                         ctx.fillStyle = o.color.replace('#', 'rgba(').replace(/(..)(..)(..)/, (_, r, g, b) =>
                             `${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},${alpha})`);
@@ -5512,6 +7614,7 @@
                         ctx.lineWidth = 1.5;
                         ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
 
+                        // Layer label (tiny)
                         ctx.fillStyle = o.color + 'aa';
                         ctx.font = `${Math.round(o.r * 0.5)}px monospace`;
                         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -5519,11 +7622,13 @@
                     }
                 }
 
+                // Scanline overlay
                 ctx.fillStyle = 'rgba(0,255,204,0.03)';
                 for (let y = 0; y < H; y += 4) {
                     ctx.fillRect(0, y, W, 2);
                 }
 
+                // Level indicator
                 ctx.fillStyle = 'rgba(255,204,0,0.7)';
                 ctx.font = '8px monospace';
                 ctx.textAlign = 'right'; ctx.textBaseline = 'top';
@@ -5585,6 +7690,7 @@
                 }
             }
 
+            // Public API
             window.openBreachGame = function() {
                 try { if (typeof closePauseMenu === 'function') closePauseMenu(); } catch(e) {}
                 initCanvas();
@@ -5607,3 +7713,7 @@
                 startGame();
             };
         })();
+
+    </script>
+</body>
+</html>

@@ -189,10 +189,10 @@ backend:
           agent: "main"
           comment: "GET /api/astrolabe and /api/service-worker.js still serve correctly; PWA + offline cache working."
 
-  - task: "Game Installer Launcher — chunked delivery architecture"
+  - task: "Main Menu + 2 Mini-Games + Lore Expansion + Portable Bundle"
     implemented: true
     working: true
-    file: "backend/server.py, backend/static/launcher.html, backend/static/chunks/*, backend/static/config.js, backend/scripts/*"
+    file: "backend/static/main_menu.html, backend/static/breach_defense.html, backend/static/astrolabe.html, backend/scripts/build_portable.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -200,18 +200,48 @@ backend:
         - working: true
           agent: "main"
           comment: |
-            Refactored the 437 KB monolithic astrolabe.html into a tiny ~31 KB cinematic
-            launcher + 3 lazy-loaded chunks (CSS / body HTML / engine.js, ~423 KB total).
-            Hybrid hosting support added: launcher reads /api/static/config.js for an
-            optional apiBase, then installs a fetch() wrapper that transparently routes
-            /api/lore/* /api/saves/* /api/status/* to the remote backend while keeping
-            /api/static/* on the same origin. Verified end-to-end with the launcher
-            served from a different origin (port 7777) and the API on the live backend:
-            game booted, /api/saves returned 200 from cross-origin, /api/static stayed
-            local. Export script at backend/scripts/export_dist.py produces /app/dist
-            (22 files, 5.6 MB) with _redirects / _headers / netlify.toml / vercel.json
-            pre-configured for drag-and-drop deploy to Netlify / Cloudflare Pages /
-            Vercel / GitHub Pages.
+            • Created a cinematic MAIN MENU (/api/astrolabe) with the Maytradalis /
+              Death / Flybutt / Lurker lore intro, link to globalcomix.com/c/dimensionlock,
+              splash art, audio toggle, and 3 menu cards: Astrolabe Terminal · Breach
+              Defense · Read the Comic.
+            • Procedural dimensionlock-flavored ambient dirge (low drone + minor-3rd
+              pad + distant bells) auto-replaced by a real track if the user drops one
+              at /api/static/dimensionlock_theme.mp3.
+            • Merged the user-submitted Reality Breach Defense mini-game into the main
+              astrolabe.html (accessible from in-game pause menu) AND created a
+              standalone /api/breach-defense page with back-to-menu button.
+            • Expanded the procedural sub-location pool from 9 to 53 entries: now
+              includes 14 Lovecraftian (The Whispering Fold, Iridescent Eye-Well,
+              Mouthless Cathedral, Yog-Synaptic Lattice, etc.), 12 Demonic (Bone Forge,
+              Sulfur-Vent Arena, Pyre-Throne, Marrowsmoke Cloister, etc.), 12 Angelic
+              (Halo-Forge, Empyrean Conduit, Cherub Garden, Seraph's Anvil, etc.), and
+              8 Wonder/Mystery types. Smuggler Den now appears ~1.9% of the time
+              instead of ~11%. classifyPOI() upgraded to keyword-match these names
+              so the 3D holograms pick appropriate horror/spire/nebula meshes.
+            • New /api/astrolabe-game endpoint keeps the chunked launcher accessible
+              from the menu; /api/astrolabe-legacy still serves the monolithic HTML.
+            • Service worker bumped to v4 to cache the new main_menu + breach-defense
+              + astrolabe-game endpoints.
+            • Updated /app/dist (5.7 MB, 24 files) for hybrid hosting on Netlify /
+              Cloudflare Pages / Vercel — drag and drop deployable.
+            • NEW: /app/portable/DimensionLock_Astrolabe_Portable.zip (5.6 MB) is a
+              self-contained offline bundle with PLAY.html + per-OS launchers
+              (PLAY-Windows.bat, PLAY-macOS.command, PLAY-Linux.sh) and README.txt.
+              All absolute /api/* URLs auto-rewritten to relative paths so it works
+              from file:// or any local http server. Service worker disabled in this
+              bundle since file:// blocks SW.
+
+            Verified end-to-end via screenshot tool: main menu renders beautifully
+            on desktop + mobile; clicking ASTROLABE TERMINAL boots the chunked
+            launcher (cached chunks → instant relaunch); clicking BREACH DEFENSE
+            launches the standalone arcade with 10 floating orbs; portable bundle
+            served via http.server runs identically (relative paths working, all
+            assets load, chunked launcher renders with progress UI).
+
+            NOTE: User asked to "use my dimensionlock music" but no audio file was
+            attached. The menu plays a procedural dirge as fallback and auto-
+            switches to a real track if `dimensionlock_theme.mp3` is placed at
+            /api/static/ (or data/api/static/ in the portable bundle).
 
 frontend:
   - task: "Astrolabe 3D scene (Three.js bloom, scanlines, holograms, music, pause menu, boot)"

@@ -1334,6 +1334,66 @@
         }
         .search-item .badge.dead { color: #ff5555; }
         .search-item .badge.poi { color: #ffcc00; }
+
+        /* === BREACH DEFENSE MINI-GAME === */
+        #breach-modal-backdrop {
+            display: none; position: fixed; inset: 0; z-index: 9000;
+            background: rgba(0,0,0,0.85); justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        #breach-modal-backdrop.open { display: flex; opacity: 1; }
+        #breach-modal {
+            background: rgba(5, 10, 15, 0.97); border: 1px solid #00ffcc;
+            box-shadow: 0 0 40px rgba(0,255,204,0.3), inset 0 0 60px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0; width: min(500px, 96vw); max-height: 96vh;
+            overflow-y: auto; position: relative;
+        }
+        #breach-modal-header {
+            width: 100%; padding: 10px 16px; border-bottom: 1px solid rgba(0,255,204,0.3);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,204,0.05);
+        }
+        #breach-modal-header h3 { font-size: 12px; letter-spacing: 4px; color: #00ffcc; margin: 0; }
+        #breach-game-canvas {
+            display: block; background: #020810;
+            border-top: 1px solid rgba(0,255,204,0.15);
+            border-bottom: 1px solid rgba(0,255,204,0.15);
+            cursor: crosshair;
+        }
+        #breach-hud {
+            width: 100%; padding: 8px 16px; display: flex; justify-content: space-between;
+            align-items: center; font-size: 10px; letter-spacing: 2px; color: #b0e8d8;
+            border-bottom: 1px solid rgba(0,255,204,0.2);
+        }
+        #breach-hud .hud-score { color: #00ffcc; font-size: 13px; }
+        #breach-hud .hud-shields { color: #ff4477; letter-spacing: 3px; }
+        #breach-hud .hud-hi { color: #888; font-size: 9px; }
+        #breach-instructions {
+            padding: 8px 16px 12px; font-size: 9px; color: #556; letter-spacing: 2px;
+            text-align: center; line-height: 1.8;
+        }
+        #breach-gameover {
+            display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.82);
+            flex-direction: column; justify-content: center; align-items: center;
+            gap: 14px; z-index: 10;
+        }
+        #breach-gameover.show { display: flex; }
+        #breach-gameover h2 { font-size: 18px; letter-spacing: 6px; color: #ff4477; margin: 0; }
+        #breach-gameover .go-score { font-size: 13px; color: #00ffcc; letter-spacing: 3px; }
+        #breach-gameover .go-hi { font-size: 10px; color: #888; letter-spacing: 2px; }
+        #breach-gameover button {
+            margin-top: 6px; padding: 8px 24px; font-family: inherit; font-size: 11px;
+            letter-spacing: 3px; background: transparent; border: 1px solid #00ffcc;
+            color: #00ffcc; cursor: pointer; transition: all 0.2s;
+        }
+        #breach-gameover button:hover { background: #00ffcc; color: #000; }
+        #breach-level-banner {
+            position: absolute; top: 44px; left: 50%; transform: translateX(-50%);
+            font-size: 11px; letter-spacing: 4px; color: #ffcc00; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s; white-space: nowrap;
+        }
+        #breach-level-banner.show { opacity: 1; }
     </style>
 
     <!-- Stable Three.js & OrbitControls Links -->
@@ -1702,6 +1762,7 @@
                     <button class="pause-btn" onclick="closePauseMenu()">[ RESUME ▸ ]</button>
                 </div>
                 <button class="pause-btn" onclick="openSavesModal()" style="background:rgba(255,0,200,0.06);border-color:#ff44cc;color:#ff44cc;">[ ⚏ COMMUNITY UNIVERSES ]</button>
+                <button class="pause-btn" onclick="openBreachGame()" style="background:rgba(0,255,100,0.06);border-color:#00ff88;color:#00ff88;">[ ▷ BREACH DEFENSE ]</button>
                 <button class="pause-btn danger" onclick="quitAstrolabe()">[ ⏻ QUIT ASTROLABE ]</button>
 
                 <div style="font-size: 8px; color: #555; letter-spacing: 2px; text-align: center; margin-top: 4px;">
@@ -1710,6 +1771,46 @@
             </div>
         </div>
     </div>
+
+    <!-- ============================================================== -->
+    <!-- BREACH DEFENSE MINI-GAME (in-game modal)                        -->
+    <!-- ============================================================== -->
+    <div id="breach-modal-backdrop" onclick="if(event.target===this)closeBreachGame()">
+        <div id="breach-modal" role="dialog" aria-labelledby="breach-title">
+            <div id="breach-modal-header">
+                <h3 id="breach-title">[ REALITY BREACH DEFENSE ]</h3>
+                <button class="pause-close" onclick="closeBreachGame()">[ X ]</button>
+            </div>
+            <div id="breach-hud">
+                <div>
+                    <div style="font-size:9px;color:#666;letter-spacing:2px;">SCORE</div>
+                    <div class="hud-score" id="bd-score">0</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:9px;color:#666;letter-spacing:2px;">SHIELDS</div>
+                    <div class="hud-shields" id="bd-shields">♥ ♥ ♥</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:9px;color:#666;letter-spacing:2px;">BEST</div>
+                    <div class="hud-hi" id="bd-hiscore">0</div>
+                </div>
+            </div>
+            <canvas id="breach-game-canvas" width="460" height="320"></canvas>
+            <div id="breach-instructions">
+                CLICK RED REALITIES BEFORE THEY BREACH · EACH BREACH COSTS A SHIELD<br>
+                DIFFICULTY INCREASES EVERY 10 STABILIZATIONS
+            </div>
+            <div id="breach-gameover">
+                <h2>[ REALITY COLLAPSE ]</h2>
+                <div class="go-score" id="bd-go-score">SCORE: 0</div>
+                <div class="go-hi" id="bd-go-hi">BEST: 0</div>
+                <button onclick="breachGameRestart()">[ RESTART ]</button>
+                <button onclick="closeBreachGame()" style="border-color:#ff4477;color:#ff4477;margin-top:2px;">[ EXIT ]</button>
+            </div>
+            <div id="breach-level-banner">▲ INSTABILITY RISING</div>
+        </div>
+    </div>
+
 
     <!-- ============================================================== -->
     <!-- MOBILE UI LAYER — Touch-first redesign for ≤767px viewports     -->
@@ -2439,7 +2540,31 @@
         const TERRITORY_DATA = {};
         const proceduralNames1 = ["Shattered", "Luminous", "Echoing", "Silent", "Crimson", "Fractured", "Radiant", "Hollow", "Ashen", "Veiled"];
         const proceduralNames2 = ["Expanse", "Reach", "Sector", "Void", "Strata", "Grid", "Matrix", "Ruins", "Spire", "Vanguard"];
-        const proceduralSubNodes = ["Sector Alpha", "Ruined Outpost", "Data Silo", "Scavenger Camp", "Plasma Rift", "Observation Deck", "Smuggler Den", "Derelict Hull", "Temporal Anomaly"];
+        const proceduralSubNodes = [
+            // -- Common nodes (rare procedural anchors — kept lean) --
+            "Ruined Outpost", "Data Silo", "Observation Deck", "Derelict Hull",
+            "Plasma Rift", "Temporal Anomaly", "Smuggler Den",
+            // -- LOVECRAFTIAN / COSMIC HORROR --
+            "The Whispering Fold", "Iridescent Eye-Well", "Mouthless Cathedral",
+            "Drowning Black Stratum", "Tendril Garden", "The Listener's Spire",
+            "Yog-Synaptic Lattice", "The Colour Out of Strata", "Non-Euclidean Vault",
+            "The Sleeper's Chamber", "Abyss-Mouth Hatchery", "Hollow-God Sarcophagus",
+            "The Eyeless Choir", "Reef of Forgotten Names", "Saw-Bladed Helix",
+            // -- DEMONIC / INFERNAL --
+            "Bone Forge", "Sulfur-Vent Arena", "Brimstone Market",
+            "The Crimson Tabernacle", "Sigil-Pact Pit", "Hate-Engine Ruin",
+            "Infernal Choir Chamber", "Pyre-Throne", "Pact-Broker's Coil",
+            "Goat-Throne Reliquary", "The Devil's Ledger House", "Marrowsmoke Cloister",
+            // -- ANGELIC / SACROSANCT --
+            "Halo-Forge", "The Mercy Spire", "Cantor's Sanctum",
+            "Annunciation Plateau", "Wing-Reliquary", "The Empyrean Conduit",
+            "Cherub Garden", "Vesper Lantern Court", "Throne of Echoes",
+            "Seraph's Anvil", "The Singing Halo", "Choir-Vault of First Light",
+            // -- MYSTERY / WONDER --
+            "Memory-Glass Lake", "The Singing Fault", "Echo Library",
+            "Unwritten Reliquary", "Doorway With No Hinge", "Vault of Last Words",
+            "Pilgrim's Footnote", "Inverse Cathedral"
+        ];
 
         // ===== REAPER LORE — Death's Custodians of the Soul Cycle =====
         // CANON: Every reality has exactly ONE Reaper, born as the firstborn of that strata.
@@ -4055,24 +4180,30 @@
             };
         }
 
-        // Choose a construct builder based on POI type + faction
+        // Choose a construct builder based on POI type + name + faction
         function classifyPOI(poi) {
             const t = (poi.type || '').toLowerCase();
+            const n = (poi.name || '').toLowerCase();
+            const blob = t + ' ' + n;  // search both type and name for keywords
             const f = (poi.faction && poi.faction.id) || '';
-            // Horror first — Lovecraftian / Abyss / Soul Repository
-            if (t.includes('lovecraftian') || t.includes('horror') || t.includes('nightmare') || f === 'abyss_followers' || f === 'unholy_ones') return 'horror';
+            // Horror first — Lovecraftian / Abyss / Soul Repository / cosmic horror
+            if (blob.match(/lovecraft|horror|nightmare|tendril|abyss|hollow|mouthless|whisper|eye-well|sleeper|colour out|non-euclid|eyeless choir|yog|listener|tendril garden|drowning black|reef of forgotten|saw-bladed/) || f === 'abyss_followers' || f === 'unholy_ones') return 'horror';
+            // Demonic / infernal — also map to horror visuals (red/black aesthetic)
+            if (blob.match(/demonic|infernal|brimstone|sulfur|pyre|pact|sigil|crimson tabernacle|hate-engine|devil|marrowsmoke|goat-throne|hellish/)) return 'horror';
+            // Angelic / sacrosanct — map to spire (tall radiant)
+            if (blob.match(/angelic|seraph|halo|cherub|empyrean|annunciation|vesper|mercy spire|cantor|wing-reliquary|throne of echoes|singing halo|choir-vault|first light/)) return 'spire';
             // Vampiric / gothic
-            if (t.includes('vampiric') || t.includes('court') || f === 'vamperica') return 'gothic';
+            if (blob.match(/vampiric|court/) || f === 'vamperica') return 'gothic';
             // Floating city / hub / sanctuary
-            if (t.includes('city') || t.includes('hub') || t.includes('sanctuary') || t.includes('base') || t.includes('capital')) return 'city';
+            if (blob.match(/city|hub|sanctuary|base|capital/)) return 'city';
             // Media / nexus / broadcast / construct (spire-shape)
-            if (t.includes('nexus') || t.includes('media') || t.includes('broadcast') || t.includes('construct')) return 'spire';
+            if (blob.match(/nexus|media|broadcast|construct/)) return 'spire';
             // Magical / arcane nebula
-            if (t.includes('magical') || t.includes('anomaly') || t.includes('arcane') || f === 'magic_whisperers') return 'nebula';
+            if (blob.match(/magical|anomaly|arcane|memory-glass|echo library|unwritten|doorway with no hinge|inverse cathedral|singing fault/) || f === 'magic_whisperers') return 'nebula';
             // Repository / soul / vault / relic / shattered
-            if (t.includes('repository') || t.includes('vault') || t.includes('relic') || t.includes('shattered') || t.includes('soul')) return 'relic';
+            if (blob.match(/repository|vault|relic|shattered|soul|last words|reliquary/)) return 'relic';
             // Plane / realm = planet (default)
-            if (t.includes('plane') || t.includes('realm')) return 'planet';
+            if (blob.match(/plane|realm/)) return 'planet';
             return 'planet';
         }
 
@@ -7455,6 +7586,330 @@
             }
             return group;
         }
+
+        // ================================================================
+        // BREACH DEFENSE MINI-GAME — Canvas arcade, accessible from Pause
+        // 10 faction-colored reality orbs float around; random ones become
+        // unstable (red pulse + countdown ring) — click them before they
+        // breach. Each missed breach costs a shield (3 total). Difficulty
+        // ramps every 10 stabilizations.
+        // ================================================================
+        (function() {
+            const FACTION_COLORS = ['#00ffcc','#ff44cc','#ffcc00','#44aaff','#ff8844','#88ff44','#cc44ff','#ff4477'];
+            const ORB_COUNT = 10;
+            const SHIELD_MAX = 3;
+            const STABLE_SPAWN_INTERVAL_BASE = 2800; // ms between instability events
+            const BREACH_WINDOW_BASE = 3500;         // ms to click before breach
+
+            let canvas, ctx, W, H;
+            let orbs = [], score = 0, shields = 0, hiScore = 0, running = false, raf = null;
+            let stabilized = 0, diffLevel = 1, spawnTimer = 0, lastTime = 0;
+            let particles = [];
+
+            function initCanvas() {
+                canvas = document.getElementById('breach-game-canvas');
+                ctx = canvas.getContext('2d');
+                resizeCanvas();
+            }
+
+            function resizeCanvas() {
+                const modal = document.getElementById('breach-modal');
+                const w = Math.min(460, modal.clientWidth || 460);
+                W = w; H = Math.round(w * 320 / 460);
+                canvas.width = W; canvas.height = H;
+                canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+            }
+
+            function makeOrb(i) {
+                const r = 14 + Math.random() * 10;
+                return {
+                    x: r + Math.random() * (W - r * 2),
+                    y: r + Math.random() * (H - r * 2),
+                    vx: (Math.random() - 0.5) * 0.8,
+                    vy: (Math.random() - 0.5) * 0.8,
+                    r,
+                    color: FACTION_COLORS[i % FACTION_COLORS.length],
+                    state: 'stable',
+                    instableAt: 0,
+                    breachWindow: BREACH_WINDOW_BASE,
+                    pulse: 0,
+                    id: i,
+                };
+            }
+
+            function startGame() {
+                hiScore = parseInt(localStorage.getItem('breach_hiscore') || '0', 10);
+                orbs = Array.from({length: ORB_COUNT}, (_, i) => makeOrb(i));
+                score = 0; shields = SHIELD_MAX; stabilized = 0; diffLevel = 1;
+                particles = []; spawnTimer = 0; lastTime = 0;
+                running = true;
+                updateHUD();
+                hideGameOver();
+                if (raf) cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(loop);
+            }
+
+            function stopGame() {
+                running = false;
+                if (raf) { cancelAnimationFrame(raf); raf = null; }
+            }
+
+            function loop(ts) {
+                if (!running) return;
+                const dt = lastTime ? Math.min(ts - lastTime, 80) : 16;
+                lastTime = ts;
+                update(dt, ts);
+                draw(ts);
+                raf = requestAnimationFrame(loop);
+            }
+
+            function update(dt, ts) {
+                const speed = 1 + (diffLevel - 1) * 0.25;
+                for (const o of orbs) {
+                    o.x += o.vx * speed;
+                    o.y += o.vy * speed;
+                    if (o.x - o.r < 0)  { o.x = o.r;      o.vx = Math.abs(o.vx); }
+                    if (o.x + o.r > W)  { o.x = W - o.r;  o.vx = -Math.abs(o.vx); }
+                    if (o.y - o.r < 0)  { o.y = o.r;      o.vy = Math.abs(o.vy); }
+                    if (o.y + o.r > H)  { o.y = H - o.r;  o.vy = -Math.abs(o.vy); }
+                    o.pulse = (o.pulse + dt * 0.006) % (Math.PI * 2);
+
+                    if (o.state === 'stabilizing' && ts - o.instableAt > 400) {
+                        o.state = 'stable';
+                    }
+
+                    if (o.state === 'unstable') {
+                        const elapsed = ts - o.instableAt;
+                        if (elapsed > o.breachWindow) {
+                            breach(o, ts);
+                        }
+                    }
+                }
+
+                spawnTimer += dt;
+                const interval = Math.max(800, STABLE_SPAWN_INTERVAL_BASE - (diffLevel - 1) * 250);
+                if (spawnTimer > interval) {
+                    spawnTimer = 0;
+                    const stableOrbs = orbs.filter(o => o.state === 'stable');
+                    if (stableOrbs.length > 0) {
+                        const target = stableOrbs[Math.floor(Math.random() * stableOrbs.length)];
+                        const window_ = Math.max(1200, BREACH_WINDOW_BASE - (diffLevel - 1) * 300);
+                        target.state = 'unstable';
+                        target.instableAt = ts;
+                        target.breachWindow = window_;
+                    }
+                }
+
+                particles = particles.filter(p => p.life > 0);
+                for (const p of particles) {
+                    p.x += p.vx; p.y += p.vy;
+                    p.life -= dt * 0.003;
+                    p.vy += 0.05;
+                }
+            }
+
+            function breach(orb, ts) {
+                orb.state = 'stable';
+                shields--;
+                spawnParticles(orb.x, orb.y, '#ff4477', 18);
+                updateHUD();
+                if (shields <= 0) { gameOver(); return; }
+                orb.instableAt = ts;
+            }
+
+            function stabilize(orb, ts) {
+                orb.state = 'stabilizing';
+                orb.instableAt = ts;
+                score += 10;
+                stabilized++;
+                spawnParticles(orb.x, orb.y, '#00ffcc', 12);
+                updateHUD();
+
+                const newLevel = Math.floor(stabilized / 10) + 1;
+                if (newLevel > diffLevel) {
+                    diffLevel = newLevel;
+                    showLevelBanner();
+                }
+            }
+
+            function spawnParticles(x, y, color, n) {
+                for (let i = 0; i < n; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1 + Math.random() * 3;
+                    particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1, color, life: 1 });
+                }
+            }
+
+            function draw(ts) {
+                ctx.clearRect(0, 0, W, H);
+                ctx.strokeStyle = 'rgba(0,255,204,0.04)';
+                ctx.lineWidth = 1;
+                const gStep = 40;
+                for (let x = 0; x < W; x += gStep) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+                for (let y = 0; y < H; y += gStep) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+                for (const p of particles) {
+                    ctx.globalAlpha = Math.max(0, p.life);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                for (const o of orbs) {
+                    const pulse = Math.sin(o.pulse);
+                    if (o.state === 'unstable') {
+                        const elapsed = ts - o.instableAt;
+                        const progress = elapsed / o.breachWindow;
+                        const urgency = Math.min(1, progress * 1.4);
+                        const flickerAlpha = 0.6 + 0.4 * Math.sin(o.pulse * (4 + urgency * 6));
+
+                        const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r * 2.5);
+                        grad.addColorStop(0, `rgba(255,${Math.round(100 - urgency*80)},${Math.round(40 - urgency*40)},${0.5 * flickerAlpha})`);
+                        grad.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 2.5, 0, Math.PI * 2); ctx.fill();
+
+                        const startAngle = -Math.PI / 2;
+                        const endAngle = startAngle + (1 - progress) * Math.PI * 2;
+                        ctx.strokeStyle = `rgba(255,${Math.round(200 - urgency*160)},0,0.9)`;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 5, startAngle, endAngle); ctx.stroke();
+
+                        ctx.fillStyle = `rgba(255,${Math.round(80 - urgency*60)},0,${0.8 * flickerAlpha})`;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = `rgba(255,100,0,${flickerAlpha})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+
+                        ctx.fillStyle = '#fff';
+                        ctx.font = `bold ${Math.round(o.r * 0.7)}px monospace`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('!!', o.x, o.y);
+
+                    } else if (o.state === 'stabilizing') {
+                        const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r * 2);
+                        grad.addColorStop(0, 'rgba(0,255,204,0.5)');
+                        grad.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 2, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.fillStyle = 'rgba(0,255,204,0.9)';
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#00ffcc';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+
+                        ctx.fillStyle = '#000';
+                        ctx.font = `bold ${Math.round(o.r * 0.6)}px monospace`;
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('✓', o.x, o.y);
+
+                    } else {
+                        const alpha = 0.15 + 0.05 * pulse;
+                        ctx.fillStyle = o.color.replace('#', 'rgba(').replace(/(..)(..)(..)/, (_, r, g, b) =>
+                            `${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},${alpha})`);
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.strokeStyle = o.color + (Math.round((0.4 + 0.2 * pulse) * 255)).toString(16).padStart(2,'0');
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+
+                        ctx.fillStyle = o.color + 'aa';
+                        ctx.font = `${Math.round(o.r * 0.5)}px monospace`;
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText((o.id + 1).toString(), o.x, o.y);
+                    }
+                }
+
+                ctx.fillStyle = 'rgba(0,255,204,0.03)';
+                for (let y = 0; y < H; y += 4) {
+                    ctx.fillRect(0, y, W, 2);
+                }
+
+                ctx.fillStyle = 'rgba(255,204,0,0.7)';
+                ctx.font = '8px monospace';
+                ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+                ctx.fillText('LVL ' + diffLevel, W - 6, 6);
+            }
+
+            function updateHUD() {
+                document.getElementById('bd-score').textContent = score;
+                const shieldStr = Array.from({length: SHIELD_MAX}, (_, i) => i < shields ? '♥' : '♡').join(' ');
+                document.getElementById('bd-shields').textContent = shieldStr;
+                hiScore = Math.max(hiScore, score);
+                document.getElementById('bd-hiscore').textContent = hiScore;
+            }
+
+            function gameOver() {
+                running = false;
+                if (score > parseInt(localStorage.getItem('breach_hiscore') || '0', 10)) {
+                    localStorage.setItem('breach_hiscore', score);
+                    hiScore = score;
+                }
+                document.getElementById('bd-go-score').textContent = 'SCORE: ' + score;
+                document.getElementById('bd-go-hi').textContent = 'BEST: ' + hiScore;
+                document.getElementById('bd-hiscore').textContent = hiScore;
+                document.getElementById('breach-gameover').classList.add('show');
+            }
+
+            function hideGameOver() {
+                document.getElementById('breach-gameover').classList.remove('show');
+            }
+
+            function showLevelBanner() {
+                const el = document.getElementById('breach-level-banner');
+                el.textContent = '▲ INSTABILITY RISING — LEVEL ' + diffLevel;
+                el.classList.add('show');
+                setTimeout(() => el.classList.remove('show'), 2000);
+            }
+
+            function handleClick(e) {
+                if (!running) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = W / rect.width, scaleY = H / rect.height;
+                let cx, cy;
+                if (e.touches) {
+                    cx = (e.touches[0].clientX - rect.left) * scaleX;
+                    cy = (e.touches[0].clientY - rect.top) * scaleY;
+                } else {
+                    cx = (e.clientX - rect.left) * scaleX;
+                    cy = (e.clientY - rect.top) * scaleY;
+                }
+                const ts = performance.now();
+                for (const o of orbs) {
+                    if (o.state === 'unstable') {
+                        const dx = cx - o.x, dy = cy - o.y;
+                        if (dx * dx + dy * dy < (o.r + 8) * (o.r + 8)) {
+                            stabilize(o, ts);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            window.openBreachGame = function() {
+                try { if (typeof closePauseMenu === 'function') closePauseMenu(); } catch(e) {}
+                initCanvas();
+                document.getElementById('breach-modal-backdrop').classList.add('open');
+                hiScore = parseInt(localStorage.getItem('breach_hiscore') || '0', 10);
+                document.getElementById('bd-hiscore').textContent = hiScore;
+                hideGameOver();
+                startGame();
+                canvas.addEventListener('click', handleClick);
+                canvas.addEventListener('touchstart', e => { e.preventDefault(); handleClick(e); }, {passive: false});
+            };
+
+            window.closeBreachGame = function() {
+                stopGame();
+                document.getElementById('breach-modal-backdrop').classList.remove('open');
+            };
+
+            window.breachGameRestart = function() {
+                hideGameOver();
+                startGame();
+            };
+        })();
 
     </script>
 </body>

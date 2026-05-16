@@ -664,7 +664,16 @@
             transition: all .15s;
         }
         #pause-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
-        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) { #pause-btn { display: none; } }
+        /* Fullscreen button in desktop HUD (sits to the left of the SETTINGS button) */
+        #fullscreen-btn {
+            position: fixed; top: 14px; right: 380px; z-index: 60;
+            background: rgba(0,0,0,0.7); border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace; font-size: 11px;
+            letter-spacing: 2px; padding: 6px 12px; cursor: pointer;
+            transition: all .15s;
+        }
+        #fullscreen-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) { #pause-btn, #fullscreen-btn { display: none; } }
 
         /* === MOBILE: Slide-up full-height sheet so the whole menu is always reachable === */
         @media (max-width: 767px), (pointer: coarse) and (max-width: 1024px), (orientation: landscape) and (max-height: 500px) {
@@ -1583,6 +1592,8 @@
 
     <!-- DESKTOP PAUSE / SETTINGS BUTTON -->
     <button id="pause-btn" onclick="openPauseMenu()" aria-label="Settings menu" title="Settings (Esc)">[ ⏸ SETTINGS ]</button>
+    <!-- DESKTOP FULLSCREEN BUTTON -->
+    <button id="fullscreen-btn" onclick="toggleFullscreen()" aria-label="Toggle fullscreen" title="Enter Fullscreen (F)">[ ⛶ FULLSCREEN ]</button>
 
     <!-- PAUSE MENU MODAL -->
     <div id="pause-menu-backdrop" onclick="if(event.target===this)closePauseMenu()">
@@ -1655,6 +1666,10 @@
                     <div class="pause-row">
                         <span class="lbl">AUTO-ROTATE</span>
                         <button class="pause-toggle on" id="gfx-rotate-toggle" onclick="toggleGfx('autoRotate', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl" id="fullscreen-lbl">FULLSCREEN</span>
+                        <button class="pause-toggle" id="gfx-fullscreen-toggle" onclick="toggleFullscreen()">ENTER</button>
                     </div>
                 </div>
 
@@ -6276,6 +6291,55 @@
 
         // ----- Open / close pause menu -----
         let pauseWasAutoRotating = true;
+
+        // ----- Desktop Fullscreen toggle (uses Fullscreen API) -----
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+        }
+        function toggleFullscreen() {
+            try {
+                if (!isFullscreen()) {
+                    const el = document.documentElement;
+                    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+                    if (req) {
+                        const p = req.call(el);
+                        if (p && p.catch) p.catch(err => console.warn('Fullscreen request blocked:', err));
+                    } else {
+                        alert('Fullscreen is not supported in this browser.\nTry pressing F11 instead.');
+                    }
+                } else {
+                    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+                    if (exit) exit.call(document);
+                }
+            } catch (e) { console.warn('Fullscreen toggle failed:', e); }
+        }
+        function updateFullscreenUI() {
+            const fs = isFullscreen();
+            const btn = document.getElementById('gfx-fullscreen-toggle');
+            const hudBtn = document.getElementById('fullscreen-btn');
+            if (btn) {
+                btn.classList.toggle('on', fs);
+                btn.textContent = fs ? 'EXIT' : 'ENTER';
+            }
+            if (hudBtn) {
+                hudBtn.textContent = fs ? '[ ⛶ EXIT FS ]' : '[ ⛶ FULLSCREEN ]';
+                hudBtn.title = fs ? 'Exit Fullscreen (F / Esc)' : 'Enter Fullscreen (F)';
+            }
+        }
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(ev =>
+            document.addEventListener(ev, updateFullscreenUI)
+        );
+        // F key (case-insensitive) toggles fullscreen — when not typing in an input
+        window.addEventListener('keydown', (e) => {
+            if (e.key && e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const ae = document.activeElement;
+                if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+        window.toggleFullscreen = toggleFullscreen;
+
         function openPauseMenu() {
             const bd = document.getElementById('pause-menu-backdrop');
             syncPauseMenuUI();

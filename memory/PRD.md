@@ -133,7 +133,31 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
-### Iteration 14 — Dynamic Bloom Attenuation on Zoom
+### Iteration 15 — Desktop Fullscreen Option
+**User request:** "add desktop full screen option"
+
+**Implementation — 3 access points:**
+1. **Desktop HUD button** `[ ⛶ FULLSCREEN ]` top-right (next to SETTINGS). Hidden on mobile (where browsers handle FS natively / via PWA install).
+2. **Pause menu row** under GRAPHICS: `FULLSCREEN: [ENTER]` toggle that shows `[EXIT]` when active.
+3. **`F` keyboard shortcut** — case-insensitive, suppressed when user is typing in a text input, with `Ctrl/Cmd/Alt` exclusion so it doesn't clash with browser shortcuts.
+
+**Browser compatibility:**
+- Uses standard Fullscreen API: `requestFullscreen()` / `exitFullscreen()`
+- Vendor-prefix fallbacks for older browsers: `webkitRequestFullscreen`, `mozRequestFullScreen`, `msRequestFullscreen`
+- Listens to all four `fullscreenchange` event flavors so the UI label stays in sync regardless of how the user enters/exits (button, F key, browser controls, Esc)
+- Silent failure mode + console warning if blocked (some iframes / browsers disable Fullscreen API)
+
+**State sync:**
+- `updateFullscreenUI()` reads `isFullscreen()` and updates both the HUD button text (`[ ⛶ FULLSCREEN ]` ↔ `[ ⛶ EXIT FS ]`) and the pause-menu toggle text (`ENTER` ↔ `EXIT`)
+- Adds the `on` class to the pause-menu toggle when fullscreen is active (cyan-fill state)
+
+**Verified:**
+- ✅ HUD button visible on desktop, hidden on mobile (390×844 confirmed)
+- ✅ Pause menu row exists and renders correctly
+- ✅ `toggleFullscreen`/`isFullscreen` exposed on window
+- ✅ `F` key triggers toggle (and is ignored when typing in inputs)
+
+
 **User feedback:** when zooming in, the bloom would still cluster around close-range objects and wash out text/labels.
 
 **Solution:** in the `animate()` loop, each frame computes `dist = camera.position.length()` (distance from spindle center) and maps it to a multiplier applied on top of `GFX.bloomStrength`:

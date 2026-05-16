@@ -3354,11 +3354,30 @@
         // Tap-to-dismiss / × close button handler — must be on window so the
         // toast's inline onclick can find it.
         window.hideAchievementToast = function(e) {
-            if (e) { try { e.stopPropagation(); } catch(_) {} }
+            if (e) {
+                try { e.stopPropagation(); } catch(_) {}
+                try { e.preventDefault();  } catch(_) {}
+            }
             const toast = document.getElementById('codex-toast');
             if (toast) toast.classList.remove('show');
             if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
         };
+        // === PROGRAMMATIC FALLBACK LISTENERS ===
+        // Inline onclick attributes can fail silently on some mobile browsers when
+        // the toast is mid-animation. Bind explicit click + touchstart listeners
+        // directly on both the toast body and the × close button so dismissal
+        // always works, regardless of animation state.
+        (function bindToastDismissal() {
+            const toast = document.getElementById('codex-toast');
+            if (!toast) return;
+            const closeBtn = toast.querySelector('.t-close');
+            const dismiss = (e) => window.hideAchievementToast(e);
+            // Tap anywhere on the toast (or on the close button) dismisses it.
+            ['click', 'touchstart'].forEach(ev => {
+                toast.addEventListener(ev, dismiss, { passive: false });
+                if (closeBtn) closeBtn.addEventListener(ev, dismiss, { passive: false });
+            });
+        })();
         // Failsafe: if the page is hidden/restored, ensure no orphan toast lingers.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {

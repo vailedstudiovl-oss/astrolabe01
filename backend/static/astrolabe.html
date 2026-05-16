@@ -360,26 +360,37 @@
         .badge-progress { font-size: 9px; color: #00ffcc; margin-top: 4px; font-family: monospace; }
 
         .codex-toast {
-            position: fixed; bottom: 24px; right: 24px; z-index: 250;
+            /* Pinned to TOP of viewport so it never overlaps the DIRECTORY / PING /
+               OPEN DATABANK button row at the bottom of the screen. */
+            position: fixed; top: 16px; left: 50%; z-index: 9999;
+            transform: translateX(-50%) translateY(-180%);
             background: rgba(10,15,20,0.95); border: 2px solid #00ffcc; padding: 12px 14px 12px 18px;
             box-shadow: 0 0 30px rgba(0,255,204,0.5);
-            transform: translateX(120%); transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             display: flex; gap: 12px; align-items: center; min-width: 240px;
             max-width: calc(100vw - 24px);
-            pointer-events: none;  /* hidden by default */
+            pointer-events: auto;          /* tap anywhere on the toast dismisses it */
             cursor: pointer;
+            touch-action: manipulation;    /* avoids 300ms tap delay on mobile */
         }
-        .codex-toast.show { transform: translateX(0); pointer-events: auto; }
+        .codex-toast.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
         .codex-toast .t-icon { font-size: 28px; color: #00ffcc; text-shadow: 0 0 8px #00ffcc; flex-shrink: 0; }
         .codex-toast .t-label { font-size: 9px; color: #888; letter-spacing: 3px; }
         .codex-toast .t-name { font-size: 13px; color: #fff; font-weight: bold; }
         .codex-toast .t-close {
             background: transparent; border: 1px solid rgba(0,255,204,0.4);
-            color: #00ffcc; font-size: 16px; line-height: 1;
-            width: 28px; height: 28px; cursor: pointer;
+            color: #00ffcc; font-size: 22px; line-height: 1;
+            /* Mobile-friendly 44×44 hit target (Apple HIG / Material guidelines) */
+            min-width: 44px; min-height: 44px;
+            width: 44px; height: 44px;
+            cursor: pointer;
             font-family: inherit; padding: 0; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
             transition: all 0.15s;
+            /* CRITICAL: must remain tappable even while the toast is still animating in. */
+            pointer-events: auto !important;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0,255,204,0.35);
         }
         .codex-toast .t-close:hover, .codex-toast .t-close:active {
             background: rgba(0,255,204,0.2); border-color: #00ffcc;
@@ -1025,9 +1036,25 @@
             #directory-panel .flex.flex-col.gap-4 { max-height: 56vh !important; }
             .soul-row, .subloc-stat .v, .subloc-desc { font-size: 13px !important; }
             #mini-target-panel { width: 84% !important; }
-            .codex-toast { left: 12px !important; right: 12px !important; top: calc(56px + var(--safe-top)) !important; bottom: auto !important; transform: translateY(-150%) !important; min-width: unset !important; z-index: 9999 !important; pointer-events: none !important; }
-            .codex-toast.show { transform: translateY(0) !important; pointer-events: auto !important; }
-            .codex-toast .t-close { min-width: 36px; min-height: 36px; font-size: 18px; pointer-events: auto !important; touch-action: manipulation; }
+            /* Mobile: full-width toast pinned to top, never overlaps the bottom button row */
+            .codex-toast {
+                left: 12px !important; right: 12px !important;
+                top: calc(56px + var(--safe-top)) !important;
+                bottom: auto !important;
+                transform: translateX(0) translateY(-180%) !important;
+                min-width: unset !important; z-index: 9999 !important;
+                pointer-events: auto !important;
+            }
+            .codex-toast.show { transform: translateX(0) translateY(0) !important; pointer-events: auto !important; }
+            .codex-toast .t-close {
+                /* 44×44 minimum hit target per Apple HIG / Material guidelines */
+                min-width: 44px !important; min-height: 44px !important;
+                width: 44px !important; height: 44px !important;
+                font-size: 22px !important;
+                pointer-events: auto !important;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0,255,204,0.35);
+            }
             #tour-overlay { bottom: calc(80px + var(--safe-bottom)) !important; width: 96% !important; }
             .tour-controls { bottom: calc(20px + var(--safe-bottom)) !important; }
             /* Bigger touch targets in modals */
@@ -1691,14 +1718,16 @@
         <div class="codex-grid" id="codex-grid"><!-- JS injects --></div>
     </div>
 
-    <!-- ACHIEVEMENT TOAST -->
-    <div id="codex-toast" class="codex-toast" onclick="hideAchievementToast(event)">
+    <!-- ACHIEVEMENT TOAST — pinned to TOP of screen so it never overlaps
+         the DIRECTORY / PING / OPEN DATABANK button row at the bottom.
+         Tapping ANYWHERE on the toast (or the × button) dismisses it. -->
+    <div id="codex-toast" class="codex-toast" role="alert" aria-live="polite" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)">
         <div class="t-icon" id="toast-icon">★</div>
         <div style="flex:1;min-width:0;">
             <div class="t-label">ACHIEVEMENT UNLOCKED</div>
             <div class="t-name" id="toast-name"></div>
         </div>
-        <button class="t-close" onclick="hideAchievementToast(event)" aria-label="Dismiss" title="Dismiss">×</button>
+        <button class="t-close" type="button" onclick="hideAchievementToast(event)" ontouchstart="hideAchievementToast(event)" aria-label="Dismiss achievement" title="Dismiss" style="pointer-events:auto !important;">×</button>
     </div>
 
     <!-- CINEMATIC TOUR OVERLAY -->
@@ -5799,11 +5828,30 @@
         // Tap-to-dismiss / × close button handler — must be on window so the
         // toast's inline onclick can find it.
         window.hideAchievementToast = function(e) {
-            if (e) { try { e.stopPropagation(); } catch(_) {} }
+            if (e) {
+                try { e.stopPropagation(); } catch(_) {}
+                try { e.preventDefault();  } catch(_) {}
+            }
             const toast = document.getElementById('codex-toast');
             if (toast) toast.classList.remove('show');
             if (__toastTimer) { clearTimeout(__toastTimer); __toastTimer = null; }
         };
+        // === PROGRAMMATIC FALLBACK LISTENERS ===
+        // Inline onclick attributes can fail silently on some mobile browsers when
+        // the toast is mid-animation. Bind explicit click + touchstart listeners
+        // directly on both the toast body and the × close button so dismissal
+        // always works, regardless of animation state.
+        (function bindToastDismissal() {
+            const toast = document.getElementById('codex-toast');
+            if (!toast) return;
+            const closeBtn = toast.querySelector('.t-close');
+            const dismiss = (e) => window.hideAchievementToast(e);
+            // Tap anywhere on the toast (or on the close button) dismisses it.
+            ['click', 'touchstart'].forEach(ev => {
+                toast.addEventListener(ev, dismiss, { passive: false });
+                if (closeBtn) closeBtn.addEventListener(ev, dismiss, { passive: false });
+            });
+        })();
         // Failsafe: if the page is hidden/restored, ensure no orphan toast lingers.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {

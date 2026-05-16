@@ -31,7 +31,33 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - Nested Sub-location Lore (clickable orbiters → 10+ category-detected dossier types)
 - ESC universally closes modals
 
-### Iteration 5 — Cinematic 3D Graphics Pipeline
+### Iteration 6 — Mobile UI Overhaul (touch-first redesign)
+**Architecture for ≤767px viewports:**
+- Desktop panels (#ui-layer, seed-pill, codex-btn, hud-toggle, telemetry reticle, reality lens) all hidden via media query
+- New `#mobile-ui-layer` with 4 components:
+  1. **Top Bar** (48px) — hamburger, focus title (truncated), seed pill with copy
+  2. **Vertical FAB Cluster** (right edge) — Search, Soul, Tour, Codex (with unlock-count badge), HUD-toggle. 44×44 px each (Apple/Google touch-target spec)
+  3. **Bottom Sheet** (always visible, draggable handle) — focus card + 5-button action grid (-1/PING/+1, DIRECTORY/OPEN DATABANK). Expanded state reveals scrolling INTEL FEED + last 8 SYSTEM LOGS
+  4. **Slide-in Drawer** (left, 86% width) — Quick-Jump search, View Modes, 2-column Faction chip grid (with color dots & borders), Exploration Modes
+- Reality Lens entirely disabled on mobile (no hover input)
+- Hover telemetry disabled on mobile
+- `mousemove` listener removed at init when `IS_MOBILE`
+- iOS safe-area-inset env vars respected on top bar + bottom sheet + drawer
+
+**State sync (mobile mirrors desktop without duplicating logic):**
+- `updateUI()` wrapped to also update mobile focus card
+- `buildIntelTicker()` wrapped to mirror ticker into bottom-sheet expanded section
+- `logMessage()` wrapped to mirror last 8 entries into `m-logs-mirror`
+- `checkAchievements()` wrapped to update mobile FAB badge + drawer count
+- `startCinematicTour` / `endCinematicTour` / `toggleSoulMode` wrapped to sync FAB on/off states
+
+**Mobile-friendly modal sizing:**
+- Lore databank → full-screen on mobile (`padding: 0`, removes border)
+- Directory / Soul / Sub-Loc dossiers → 92% width, 80vh max-height
+- Mini-target panel → 84% width
+- Codex toast → bottom-anchored (above bottom sheet), full-width slide-up from bottom
+- Tour overlay → repositioned above bottom sheet
+- All buttons in modals get `min-height: 38px` for thumb-friendliness
 - **UnrealBloomPass** post-processing (strength 1.1, radius 0.7, threshold 0.22) — every emissive/additive object now blooms. The signature sci-fi look.
 - **Volumetric Central Spine** — multi-layered (outer + mid + razor-sharp core) god-ray column from Y=-59.4 to Y=+59.4 with a vertical CanvasTexture gradient (cyan → white → magenta), counter-rotating cylinders, plus 7 traveling energy nodes drifting upward through the spine
 - **Procedural Starfield with shader twinkle** — 2200 stars on a 200–280 radius spherical shell, each with a unique phase; custom shader does per-vertex `0.6 + 0.4*sin(t + phase)` twinkle modulation, size attenuation, and warm/cool color flicker

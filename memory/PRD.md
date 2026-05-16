@@ -133,7 +133,25 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
-### Iteration 13 — Balanced Bloom + Persistent Holographic Projector Base
+### Iteration 14 — Dynamic Bloom Attenuation on Zoom
+**User feedback:** when zooming in, the bloom would still cluster around close-range objects and wash out text/labels.
+
+**Solution:** in the `animate()` loop, each frame computes `dist = camera.position.length()` (distance from spindle center) and maps it to a multiplier applied on top of `GFX.bloomStrength`:
+
+| `dist` | multiplier |
+|---|---|
+| `≥ 140` | **1.0×** (full configured bloom) |
+| `25 .. 140` | smoothstep ease-out between min and max |
+| `≤ 25` | **0.25×** (minimum, keeps text crisp) |
+
+So if user picks the CINEMATIC preset (base 1.6) and zooms in, bloom drops to ~0.4 — still bright but readable. With the default (base 0.18), close-range bloom drops to 0.045 → strata labels, HUD, and POI details remain perfectly legible.
+
+**Verified at 5 camera distances + 2 GFX presets:**
+- ✅ Default base 0.18 → 0.18 / 0.117 / 0.045 at FAR / MID / CLOSE
+- ✅ Cinematic base 1.60 → 1.60 / 0.400 at FAR / CLOSE (drama preserved + close-up legibility)
+- ✅ All strata labels (+45, +0, -25, -50, etc.) readable at mid-range without manual bloom tweaking
+
+
 **User feedback:** spindle was too bright (whiteout) and they wanted the holographic projector dais at the bottom of the map (so the entire 199-layer creation feels projected from it). Also a transient `stacktrace-parser` was missing from `node_modules` causing the Expo bundler to crash — fixed via `yarn install`.
 
 **Bloom rebalance (3-step iteration to match the "original look" reference):**

@@ -4122,6 +4122,27 @@
             if (projectorGroup) projectorGroup.children.forEach(child => { if (child.userData.rotSpeed) child.rotation.z += child.userData.rotSpeed; });
             poiMeshes.forEach(marker => { marker.rotation.y += 0.02; marker.rotation.x += 0.01; });
 
+            // === Dynamic bloom attenuation when zooming in ===
+            // The closer the camera is to the spindle center, the less bloom we render
+            // — keeps close-up text/strata crisp, while still letting the bloom dazzle
+            // at long range. Lerps from 1.0× at distance ≥ FAR to 0.25× at distance ≤ NEAR.
+            if (bloomPass) {
+                const FAR  = 140;   // baseline bloom intensity past this distance
+                const NEAR =  25;   // minimum bloom intensity at or below this distance
+                const MIN_MUL = 0.25;
+                const dist = camera.position.length(); // distance from origin (spindle center)
+                let mul;
+                if (dist >= FAR)       mul = 1.0;
+                else if (dist <= NEAR) mul = MIN_MUL;
+                else {
+                    // Smooth ease-out so the falloff feels natural
+                    const tNorm = (dist - NEAR) / (FAR - NEAR); // 0 near .. 1 far
+                    const eased = tNorm * tNorm * (3 - 2 * tNorm); // smoothstep
+                    mul = MIN_MUL + (1.0 - MIN_MUL) * eased;
+                }
+                bloomPass.strength = GFX.bloomStrength * mul;
+            }
+
             if(soulSeedsGeometry) {
                 const positions = soulSeedsGeometry.attributes.position.array;
                 for(let i = 0; i < seedCount; i++) {

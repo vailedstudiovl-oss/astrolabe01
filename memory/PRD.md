@@ -99,7 +99,41 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - Codex toast → bottom-anchored (above bottom sheet), full-width slide-up from bottom
 - Tour overlay → repositioned above bottom sheet
 - All buttons in modals get `min-height: 38px` for thumb-friendliness
-- **UnrealBloomPass** post-processing (strength 1.1, radius 0.7, threshold 0.22) — every emissive/additive object now blooms. The signature sci-fi look.
+### Iteration 8 — PWA / Home-Screen Installability
+**Goal:** Make the Astrolabe installable as a stand-alone app on mobile home screens with full offline support.
+
+**Manifest (`/api/static/manifest.json`):**
+- `name`: "Dimensionlock Astrolabe" • `short_name`: "Astrolabe"
+- `start_url`: `/api/astrolabe` • `scope`: `/api/` • `display`: `standalone`
+- `theme_color`: `#00ffcc` • `background_color`: `#050505` (matches in-app terminal vibe)
+- 3 icons declared: 192px `any`, 512px `any`, 512px `maskable` (dedicated safe-zone variant for Android adaptive icons)
+
+**Branded icons (auto-generated via PIL):**
+- `icon-192.png` / `icon-512.png` — full-bleed cyan astrolabe glyph (concentric rings + crosshair + glowing center + magenta reality-node accent)
+- `icon-maskable-512.png` — same glyph rendered inside 80% safe-zone for Android adaptive icon shapes
+- `icon-apple.png` (180×180) — rounded square variant for iOS home-screen
+- 4× supersampling + LANCZOS downsample for crisp anti-aliased edges
+
+**Service Worker (`/api/service-worker.js`, v2):**
+- Served from `/api/service-worker.js` with FastAPI route that sets `Content-Type: application/javascript` + `Service-Worker-Allowed: /api/` so it can claim scope over the HTML page
+- **Precache (install)**: HTML shell, all icons, manifest, and image assets (holo_projector, reality_red, reality_violet, dlds_splash)
+- **`/api/static/*`** → cache-first (immutable static assets)
+- **`/api/astrolabe`** → network-first w/ cache fallback (always fresh when online, works offline)
+- **Cross-origin CDN assets** (Three.js, Tailwind, Google Fonts) → stale-while-revalidate so the app *truly* launches offline once visited once
+- Versioned cache namespace `astrolabe-shell-v2-2025-06` — old caches auto-purged on activate
+- Tolerates partial install failures (individual asset 404s won't break the SW)
+
+**HTML wiring (`astrolabe.html` `<head>`):**
+- `<link rel="manifest">`, `<meta name="theme-color">`, `apple-mobile-web-app-*` tags
+- SW registration script with **graceful update flow**: detects new versions, sends `SKIP_WAITING` to the waiting worker, reloads page once on `controllerchange` so users transparently upgrade v1→v2 without manual refresh
+
+**Verified working:**
+- Mobile viewport (390×844): SW reaches `STATE=activated` with scope `/api/` ✅
+- Manifest fetch returns name "Dimensionlock Astrolabe" ✅
+- 3 icons including dedicated maskable variant ✅
+- 3D scene continues to render with full bloom + intel ticker — zero regression ✅
+
+### Iteration 5 — Cinematic 3D Foundation
 - **Volumetric Central Spine** — multi-layered (outer + mid + razor-sharp core) god-ray column from Y=-59.4 to Y=+59.4 with a vertical CanvasTexture gradient (cyan → white → magenta), counter-rotating cylinders, plus 7 traveling energy nodes drifting upward through the spine
 - **Procedural Starfield with shader twinkle** — 2200 stars on a 200–280 radius spherical shell, each with a unique phase; custom shader does per-vertex `0.6 + 0.4*sin(t + phase)` twinkle modulation, size attenuation, and warm/cool color flicker
 - **POI Glow Halos** — soft sprite billboard behind every POI marker pulses scale and opacity in sine, in front of bloom for beacon-like glow

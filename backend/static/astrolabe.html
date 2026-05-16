@@ -3,7 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dimensionlock: Astrolabe Terminal</title>
+    <title>Dimension Lock: Deathly Stories — Astrolabe Terminal</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/api/static/manifest.json">
+    <meta name="theme-color" content="#00ffcc">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Astrolabe">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="/api/static/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/api/static/icon-apple.png">
+    <script>
+      // Register service worker (silent fail if unsupported). Auto-activate updates
+      // so users transparently upgrade from v1 → v2 etc.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/api/service-worker.js', { scope: '/api/' })
+            .then((reg) => {
+              console.log('[SW] Registered:', reg.scope);
+
+              // If a new SW is found, tell it to skipWaiting so it becomes active immediately.
+              const triggerUpdate = (worker) => {
+                if (!worker) return;
+                worker.addEventListener('statechange', () => {
+                  if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[SW] Update installed — activating new version.');
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              };
+
+              if (reg.waiting) triggerUpdate(reg.waiting);
+              reg.addEventListener('updatefound', () => triggerUpdate(reg.installing));
+
+              // When the active SW changes, reload once so the page is served by the new one.
+              let reloaded = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (reloaded) return;
+                reloaded = true;
+                console.log('[SW] Controller changed — reloading for fresh assets.');
+                // Give SW a tick to take over before reload
+                setTimeout(() => window.location.reload(), 50);
+              });
+            })
+            .catch((err) => console.warn('[SW] Registration failed:', err));
+        });
+      }
+    </script>
     
     <!-- CSS & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -69,17 +116,76 @@
            Telemetry reticle, Intelligence ticker, Codex, Holo POI
            ============================================================ */
 
-        /* --- Cinematic Boot Sequence --- */
+        /* --- Cinematic Boot Sequence — NEW: multi-phase with DLDS splash title --- */
         #boot-overlay {
             position: fixed; inset: 0; z-index: 9999; background: #000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 1.5s ease-out;
+            overflow: hidden;
+            transition: opacity 1.2s ease-out;
         }
+        #boot-overlay::before {
+            /* Faint starfield backdrop */
+            content: ''; position: absolute; inset: 0; opacity: 0.6;
+            background:
+                radial-gradient(2px 2px at 12% 18%, #fff, transparent 60%),
+                radial-gradient(1px 1px at 87% 22%, #99ccff, transparent 60%),
+                radial-gradient(1.5px 1.5px at 33% 71%, #ffcccc, transparent 60%),
+                radial-gradient(1px 1px at 78% 84%, #fff, transparent 60%),
+                radial-gradient(2px 2px at 45% 50%, #fff, transparent 60%),
+                radial-gradient(1.5px 1.5px at 9% 88%, #aaeeff, transparent 60%),
+                radial-gradient(1px 1px at 62% 36%, #fff, transparent 60%);
+        }
+        .boot-stage {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 28px;
+        }
+        /* PHASE 1 — DLDS Splash Title */
+        .boot-splash-wrap {
+            opacity: 0; transform: scale(1.4); filter: blur(40px) brightness(2);
+            animation: bootSplashIn 1.6s 0.4s forwards cubic-bezier(0.16, 1, 0.3, 1),
+                       bootSplashGlow 2.5s 2.0s forwards ease-in-out,
+                       bootSplashOut 1.3s 4.2s forwards cubic-bezier(0.55, 0, 0.55, 1);
+            max-width: 88vw;
+        }
+        .boot-splash-wrap img {
+            width: 100%; max-width: 720px; height: auto;
+            filter: drop-shadow(0 0 30px rgba(0,255,204,0.4));
+        }
+        @keyframes bootSplashIn {
+            0% { opacity: 0; transform: scale(1.4); filter: blur(40px) brightness(2); }
+            60% { opacity: 1; filter: blur(0) brightness(1.2); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+        }
+        @keyframes bootSplashGlow {
+            0% { filter: drop-shadow(0 0 30px rgba(0,255,204,0.4)) brightness(1); }
+            50% { filter: drop-shadow(0 0 90px rgba(0,255,255,1)) drop-shadow(0 0 180px rgba(170,0,255,0.8)) brightness(1.5); }
+            100% { filter: drop-shadow(0 0 60px rgba(0,255,204,0.6)) brightness(1.2); }
+        }
+        @keyframes bootSplashOut {
+            0% { opacity: 1; transform: scale(1); filter: blur(0); }
+            50% { opacity: 1; transform: scale(0.8); filter: blur(2px) brightness(3); }
+            100% { opacity: 0; transform: scale(0.2); filter: blur(40px) brightness(0); }
+        }
+        /* PHASE 2 — Implosion-burst that bridges splash → projector */
+        .boot-burst {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 0; height: 0; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(0,255,255,0.8) 30%, rgba(170,0,255,0.6) 60%, transparent 100%);
+            opacity: 0;
+            animation: bootBurst 1.4s 4.6s forwards ease-out;
+            pointer-events: none;
+        }
+        @keyframes bootBurst {
+            0%   { opacity: 0; width: 0; height: 0; }
+            30%  { opacity: 1; width: 100vmax; height: 100vmax; }
+            100% { opacity: 0; width: 200vmax; height: 200vmax; filter: blur(50px); }
+        }
+        /* PHASE 3 — Projector & beam */
         .boot-projector-stage {
-            position: relative; width: 320px; height: 320px; max-width: 80vw; max-height: 50vh;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.6);
+            width: 280px; height: 280px; max-width: 70vw; max-height: 50vh;
             display: flex; align-items: center; justify-content: center;
-            opacity: 0; transform: scale(0.6);
-            animation: bootProjectorIn 2.2s 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            animation: bootProjectorIn 2.0s 5.4s forwards cubic-bezier(0.16, 1, 0.3, 1);
         }
         .boot-projector-stage img {
             width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 30px #00ffcc);
@@ -90,25 +196,27 @@
             background: linear-gradient(180deg, transparent 0%, rgba(0,255,255,0) 30%, rgba(0,255,255,0.6) 70%, rgba(255,255,255,0.9) 100%);
             filter: blur(8px);
             opacity: 0;
-            animation: bootBeamRise 1.5s 1.4s forwards ease-out;
+            animation: bootBeamRise 1.4s 6.4s forwards ease-out;
             pointer-events: none;
         }
+        /* PHASE 4 — Status text */
         .boot-text-stack {
-            margin-top: 32px; text-align: center; opacity: 0;
-            animation: bootTextIn 1s 2.0s forwards;
+            position: absolute; bottom: 12vh; left: 50%; transform: translateX(-50%);
+            text-align: center; opacity: 0;
+            animation: bootTextIn 0.8s 6.7s forwards;
         }
-        .boot-title { font-size: 28px; color: #00ffcc; letter-spacing: 8px; text-shadow: 0 0 12px #00ffcc; font-weight: bold; }
-        .boot-sub { font-size: 11px; color: #888; letter-spacing: 4px; margin-top: 8px; }
-        .boot-progress { width: 240px; max-width: 70vw; height: 2px; background: rgba(0,255,204,0.2); margin: 16px auto 0; overflow: hidden; }
+        .boot-title { font-size: 14px; color: #00ffcc; letter-spacing: 6px; text-shadow: 0 0 8px #00ffcc; }
+        .boot-sub { font-size: 9px; color: #777; letter-spacing: 4px; margin-top: 6px; }
+        .boot-progress { width: 260px; max-width: 60vw; height: 2px; background: rgba(0,255,204,0.2); margin: 14px auto 0; overflow: hidden; }
         .boot-progress::before {
             content: ''; display: block; height: 100%; width: 0;
             background: #00ffcc; box-shadow: 0 0 8px #00ffcc;
-            animation: bootProgress 2.5s 2.3s forwards linear;
+            animation: bootProgress 1.4s 6.9s forwards linear;
         }
         @keyframes bootProjectorIn {
-            0% { opacity: 0; transform: scale(0.4) translateY(40px); filter: blur(20px); }
-            60% { opacity: 1; filter: blur(0); }
-            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); filter: blur(20px); }
+            50% { opacity: 1; filter: blur(0); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
         }
         @keyframes bootBeamRise {
             0% { opacity: 0; height: 0; }
@@ -751,6 +859,138 @@
             30% { filter: brightness(3) saturate(2); }
         }
 
+        /* =============================================================
+           ITERATION 8 — Reaper Law · Tour Variants · Soul Seed Economy
+           ============================================================= */
+
+        /* --- Reaper Law Modal --- */
+        #reaper-law {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 119; width: 92%; max-width: 540px; max-height: 86vh;
+            background: linear-gradient(180deg, rgba(15,0,25,0.97) 0%, rgba(0,0,10,0.97) 100%);
+            border: 2px solid #aa44ff;
+            box-shadow: 0 0 50px rgba(170,68,255,0.5);
+            display: none; flex-direction: column; backdrop-filter: blur(10px);
+            color: #fff; font-size: 12px; overflow: hidden;
+        }
+        #reaper-law.open { display: flex; animation: modalSlideIn 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .law-header { padding: 14px 18px; border-bottom: 1px solid #aa44ff; display: flex; justify-content: space-between; align-items: center; }
+        .law-header .sub { font-size: 9px; color: #888; letter-spacing: 4px; }
+        .law-header h3 { color: #ddaaff; letter-spacing: 4px; font-size: 18px; }
+        .law-body { padding: 12px 18px; flex: 1; overflow-y: auto; }
+        .law-row {
+            display: flex; gap: 12px; padding: 12px; margin-bottom: 8px;
+            background: rgba(170,68,255,0.05); border-left: 3px solid #aa44ff;
+        }
+        .law-row .law-num {
+            font-size: 22px; color: #aa44ff; font-weight: bold; min-width: 34px;
+            text-shadow: 0 0 8px currentColor;
+        }
+        .law-row .law-body-text { flex: 1; }
+        .law-row .law-title { font-size: 13px; color: #fff; letter-spacing: 2px; font-weight: bold; margin-bottom: 4px; }
+        .law-row .law-detail { font-size: 11px; color: #bbb; line-height: 1.5; }
+        .law-row.violated {
+            border-color: #ff5555;
+            background: rgba(255,85,85,0.08);
+        }
+        .law-row.violated .law-num { color: #ff5555; }
+        .law-violation-tag {
+            display: inline-block; margin-top: 6px;
+            padding: 2px 8px; background: rgba(255,85,85,0.2);
+            border: 1px solid #ff5555; color: #ff8888;
+            font-size: 9px; letter-spacing: 2px; font-weight: bold;
+        }
+
+        /* --- Tour Variant Picker --- */
+        #tour-picker {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 95; width: 92%; max-width: 480px;
+            background: rgba(0,5,10,0.97); border: 2px solid #00ffcc;
+            box-shadow: 0 0 35px rgba(0,255,204,0.5);
+            display: none; flex-direction: column;
+            backdrop-filter: blur(10px); color: #fff;
+        }
+        #tour-picker.open { display: flex; animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .tp-header { padding: 14px 18px; border-bottom: 1px solid #00ffcc; display: flex; justify-content: space-between; align-items: center; }
+        .tp-header h3 { color: #00ffcc; font-size: 16px; letter-spacing: 3px; }
+        .tp-body { padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; }
+        .tour-variant-btn {
+            display: flex; flex-direction: column; gap: 4px; padding: 12px;
+            background: rgba(0,255,204,0.05); border: 1px solid #00ffcc; color: #00ffcc;
+            cursor: pointer; font-family: 'Share Tech Mono', monospace; text-align: left;
+            transition: all 0.15s;
+        }
+        .tour-variant-btn:hover { background: rgba(0,255,204,0.18); }
+        .tour-variant-btn .v-name { font-size: 13px; font-weight: bold; letter-spacing: 2px; }
+        .tour-variant-btn .v-desc { font-size: 10px; color: #aaa; }
+        .tour-variant-btn.divine { border-color: #ffdd00; color: #ffdd00; }
+        .tour-variant-btn.divine:hover { background: rgba(255,221,0,0.15); }
+        .tour-variant-btn.descent { border-color: #ff5555; color: #ff5555; }
+        .tour-variant-btn.descent:hover { background: rgba(255,85,85,0.15); }
+        .tour-variant-btn.faction { border-color: #aa44ff; color: #aa44ff; }
+        .tour-variant-btn.faction:hover { background: rgba(170,68,255,0.15); }
+        .faction-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+        .faction-picker-grid button {
+            display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+            background: rgba(0,0,0,0.4); border: 1px solid;
+            font-size: 9px; letter-spacing: 1px; cursor: pointer; font-family: 'Share Tech Mono', monospace;
+            transition: all 0.15s; overflow: hidden;
+        }
+        .faction-picker-grid button:hover { background: rgba(255,255,255,0.1); }
+        .faction-picker-grid button .dot { width: 8px; height: 8px; flex-shrink: 0; }
+        .faction-picker-grid button .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- Soul Seed Economy Panel --- */
+        #soul-economy {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 119; width: 92%; max-width: 560px; max-height: 86vh;
+            background: linear-gradient(180deg, rgba(0,15,15,0.97) 0%, rgba(0,5,10,0.97) 100%);
+            border: 2px solid #ffcc00;
+            box-shadow: 0 0 40px rgba(255,204,0,0.4);
+            display: none; flex-direction: column; backdrop-filter: blur(10px);
+            color: #fff;
+        }
+        #soul-economy.open { display: flex; animation: modalSlideIn 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        .se-header { padding: 14px 18px; border-bottom: 1px solid #ffcc00; display: flex; justify-content: space-between; align-items: flex-start; }
+        .se-header .sub { font-size: 9px; color: #888; letter-spacing: 4px; }
+        .se-header h3 { color: #ffcc00; font-size: 18px; letter-spacing: 3px; text-shadow: 0 0 8px currentColor; }
+        .se-body { padding: 14px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .se-canon-blurb {
+            background: rgba(0,0,0,0.45); padding: 10px; border-left: 3px solid #ffcc00;
+            font-style: italic; font-size: 11px; color: #d0c08a; line-height: 1.6;
+        }
+        .se-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;
+        }
+        .se-cell {
+            background: rgba(255,204,0,0.06); border: 1px solid rgba(255,204,0,0.4);
+            padding: 10px; text-align: center;
+        }
+        .se-cell .k { font-size: 8px; letter-spacing: 3px; color: #886600; }
+        .se-cell .v { font-size: 18px; font-weight: bold; color: #ffcc00; text-shadow: 0 0 6px currentColor; margin-top: 2px; }
+        .se-cell .sub { font-size: 9px; color: #aaa; margin-top: 2px; }
+        .se-light-bar {
+            height: 18px; background: rgba(0,0,0,0.5); border: 1px solid #ffcc00; position: relative; overflow: hidden;
+        }
+        .se-light-fill {
+            height: 100%; background: linear-gradient(90deg, #ffcc00 0%, #ffffff 100%);
+            box-shadow: 0 0 12px #ffcc00; transition: width 0.6s ease-out;
+        }
+        .se-light-label {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 9px; letter-spacing: 2px; color: #000; font-weight: bold; mix-blend-mode: difference;
+        }
+        .se-row {
+            display: flex; justify-content: space-between; padding: 6px 10px;
+            background: rgba(0,0,0,0.3); border-left: 2px solid rgba(255,204,0,0.5);
+            font-size: 11px;
+        }
+        .se-row .label { color: #aaa; }
+        .se-row .value { color: #fff; font-weight: bold; }
+        .se-section-title { font-size: 9px; color: #ffcc00; letter-spacing: 4px; border-bottom: 1px dashed rgba(255,204,0,0.3); padding-bottom: 4px; margin-top: 4px; }
+        .se-vendor-list { display: flex; flex-direction: column; gap: 4px; }
+        .se-vendor-list .se-row .label { color: #ddd; }
+
         /* === ITERATION 4: Modal slide-in animations, seed UI, search, soul-path highlight === */
         #soul-dossier.open, #subloc-dossier.open {
             animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
@@ -834,17 +1074,23 @@
 </head>
 <body class="text-sm md:text-base">
 
-    <!-- CINEMATIC BOOT SEQUENCE -->
+    <!-- CINEMATIC BOOT SEQUENCE — Phase 1: DLDS Splash, Phase 2: Burst, Phase 3: Projector materialization, Phase 4: Status -->
     <div id="boot-overlay">
+        <div class="boot-stage">
+            <div class="boot-splash-wrap">
+                <img src="/api/static/dlds_splash.png" alt="Dimension Lock: Deathly Stories">
+            </div>
+        </div>
+        <div class="boot-burst"></div>
         <div class="boot-projector-stage">
             <img src="/api/static/holo_projector.jpg" alt="Astrolabe Projector">
             <div class="boot-beam"></div>
         </div>
         <div class="boot-text-stack">
-            <div class="boot-title">ASTROLABE</div>
-            <div class="boot-sub">DIMENSIONLOCK DEEP-SCAN INTERFACE</div>
+            <div class="boot-title">ASTROLABE TERMINAL</div>
+            <div class="boot-sub">CALIBRATING 199 LAYERS · SOUL-LANE ALIGNMENT</div>
             <div class="boot-progress"></div>
-            <div class="boot-sub" style="margin-top:10px;color:#666;">CALIBRATING 199 STRATA · SOUL-LANE ALIGNMENT</div>
+            <div class="boot-sub" style="margin-top:8px;color:#555;">DEATH TRIBUNAL HANDSHAKE</div>
         </div>
     </div>
 
@@ -1149,6 +1395,86 @@
                 <div class="eb-eyebrow" id="eb-eyebrow">EVENT</div>
                 <div class="eb-title" id="eb-title">--</div>
                 <div class="eb-subtitle" id="eb-subtitle">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REAPER LAW MODAL -->
+    <div id="reaper-law">
+        <div class="law-header">
+            <div>
+                <div class="sub">DEATH TRIBUNAL · CANON</div>
+                <h3>REAPER LAW</h3>
+            </div>
+            <button onclick="closeReaperLaw()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="law-body" id="law-body">
+            <!-- JS injects the 7 Laws here, marking violations based on the active Reaper (if any) -->
+        </div>
+    </div>
+
+    <!-- TOUR VARIANT PICKER -->
+    <div id="tour-picker">
+        <div class="tp-header">
+            <h3>SELECT PILGRIMAGE</h3>
+            <button onclick="closeTourPicker()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="tp-body">
+            <button class="tour-variant-btn divine" onclick="beginTourVariant('divine')">
+                <div class="v-name">▲ DIVINE ASCENSION</div>
+                <div class="v-desc">Layer 0 → +99. Tour only Peak Divinity strata.</div>
+            </button>
+            <button class="tour-variant-btn descent" onclick="beginTourVariant('descent')">
+                <div class="v-name">▼ THE DESCENT</div>
+                <div class="v-desc">Layer 0 → -99. Tour the Lovecraftian abyss.</div>
+            </button>
+            <button class="tour-variant-btn" onclick="beginTourVariant('full')">
+                <div class="v-name">∞ FULL PILGRIMAGE</div>
+                <div class="v-desc">Layer +99 → -99. The complete sweep.</div>
+            </button>
+            <button class="tour-variant-btn faction" onclick="toggleFactionTourPicker()">
+                <div class="v-name">⚑ FACTION-SPECIFIC</div>
+                <div class="v-desc">Tour realities of one faction only.</div>
+            </button>
+            <div id="faction-tour-grid" class="faction-picker-grid" style="display:none;">
+                <!-- JS injects faction buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SOUL SEED ECONOMY PANEL -->
+    <div id="soul-economy">
+        <div class="se-header">
+            <div>
+                <div class="sub">THE ENDLESS · MERCANTILE LEDGER</div>
+                <h3>☀ SOUL SEED ECONOMY</h3>
+            </div>
+            <button onclick="closeSoulEconomy()" class="text-red-500 hover:text-white font-bold px-3 py-1 border border-red-500 hover:bg-red-500 transition-colors text-xs">[ X ]</button>
+        </div>
+        <div class="se-body">
+            <div class="se-canon-blurb">
+                Soul-seeds are the primary <span style="color:#ffcc00;">light source of The Endless</span> — for there are no suns, only clouds in all directions. Outside the realities, every flicker of warmth, every bushel of food, every drop of fuel is purchased in soul-seed currency. Reapers themselves trade their harvest at the Trigon Trading Hub, and faction wealth is measured in stored seeds.
+            </div>
+            <div class="se-section-title">CURRENT MARKET</div>
+            <div class="se-grid" id="se-market">
+                <!-- JS injects market cells -->
+            </div>
+            <div class="se-section-title">LIGHT OUTPUT (THE ENDLESS)</div>
+            <div class="se-light-bar">
+                <div class="se-light-fill" id="se-light-fill" style="width:74%;"></div>
+                <div class="se-light-label" id="se-light-label">74% LUMENS · ALL LANES STABLE</div>
+            </div>
+            <div class="se-section-title">EXCHANGE RATES</div>
+            <div class="se-vendor-list">
+                <div class="se-row"><span class="label">1 Soul Seed</span><span class="value" id="se-rate-cred">0.32 E-Credits</span></div>
+                <div class="se-row"><span class="label">1 Soul Seed →</span><span class="value">1 Meal of Endless-bread</span></div>
+                <div class="se-row"><span class="label">1 Soul Seed →</span><span class="value">2.5 hours of Trigon engine fuel</span></div>
+                <div class="se-row"><span class="label">100 Soul Seeds →</span><span class="value">1 Vamperica blood-tithe pass</span></div>
+                <div class="se-row"><span class="label">1,000 Soul Seeds →</span><span class="value">1 Reaper-grade scythe shard</span></div>
+            </div>
+            <div class="se-section-title">FACTION HOLDINGS (this cycle)</div>
+            <div class="se-vendor-list" id="se-holdings">
+                <!-- JS injects holdings -->
             </div>
         </div>
     </div>
@@ -1853,7 +2179,7 @@
         let factionVolumeMeshes = [];
         let soulSeedsGeometry;
         let soulSeedsParticles;
-        const seedCount = 1500;
+        const seedCount = 3500; // canon: soul-seeds are the PRIMARY light of The Endless (no suns, only clouds)
         const seedPaths = [];
         const seedPathTubes = [];
         const seedData = [];
@@ -2252,7 +2578,9 @@
             soulSeedsGeometry = new THREE.BufferGeometry();
             soulSeedsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             soulSeedsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            soulSeedsParticles = new THREE.Points(soulSeedsGeometry, new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+            // CANON: Soul-seeds are the PRIMARY light source of The Endless. There are no
+            // suns — only clouds in all directions. The seeds illuminate everything.
+            soulSeedsParticles = new THREE.Points(soulSeedsGeometry, new THREE.PointsMaterial({ size: 1.4, vertexColors: true, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true }));
             astrolabeGroup.add(soulSeedsParticles);
         }
 
@@ -3053,15 +3381,15 @@
         //  CINEMATIC SYSTEMS — Boot, Portal, Telemetry, Intel, Codex, Holo POI
         // =============================================================
 
-        // --- Cinematic Boot Sequence ---
+        // --- Cinematic Boot Sequence (multi-phase) ---
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const overlay = document.getElementById('boot-overlay');
                 if (overlay) {
                     overlay.classList.add('boot-fadeout');
-                    setTimeout(() => overlay.remove(), 1600);
+                    setTimeout(() => overlay.remove(), 1400);
                 }
-            }, 5000);
+            }, 8500);
         });
 
         // --- Reality Portal Transition ---

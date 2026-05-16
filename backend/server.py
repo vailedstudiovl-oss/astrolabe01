@@ -50,6 +50,17 @@ async def astrolabe_terminal():
     return FileResponse(html_path, media_type="text/html")
 
 
+@api_router.get("/service-worker.js")
+async def service_worker():
+    """Serves the PWA service worker with Service-Worker-Allowed header so it
+    can take scope over /api/ (where the page lives)."""
+    sw_path = ROOT_DIR / "static" / "service-worker.js"
+    response = FileResponse(sw_path, media_type="application/javascript")
+    response.headers["Service-Worker-Allowed"] = "/api/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 # Static file mount for assets (GIFs, images) used by the Astrolabe HTML
 app.mount(
     "/api/static",

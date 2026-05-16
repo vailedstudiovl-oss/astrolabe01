@@ -2,10 +2,9 @@
 
 ## Overview
 A 3D Three.js / Tailwind / vanilla-JS interactive lore browser for the "Dimensionlock" universe.
-199 procedural strata stacked as glowing rings along the Y axis. Faction territories, soul-seed flow paths,
-dead-zone clouds, points of interest, filters, databank lore modal, cinematic boot/portal transitions,
-rotating holographic POI viewers, intel feed, hover telemetry, achievement codex, cinematic pilgrimage tour,
-soul inspection, volumetric reality lens, and nested sub-location lore.
+199 procedural strata stacked as glowing rings along the Y axis with cinematic transitions, holographic
+POI viewers, intel feed, achievement codex, cinematic tour, soul forensic scans, volumetric reality lens,
+nested sub-location lore, deterministic shareable universes, and quick-jump strata search.
 
 ## Architecture
 | Layer    | Path                                  | Role                                |
@@ -22,37 +21,49 @@ soul inspection, volumetric reality lens, and nested sub-location lore.
 - Detailed code review delivered (3 critical bugs + 22 polish items)
 
 ### Iteration 2 — Cinematic Foundation
-- **Boot Sequence** — 5s holographic-projector materialization with beam-rise + progress
-- **Reality Portal Transition** — full-screen swirling vortex (red/violet GIFs) on databank open
-- **Rotating Holographic POI Viewer** — embedded mini Three.js per POI/reality (10+ archetypes)
-- **2D ↔ 3D Toggle** — flips between hologram and original vector diagram
-- **Hover Telemetry Reticle** — Mass Effect–style cursor scanner
-- **Intelligence Feed Ticker** — 15 procedurally shuffled headlines scrolling on top bar
-- **Achievement Codex** — 8 unlockable badges with toast notifications + modal
-- **3 critical bugs fixed** (factionKey mismatch, faction overlay, POI faction filter)
+- Boot Sequence, Reality Portal, Rotating Holo POI, 2D↔3D Toggle, Hover Telemetry, Intel Ticker, Codex
+- 3 critical bugs fixed
 
 ### Iteration 3 — Lore Interaction Depth
-- **Cinematic Tour (Pilgrimage)** — auto-pilots camera from +99 → -99 stopping at every named POI + filler waypoints (~10 stops × 8s = ~80s tour); typewriter narration card + tour controls (NEXT/ABORT)
-- **Soul Inspection Mode** — toggle enables soul-seed particle raycasting (size boosted while active); clicking a particle opens a SOUL FORENSIC SCAN modal with procedurally generated Soul ID, origin/current strata, trajectory (▲/▼), karmic alignment, assigned Reaper, fragment integrity, and a memory fragment
-- **Volumetric Reality Lens** — cursor-following 240px circular magnifier; vortex GIF spins inside; embedded mini Three.js scene shows a rotating 3D model of the hovered strata; live title/faction/status readout
-- **Nested Sub-Location Lore** — every orbiting "data point" in the holo viewer is clickable; opens SUB-LOCATION DOSSIER with type-detection (Commerce Node, Seat of Power, Military Zone, Terrain Feature, Knowledge Repository, Dimensional Anomaly, Containment, Derelict Vessel, Landmark, generic POI), procedural description + population + risk level + anomaly index + faction control % + featured vendor/threat/anomaly flavor
+- Cinematic Tour (Pilgrimage Mode +99 → -99 with typewriter narration)
+- Soul Inspection Mode (procedural soul dossier with karma/reaper/memory)
+- Volumetric Reality Lens (cursor magnifier with spinning vortex + mini Three.js scene)
+- Nested Sub-location Lore (clickable orbiters → 10+ category-detected dossier types)
+- ESC universally closes modals
+
+### Iteration 4 — Flicker Fixes + Better Improvements
+**Flicker reduction:**
+- Dead-reality opacity: replaced per-frame `Math.random()` strobe with smooth `sin(t)` breathing
+- Hover detection: pauses `autoRotate` while hovering a disc + lerps opacity (12% per frame) so transitions are smooth, not snap on/off
+- Z-fighting: added `renderOrder` + `polygonOffset` to discs / wireframes / volumetric spines for stable transparency sort
+- Removed `background-attachment: fixed` (Chromium repaint flicker source)
+- Capped `setPixelRatio` at 2 to prevent overdraw on retina
+- `anyModalOpen()` helper suspends auto-rotate AND hover raycasting while any modal is up
+
+**Major improvements:**
+- **Persistent Universe Seed** — `?seed=N` URL param + mulberry32 PRNG override of `Math.random` for the entire session. The 199 strata, faction layouts, dead/stable distribution, sublocations, disc variance — all deterministic. Visible seed pill in HUD (click to copy shareable URL).
+- **Strata Search Bar** — type partial POI / faction / strata title or `+12` / `-30` numbers → live dropdown with faction color dots, POI/DEAD badges, keyboard nav (↑↓ Enter Esc) → instant zoom + target-lock
+- **Soul Path Highlight** — inspecting a soul dims all other paths (opacity 0.015) and brightens its specific seedPath tube (opacity 0.65 cyan), with the entire soul-seeds particle cloud dimmed to 0.25 so the focused soul stands out
+- **Smooth Modal Slide-In** — all dossier / codex / directory modals use `transform: scale + translate + blur` keyframe (cubic-bezier overshoot) instead of pop-in; lore panel uses a fade with backdrop-filter ease
 
 ### UX Polish
-- ESC key universally closes any open modal (cascading priority)
-- Modes are mutually exclusive (Soul OFF disables when Lens turns ON, vice versa)
-- Auto-rotate pauses during tour; resumes on tour end
-- Clicks are suppressed while any modal or tour is active
+- ESC key universally closes any open modal
+- Modes are mutually exclusive
+- Auto-rotate suspended during tour / modal / hover
+- Clicks suppressed while modals open
+- Holo + lens mini-scenes properly dispose on close
 
 ## Verified Working
-- 8 end-to-end screenshots across two iterations confirm all features render correctly
-- Zero JavaScript console errors
-- HTML size growth: 90 KB → 132 KB → 176 KB
+- 13+ end-to-end screenshots across four iterations confirm all features render correctly
+- Zero JavaScript console errors throughout
+- HTML size growth: 90 KB → 132 KB → 176 KB → 191 KB
 
-## Open Items / Future Iterations
+## Future Iterations
 - 🎙️ Faction-themed ambient audio loops
 - ⌛ Reality Event Cycles (random birth/death/coup/wormhole)
 - 📜 Full Faction Manifesto modals with leaders + threat gauges
-- 🔗 Shareable codex/discovery progress URLs (?seed=N) for viral lore-sharing
+- 🗺️ Vertical Strata Compass / scrollable mini-map on right side
+- ⚔️ Tour Variants (Divine Ascension / Descent / Faction-specific)
 
 ## Out of Scope
 - No port to native React Native components — served as web HTML via WebView/iframe.

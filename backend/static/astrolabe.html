@@ -17,7 +17,6 @@
             background-image: url('/api/static/holo_projector.jpg');
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
             font-family: 'Share Tech Mono', monospace; 
             color: #00ffcc; 
             user-select: none;
@@ -422,6 +421,74 @@
             background: rgba(0,0,0,0.5); padding: 10px; font-style: italic; color: #aaa;
             border-left: 2px solid #ffcc00; font-size: 11px; line-height: 1.5;
         }
+
+        /* === ITERATION 4: Modal slide-in animations, seed UI, search, soul-path highlight === */
+        #soul-dossier.open, #subloc-dossier.open {
+            animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        #codex-panel.open { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        #directory-panel.flex { animation: modalSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        @keyframes modalSlideIn {
+            0% { opacity: 0; transform: translate(-50%, -42%) scale(0.92); filter: blur(8px); }
+            70% { filter: blur(0); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+        }
+        #lore-panel.flex { animation: modalFadeIn 0.45s ease-out; }
+        @keyframes modalFadeIn { from { opacity: 0; backdrop-filter: blur(0); } to { opacity: 1; backdrop-filter: blur(8px); } }
+        #mini-target-panel.flex { animation: modalSlideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+
+        /* --- Universe Seed display + share button --- */
+        #seed-pill {
+            position: absolute; top: 2px; right: 200px;
+            z-index: 50; display: flex; align-items: center; gap: 4px;
+            font-size: 9px; letter-spacing: 1px;
+            padding: 4px 8px; border: 1px solid rgba(0,255,204,0.4);
+            background: rgba(10,15,20,0.7); color: #00ffcc; cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            transition: all 0.2s;
+        }
+        @media (min-width: 768px) { #seed-pill { top: 12px; right: 240px; font-size: 10px; padding: 6px 10px; } }
+        #seed-pill:hover { background: #00ffcc; color: #000; }
+        #seed-pill .seed-val { color: #fff; font-weight: bold; }
+        #seed-pill .seed-icon { font-size: 11px; }
+        .seed-copied { animation: seedFlash 1s ease-out; }
+        @keyframes seedFlash { 0%, 100% { background: rgba(10,15,20,0.7); } 50% { background: #00ffcc; color: #000; } }
+
+        /* --- Strata Search Bar --- */
+        .search-wrap {
+            position: relative; margin-top: 4px;
+        }
+        #strata-search {
+            width: 100%; background: rgba(0,0,0,0.7); color: #00ffcc;
+            border: 1px solid #00ffcc; padding: 5px 8px; font-size: 10px;
+            font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+            outline: none;
+        }
+        #strata-search:focus { box-shadow: 0 0 12px rgba(0,255,204,0.5); border-color: #fff; }
+        #strata-search::placeholder { color: #666; }
+        #search-results {
+            position: absolute; left: 0; right: 0; top: 100%; max-height: 220px; overflow-y: auto;
+            background: rgba(0,5,10,0.97); border: 1px solid #00ffcc; border-top: none;
+            display: none; z-index: 50;
+        }
+        #search-results.open { display: block; }
+        .search-item {
+            padding: 5px 8px; cursor: pointer; transition: all 0.15s;
+            border-bottom: 1px dashed rgba(0,255,204,0.15); display: flex; align-items: center; gap: 6px;
+            font-size: 10px;
+        }
+        .search-item:hover, .search-item.focus { background: rgba(0,255,204,0.15); }
+        .search-item .lvl-tag {
+            color: #888; font-size: 9px; min-width: 32px;
+        }
+        .search-item .label-text { color: #d0d0d0; flex: 1; }
+        .search-item .faction-dot { width: 6px; height: 6px; flex-shrink: 0; }
+        .search-item.poi .label-text { color: #ffcc00; }
+        .search-item .badge {
+            font-size: 8px; padding: 1px 4px; border: 1px solid currentColor; letter-spacing: 1px;
+        }
+        .search-item .badge.dead { color: #ff5555; }
+        .search-item .badge.poi { color: #ffcc00; }
     </style>
 
     <!-- Stable Three.js & OrbitControls Links -->
@@ -470,6 +537,14 @@
     <!-- CODEX BUTTON -->
     <button id="codex-btn" onclick="toggleCodex()" class="interactive-panel p-1.5 md:p-2 text-[#00ffcc] text-[10px] md:text-xs font-bold hover:bg-[#00ffcc] hover:text-black transition-colors cursor-pointer rounded-sm">
         [ CODEX ]
+    </button>
+
+    <!-- UNIVERSE SEED PILL -->
+    <button id="seed-pill" onclick="copyUniverseLink()" title="Copy shareable universe link">
+        <span class="seed-icon">⌬</span>
+        <span>SEED:</span>
+        <span class="seed-val" id="seed-value">--</span>
+        <span class="seed-icon" style="margin-left:4px;">⎘</span>
     </button>
 
     <!-- CODEX PANEL -->
@@ -657,6 +732,12 @@
                 </button>
                 
                 <div id="nav-content" class="flex flex-col gap-1.5">
+                    <!-- Strata search bar -->
+                    <div class="search-wrap">
+                        <input id="strata-search" type="text" placeholder="◎ JUMP TO STRATA OR POI..." autocomplete="off">
+                        <div id="search-results"></div>
+                    </div>
+
                     <div class="flex justify-between items-center mt-1">
                         <span class="text-[9px] md:text-[10px] text-gray-400">INPUT TARGET STRATA:</span>
                         <input type="number" id="target-level" value="0" min="-99" max="99" class="bg-black text-[#00ffcc] border border-[#00ffcc] p-0.5 w-10 text-center font-mono text-[10px]">
@@ -806,6 +887,32 @@
         
         let activeLoreLevel = 0;
         let activePoiIndex = null; // null means Reality, number means specific POI
+
+        // === UNIVERSE SEED (mulberry32) ===========================
+        // Reading ?seed=N from URL produces a deterministic, shareable universe.
+        // If absent we generate a fresh one and update the URL.
+        const _urlParams = new URLSearchParams(window.location.search);
+        const _seedFromUrl = parseInt(_urlParams.get('seed'));
+        const UNIVERSE_SEED = (Number.isFinite(_seedFromUrl) && _seedFromUrl > 0)
+            ? _seedFromUrl
+            : Math.floor(Date.now() % 99999999);
+        if (!Number.isFinite(_seedFromUrl) || _seedFromUrl <= 0) {
+            // Persist generated seed into URL without reloading
+            const u = new URL(window.location.href);
+            u.searchParams.set('seed', UNIVERSE_SEED);
+            window.history.replaceState(null, '', u);
+        }
+        let _seedState = UNIVERSE_SEED;
+        const _origRandom = Math.random;
+        // Replace Math.random with seeded version for the entire session
+        // (all generators + filler animations stay deterministic for the same seed)
+        Math.random = function() {
+            _seedState |= 0;
+            _seedState = (_seedState + 0x6D2B79F5) | 0;
+            let t = Math.imul(_seedState ^ (_seedState >>> 15), 1 | _seedState);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
 
         const FACTIONS = {
             CENTORIAN: { id: 'centorian', name: "Centurion Guard", color: 0xffdd00 },
@@ -1090,12 +1197,15 @@
         let particlesMesh;
         let raycaster, mouse;
         let hoveredDisc = null;
+        let hoverOpacityTarget = null; // smooth lerp target
         let factionVolumeMeshes = [];
         let soulSeedsGeometry;
         let soulSeedsParticles;
         const seedCount = 1500;
         const seedPaths = [];
+        const seedPathTubes = [];
         const seedData = [];
+        let globalClock = null; // for smooth time-based animations
 
         let filtersVisible = window.innerWidth >= 768; 
         let navVisible = window.innerWidth >= 768; 
@@ -1149,7 +1259,9 @@
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            // Cap pixel ratio to reduce overdraw/flicker on retina displays
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.sortObjects = true;
             renderer.setClearColor(0x000000, 0); // Transparent background to show The Endless image
             container.appendChild(renderer.domElement);
 
@@ -1182,6 +1294,7 @@
 
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
+            globalClock = new THREE.Clock();
             
             window.addEventListener('mousemove', onMouseMove, false);
             
@@ -1252,15 +1365,21 @@
                 // Apply shared textures instead of generating 199 individual ones
                 const activeTex = (i === 0) ? sharedTexZero : sharedTexNormal;
 
-                const material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: i === 0 ? 0.9 : 0.35, blending: THREE.AdditiveBlending, map: activeTex, depthWrite: false });
+                const material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: i === 0 ? 0.9 : 0.35, blending: THREE.AdditiveBlending, map: activeTex, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -i });
                 const disc = new THREE.Mesh(new THREE.RingGeometry(innerRadius, outerRadius, 64), material); disc.rotation.x = Math.PI / 2; disc.position.y = i * ySpacing;
+                // Stable render order to prevent transparency flicker between stacked discs
+                disc.renderOrder = 100 - Math.abs(i);
                 
-                const wireDisc = new THREE.Mesh(new THREE.RingGeometry(innerRadius, outerRadius, 64), new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: i === 0 ? 0.4 : 0.15, blending: THREE.AdditiveBlending })); disc.add(wireDisc); 
+                const wireDisc = new THREE.Mesh(new THREE.RingGeometry(innerRadius, outerRadius, 64), new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: i === 0 ? 0.4 : 0.15, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -i - 0.5 }));
+                wireDisc.renderOrder = (100 - Math.abs(i)) + 0.5;
+                disc.add(wireDisc); 
                 disc.userData = { level: i, originalColor: color, originalOpacity: material.opacity, originalWireOpacity: wireDisc.material.opacity, isDead: TERRITORY_DATA[i].isDead };
                 discMeshes[i] = disc; astrolabeGroup.add(disc);
 
                 const volPlane = new THREE.Mesh(new THREE.CircleGeometry(4.5, 64), new THREE.MeshBasicMaterial({ color: color, map: spineTex, transparent: true, opacity: i === 0 ? 0.9 : 0.15, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-                volPlane.rotation.x = Math.PI / 2; volPlane.position.y = i * ySpacing; volumetricSpineGroup.add(volPlane);
+                volPlane.rotation.x = Math.PI / 2; volPlane.position.y = i * ySpacing;
+                volPlane.renderOrder = -100 + Math.abs(i);
+                volumetricSpineGroup.add(volPlane);
 
                 const isPOILevel = POIS[i] && POIS[i].length > 0;
                 if (i % 10 === 0 || isPOILevel || i === 99 || i === -99) {
@@ -1362,7 +1481,10 @@
                 }
                 const curve = new THREE.CatmullRomCurve3(points);
                 seedPaths.push(curve);
-                astrolabeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 150, 0.2, 5, false), new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, wireframe: true })));
+                const tubeMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 150, 0.2, 5, false), new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, wireframe: true }));
+                tubeMesh.userData = { isSoulPathTube: true, pathIdx: p };
+                seedPathTubes.push(tubeMesh);
+                astrolabeGroup.add(tubeMesh);
             }
 
             const positions = new Float32Array(seedCount * 3);
@@ -1520,6 +1642,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            const t = globalClock ? globalClock.getElapsedTime() : 0;
             if(particlesMesh) particlesMesh.rotation.y += 0.0005;
             if (projectorGroup) projectorGroup.children.forEach(child => { if (child.userData.rotSpeed) child.rotation.z += child.userData.rotSpeed; });
             poiMeshes.forEach(marker => { marker.rotation.y += 0.02; marker.rotation.x += 0.01; });
@@ -1544,27 +1667,48 @@
                 if (camera.position.distanceTo(animCamPos) < 0.5 && controls.target.distanceTo(animCamTarget) < 0.5) isCamTweening = false;
             } else { controls.update(); }
 
-            if(GAME_STATE.currentFilter === 'dead') Object.values(discMeshes).forEach(disc => { if(disc.userData.isDead) disc.material.opacity = 0.4 + (Math.random() * 0.5); });
+            // SMOOTH dead-reality breathing (replaces per-frame random strobe)
+            if (GAME_STATE.currentFilter === 'dead') {
+                Object.values(discMeshes).forEach(disc => {
+                    if (disc.userData.isDead) {
+                        // Sine wave with per-level phase offset → smooth breath, no flicker
+                        disc.material.opacity = 0.55 + Math.sin(t * 1.8 + disc.userData.level * 0.4) * 0.35;
+                    }
+                });
+            }
 
-            if (!isCamTweening && uiVisible) {
+            // Smooth hover detection + opacity lerp (replaces snap on/off)
+            if (!isCamTweening && uiVisible && !anyModalOpen()) {
                 raycaster.setFromCamera(mouse, camera);
                 const intersects = raycaster.intersectObjects(Object.values(discMeshes));
-                if (intersects.length > 0) {
-                    const obj = intersects[0].object;
-                    if (hoveredDisc !== obj) {
-                        if (hoveredDisc && GAME_STATE.currentFilter === 'base') hoveredDisc.material.opacity = hoveredDisc.userData.originalOpacity;
-                        hoveredDisc = obj;
-                        if(GAME_STATE.currentFilter === 'base') hoveredDisc.material.opacity = 1.0;
-                        document.body.style.cursor = 'crosshair';
-                    }
-                } else if (hoveredDisc) {
-                    if(GAME_STATE.currentFilter === 'base') hoveredDisc.material.opacity = hoveredDisc.userData.originalOpacity;
-                    hoveredDisc = null; document.body.style.cursor = 'default';
+                const newHovered = intersects.length ? intersects[0].object : null;
+                if (newHovered !== hoveredDisc) {
+                    hoveredDisc = newHovered;
+                    document.body.style.cursor = hoveredDisc ? 'crosshair' : (SOUL_MODE || LENS_MODE ? 'crosshair' : 'default');
+                    // Pause autoRotate while hovered so cursor doesn't slip off → no flicker
+                    if (hoveredDisc) controls.autoRotate = false;
+                    else if (!TOUR.active && !anyModalOpen()) controls.autoRotate = true;
                 }
+                // Smooth opacity for hover highlight (lerp 0.12 per frame ≈ 100ms ease)
+                Object.values(discMeshes).forEach(d => {
+                    if (GAME_STATE.currentFilter !== 'base') return; // filters control opacity
+                    const target = (d === hoveredDisc) ? 1.0 : d.userData.originalOpacity;
+                    d.material.opacity += (target - d.material.opacity) * 0.12;
+                });
             }
 
             if (labelsGroup) labelsGroup.children.forEach(sprite => { sprite.quaternion.copy(camera.quaternion); });
             renderer.render(scene, camera);
+        }
+
+        // Returns true if any of the lore/codex/soul/sub-loc modals are open
+        function anyModalOpen() {
+            return !document.getElementById('lore-panel').classList.contains('hidden')
+                || document.getElementById('codex-panel').classList.contains('open')
+                || document.getElementById('soul-dossier').classList.contains('open')
+                || document.getElementById('subloc-dossier').classList.contains('open')
+                || !document.getElementById('directory-panel').classList.contains('hidden')
+                || TOUR.active;
         }
 
         function onMouseMove(event) {
@@ -2506,10 +2650,30 @@
 
             document.getElementById('soul-dossier').classList.add('open');
             logMessage(`Soul ${id} captured. Forensic scan running.`, 'info');
+
+            // === Soul Path Highlight ===
+            // Dim all paths and the particle cloud, then re-illuminate ONLY the soul's path
+            const activePathIdx = data.pathIdx;
+            seedPathTubes.forEach(tube => {
+                if (tube.userData.pathIdx === activePathIdx) {
+                    tube.material.opacity = 0.65;
+                    tube.material.color.setHex(0x00ffff);
+                } else {
+                    tube.material.opacity = 0.015;
+                }
+            });
+            if (soulSeedsParticles) soulSeedsParticles.material.opacity = 0.25;
         }
         function closeSoulDossier() {
             document.getElementById('soul-dossier').classList.remove('open');
+            // Restore tube + particle opacities
+            seedPathTubes.forEach(tube => {
+                tube.material.opacity = 0.05;
+                tube.material.color.setHex(0x00ffcc);
+            });
+            if (soulSeedsParticles) soulSeedsParticles.material.opacity = 0.9;
         }
+        function _origCloseSoulDossier() { /* placeholder removed */ }
 
         // -------------- VOLUMETRIC REALITY LENS --------------
         let LENS_MODE = false;
@@ -2736,6 +2900,117 @@
             else if (!document.getElementById('lore-panel').classList.contains('hidden')) closeLore();
             else if (document.getElementById('codex-panel').classList.contains('open')) toggleCodex();
             else if (!document.getElementById('directory-panel').classList.contains('hidden')) closeStrataDirectory();
+        });
+
+        // =============================================================
+        //  ITERATION 4 — Seed UI · Share · Strata Search
+        // =============================================================
+
+        // --- Universe Seed Pill & Share ---
+        document.getElementById('seed-value').innerText = UNIVERSE_SEED;
+        function copyUniverseLink() {
+            const url = `${window.location.origin}${window.location.pathname}?seed=${UNIVERSE_SEED}`;
+            const pill = document.getElementById('seed-pill');
+            const fallback = () => {
+                const ta = document.createElement('textarea');
+                ta.value = url; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch(e) {}
+                document.body.removeChild(ta);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).catch(fallback);
+            } else { fallback(); }
+            pill.classList.remove('seed-copied'); void pill.offsetWidth; pill.classList.add('seed-copied');
+            logMessage(`Universe link copied: seed ${UNIVERSE_SEED}`, 'success');
+        }
+        logMessage(`Universe initialized. SEED = ${UNIVERSE_SEED}.`, 'info');
+
+        // --- Strata Search Bar ---
+        const SEARCH_INDEX = (() => {
+            const items = [];
+            for (let i = -99; i <= 99; i++) {
+                const d = TERRITORY_DATA[i];
+                items.push({
+                    level: i, label: d.title, faction: d.faction, isDead: d.isDead,
+                    isPOI: false, poiIndex: null,
+                    haystack: `${i} ${d.title} ${d.faction.name}`.toLowerCase()
+                });
+                (POIS[i] || []).forEach((poi, idx) => {
+                    items.push({
+                        level: i, label: poi.name, faction: poi.faction, isDead: false,
+                        isPOI: true, poiIndex: idx, poiType: poi.type,
+                        haystack: `${i} ${poi.name} ${poi.faction.name} ${poi.type}`.toLowerCase()
+                    });
+                });
+            }
+            return items;
+        })();
+        const searchInput = document.getElementById('strata-search');
+        const searchResults = document.getElementById('search-results');
+        let searchFocusIdx = -1;
+        let searchMatches = [];
+        function runStrataSearch(q) {
+            const query = q.trim().toLowerCase();
+            if (!query) { searchResults.classList.remove('open'); searchResults.innerHTML = ''; return; }
+            // Allow `+12` or `-30` direct strata jump
+            const numMatch = query.match(/^[-+]?\d+$/);
+            let results;
+            if (numMatch) {
+                const lvl = parseInt(query);
+                results = SEARCH_INDEX.filter(it => it.level === lvl || it.haystack.startsWith(query)).slice(0, 12);
+            } else {
+                results = SEARCH_INDEX.filter(it => it.haystack.includes(query)).slice(0, 12);
+            }
+            searchMatches = results;
+            searchFocusIdx = results.length ? 0 : -1;
+            if (!results.length) {
+                searchResults.innerHTML = '<div class="search-item" style="color:#666;cursor:default;">NO MATCHES</div>';
+                searchResults.classList.add('open');
+                return;
+            }
+            searchResults.innerHTML = results.map((r, i) => {
+                const colorHex = '#' + r.faction.color.toString(16).padStart(6, '0');
+                const lvlTag = (r.level > 0 ? '+' : '') + r.level;
+                const badge = r.isPOI ? `<span class="badge poi">POI</span>` : (r.isDead ? `<span class="badge dead">DEAD</span>` : '');
+                return `<div class="search-item ${r.isPOI ? 'poi' : ''} ${i === searchFocusIdx ? 'focus' : ''}" data-idx="${i}">
+                    <span class="lvl-tag">${lvlTag}</span>
+                    <span class="faction-dot" style="background:${colorHex};box-shadow:0 0 5px ${colorHex};"></span>
+                    <span class="label-text">${r.label}</span>
+                    ${badge}
+                </div>`;
+            }).join('');
+            searchResults.classList.add('open');
+            // Bind click on each item
+            Array.from(searchResults.querySelectorAll('.search-item[data-idx]')).forEach(el => {
+                el.addEventListener('click', () => { jumpToSearchMatch(parseInt(el.dataset.idx)); });
+            });
+        }
+        function jumpToSearchMatch(idx) {
+            const m = searchMatches[idx]; if (!m) return;
+            searchInput.value = '';
+            searchResults.classList.remove('open');
+            document.getElementById('target-level').value = m.level;
+            GAME_STATE.currentLevel = m.level;
+            zoomToLevel(m.level);
+            if (m.isPOI) {
+                showMiniTarget(m.level, true, m.poiIndex);
+            } else {
+                showMiniTarget(m.level, false, null);
+            }
+            logMessage(`Quick-jump → ${m.label} (${m.level > 0 ? '+' : ''}${m.level})`, 'info');
+        }
+        searchInput.addEventListener('input', (e) => runStrataSearch(e.target.value));
+        searchInput.addEventListener('focus', (e) => { if (e.target.value) runStrataSearch(e.target.value); });
+        searchInput.addEventListener('keydown', (e) => {
+            if (!searchResults.classList.contains('open')) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); searchFocusIdx = Math.min(searchFocusIdx + 1, searchMatches.length - 1); runStrataSearch(searchInput.value); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); searchFocusIdx = Math.max(0, searchFocusIdx - 1); runStrataSearch(searchInput.value); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (searchFocusIdx >= 0) jumpToSearchMatch(searchFocusIdx); }
+            else if (e.key === 'Escape') { searchResults.classList.remove('open'); searchInput.blur(); }
+        });
+        // Click outside closes results
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrap')) searchResults.classList.remove('open');
         });
         function buildHoloModel(poi, data, color) {
             const group = new THREE.Group();

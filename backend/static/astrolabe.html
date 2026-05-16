@@ -531,6 +531,111 @@
         }
 
         /* =============================================================
+           PAUSE MENU — Graphics + Audio settings + Quit
+           ============================================================= */
+        #pause-menu-backdrop {
+            position: fixed; inset: 0; z-index: 130; background: rgba(0,0,0,0.78);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity .25s ease;
+        }
+        #pause-menu-backdrop.open { display: flex; opacity: 1; }
+        #pause-menu {
+            width: min(92vw, 480px); max-height: 88vh; overflow-y: auto;
+            background: linear-gradient(160deg, rgba(0,15,20,0.98), rgba(5,5,15,0.98));
+            border: 2px solid #00ffcc; box-shadow: 0 0 38px rgba(0,255,204,0.45), inset 0 0 40px rgba(0,255,204,0.05);
+            color: #d0fff0;
+            transform: scale(0.95) translateY(8px);
+            transition: transform .28s cubic-bezier(.2,1.4,.4,1);
+        }
+        #pause-menu-backdrop.open #pause-menu { transform: scale(1) translateY(0); }
+        .pause-header {
+            padding: 14px 18px; border-bottom: 1px solid #00ffcc;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,255,204,0.06);
+        }
+        .pause-header h3 {
+            font-size: 16px; letter-spacing: 6px; color: #00ffcc; font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,255,204,0.6);
+        }
+        .pause-close {
+            background: transparent; border: 1px solid #ff4477; color: #ff4477;
+            padding: 4px 10px; font-size: 11px; letter-spacing: 2px; cursor: pointer;
+            transition: all .15s; font-family: inherit;
+        }
+        .pause-close:hover { background: #ff4477; color: #000; }
+        .pause-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 16px; }
+        .pause-section-title {
+            font-size: 9px; letter-spacing: 4px; color: #888; margin-bottom: 4px;
+            border-bottom: 1px dashed rgba(0,255,204,0.2); padding-bottom: 4px;
+        }
+        .pause-row {
+            display: grid; grid-template-columns: 1fr auto; gap: 10px;
+            align-items: center; padding: 4px 0;
+        }
+        .pause-row .lbl { font-size: 11px; color: #b0e8d8; letter-spacing: 1.5px; }
+        .pause-row .val { font-size: 10px; color: #00ffcc; min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+        .pause-slider {
+            grid-column: 1 / -1;
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 4px; background: rgba(0,255,204,0.18);
+            border: 1px solid rgba(0,255,204,0.35); outline: none; cursor: pointer;
+        }
+        .pause-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 16px; height: 16px; background: #00ffcc;
+            border: 1px solid #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.7);
+            cursor: pointer; border-radius: 0;
+        }
+        .pause-slider::-moz-range-thumb {
+            width: 16px; height: 16px; background: #00ffcc;
+            border: 1px solid #00ffcc; box-shadow: 0 0 8px rgba(0,255,204,0.7);
+            cursor: pointer; border-radius: 0;
+        }
+        .pause-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: transparent; border: 1px solid rgba(0,255,204,0.5);
+            color: #b0e8d8; padding: 4px 12px; cursor: pointer; font-family: inherit;
+            font-size: 10px; letter-spacing: 2px; transition: all .15s; min-height: 28px;
+        }
+        .pause-toggle.on { background: #00ffcc; color: #000; border-color: #00ffcc; box-shadow: 0 0 10px rgba(0,255,204,0.6); }
+        .pause-toggle:active { transform: scale(0.96); }
+        .pause-actions {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-top: 6px;
+        }
+        .pause-btn {
+            padding: 10px; background: rgba(0,255,204,0.08);
+            border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: inherit; font-size: 11px; letter-spacing: 3px;
+            cursor: pointer; transition: all .15s; min-height: 44px;
+        }
+        .pause-btn:hover { background: #00ffcc; color: #000; }
+        .pause-btn.danger { border-color: #ff4477; color: #ff4477; background: rgba(255,68,119,0.05); }
+        .pause-btn.danger:hover { background: #ff4477; color: #000; }
+        .pause-btn:active { transform: scale(0.97); }
+        .pause-preset-row {
+            display: flex; gap: 6px; margin-top: 4px;
+        }
+        .pause-preset-row button {
+            flex: 1; padding: 6px; font-size: 9px; letter-spacing: 2px;
+            background: transparent; border: 1px solid rgba(0,255,204,0.4);
+            color: #b0e8d8; cursor: pointer; font-family: inherit; transition: all .15s;
+        }
+        .pause-preset-row button:hover { background: rgba(0,255,204,0.15); border-color: #00ffcc; color: #00ffcc; }
+
+        /* Pause / Settings button in desktop HUD (top-right area) */
+        #pause-btn {
+            position: fixed; top: 14px; right: 250px; z-index: 60;
+            background: rgba(0,0,0,0.7); border: 1px solid #00ffcc; color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace; font-size: 11px;
+            letter-spacing: 2px; padding: 6px 12px; cursor: pointer;
+            transition: all .15s;
+        }
+        #pause-btn:hover { background: rgba(0,255,204,0.2); box-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        @media (max-width: 767px) { #pause-btn { display: none; } }
+
+        /* =============================================================
            ITERATION 6 — MOBILE UI OVERHAUL (touch-first redesign)
            ============================================================= */
         :root { --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px); }
@@ -1228,6 +1333,120 @@
         </div>
     </div>
 
+    <!-- DESKTOP PAUSE / SETTINGS BUTTON -->
+    <button id="pause-btn" onclick="openPauseMenu()" aria-label="Settings menu" title="Settings (Esc)">[ ⏸ SETTINGS ]</button>
+
+    <!-- PAUSE MENU MODAL -->
+    <div id="pause-menu-backdrop" onclick="if(event.target===this)closePauseMenu()">
+        <div id="pause-menu" role="dialog" aria-labelledby="pause-title">
+            <div class="pause-header">
+                <h3 id="pause-title">[ ASTROLABE · SETTINGS ]</h3>
+                <button class="pause-close" onclick="closePauseMenu()">[ X ]</button>
+            </div>
+            <div class="pause-body">
+
+                <!-- GRAPHICS -->
+                <div>
+                    <div class="pause-section-title">▣ GRAPHICS</div>
+
+                    <div class="pause-preset-row">
+                        <button onclick="applyGfxPreset('low')">LOW</button>
+                        <button onclick="applyGfxPreset('medium')">MEDIUM</button>
+                        <button onclick="applyGfxPreset('high')">HIGH</button>
+                        <button onclick="applyGfxPreset('cinematic')">CINEMATIC</button>
+                    </div>
+
+                    <div class="pause-row" style="margin-top: 12px">
+                        <span class="lbl">BLOOM STRENGTH</span>
+                        <span class="val" id="gfx-bloom-strength-val">1.10</span>
+                        <input type="range" min="0" max="2.5" step="0.05" value="1.1"
+                            class="pause-slider" id="gfx-bloom-strength"
+                            oninput="updateGfx('bloomStrength', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">BLOOM RADIUS</span>
+                        <span class="val" id="gfx-bloom-radius-val">0.70</span>
+                        <input type="range" min="0" max="1.5" step="0.05" value="0.7"
+                            class="pause-slider" id="gfx-bloom-radius"
+                            oninput="updateGfx('bloomRadius', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">BLOOM THRESHOLD</span>
+                        <span class="val" id="gfx-bloom-threshold-val">0.22</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.22"
+                            class="pause-slider" id="gfx-bloom-threshold"
+                            oninput="updateGfx('bloomThreshold', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">VIGNETTE</span>
+                        <span class="val" id="gfx-vignette-val">0.60</span>
+                        <input type="range" min="0" max="1.5" step="0.05" value="0.6"
+                            class="pause-slider" id="gfx-vignette"
+                            oninput="updateGfx('vignette', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">SCAN-LINES</span>
+                        <span class="val" id="gfx-scanline-val">0.22</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.22"
+                            class="pause-slider" id="gfx-scanline"
+                            oninput="updateGfx('scanline', this.value)">
+                    </div>
+
+                    <div class="pause-row" style="margin-top: 10px">
+                        <span class="lbl">CAMERA SHAKE</span>
+                        <button class="pause-toggle on" id="gfx-shake-toggle" onclick="toggleGfx('cameraShake', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">CENTRAL SPINE (god-rays)</span>
+                        <button class="pause-toggle on" id="gfx-spine-toggle" onclick="toggleGfx('centralSpine', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">STARFIELD</span>
+                        <button class="pause-toggle on" id="gfx-stars-toggle" onclick="toggleGfx('starfield', this)">ON</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">AUTO-ROTATE</span>
+                        <button class="pause-toggle on" id="gfx-rotate-toggle" onclick="toggleGfx('autoRotate', this)">ON</button>
+                    </div>
+                </div>
+
+                <!-- AUDIO -->
+                <div>
+                    <div class="pause-section-title">♪ AUDIO</div>
+                    <div class="pause-row">
+                        <span class="lbl">MUSIC</span>
+                        <button class="pause-toggle" id="audio-music-toggle" onclick="toggleAudio('music', this)">OFF</button>
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">MUSIC VOLUME</span>
+                        <span class="val" id="audio-music-vol-val">0.40</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.4"
+                            class="pause-slider" id="audio-music-vol"
+                            oninput="updateAudio('musicVolume', this.value)">
+                    </div>
+                    <div class="pause-row">
+                        <span class="lbl">SFX VOLUME</span>
+                        <span class="val" id="audio-sfx-vol-val">0.50</span>
+                        <input type="range" min="0" max="1" step="0.02" value="0.5"
+                            class="pause-slider" id="audio-sfx-vol"
+                            oninput="updateAudio('sfxVolume', this.value)">
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="pause-actions">
+                    <button class="pause-btn" onclick="resetGfxSettings()">[ RESET ]</button>
+                    <button class="pause-btn" onclick="closePauseMenu()">[ RESUME ▸ ]</button>
+                </div>
+                <button class="pause-btn danger" onclick="quitAstrolabe()">[ ⏻ QUIT ASTROLABE ]</button>
+
+                <div style="font-size: 8px; color: #555; letter-spacing: 2px; text-align: center; margin-top: 4px;">
+                    PRESS [ESC] TO TOGGLE
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ============================================================== -->
     <!-- MOBILE UI LAYER — Touch-first redesign for ≤767px viewports     -->
     <!-- ============================================================== -->
@@ -1254,6 +1473,7 @@
                 ▦
                 <span class="m-badge" id="m-codex-badge">0</span>
             </button>
+            <button class="m-fab" onclick="openPauseMenu()" aria-label="Settings menu">⚙</button>
             <button class="m-fab" onclick="toggleUI()" aria-label="Hide HUD">◐</button>
         </div>
 
@@ -4637,16 +4857,417 @@
             document.getElementById('subloc-dossier').classList.remove('open');
         }
 
-        // ESC key universally closes any open modal
+        // =============================================================
+        //  PAUSE MENU + GRAPHICS SETTINGS + AMBIENT MUSIC (Phase B+C)
+        // =============================================================
+
+        // ----- Settings state with localStorage persistence -----
+        const SETTINGS_KEY = 'astrolabe_settings_v1';
+        const DEFAULT_SETTINGS = {
+            bloomStrength: 1.1,
+            bloomRadius:   0.7,
+            bloomThreshold:0.22,
+            vignette:      0.6,
+            scanline:      0.22,
+            cameraShake:   true,
+            centralSpine:  true,
+            starfield:     true,
+            autoRotate:    true,
+            music:         false, // user must opt in (mobile autoplay policy)
+            musicVolume:   0.40,
+            sfxVolume:     0.50,
+        };
+        let GFX = Object.assign({}, DEFAULT_SETTINGS);
+        try {
+            const raw = localStorage.getItem(SETTINGS_KEY);
+            if (raw) GFX = Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+        } catch(e) { /* localStorage may be disabled */ }
+        function saveSettings() {
+            try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(GFX)); } catch(e) {}
+        }
+
+        // ----- Apply settings to scene + composer -----
+        function applyAllGfx() {
+            if (bloomPass) {
+                bloomPass.strength  = GFX.bloomStrength;
+                bloomPass.radius    = GFX.bloomRadius;
+                bloomPass.threshold = GFX.bloomThreshold;
+            }
+            if (holoPass && holoPass.uniforms) {
+                if (holoPass.uniforms.vignette)  holoPass.uniforms.vignette.value  = GFX.vignette;
+                if (holoPass.uniforms.intensity) holoPass.uniforms.intensity.value = GFX.scanline;
+            }
+            if (centralSpine) centralSpine.visible = !!GFX.centralSpine;
+            if (starField)    starField.visible    = !!GFX.starfield;
+            if (controls && !TOUR.active) controls.autoRotate = !!GFX.autoRotate && !anyModalOpen();
+            // Camera shake handled in-line in animate(); we just allow shake intensity to apply or not.
+            if (!GFX.cameraShake) cameraShake.intensity = 0;
+        }
+        // Will be called from init3D once bloomPass exists. Safe to call before too (guards above).
+        applyAllGfx();
+
+        // ----- Slider / toggle handlers -----
+        function updateGfx(key, valStr) {
+            const v = parseFloat(valStr);
+            GFX[key] = v;
+            const valEl = document.getElementById(`gfx-${kebabKey(key)}-val`);
+            if (valEl) valEl.textContent = v.toFixed(2);
+            applyAllGfx();
+            saveSettings();
+        }
+        function toggleGfx(key, btn) {
+            GFX[key] = !GFX[key];
+            btn.classList.toggle('on', GFX[key]);
+            btn.textContent = GFX[key] ? 'ON' : 'OFF';
+            applyAllGfx();
+            saveSettings();
+        }
+        function kebabKey(k) {
+            // bloomStrength → bloom-strength
+            return k.replace(/([A-Z])/g, '-$1').toLowerCase();
+        }
+
+        function applyGfxPreset(preset) {
+            const presets = {
+                low:       { bloomStrength: 0.4, bloomRadius: 0.5, bloomThreshold: 0.40, vignette: 0.30, scanline: 0.10,
+                             cameraShake: false, centralSpine: false, starfield: false },
+                medium:    { bloomStrength: 0.7, bloomRadius: 0.6, bloomThreshold: 0.30, vignette: 0.45, scanline: 0.18,
+                             cameraShake: true,  centralSpine: true,  starfield: true },
+                high:      { bloomStrength: 1.1, bloomRadius: 0.7, bloomThreshold: 0.22, vignette: 0.60, scanline: 0.22,
+                             cameraShake: true,  centralSpine: true,  starfield: true },
+                cinematic: { bloomStrength: 1.6, bloomRadius: 0.9, bloomThreshold: 0.16, vignette: 0.80, scanline: 0.30,
+                             cameraShake: true,  centralSpine: true,  starfield: true },
+            };
+            const p = presets[preset]; if (!p) return;
+            Object.assign(GFX, p);
+            syncPauseMenuUI();
+            applyAllGfx();
+            saveSettings();
+            logMessage(`Graphics preset → ${preset.toUpperCase()}`, 'info');
+        }
+
+        function resetGfxSettings() {
+            GFX = Object.assign({}, DEFAULT_SETTINGS);
+            syncPauseMenuUI();
+            applyAllGfx();
+            // Force-stop music when resetting (re-opt-in)
+            if (Music && Music.isPlaying) Music.stop();
+            saveSettings();
+            logMessage('Settings reset to defaults', 'info');
+        }
+
+        // Reflect current GFX into the slider/toggle DOM (called when opening / preset / reset).
+        function syncPauseMenuUI() {
+            const fields = ['bloomStrength','bloomRadius','bloomThreshold','vignette','scanline'];
+            fields.forEach(k => {
+                const slider = document.getElementById(`gfx-${kebabKey(k)}`);
+                const valEl = document.getElementById(`gfx-${kebabKey(k)}-val`);
+                if (slider) slider.value = GFX[k];
+                if (valEl) valEl.textContent = (+GFX[k]).toFixed(2);
+            });
+            const toggles = {
+                'gfx-shake-toggle':  'cameraShake',
+                'gfx-spine-toggle':  'centralSpine',
+                'gfx-stars-toggle':  'starfield',
+                'gfx-rotate-toggle': 'autoRotate',
+            };
+            Object.entries(toggles).forEach(([id, k]) => {
+                const btn = document.getElementById(id); if (!btn) return;
+                btn.classList.toggle('on', !!GFX[k]);
+                btn.textContent = GFX[k] ? 'ON' : 'OFF';
+            });
+            // Audio
+            const musicBtn = document.getElementById('audio-music-toggle');
+            if (musicBtn) {
+                musicBtn.classList.toggle('on', !!GFX.music);
+                musicBtn.textContent = GFX.music ? 'ON' : 'OFF';
+            }
+            const mv = document.getElementById('audio-music-vol');
+            const mvVal = document.getElementById('audio-music-vol-val');
+            if (mv) mv.value = GFX.musicVolume;
+            if (mvVal) mvVal.textContent = (+GFX.musicVolume).toFixed(2);
+            const sv = document.getElementById('audio-sfx-vol');
+            const svVal = document.getElementById('audio-sfx-vol-val');
+            if (sv) sv.value = GFX.sfxVolume;
+            if (svVal) svVal.textContent = (+GFX.sfxVolume).toFixed(2);
+        }
+
+        // ----- Open / close pause menu -----
+        let pauseWasAutoRotating = true;
+        function openPauseMenu() {
+            const bd = document.getElementById('pause-menu-backdrop');
+            syncPauseMenuUI();
+            bd.classList.add('open');
+            // Pause auto-rotate while menu is up
+            pauseWasAutoRotating = controls ? controls.autoRotate : true;
+            if (controls) controls.autoRotate = false;
+        }
+        function closePauseMenu() {
+            const bd = document.getElementById('pause-menu-backdrop');
+            bd.classList.remove('open');
+            if (controls && GFX.autoRotate && !anyModalOpen() && !TOUR.active) controls.autoRotate = true;
+        }
+        function isPauseMenuOpen() {
+            const bd = document.getElementById('pause-menu-backdrop');
+            return !!bd && bd.classList.contains('open');
+        }
+
+        // ----- Quit -----
+        function quitAstrolabe() {
+            const ok = window.confirm("Terminate Astrolabe session?\n\nUnsaved exploration state will be lost.");
+            if (!ok) return;
+            // Stop music if running
+            try { if (Music && Music.isPlaying) Music.stop(); } catch(e) {}
+            logMessage('Astrolabe shutting down…', 'error');
+            // Trigger CRT-style fade-out then attempt to close / go back
+            document.body.style.transition = 'opacity 1.2s ease, filter 1.2s ease';
+            document.body.style.filter = 'brightness(0.05) saturate(0)';
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                // Try to close the window (works for popup-opened pages)
+                window.close();
+                // If we couldn't close (in iframe), navigate up if possible
+                try {
+                    if (window.parent && window.parent !== window) {
+                        // Inside an iframe — best we can do is reload to splash
+                        window.parent.postMessage({ type: 'astrolabe:quit' }, '*');
+                    }
+                } catch(e) {}
+                // Final fallback: history back or reload home
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'about:blank';
+                }
+            }, 1300);
+        }
+
+        // ----- Audio handlers -----
+        function updateAudio(key, valStr) {
+            const v = parseFloat(valStr);
+            GFX[key] = v;
+            const valEl = document.getElementById(`audio-${key === 'musicVolume' ? 'music-vol' : 'sfx-vol'}-val`);
+            if (valEl) valEl.textContent = v.toFixed(2);
+            if (key === 'musicVolume' && Music) Music.setVolume(v);
+            saveSettings();
+        }
+        function toggleAudio(key, btn) {
+            if (key === 'music') {
+                GFX.music = !GFX.music;
+                btn.classList.toggle('on', GFX.music);
+                btn.textContent = GFX.music ? 'ON' : 'OFF';
+                if (GFX.music) Music.start(); else Music.stop();
+                saveSettings();
+            }
+        }
+
+        // =============================================================
+        //  AMBIENT MUSIC SYSTEM (Phase C) — pure Web Audio, no assets
+        // =============================================================
+        // Layered drones (low pad, mid bell-wash, high shimmer) + sparse
+        // procedural bell pings. Tone shifts with current strata level:
+        //   negative levels → darker, more dissonant
+        //   positive levels → brighter, more ethereal
+        // Master gain is controlled by GFX.musicVolume. Uses an AudioContext
+        // lazily created on first user interaction (mobile-autoplay safe).
+
+        const Music = (() => {
+            let ctx = null;
+            let masterGain = null;
+            let nodes = [];
+            let pingTimer = null;
+            let isPlaying = false;
+            let currentLevel = 0;
+
+            function ensureCtx() {
+                if (ctx) return ctx;
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return null;
+                ctx = new AC();
+                masterGain = ctx.createGain();
+                masterGain.gain.value = 0; // fade in
+                masterGain.connect(ctx.destination);
+                return ctx;
+            }
+
+            // Build a single drone voice: osc → filter → gain → master
+            function makeDrone(freq, type, q, gainAmt, lfoRate, lfoDepth) {
+                const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
+                const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq * 6; f.Q.value = q;
+                const g = ctx.createGain(); g.gain.value = gainAmt;
+                // Slow LFO on the filter cutoff for "breathing" timbre
+                const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = lfoRate;
+                const lfoG = ctx.createGain(); lfoG.gain.value = freq * lfoDepth;
+                lfo.connect(lfoG); lfoG.connect(f.frequency);
+                o.connect(f); f.connect(g); g.connect(masterGain);
+                o.start(); lfo.start();
+                return { o, f, g, lfo, lfoG };
+            }
+
+            // Pluck a soft bell-like tone (FM-ish via 2 oscillators)
+            function playBell(freq, dur=4.0, vel=0.18) {
+                if (!ctx) return;
+                const car = ctx.createOscillator(); car.type = 'sine'; car.frequency.value = freq;
+                const mod = ctx.createOscillator(); mod.type = 'sine'; mod.frequency.value = freq * 2.01;
+                const modG = ctx.createGain(); modG.gain.value = freq * 0.6;
+                mod.connect(modG); modG.connect(car.frequency);
+                const g = ctx.createGain();
+                g.gain.setValueAtTime(0, ctx.currentTime);
+                g.gain.linearRampToValueAtTime(vel, ctx.currentTime + 0.04);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+                const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq * 1.5; f.Q.value = 2;
+                car.connect(f); f.connect(g); g.connect(masterGain);
+                car.start(); mod.start();
+                car.stop(ctx.currentTime + dur + 0.1);
+                mod.stop(ctx.currentTime + dur + 0.1);
+            }
+
+            // Schedule sparse bells using a slowly-varying scale based on current level
+            function schedulePings() {
+                if (!isPlaying) return;
+                // Choose scale by level sign: minor / phrygian for negative, lydian for positive
+                const baseHz = 110; // A2
+                const minorPhrygianSemis  = [0, 1, 3, 5, 7, 8, 10, 12];
+                const majorLydianSemis    = [0, 2, 4, 6, 7, 9, 11, 12];
+                const set = currentLevel < 0 ? minorPhrygianSemis : majorLydianSemis;
+                const octave = currentLevel < -50 ? 1 : (currentLevel > 50 ? 3 : 2);
+                const semi = set[Math.floor(Math.random() * set.length)];
+                const freq = baseHz * Math.pow(2, octave + semi / 12);
+                const dur = 4 + Math.random() * 5;
+                const vel = 0.12 + Math.random() * 0.10;
+                playBell(freq, dur, vel);
+                // Schedule next ping (3-9 sec)
+                pingTimer = setTimeout(schedulePings, (3 + Math.random() * 6) * 1000);
+            }
+
+            function start() {
+                ensureCtx();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') ctx.resume();
+                if (isPlaying) return;
+                isPlaying = true;
+
+                // 3 drone layers. Frequencies tuned to A minor / phrygian root.
+                nodes.push(makeDrone(55.0,  'sine',     1.0, 0.55, 0.07, 0.4));  // sub bass
+                nodes.push(makeDrone(110.0, 'triangle', 1.4, 0.30, 0.10, 0.6));  // body
+                nodes.push(makeDrone(220.0, 'sawtooth', 2.2, 0.10, 0.13, 0.8));  // mid pad
+                nodes.push(makeDrone(440.0, 'sine',     1.0, 0.06, 0.18, 0.4));  // high shimmer
+
+                // Apply level-based tone (will be re-applied on level change too)
+                applyLevelTone(currentLevel);
+
+                // Fade in
+                const now = ctx.currentTime;
+                masterGain.gain.cancelScheduledValues(now);
+                masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+                masterGain.gain.linearRampToValueAtTime(GFX.musicVolume, now + 2.5);
+
+                // Start sparse bell pings after a short delay
+                pingTimer = setTimeout(schedulePings, 4000);
+            }
+
+            function stop() {
+                if (!ctx || !isPlaying) return;
+                isPlaying = false;
+                if (pingTimer) { clearTimeout(pingTimer); pingTimer = null; }
+                const now = ctx.currentTime;
+                masterGain.gain.cancelScheduledValues(now);
+                masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+                masterGain.gain.linearRampToValueAtTime(0.0001, now + 1.5);
+                setTimeout(() => {
+                    nodes.forEach(n => {
+                        try { n.o.stop(); } catch(e) {}
+                        try { n.lfo.stop(); } catch(e) {}
+                    });
+                    nodes = [];
+                }, 1700);
+            }
+
+            function setVolume(v) {
+                if (!ctx || !masterGain || !isPlaying) return;
+                const now = ctx.currentTime;
+                masterGain.gain.cancelScheduledValues(now);
+                masterGain.gain.linearRampToValueAtTime(v, now + 0.4);
+            }
+
+            // Adjust filter cutoff + sub-bass volume based on which strata you're at
+            function applyLevelTone(lvl) {
+                currentLevel = lvl || 0;
+                if (!isPlaying || !ctx) return;
+                const now = ctx.currentTime;
+                // Negative levels: lower cutoff, more dissonant
+                // Positive levels: open cutoff, more shimmer
+                const norm = Math.max(-99, Math.min(99, currentLevel));
+                const brightness = (norm + 99) / 198; // 0..1
+                nodes.forEach((n, i) => {
+                    const base = [55, 110, 220, 440][i] || 220;
+                    const cutoff = base * (3 + brightness * 12); // 3x..15x
+                    n.f.frequency.linearRampToValueAtTime(cutoff, now + 1.5);
+                });
+            }
+
+            return {
+                start, stop, setVolume, applyLevelTone,
+                get isPlaying() { return isPlaying; }
+            };
+        })();
+
+        // Hook level changes into music tone shifts
+        const _origUpdateUI_forMusic = updateUI;
+        updateUI = function(...args) {
+            const r = _origUpdateUI_forMusic.apply(this, args);
+            if (Music && Music.isPlaying) Music.applyLevelTone(GAME_STATE.currentLevel);
+            return r;
+        };
+
+        // First user interaction → if music was previously enabled, resume it
+        // (browsers require a gesture to start audio).
+        let _audioResumed = false;
+        function _maybeStartMusicOnGesture() {
+            if (_audioResumed) return;
+            _audioResumed = true;
+            if (GFX.music) {
+                try { Music.start(); } catch(e) { console.warn('Music start failed:', e); }
+            }
+        }
+        ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
+            window.addEventListener(ev, _maybeStartMusicOnGesture, { once: true, passive: true })
+        );
+
+        // Re-apply settings AFTER the composer has been created in init3D
+        // (the early applyAllGfx() above runs before composer exists).
+        const _origInit3D = init3D;
+        init3D = function(...args) {
+            const r = _origInit3D.apply(this, args);
+            // composer / bloomPass exist now
+            applyAllGfx();
+            syncPauseMenuUI();
+            return r;
+        };
+
+        // ESC key — close any open modal in priority order; if none open, toggle Pause menu.
         window.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return;
-            if (document.getElementById('subloc-dossier').classList.contains('open')) closeSubLocDossier();
-            else if (document.getElementById('soul-dossier').classList.contains('open')) closeSoulDossier();
-            else if (TOUR.active) endCinematicTour();
-            else if (!document.getElementById('lore-panel').classList.contains('hidden')) closeLore();
-            else if (document.getElementById('codex-panel').classList.contains('open')) toggleCodex();
-            else if (!document.getElementById('directory-panel').classList.contains('hidden')) closeStrataDirectory();
+            // Don't hijack typing in inputs (unless pause menu is up)
+            const ae = document.activeElement;
+            if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && !isPauseMenuOpen()) return;
+
+            if (isPauseMenuOpen()) { closePauseMenu(); return; }
+            const sub  = document.getElementById('subloc-dossier');
+            const soul = document.getElementById('soul-dossier');
+            const lore = document.getElementById('lore-panel');
+            const codex= document.getElementById('codex-panel');
+            const dir  = document.getElementById('directory-panel');
+            if (sub  && sub.classList.contains('open'))           closeSubLocDossier();
+            else if (soul && soul.classList.contains('open'))      closeSoulDossier();
+            else if (typeof TOUR !== 'undefined' && TOUR.active)   endCinematicTour();
+            else if (lore && !lore.classList.contains('hidden'))   closeLore();
+            else if (codex && codex.classList.contains('open'))    toggleCodex();
+            else if (dir  && !dir.classList.contains('hidden'))    closeStrataDirectory();
+            else openPauseMenu();
         });
+
+
 
         // =============================================================
         //  ITERATION 4 — Seed UI · Share · Strata Search

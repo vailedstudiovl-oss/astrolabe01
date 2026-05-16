@@ -133,6 +133,44 @@ nested sub-location lore, deterministic shareable universes, and quick-jump stra
 - 3 icons including dedicated maskable variant ✅
 - 3D scene continues to render with full bloom + intel ticker — zero regression ✅
 
+### Iteration 10 — Pause Menu + Phase C: Ambient Music
+**Goal:** Give the user full control over graphics intensity (especially bloom) and add atmospheric procedural music — without external audio assets — that adapts to current strata.
+
+**Pause Menu (`#pause-menu-backdrop` modal):**
+- Trigger: ESC key (anywhere, when no other modal is open) • Desktop `[ ⏸ SETTINGS ]` button (top-right of HUD) • Mobile FAB `⚙` icon
+- Sections:
+  - **GRAPHICS** — 4 quick presets (LOW / MEDIUM / HIGH / CINEMATIC) + 5 live sliders (Bloom Strength 0–2.5, Bloom Radius 0–1.5, Bloom Threshold 0–1, Vignette 0–1.5, Scan-lines 0–1) + 4 toggles (Camera Shake / Central Spine / Starfield / Auto-Rotate)
+  - **AUDIO** — Music ON/OFF, Music Volume slider, SFX Volume slider
+  - **ACTIONS** — `[ RESET ]` (back to defaults), `[ RESUME ▸ ]` (close), `[ ⏻ QUIT ASTROLABE ]` (red, with CRT-fade-out + close-window fallback chain)
+- All settings persisted to `localStorage` as `astrolabe_settings_v1`
+- Live application: `applyAllGfx()` pushes values into `bloomPass.strength/radius/threshold`, `holoPass.uniforms.vignette/intensity`, `centralSpine.visible`, `starField.visible`, `controls.autoRotate`
+- ESC key now toggles the pause menu when nothing else is open; closes it from any state
+- Auto-rotate is suspended while pause menu is up and restored on close (only if it was on)
+
+**Phase C — Procedural Ambient Music (pure Web Audio, no assets):**
+- IIFE `Music` module exposing `start()` / `stop()` / `setVolume()` / `applyLevelTone(level)` / `isPlaying`
+- AudioContext created lazily on first user gesture (`pointerdown` / `touchstart` / `keydown`) — fully mobile-autoplay compliant
+- **4 layered drone voices:** sub bass (55 Hz sine), body (110 Hz triangle), mid pad (220 Hz sawtooth), high shimmer (440 Hz sine)
+- Each drone: oscillator → biquad lowpass → gain → master, plus a slow LFO modulating the filter cutoff for breathing timbre
+- **Sparse bell pings** scheduled every 3-9s using FM-ish synthesis (sine carrier + sine modulator at 2.01× freq). Notes drawn from a scale chosen by current strata:
+  - Negative levels → minor/phrygian intervals (darker, more dissonant)
+  - Positive levels → lydian intervals (brighter, ethereal)
+  - Octave shifts with depth (deeper levels = lower octave)
+- **Level-reactive timbre:** filter cutoffs ramp on `updateUI(level)` so descending into negative strata makes the music progressively darker; ascending toward +99 makes it brighter
+- Smooth 2.5s fade-in / 1.5s fade-out
+- Master gain bound to `GFX.musicVolume` slider; music defaults OFF (opt-in)
+
+**Quit flow:**
+- Confirmation prompt → stop music → 1.2s CRT fade-out (brightness 0.05 + saturate 0 + opacity 0) → `window.close()` → fallback to `postMessage` to parent (Expo WebView) → fallback to `history.back()` → final fallback to `about:blank`
+
+**Verified:**
+- ✅ Pause menu opens via button, FAB, ESC key
+- ✅ Bloom slider live-updates `bloomPass.strength` (1.1 → 0.3 → 1.6 across cinematic preset)
+- ✅ Music starts (`Music.isPlaying === true`) and plays drones + sparse bells
+- ✅ Music tone shifts when navigating strata levels
+- ✅ Settings persist across reloads via localStorage
+- ✅ Mobile viewport (390×844) renders pause menu cleanly
+
 ### Iteration 9 — Phase B: 3D Holographic POI Constructs
 **Goal:** Replace flat POI dots with rich procedural 3D models that fade in when zoomed-in, giving each strata a distinct visual identity (planet / floating city / relic / horror / etc.).
 

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "chunks": [
+    {
+      "name": "astrolabe.css",
+      "size": 73480,
+      "hash": "8d5bb0d76f3a"
+    },
+    {
+      "name": "astrolabe-body.html",
+      "size": 53306,
+      "hash": "afa837de26b4"
+    },
+    {
+      "name": "astrolabe-engine.js",
+      "size": 306339,
+      "hash": "758eb1b8f789"
+    }
+  ]
+}

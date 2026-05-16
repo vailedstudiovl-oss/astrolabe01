@@ -46,7 +46,20 @@ async def root():
 
 @api_router.get("/astrolabe")
 async def astrolabe_terminal():
-    """Serves the Dimensionlock: Astrolabe Terminal HTML as-is."""
+    """Serves the lightweight Astrolabe INSTALLER LAUNCHER.
+
+    The launcher (~12 KB) shows a cinematic install screen, downloads the
+    heavy game chunks (CSS, body HTML, engine.js) from /api/static/chunks/
+    with progress indicators, caches them in IndexedDB for instant
+    subsequent boots, then boots the game.
+    """
+    html_path = ROOT_DIR / "static" / "launcher.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
+@api_router.get("/astrolabe-legacy")
+async def astrolabe_legacy():
+    """Serves the original monolithic Astrolabe HTML (fallback / debugging)."""
     html_path = ROOT_DIR / "static" / "astrolabe.html"
     return FileResponse(html_path, media_type="text/html")
 

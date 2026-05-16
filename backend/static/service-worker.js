@@ -6,7 +6,7 @@
 //   - stale-while-revalidate for cross-origin CDN assets (Three.js, Tailwind, Google Fonts)
 //     so the app launches offline once it has been opened once.
 
-const VERSION       = 'v2-2025-06';
+const VERSION       = 'v3-2025-06-launcher';
 const SHELL_CACHE   = `astrolabe-shell-${VERSION}`;
 const RUNTIME_CACHE = `astrolabe-runtime-${VERSION}`;
 const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;
@@ -14,6 +14,7 @@ const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;
 const SHELL_ASSETS = [
   '/api/astrolabe',
   '/api/static/manifest.json',
+  '/api/static/chunks/manifest.json',
   '/api/static/holo_projector.jpg',
   '/api/static/reality_red.gif',
   '/api/static/reality_violet.gif',

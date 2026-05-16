@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dimension Lock — Astrolabe Installer</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/api/static/manifest.json">
+    <meta name="theme-color" content="#00ffcc">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Astrolabe">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="/api/static/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/api/static/icon-apple.png">
+
+    <!-- Register service worker (silent fail if unsupported). -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/api/service-worker.js', { scope: '/api/' })
+            .then((reg) => {
+              const triggerUpdate = (w) => {
+                if (!w) return;
+                w.addEventListener('statechange', () => {
+                  if (w.state === 'installed' && navigator.serviceWorker.controller) {
+                    w.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              };
+              if (reg.waiting) triggerUpdate(reg.waiting);
+              reg.addEventListener('updatefound', () => triggerUpdate(reg.installing));
+              let reloaded = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (reloaded) return; reloaded = true;
+                setTimeout(() => window.location.reload(), 50);
+              });
+            }).catch(() => {});
+        });
+      }
+    </script>
+
+    <!-- Three.js libs are loaded EARLY (small, cached by CDN) so they're warm when engine boots -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0;
+            background: #050707;
+            color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* === STARFIELD BACKGROUND === */
+        #stars {
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(2px 2px at 20% 30%, rgba(0,255,204,0.8), transparent),
+                radial-gradient(1px 1px at 60% 70%, rgba(0,200,255,0.6), transparent),
+                radial-gradient(1.5px 1.5px at 85% 20%, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 30% 80%, rgba(0,255,204,0.4), transparent),
+                radial-gradient(2px 2px at 75% 50%, rgba(180,120,255,0.5), transparent),
+                radial-gradient(1px 1px at 10% 60%, rgba(0,255,204,0.6), transparent),
+                radial-gradient(1px 1px at 90% 90%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1.5px 1.5px at 45% 15%, rgba(0,200,255,0.5), transparent),
+                radial-gradient(1px 1px at 50% 95%, rgba(0,255,204,0.5), transparent),
+                radial-gradient(2px 2px at 5% 5%, rgba(255,180,80,0.4), transparent);
+            background-size: 100% 100%;
+            animation: drift 60s linear infinite;
+            opacity: 0.6;
+        }
+        @keyframes drift {
+            0%   { transform: translateY(0) scale(1); }
+            50%  { transform: translateY(-20px) scale(1.02); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        /* === MAIN INSTALLER PANEL === */
+        #installer {
+            position: fixed; inset: 0; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .panel {
+            width: 100%;
+            max-width: 640px;
+            background: rgba(5, 10, 12, 0.92);
+            border: 1px solid #00ffcc;
+            box-shadow:
+                0 0 40px rgba(0, 255, 204, 0.25),
+                inset 0 0 60px rgba(0, 255, 204, 0.04);
+            padding: 24px 22px;
+            position: relative;
+            backdrop-filter: blur(4px);
+        }
+        /* corner brackets for cinematic feel */
+        .panel::before, .panel::after,
+        .panel > .corner-tl, .panel > .corner-tr {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            border: 2px solid #00ffcc;
+        }
+        .panel::before  { top: -2px;    left: -2px;    border-right: none; border-bottom: none; }
+        .panel::after   { bottom: -2px; right: -2px;   border-left: none;  border-top: none; }
+        .panel > .corner-tr { top: -2px; right: -2px;  border-left: none;  border-bottom: none; }
+        .panel > .corner-tl { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+
+        .title {
+            text-align: center;
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: rgba(0, 255, 204, 0.6);
+            margin-bottom: 4px;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+        }
+        .heading {
+            text-align: center;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: #d4fff5;
+            margin: 0 0 4px;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.6);
+        }
+        .subheading {
+            text-align: center;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(0, 255, 204, 0.45);
+            margin-bottom: 22px;
+        }
+
+        /* === DIVIDER === */
+        .divider {
+            height: 1px; width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,204,0.4), transparent);
+            margin: 12px 0;
+        }
+
+        /* === PROGRESS BAR === */
+        .progress-wrap {
+            margin-top: 6px;
+            position: relative;
+            height: 22px;
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            background: rgba(0, 30, 35, 0.5);
+            overflow: hidden;
+        }
+        .progress-bar {
+            position: absolute; inset: 0;
+            width: 0%;
+            background: linear-gradient(90deg,
+                rgba(0, 200, 180, 0.5),
+                rgba(0, 255, 204, 0.9));
+            box-shadow: 0 0 18px rgba(0, 255, 204, 0.7);
+            transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .progress-bar::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(45deg,
+                transparent 0 6px,
+                rgba(0, 0, 0, 0.18) 6px 12px);
+            animation: stripe 1.2s linear infinite;
+        }
+        @keyframes stripe { from { transform: translateX(0); } to { transform: translateX(24px); } }
+        .progress-text {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; letter-spacing: 2px;
+            color: #d4fff5;
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+            mix-blend-mode: difference;
+        }
+
+        /* === STATUS LINE === */
+        .status-row {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 11px;
+            color: rgba(0, 255, 204, 0.7);
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+        .status-row .blip {
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: #00ffcc;
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 8px #00ffcc;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
+
+        /* === LOG TERMINAL === */
+        .log {
+            margin-top: 16px;
+            height: 140px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            background: rgba(0, 10, 12, 0.6);
+            padding: 8px 10px;
+            font-size: 10.5px;
+            line-height: 1.5;
+            color: rgba(0, 255, 204, 0.75);
+            font-family: 'Share Tech Mono', monospace;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,255,204,0.4) transparent;
+        }
+        .log::-webkit-scrollbar { width: 6px; }
+        .log::-webkit-scrollbar-thumb { background: rgba(0,255,204,0.3); }
+        .log .ok      { color: #00ffcc; }
+        .log .warn    { color: #ffcc00; }
+        .log .err     { color: #ff5566; }
+        .log .dim     { color: rgba(0,255,204,0.4); }
+        .log .info    { color: #80e8ff; }
+
+        /* === LAUNCH BUTTON === */
+        #launch-btn {
+            margin-top: 16px;
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 50, 45, 0.5);
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+        }
+        #launch-btn:hover {
+            background: rgba(0, 100, 90, 0.5);
+            box-shadow: 0 0 24px rgba(0, 255, 204, 0.5);
+        }
+        #launch-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+        #launch-btn.ready {
+            animation: ready-glow 1.4s infinite alternate;
+        }
+        @keyframes ready-glow {
+            from { box-shadow: 0 0 12px rgba(0,255,204,0.4); }
+            to   { box-shadow: 0 0 32px rgba(0,255,204,0.9); }
+        }
+
+        /* === META INFO === */
+        .meta {
+            display: flex; justify-content: space-between;
+            font-size: 9.5px; letter-spacing: 1px;
+            color: rgba(0, 255, 204, 0.35);
+            margin-top: 10px;
+        }
+
+        /* fade out installer when game ready */
+        #installer.hide { opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
+
+        /* === SCANLINE OVERLAY === */
+        #scanlines {
+            position: fixed; inset: 0; z-index: 5;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                rgba(0, 255, 204, 0.025) 0px,
+                rgba(0, 255, 204, 0.025) 1px,
+                transparent 1px,
+                transparent 3px);
+            mix-blend-mode: screen;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 480px) {
+            .heading   { font-size: 17px; letter-spacing: 1px; }
+            .title     { font-size: 9px;  letter-spacing: 2px; }
+            .panel     { padding: 18px 14px; }
+            .log       { height: 110px; font-size: 10px; }
+            #launch-btn{ font-size: 12px; letter-spacing: 3px; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="stars"></div>
+    <div id="scanlines"></div>
+
+    <div id="installer">
+        <div class="panel">
+            <div class="corner-tl"></div>
+            <div class="corner-tr"></div>
+
+            <div class="title">▸ DIMENSION LOCK :: SECURE BOOT PROTOCOL ◂</div>
+            <h1 class="heading">ASTROLABE TERMINAL</h1>
+            <div class="subheading">remote installer · build 1.0 · uplink stable</div>
+
+            <div class="divider"></div>
+
+            <div class="progress-wrap">
+                <div id="progress-bar" class="progress-bar"></div>
+                <div id="progress-text" class="progress-text">0%</div>
+            </div>
+
+            <div class="status-row">
+                <span><span class="blip"></span><span id="status-text">Awaiting uplink…</span></span>
+                <span id="byte-text">0 KB</span>
+            </div>
+
+            <div id="log" class="log"></div>
+
+            <button id="launch-btn" disabled>● INITIALIZING ●</button>
+
+            <div class="meta">
+                <span id="cache-state">cache: cold</span>
+                <span>wanderer ▸ <span id="wid-display">—</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAUNCHER LOGIC -->
+    <script>
+    (function () {
+        'use strict';
+
+        const $ = (id) => document.getElementById(id);
+        const logEl  = $('log');
+        const progressBar  = $('progress-bar');
+        const progressText = $('progress-text');
+        const statusText   = $('status-text');
+        const byteText     = $('byte-text');
+        const launchBtn    = $('launch-btn');
+        const cacheState   = $('cache-state');
+        const widDisplay   = $('wid-display');
+
+        const MANIFEST_URL = '/api/static/chunks/manifest.json';
+        const CHUNKS_BASE  = '/api/static/chunks/';
+        const IDB_NAME     = 'astrolabe-installer-v1';
+        const IDB_STORE    = 'chunks';
+
+        // Wanderer ID display (cosmetic on launcher)
+        try {
+            let wid = localStorage.getItem('astrolabe_wanderer_id');
+            if (!wid) {
+                wid = '';
+                const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                for (let i = 0; i < 6; i++) wid += c[Math.floor(Math.random() * c.length)];
+                localStorage.setItem('astrolabe_wanderer_id', wid);
+            }
+            widDisplay.textContent = wid;
+        } catch (e) { widDisplay.textContent = '——————'; }
+
+        // ===== LOG HELPERS =====
+        function log(msg, cls) {
+            const line = document.createElement('div');
+            if (cls) line.className = cls;
+            const t = new Date().toISOString().substr(11, 8);
+            line.innerHTML = '<span class="dim">[' + t + ']</span> ' + msg;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        function setProgress(pct) {
+            const p = Math.max(0, Math.min(100, pct));
+            progressBar.style.width = p + '%';
+            progressText.textContent = Math.round(p) + '%';
+        }
+        function setStatus(txt) { statusText.textContent = txt; }
+        function setBytes(b)    { byteText.textContent = (b/1024).toFixed(1) + ' KB'; }
+
+        // ===== IndexedDB CACHE =====
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror   = () => reject(req.error);
+            });
+        }
+        async function dbGet(key) {
+            try {
+                const db = await openDB();
+                return new Promise((resolve) => {
+                    const tx = db.transaction(IDB_STORE, 'readonly');
+                    const r  = tx.objectStore(IDB_STORE).get(key);
+                    r.onsuccess = () => resolve(r.result || null);
+                    r.onerror   = () => resolve(null);
+                });
+            } catch (e) { return null; }
+        }
+        async function dbPut(key, val) {
+            try {
+                const db = await openDB();
+                return new Promise((resolve) => {
+                    const tx = db.transaction(IDB_STORE, 'readwrite');
+                    tx.objectStore(IDB_STORE).put(val, key);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror    = () => resolve(false);
+                });
+            } catch (e) { return false; }
+        }
+
+        // ===== FETCH CHUNK (cached) =====
+        async function fetchChunk(entry, totalBytes, progressOffset) {
+            const cacheKey = entry.name + ':' + entry.hash;
+            const cached = await dbGet(cacheKey);
+            if (cached && typeof cached === 'string') {
+                log('▸ <span class="ok">cache hit</span> · ' + entry.name + ' (' + (entry.size/1024).toFixed(1) + ' KB)');
+                return cached;
+            }
+
+            log('▸ downloading ' + entry.name + ' …');
+            const url = CHUNKS_BASE + entry.name + '?v=' + entry.hash;
+            const resp = await fetch(url, { cache: 'no-cache' });
+            if (!resp.ok) throw new Error('Failed to fetch ' + entry.name + ' (HTTP ' + resp.status + ')');
+
+            const reader = resp.body && resp.body.getReader ? resp.body.getReader() : null;
+            if (!reader) {
+                // fallback: no stream support
+                const txt = await resp.text();
+                await dbPut(cacheKey, txt);
+                return txt;
+            }
+            const chunks = []; let received = 0;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.length;
+                const pctOfThis = entry.size > 0 ? (received / entry.size) : 1;
+                const pct = progressOffset + (pctOfThis * (entry.size / totalBytes) * 100);
+                setProgress(pct);
+                setBytes((progressOffset / 100 * totalBytes) + received);
+            }
+            const blob = new Blob(chunks);
+            const txt  = await blob.text();
+            await dbPut(cacheKey, txt);
+            log('  └ <span class="ok">ok</span> · cached for next launch');
+            return txt;
+        }
+
+        // ===== HANDLERS FOR LATE-LOAD =====
+        // The engine.js was written assuming it's inline in the original HTML and runs BEFORE the 'load' event.
+        // Because we inject it later, we have to manually fire pending listeners + window.onload.
+        function patchLateLoadEvents() {
+            const pendingLoad = [];
+            const pendingDCL  = [];
+            const _origAdd = window.addEventListener.bind(window);
+            window.addEventListener = function (type, listener, opts) {
+                if (type === 'load' && document.readyState === 'complete') {
+                    pendingLoad.push(listener);
+                    return;
+                }
+                if (type === 'DOMContentLoaded' && document.readyState !== 'loading') {
+                    pendingDCL.push(listener);
+                    return;
+                }
+                return _origAdd(type, listener, opts);
+            };
+            // expose flush function used after engine is injected
+            window.__flushLateLoadEvents = function () {
+                const evt1 = new Event('DOMContentLoaded');
+                const evt2 = new Event('load');
+                pendingDCL.forEach((fn)  => { try { fn(evt1); } catch (e) { console.error('[late DCL]', e); } });
+                pendingLoad.forEach((fn) => { try { fn(evt2); } catch (e) { console.error('[late load]', e); } });
+                if (typeof window.onload === 'function') {
+                    try { window.onload(evt2); } catch (e) { console.error('[late onload]', e); }
+                }
+            };
+        }
+
+        // ===== BOOT THE GAME =====
+        async function bootGame(css, bodyHTML, engineJS) {
+            setStatus('Materializing terminal…');
+            log('▸ <span class="info">injecting cosmos…</span>');
+
+            // 1) Inject CSS
+            const styleEl = document.createElement('style');
+            styleEl.id = 'astrolabe-styles';
+            styleEl.textContent = css;
+            document.head.appendChild(styleEl);
+
+            // 2) Replace body with game DOM (but keep installer overlay for fadeout)
+            //    We move the installer node OUT first so we can keep it visible while we
+            //    swap the rest of body, then drop it after a moment.
+            const installer = $('installer');
+            installer.parentNode.removeChild(installer);
+
+            // Wipe everything else from body
+            document.body.innerHTML = bodyHTML;
+            document.body.className = 'text-sm md:text-base';
+
+            // Re-attach installer on top, will fade out
+            installer.style.position = 'fixed';
+            installer.style.zIndex   = '99999';
+            document.body.appendChild(installer);
+
+            // 3) Patch event hooks for late load
+            patchLateLoadEvents();
+
+            // 4) Inject + execute engine.js
+            //    We use a function constructor so the code runs in global scope w/ proper line numbers in errors.
+            await new Promise((resolve, reject) => {
+                try {
+                    const blob = new Blob([engineJS], { type: 'application/javascript' });
+                    const url  = URL.createObjectURL(blob);
+                    const s    = document.createElement('script');
+                    s.src = url;
+                    s.onload  = () => { URL.revokeObjectURL(url); resolve(); };
+                    s.onerror = (e) => { URL.revokeObjectURL(url); reject(new Error('engine script failed')); };
+                    document.head.appendChild(s);
+                } catch (e) { reject(e); }
+            });
+
+            // 5) Flush any late-registered load handlers
+            if (typeof window.__flushLateLoadEvents === 'function') {
+                window.__flushLateLoadEvents();
+            }
+
+            // 6) Fade installer out
+            setProgress(100);
+            setStatus('Online · entering reality stream');
+            log('▸ <span class="ok">launch complete</span>');
+            setTimeout(() => {
+                installer.classList.add('hide');
+                setTimeout(() => installer.remove(), 800);
+            }, 600);
+        }
+
+        // ===== AUTO-INSTALL FLOW =====
+        let manifest = null;
+        let stagedChunks = null;
+        let allFromCache = true;
+
+        async function preflight() {
+            setStatus('Pinging archive…');
+            log('▸ requesting manifest…');
+            const resp = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+            if (!resp.ok) throw new Error('manifest HTTP ' + resp.status);
+            manifest = await resp.json();
+            log('  └ manifest v' + manifest.version + ' · ' + manifest.chunks.length + ' chunks');
+            for (const c of manifest.chunks) {
+                log('    · <span class="dim">' + c.name + '</span> ' + (c.size/1024).toFixed(1) + ' KB');
+            }
+
+            // Check if all chunks are already cached
+            for (const c of manifest.chunks) {
+                const cached = await dbGet(c.name + ':' + c.hash);
+                if (!cached) { allFromCache = false; break; }
+            }
+            if (allFromCache) {
+                cacheState.textContent = 'cache: warm';
+                log('▸ <span class="ok">all chunks cached locally</span> · ready for instant launch');
+            } else {
+                cacheState.textContent = 'cache: cold';
+                log('▸ <span class="warn">first-time install</span> · will download ~' +
+                    (manifest.chunks.reduce((s,c)=>s+c.size,0)/1024).toFixed(0) + ' KB');
+            }
+        }
+
+        async function downloadAll() {
+            const totalBytes = manifest.chunks.reduce((s,c)=>s+c.size,0);
+            stagedChunks = {};
+            let bytesSoFar = 0;
+            for (const c of manifest.chunks) {
+                setStatus('Downloading ' + c.name + '…');
+                const offsetPct = (bytesSoFar / totalBytes) * 100;
+                const txt = await fetchChunk(c, totalBytes, offsetPct);
+                stagedChunks[c.name] = txt;
+                bytesSoFar += c.size;
+                setProgress((bytesSoFar / totalBytes) * 100);
+                setBytes(bytesSoFar);
+            }
+            setStatus('Verification complete');
+            log('▸ <span class="ok">all chunks verified</span>');
+        }
+
+        function readyToLaunch() {
+            launchBtn.disabled = false;
+            launchBtn.classList.add('ready');
+            launchBtn.textContent = '▸  LAUNCH ASTROLABE  ◂';
+        }
+
+        async function run() {
+            try {
+                await preflight();
+                await downloadAll();
+                readyToLaunch();
+                // For warm cache: auto-launch after a brief moment (1.2s)
+                if (allFromCache) {
+                    setStatus('Cache verified · auto-launching');
+                    setTimeout(() => launchBtn.click(), 1200);
+                }
+            } catch (err) {
+                log('▸ <span class="err">FATAL: ' + (err.message || err) + '</span>');
+                setStatus('Install failed · check uplink');
+                launchBtn.textContent = '↻ RETRY';
+                launchBtn.disabled = false;
+                launchBtn.onclick = () => location.reload();
+            }
+        }
+
+        launchBtn.addEventListener('click', async () => {
+            if (launchBtn.disabled) return;
+            launchBtn.disabled = true;
+            launchBtn.classList.remove('ready');
+            launchBtn.textContent = '◌  LAUNCHING…  ◌';
+            try {
+                await bootGame(
+                    stagedChunks['astrolabe.css'],
+                    stagedChunks['astrolabe-body.html'],
+                    stagedChunks['astrolabe-engine.js']
+                );
+            } catch (e) {
+                log('▸ <span class="err">launch failed: ' + (e.message || e) + '</span>');
+                launchBtn.disabled = false;
+                launchBtn.textContent = '↻ RETRY LAUNCH';
+            }
+        });
+
+        // kick off install
+        log('▸ <span class="info">installer online</span>');
+        run();
+    })();
+    </script>
+</body>
+</html>

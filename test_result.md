@@ -109,6 +109,157 @@ user_problem_statement: |
   + community-saved universes backed by MongoDB.
 
 backend:
+  - task: "Phase E — Lore Ambassador auth + Lore Characters + Lore Factions + Admin Notifications"
+    implemented: true
+    working: false
+    file: "backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            CRITICAL ROUTE-ORDER BUG — 6 Phase E GET endpoints are unreachable.
+
+            Root cause: the Phase D catch-all route
+              @api_router.get("/lore/{target_type}/{target_id}",
+                              response_model=List[LoreContribution])
+              async def list_lore_for_target(target_type: str, target_id: str, ...)
+            is registered BEFORE all of the Phase E routes. FastAPI matches in
+            declaration order, so every two-segment GET starting with /lore/
+            falls into that handler. Its first line then calls
+              _validate_target(target_type)
+            which raises HTTP 400 because "ambassadors", "characters", "factions",
+            and "admin" are not in TARGET_TYPES = {reality, poi, sub_location,
+            faction, reaper}. Confirmed in backend.out.log:
+              GET /api/lore/characters/{uuid}          → 400
+              GET /api/lore/factions/{uuid}            → 400
+              GET /api/lore/ambassadors/me             → 400
+              GET /api/lore/admin/notifications        → 400
+
+            Endpoints currently BROKEN (all return 400 instead of intended status):
+              • GET   /api/lore/ambassadors/me                          (should be 200/401)
+              • GET   /api/lore/characters/{id}                         (should be 200/404)
+              • GET   /api/lore/factions/{id}                           (should be 200/404)
+              • GET   /api/lore/admin/notifications                     (should be 200/403)
+
+            (PATCH / DELETE / POST endpoints on the same paths are unaffected
+            because Phase D's catch-all only registers a GET.)
+
+            Suggested fix (pick one):
+              1. Move the Phase E route declarations ABOVE the
+                 /lore/{target_type}/{target_id} catch-all in server.py.
+              2. Constrain the catch-all path-param to the allowed set, e.g.
+                   target_type: Literal["reality","poi","sub_location","faction","reaper"]
+                 or use a regex on the path parameter so it never swallows
+                 "ambassadors" / "characters" / "factions" / "admin".
+              3. Rename the catch-all to a non-overlapping prefix such as
+                 /api/lore/for/{target_type}/{target_id}.
+
+            BACKEND TEST RESULTS — 72 PASSED / 11 FAILED.
+            All 11 failures trace back to the same routing issue. The PHASE E
+            endpoints that DO work correctly:
+              • POST   /api/lore/ambassadors/register   (200 / 409 / 422)
+              • POST   /api/lore/ambassadors/login      (200 / 401)
+              • PATCH  /api/lore/ambassadors/me         (200 / 403 / 400)
+              • GET    /api/lore/ambassadors/me/contributions (200; 3-segment path
+                                                          avoids the catch-all)
+              • POST   /api/lore/characters             (200 / 401 / 422)
+              • GET    /api/lore/characters (list)      (200; single segment)
+              • PATCH  /api/lore/characters/{id}        (200 / 403)
+              • DELETE /api/lore/characters/{id}        (200 / 403)
+              • POST   /api/lore/factions               (200 / 401 / 422)
+              • GET    /api/lore/factions (list)        (200)
+              • PATCH  /api/lore/factions/{id}          (200 / 403)
+              • DELETE /api/lore/factions/{id}          (200 / 403)
+              • POST   /api/lore/entries/{id}/vote      (200 / 400 / 404)
+              • POST   /api/lore/entries/{id}/flag      (200 / 404)
+              • POST   /api/lore/admin/notifications/read-all (200 / 403; reachable
+                                                          because POST doesn't conflict)
+              • POST   /api/lore/admin/notifications/{id}/read (cannot fully verify
+                                                          because GET listing is broken)
+
+            Validation coverage VERIFIED:
+              • password<8 → 422,  bad email → 422
+              • duplicate email → 409,  wrong password → 401
+              • PATCH /me new_password w/o or w/ wrong current_password → 403
+              • Old password rejected after change → 401
+              • Character/faction description <10 → 422, >4000 → 422, missing name → 422
+              • Faction color: "aa44ff" → 422, "#xyz" → 422, "#aa44ff" → 200
+              • Faction sigil truncated to 4 chars
+              • Filter ?q=, ?tag=, ?sort=top all work
+              • Vote idempotent toggle (1 → 0 → 1) verified, bad WID → 400
+              • 3 distinct WID flags → hidden=true, include_hidden=true returns it
+              • wanderer_id format: 8 chars from [A-HJ-NP-Z2-9] confirmed
+
+            Admin tests partially run: admin ambassador registered successfully
+            (saved to /app/memory/test_credentials.md), POST read-all returns 403
+            for non-admin and 200 for admin. The notification *creation* path
+            (when ambassadors create/edit/delete entries) is firing — backend
+            POST logs show 200s. But the GET listing endpoint to verify the
+            payload structure is blocked by the routing bug, so we couldn't
+            confirm the snapshot/author_email/read fields end-to-end.
+
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New collections: lore_ambassadors, lore_entries (characters + factions),
+            lore_admin_notifications. Endpoints:
+
+            AUTH (JWT, 30-day TTL, HS256, secret in LORE_JWT_SECRET env var):
+              POST   /api/lore/ambassadors/register  {email, password (>=8), display_name?}
+                                                     → {token, ambassador}
+                                                     409 if email exists
+              POST   /api/lore/ambassadors/login     {email, password}
+                                                     → {token, ambassador}
+                                                     401 on bad creds
+              GET    /api/lore/ambassadors/me        (Bearer)  → AmbassadorPublic
+              PATCH  /api/lore/ambassadors/me        {display_name?, new_password?, current_password?}
+              GET    /api/lore/ambassadors/me/contributions
+                     → {characters: [...], factions: [...], lore_snippets: [...]}
+
+            CHARACTERS (auto-publish, admin gets notified via DB log):
+              POST   /api/lore/characters            (Bearer) CharacterCreate
+              GET    /api/lore/characters?sort=&limit=&q=&tag=&include_hidden=
+              GET    /api/lore/characters/{id}
+              PATCH  /api/lore/characters/{id}       (Bearer; author OR admin only)
+              DELETE /api/lore/characters/{id}       (Bearer; author OR admin only)
+
+            FACTIONS (same shape, sigil/color/territory instead of role/strata):
+              POST   /api/lore/factions              (Bearer) FactionCreate
+              GET    /api/lore/factions
+              GET    /api/lore/factions/{id}
+              PATCH  /api/lore/factions/{id}         (Bearer; author OR admin only)
+              DELETE /api/lore/factions/{id}         (Bearer; author OR admin only)
+
+            VOTE / FLAG on any entry (no auth, just WID):
+              POST   /api/lore/entries/{id}/vote     {wanderer_id}
+              POST   /api/lore/entries/{id}/flag     {wanderer_id}  (hides at 3 flags)
+
+            ADMIN (must be logged in as dimensionlockdeath@gmail.com per
+            LORE_ADMIN_EMAIL env var):
+              GET    /api/lore/admin/notifications?only_unread=&limit=
+                     → {notifications: [...], unread_count, total_count}
+              POST   /api/lore/admin/notifications/{id}/read
+              POST   /api/lore/admin/notifications/read-all
+
+            VALIDATION:
+              • password 8–128 chars
+              • email must be valid (Pydantic EmailStr)
+              • character/faction name 1–80 chars
+              • description 10–4000 chars
+              • color must match ^#[0-9a-fA-F]{6}$ if provided
+              • tags max 12 items, each max 32 chars (lowercased)
+
+            Each create/edit/delete writes an AdminNotification row with
+            kind, entry_kind, entry snapshot (for rollback), author info,
+            and human-readable summary. The frontend admin dashboard polls
+            /api/lore/admin/notifications periodically.
+
+            Backend restarted clean (no syntax errors). Awaiting automated
+            verification of the full happy-path + 401/403/409/422 edge cases.
+
   - task: "Phase D — Community Lore endpoints (CRUD, vote, flag)"
     implemented: true
     working: true
@@ -589,13 +740,49 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Phase D — Community Lore endpoints (CRUD, vote, flag)"
-    - "Phase D — Community Saves endpoints (CRUD, vote, flag, load)"
+    - "Phase E — Lore Ambassador auth + Lore Characters + Lore Factions + Admin Notifications"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "testing"
+    message: |
+      [2026-05-16 — Phase E backend testing]
+      Ran /app/backend_test.py against EXPO_PUBLIC_BACKEND_URL.
+      RESULTS: 72 PASSED · 11 FAILED — all 11 failures share one root cause.
+
+      🚨 CRITICAL ROUTE-ORDER BUG (blocker for Phase E):
+      The Phase D handler
+        GET /api/lore/{target_type}/{target_id}
+      is declared BEFORE the Phase E handlers, so FastAPI matches it first
+      for any two-segment GET starting with /lore/. It then 400's because
+      "ambassadors" / "characters" / "factions" / "admin" are not in
+      TARGET_TYPES. Endpoints affected:
+        • GET /api/lore/ambassadors/me
+        • GET /api/lore/characters/{id}
+        • GET /api/lore/factions/{id}
+        • GET /api/lore/admin/notifications
+
+      FIX (one of):
+        a) Move every Phase E @api_router.get(...) declaration ABOVE the
+           list_lore_for_target handler in /app/backend/server.py
+        b) Add a path-param constraint to the Phase D route, e.g.
+             target_type: Literal["reality","poi","sub_location","faction","reaper"]
+           OR use the FastAPI path-regex/Path(..., regex=...) trick so the
+           catch-all stops swallowing "ambassadors"/"characters"/"factions"/"admin"
+        c) Rename catch-all path prefix (e.g. /api/lore/for/{target_type}/{target_id})
+
+      Option (b) is cleanest and lowest-risk. After the fix please re-run
+      `python /app/backend_test.py` — expect a clean 83/83 pass.
+
+      EVERYTHING ELSE VERIFIED (POST/PATCH/DELETE methods unaffected, plus all
+      validation rules, vote toggle, 3-flag-hide, sigil truncation, color regex,
+      contributions endpoint, etc.). Admin ambassador account was created during
+      testing; credentials saved to /app/memory/test_credentials.md:
+        email:    dimensionlockdeath@gmail.com
+        password: AdminSt0rmRiderXyz#2026
+
   - agent: "main"
     message: |
       Please test the Phase D backend endpoints listed under `backend.tasks`. Focus areas:

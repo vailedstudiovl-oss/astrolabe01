@@ -51,6 +51,7 @@ print("[3/6] Copying main menu + launcher + breach defense + chunks + assets …
 shutil.copy(STATIC_DIR / "main_menu.html",       DIST_DIR / "api" / "astrolabe.html")
 shutil.copy(STATIC_DIR / "launcher.html",        DIST_DIR / "api" / "astrolabe-game.html")
 shutil.copy(STATIC_DIR / "breach_defense.html",  DIST_DIR / "api" / "breach-defense.html")
+shutil.copy(STATIC_DIR / "lore.html",            DIST_DIR / "api" / "lore.html")
 shutil.copy(STATIC_DIR / "service-worker.js",    DIST_DIR / "api" / "service-worker.js")
 
 # Static assets
@@ -117,10 +118,12 @@ print("[4/6] Writing routing helpers …")
     "/api/astrolabe         /api/astrolabe.html         200\n"
     "/api/astrolabe-game    /api/astrolabe-game.html    200\n"
     "/api/breach-defense    /api/breach-defense.html    200\n"
+    "/api/lore              /api/lore.html              200\n"
     # Trailing-slash variants
     "/api/astrolabe/        /api/astrolabe.html         200\n"
     "/api/astrolabe-game/   /api/astrolabe-game.html    200\n"
-    "/api/breach-defense/   /api/breach-defense.html    200\n",
+    "/api/breach-defense/   /api/breach-defense.html    200\n"
+    "/api/lore/             /api/lore.html              200\n",
     encoding="utf-8",
 )
 
@@ -161,6 +164,11 @@ print("[4/6] Writing routing helpers …")
   to   = "/api/breach-defense.html"
   status = 200
 
+[[redirects]]
+  from = "/api/lore"
+  to   = "/api/lore.html"
+  status = 200
+
 [[headers]]
   for = "/api/service-worker.js"
   [headers.values]
@@ -187,9 +195,11 @@ print("[4/6] Writing routing helpers …")
         {"source": "/api/astrolabe",        "destination": "/api/astrolabe.html"},
         {"source": "/api/astrolabe-game",   "destination": "/api/astrolabe-game.html"},
         {"source": "/api/breach-defense",   "destination": "/api/breach-defense.html"},
+        {"source": "/api/lore",             "destination": "/api/lore.html"},
         {"source": "/api/astrolabe/",       "destination": "/api/astrolabe.html"},
         {"source": "/api/astrolabe-game/",  "destination": "/api/astrolabe-game.html"},
         {"source": "/api/breach-defense/",  "destination": "/api/breach-defense.html"},
+        {"source": "/api/lore/",            "destination": "/api/lore.html"},
     ],
     "headers": [
         {

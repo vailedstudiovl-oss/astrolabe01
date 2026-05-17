@@ -49,6 +49,7 @@ DATA_DIR = BUNDLE_DIR / "data"
 shutil.copy(STATIC_DIR / "main_menu.html",       DATA_DIR / "api" / "astrolabe.html")
 shutil.copy(STATIC_DIR / "launcher.html",        DATA_DIR / "api" / "astrolabe-game.html")
 shutil.copy(STATIC_DIR / "breach_defense.html",  DATA_DIR / "api" / "breach-defense.html")
+shutil.copy(STATIC_DIR / "lore.html",            DATA_DIR / "api" / "lore.html")
 shutil.copy(STATIC_DIR / "service-worker.js",    DATA_DIR / "api" / "service-worker.js")
 
 ASSETS = [
@@ -119,6 +120,8 @@ def rewrite_for_offline(html_path):
         ("'/api/astrolabe-game'",  "'./astrolabe-game.html'"),
         ('"/api/breach-defense"',  '"./breach-defense.html"'),
         ("'/api/breach-defense'",  "'./breach-defense.html'"),
+        ('"/api/lore"',            '"./lore.html"'),
+        ("'/api/lore'",            "'./lore.html'"),
         ('"/api/astrolabe"',       '"./astrolabe.html"'),
         ("'/api/astrolabe'",       "'./astrolabe.html'"),
     ]

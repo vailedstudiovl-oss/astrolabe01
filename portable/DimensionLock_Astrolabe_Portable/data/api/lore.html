@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dimension Lock — Lore Archive</title>
+<link rel="icon" href="./static/icon-192.png" type="image/png">
+<meta name="theme-color" content="#00ffcc">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@500;700&display=swap');
+:root{
+  --cyan:#00ffcc; --cyan-soft:rgba(0,255,204,.5);
+  --purple:#aa44ff; --pink:#ff4477; --gold:#ffcc00;
+  --bg:#020608; --panel:rgba(0,15,20,.85); --border:rgba(0,255,204,.35);
+  --safe-top:env(safe-area-inset-top, 0px); --safe-bottom:env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:#dfe;font-family:'Share Tech Mono',monospace;-webkit-font-smoothing:antialiased;}
+body{padding-bottom:calc(80px + var(--safe-bottom));}
+button{font-family:inherit;}
+input,textarea,select{font-family:inherit;}
+a{color:var(--cyan);}
+
+/* starfield bg */
+.starfield{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(1.6px 1.6px at 12% 18%, rgba(0,255,204,.7), transparent),
+    radial-gradient(1.4px 1.4px at 65% 25%, rgba(200,150,255,.6), transparent),
+    radial-gradient(1.6px 1.6px at 28% 78%, rgba(255,180,80,.5), transparent),
+    radial-gradient(1.6px 1.6px at 84% 65%, rgba(0,200,255,.55), transparent),
+    radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.4px 1.4px at 8% 88%, rgba(0,255,204,.55), transparent),
+    radial-gradient(1.4px 1.4px at 92% 12%, rgba(255,68,119,.5), transparent),
+    radial-gradient(1.4px 1.4px at 36% 32%, rgba(0,255,204,.35), transparent),
+    radial-gradient(1.4px 1.4px at 72% 88%, rgba(180,120,255,.45), transparent);
+  opacity:.55; animation:starDrift 120s linear infinite;}
+@keyframes starDrift{0%{transform:translate(0,0) scale(1);}50%{transform:translate(-1.5%,-1%) scale(1.03);}100%{transform:translate(0,0) scale(1);}}
+.scanline{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(0,255,204,.04) 3px, rgba(0,255,204,.04) 4px);}
+
+/* header */
+.l-header{position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);
+  background:linear-gradient(180deg, rgba(0,5,10,.96) 0%, rgba(0,5,10,.86) 100%);
+  border-bottom:1px solid var(--border); padding:calc(var(--safe-top) + 8px) 12px 8px;}
+.l-header-row{display:flex;align-items:center;gap:8px;max-width:1280px;margin:0 auto;}
+.l-back{padding:8px 10px;border:1px solid var(--border);color:var(--cyan);background:transparent;cursor:pointer;font-size:13px;letter-spacing:1.5px;transition:all .15s;border-radius:4px;}
+.l-back:hover,.l-back:active{background:var(--cyan);color:#000;}
+.l-title{flex:1;text-align:center;}
+.l-title .eyebrow{font-size:9px;letter-spacing:5px;color:#777;}
+.l-title .name{font-family:'Cinzel',serif;font-size:clamp(14px,3.2vw,22px);font-weight:700;color:var(--cyan);text-shadow:0 0 14px rgba(0,255,204,.7);letter-spacing:3px;}
+.l-auth-pill{padding:6px 10px;border:1px solid var(--border);color:var(--cyan);background:rgba(0,255,204,.05);cursor:pointer;font-size:11px;display:flex;align-items:center;gap:6px;border-radius:4px;}
+.l-auth-pill .wid{background:rgba(0,0,0,.4);padding:2px 6px;border-radius:3px;color:#fff;}
+.l-auth-pill .badge{background:var(--gold);color:#000;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;}
+
+/* tabs */
+.l-tabs{display:flex;gap:0;border-bottom:1px solid rgba(0,255,204,.2);max-width:1280px;margin:8px auto 0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.l-tab{flex:0 0 auto;padding:10px 14px;border:none;background:transparent;color:#888;cursor:pointer;font-size:11px;letter-spacing:2.5px;font-weight:700;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;text-transform:uppercase;}
+.l-tab:hover{color:#bbb;}
+.l-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);text-shadow:0 0 8px rgba(0,255,204,.5);}
+.l-tab .count{display:inline-block;background:rgba(0,255,204,.15);color:var(--cyan);font-size:9px;padding:1px 6px;border-radius:8px;margin-left:6px;}
+
+/* main */
+.l-main{position:relative;z-index:5;max-width:1280px;margin:0 auto;padding:16px 12px 40px;}
+.l-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center;}
+.l-search{flex:1;min-width:200px;padding:10px 12px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:#fff;font-size:13px;border-radius:4px;}
+.l-search:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 12px rgba(0,255,204,.25);}
+.l-select{padding:10px 12px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--cyan);font-size:12px;letter-spacing:1px;cursor:pointer;border-radius:4px;}
+.l-btn-create{padding:10px 16px;background:linear-gradient(135deg,#00ffcc,#00d4aa);color:#000;border:none;font-weight:700;letter-spacing:2px;cursor:pointer;font-size:12px;transition:all .15s;border-radius:4px;display:flex;align-items:center;gap:6px;}
+.l-btn-create:hover{box-shadow:0 0 16px rgba(0,255,204,.6);transform:translateY(-1px);}
+.l-btn-create:disabled{background:#555;color:#888;cursor:not-allowed;}
+
+/* grid */
+.l-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+@media (max-width:600px){.l-grid{grid-template-columns:1fr;}}
+.l-card{background:linear-gradient(160deg, rgba(0,15,20,.92), rgba(0,5,10,.92));
+  border:1px solid var(--border); padding:14px; cursor:pointer; transition:all .2s; position:relative; overflow:hidden;border-radius:6px;}
+.l-card:hover{border-color:var(--cyan);box-shadow:0 0 24px rgba(0,255,204,.25);transform:translateY(-2px);}
+.l-card .corner{position:absolute;top:0;right:0;width:24px;height:24px;border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);opacity:.45;}
+.l-card .corner2{position:absolute;bottom:0;left:0;width:24px;height:24px;border-bottom:2px solid var(--cyan);border-left:2px solid var(--cyan);opacity:.45;}
+.l-card .kind-pill{display:inline-block;font-size:8px;letter-spacing:2px;padding:2px 7px;background:rgba(0,255,204,.15);color:var(--cyan);border-radius:8px;margin-bottom:6px;}
+.l-card .kind-pill.faction{background:rgba(170,68,255,.15);color:var(--purple);}
+.l-card .c-name{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:#fff;margin:2px 0;}
+.l-card .c-role{font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:6px;text-transform:uppercase;}
+.l-card .c-summary{font-size:12px;color:#aaa;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:8px 0;}
+.l-card .c-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:10px;color:#666;letter-spacing:1px;border-top:1px dashed rgba(0,255,204,.15);padding-top:8px;}
+.l-card .c-meta .vote{color:var(--cyan);}
+.l-card .c-meta .author{color:#aaa;}
+.l-card .c-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.l-card .c-tag{background:rgba(0,255,204,.07);color:var(--cyan);font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid rgba(0,255,204,.2);}
+.l-card .sigil-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.l-card .sigil{font-size:22px;}
+
+.l-empty{padding:60px 20px;text-align:center;color:#666;font-size:13px;}
+.l-empty .e-icon{font-size:48px;color:#333;margin-bottom:12px;}
+.l-empty .e-btn{margin-top:14px;padding:10px 20px;background:rgba(0,255,204,.1);border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;border-radius:4px;font-size:12px;letter-spacing:1.5px;}
+
+/* modal/dialog overlay */
+.l-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:calc(var(--safe-top) + 20px) 12px 40px;}
+.l-overlay.open{display:flex;animation:fadeIn .2s ease-out;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.l-dialog{width:100%;max-width:640px;background:var(--panel);border:1px solid var(--cyan);box-shadow:0 0 40px rgba(0,255,204,.3);padding:0;border-radius:6px;animation:slideIn .3s cubic-bezier(.22,.61,.36,1);}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.l-dialog .d-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);}
+.l-dialog .d-eyebrow{font-size:9px;letter-spacing:4px;color:#777;}
+.l-dialog .d-title{font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:var(--cyan);letter-spacing:2px;}
+.l-dialog .d-close{width:36px;height:36px;border:1px solid rgba(255,68,119,.5);background:transparent;color:var(--pink);cursor:pointer;font-size:18px;border-radius:4px;}
+.l-dialog .d-close:hover{background:var(--pink);color:#fff;}
+.l-dialog .d-body{padding:18px 16px;}
+.l-dialog .d-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+
+/* form */
+.fld{margin-bottom:14px;}
+.fld label{display:block;font-size:9px;color:#888;letter-spacing:2px;margin-bottom:5px;text-transform:uppercase;}
+.fld input,.fld textarea,.fld select{width:100%;padding:9px 11px;background:rgba(0,0,0,.4);border:1px solid var(--border);color:#fff;font-size:13px;border-radius:3px;}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 8px rgba(0,255,204,.2);}
+.fld textarea{min-height:130px;resize:vertical;font-family:inherit;}
+.fld .hint{font-size:9px;color:#666;margin-top:4px;}
+.fld .err{font-size:10px;color:var(--pink);margin-top:4px;}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media (max-width:520px){.fld-row{grid-template-columns:1fr;}}
+
+.btn{padding:9px 14px;background:rgba(0,255,204,.08);border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;font-size:12px;letter-spacing:1.5px;font-weight:700;border-radius:3px;transition:all .15s;}
+.btn:hover{background:var(--cyan);color:#000;}
+.btn.danger{border-color:var(--pink);color:var(--pink);}
+.btn.danger:hover{background:var(--pink);color:#fff;}
+.btn.ghost{background:transparent;border-color:#444;color:#aaa;}
+.btn.ghost:hover{background:rgba(255,255,255,.08);color:#fff;}
+.btn.primary{background:linear-gradient(135deg,#00ffcc,#00d4aa);color:#000;border-color:#00ffcc;}
+.btn.primary:hover{box-shadow:0 0 14px rgba(0,255,204,.6);}
+.btn:disabled{background:#222;border-color:#444;color:#666;cursor:not-allowed;box-shadow:none;}
+
+/* detail view */
+.detail-body{padding:0 0 10px;}
+.detail-img{width:100%;max-height:260px;object-fit:contain;border-radius:4px;background:rgba(0,0,0,.4);margin-bottom:12px;border:1px solid rgba(0,255,204,.15);}
+.detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+@media (max-width:520px){.detail-grid{grid-template-columns:1fr;}}
+.detail-stat{background:rgba(0,0,0,.35);padding:8px 10px;border-left:2px solid var(--cyan);border-radius:0 3px 3px 0;}
+.detail-stat .k{font-size:8px;color:#888;letter-spacing:2px;display:block;}
+.detail-stat .v{font-size:12px;color:#fff;margin-top:2px;}
+.detail-desc{font-size:13px;line-height:1.7;color:#cde;white-space:pre-wrap;background:rgba(0,0,0,.3);padding:14px;border-radius:4px;border:1px dashed rgba(0,255,204,.15);}
+.detail-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.detail-tag{background:rgba(0,255,204,.1);color:var(--cyan);font-size:10px;padding:3px 8px;border-radius:3px;border:1px solid rgba(0,255,204,.3);}
+.detail-vote{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px;background:rgba(0,0,0,.3);border-radius:4px;}
+.detail-vote button{padding:6px 12px;border:1px solid var(--border);background:transparent;color:var(--cyan);cursor:pointer;font-size:11px;border-radius:3px;}
+.detail-vote button.voted{background:rgba(0,255,204,.2);}
+.detail-vote .count{color:#fff;font-weight:700;}
+
+/* auth modal */
+.auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.auth-tab{flex:1;padding:10px;background:transparent;color:#888;border:none;cursor:pointer;font-size:11px;letter-spacing:2px;border-bottom:2px solid transparent;}
+.auth-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);text-shadow:0 0 6px rgba(0,255,204,.5);}
+
+/* toast */
+.toast{position:fixed;bottom:calc(20px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(120%);
+  background:rgba(0,15,20,.97);border:1px solid var(--cyan);padding:10px 16px;color:var(--cyan);box-shadow:0 0 20px rgba(0,255,204,.4);
+  transition:transform .35s cubic-bezier(.22,.61,.36,1);z-index:200;border-radius:4px;font-size:12px;letter-spacing:1px;max-width:90vw;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.err{border-color:var(--pink);color:var(--pink);box-shadow:0 0 20px rgba(255,68,119,.4);}
+
+/* admin */
+.admin-list{display:flex;flex-direction:column;gap:8px;}
+.adm-note{background:rgba(0,0,0,.35);border-left:3px solid var(--gold);padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-radius:0 3px 3px 0;}
+.adm-note.read{opacity:.55;border-left-color:#444;}
+.adm-note .body{flex:1;min-width:0;}
+.adm-note .kind{font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
+.adm-note .kind.delete{color:var(--pink);}
+.adm-note .kind.edit{color:var(--purple);}
+.adm-note .sum{font-size:13px;color:#fff;margin:3px 0;}
+.adm-note .ts{font-size:10px;color:#777;}
+.adm-note .by{font-size:10px;color:#999;}
+.adm-note button{padding:4px 8px;border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;font-size:10px;border-radius:3px;flex-shrink:0;}
+.adm-note button:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* loading */
+.loader{display:flex;justify-content:center;align-items:center;padding:60px 20px;}
+.loader .dots{font-size:24px;color:var(--cyan);animation:blink 1s steps(3) infinite;letter-spacing:6px;}
+@keyframes blink{0%{opacity:.2;}50%{opacity:1;}100%{opacity:.2;}}
+
+/* my contributions */
+.contrib-section{margin-bottom:24px;}
+.contrib-section h3{font-size:11px;letter-spacing:3px;color:var(--cyan);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+</style>
+</head>
+<body>
+<div class="starfield"></div>
+<div class="scanline"></div>
+
+<!-- HEADER -->
+<header class="l-header">
+  <div class="l-header-row">
+    <button class="l-back" onclick="window.location.href='./astrolabe.html'">← MENU</button>
+    <div class="l-title">
+      <div class="eyebrow">DIMENSION LOCK ARCHIVE</div>
+      <div class="name">LORE</div>
+    </div>
+    <button class="l-auth-pill" id="auth-pill" onclick="openAuthModal()">
+      <span id="auth-pill-text">[ LOG IN ]</span>
+    </button>
+  </div>
+  <div class="l-tabs">
+    <button class="l-tab active" data-tab="characters" onclick="switchTab('characters')">CHARACTERS <span class="count" id="cnt-characters">0</span></button>
+    <button class="l-tab" data-tab="factions" onclick="switchTab('factions')">FACTIONS <span class="count" id="cnt-factions">0</span></button>
+    <button class="l-tab" data-tab="mine" id="tab-mine" onclick="switchTab('mine')" style="display:none;">MY CONTRIBUTIONS</button>
+    <button class="l-tab" data-tab="admin" id="tab-admin" onclick="switchTab('admin')" style="display:none;">ADMIN <span class="count" id="cnt-admin">0</span></button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="l-main">
+  <!-- toolbar (hidden in mine/admin tabs) -->
+  <div class="l-toolbar" id="toolbar">
+    <input type="text" class="l-search" id="search-input" placeholder="◎ Search by name, role, faction…" oninput="onSearchInput()">
+    <select class="l-select" id="sort-select" onchange="loadCurrentTab()">
+      <option value="recent">▼ MOST RECENT</option>
+      <option value="trending">▲ TRENDING</option>
+      <option value="top">★ TOP VOTED</option>
+    </select>
+    <button class="l-btn-create" id="create-btn" onclick="openCreateModal()">+ CREATE</button>
+  </div>
+
+  <!-- grid / panels -->
+  <div id="content"></div>
+</main>
+
+<!-- AUTH MODAL -->
+<div class="l-overlay" id="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
+  <div class="l-dialog" style="max-width:440px;">
+    <div class="d-head">
+      <div>
+        <div class="d-eyebrow">LORE AMBASSADOR</div>
+        <div class="d-title" id="auth-title">SIGN IN</div>
+      </div>
+      <button class="d-close" onclick="closeAuthModal()">✕</button>
+    </div>
+    <div class="d-body">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="auth-tab-login" onclick="setAuthMode('login')">LOG IN</button>
+        <button class="auth-tab" id="auth-tab-register" onclick="setAuthMode('register')">REGISTER</button>
+      </div>
+      <form id="auth-form" onsubmit="submitAuth(event)">
+        <div class="fld">
+          <label>EMAIL</label>
+          <input type="email" id="auth-email" autocomplete="email" required>
+        </div>
+        <div class="fld" id="fld-displayname" style="display:none;">
+          <label>DISPLAY NAME <span style="color:#555;">(optional)</span></label>
+          <input type="text" id="auth-displayname" maxlength="24" placeholder="e.g. Wanderer of -77">
+        </div>
+        <div class="fld">
+          <label>PASSWORD <span style="color:#555;">(min 8 chars)</span></label>
+          <input type="password" id="auth-password" autocomplete="current-password" required minlength="8">
+        </div>
+        <div id="auth-err" style="display:none;color:var(--pink);font-size:11px;margin-bottom:10px;"></div>
+        <button type="submit" class="btn primary" style="width:100%;padding:11px;" id="auth-submit">[ LOG IN ▸ ]</button>
+        <div style="font-size:9px;color:#555;margin-top:12px;text-align:center;letter-spacing:1px;">
+          Become a Lore Ambassador to add characters, factions, and edit your contributions.
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ENTRY DETAIL MODAL -->
+<div class="l-overlay" id="detail-overlay" onclick="if(event.target===this)closeDetailModal()">
+  <div class="l-dialog">
+    <div class="d-head">
+      <div>
+        <div class="d-eyebrow" id="detail-eyebrow">CHARACTER</div>
+        <div class="d-title" id="detail-name">--</div>
+      </div>
+      <button class="d-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="d-body" id="detail-body"></div>
+    <div class="d-foot" id="detail-foot"></div>
+  </div>
+</div>
+
+<!-- CREATE/EDIT MODAL -->
+<div class="l-overlay" id="form-overlay" onclick="if(event.target===this)closeFormModal()">
+  <div class="l-dialog">
+    <div class="d-head">
+      <div>
+        <div class="d-eyebrow" id="form-eyebrow">NEW CHARACTER</div>
+        <div class="d-title" id="form-title">CREATE</div>
+      </div>
+      <button class="d-close" onclick="closeFormModal()">✕</button>
+    </div>
+    <div class="d-body">
+      <form id="entry-form" onsubmit="submitEntry(event)"></form>
+    </div>
+    <div class="d-foot">
+      <button class="btn ghost" onclick="closeFormModal()">CANCEL</button>
+      <button class="btn primary" id="form-submit-btn" onclick="document.getElementById('entry-form').requestSubmit()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+<div class="l-overlay" id="account-overlay" onclick="if(event.target===this)closeAccountModal()">
+  <div class="l-dialog" style="max-width:520px;">
+    <div class="d-head">
+      <div>
+        <div class="d-eyebrow">LORE AMBASSADOR</div>
+        <div class="d-title">MY ACCOUNT</div>
+      </div>
+      <button class="d-close" onclick="closeAccountModal()">✕</button>
+    </div>
+    <div class="d-body" id="account-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== STATE ======
+const API_BASE = '/api';
+let STATE = {
+  tab: 'characters',
+  characters: [],
+  factions: [],
+  mine: null,
+  adminNotes: [],
+  adminUnread: 0,
+  search: '',
+  sort: 'recent',
+  user: null,         // {id, email, display_name, wanderer_id, is_admin}
+  token: localStorage.getItem('dlds_lore_token') || null,
+  editingEntry: null,
+  searchTimer: null,
+};
+
+// ====== AUTH BOOTSTRAP ======
+async function bootstrap() {
+  // Try to restore session
+  if (STATE.token) {
+    try {
+      const me = await api('GET', '/lore/ambassadors/me');
+      STATE.user = me;
+    } catch(e) {
+      console.warn('Token invalid, clearing.');
+      localStorage.removeItem('dlds_lore_token');
+      STATE.token = null;
+    }
+  }
+  renderAuthPill();
+  if (STATE.user && STATE.user.is_admin) {
+    document.getElementById('tab-admin').style.display = '';
+    loadAdminBadge();
+  }
+  if (STATE.user) document.getElementById('tab-mine').style.display = '';
+  await loadCurrentTab();
+}
+
+// ====== API HELPER ======
+async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (STATE.token) headers['Authorization'] = `Bearer ${STATE.token}`;
+  const opts = { method, headers };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch(API_BASE + path, opts);
+  if (r.status === 204) return null;
+  let data = null;
+  try { data = await r.json(); } catch(e) {}
+  if (!r.ok) {
+    const msg = (data && (data.detail || data.message)) || `HTTP ${r.status}`;
+    const err = new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    err.status = r.status; err.data = data; throw err;
+  }
+  return data;
+}
+
+// ====== TOAST ======
+let toastTimer = null;
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!isErr);
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ====== AUTH UI ======
+function renderAuthPill() {
+  const pill = document.getElementById('auth-pill');
+  const txt = document.getElementById('auth-pill-text');
+  if (STATE.user) {
+    const admin = STATE.user.is_admin ? '<span class="badge">ADMIN</span>' : '';
+    txt.innerHTML = `<span style="color:#fff;">${escapeHTML(STATE.user.display_name)}</span> <span class="wid">${STATE.user.wanderer_id}</span>${admin}`;
+    pill.onclick = openAccountModal;
+  } else {
+    txt.textContent = '[ LOG IN ]';
+    pill.onclick = openAuthModal;
+  }
+}
+
+function openAuthModal() {
+  document.getElementById('auth-overlay').classList.add('open');
+  setAuthMode('login');
+}
+function closeAuthModal() {
+  document.getElementById('auth-overlay').classList.remove('open');
+  document.getElementById('auth-err').style.display = 'none';
+}
+function setAuthMode(mode) {
+  document.getElementById('auth-tab-login').classList.toggle('active', mode==='login');
+  document.getElementById('auth-tab-register').classList.toggle('active', mode==='register');
+  document.getElementById('fld-displayname').style.display = mode==='register' ? '' : 'none';
+  document.getElementById('auth-title').textContent = mode==='register' ? 'BECOME AMBASSADOR' : 'SIGN IN';
+  document.getElementById('auth-submit').textContent = mode==='register' ? '[ REGISTER ▸ ]' : '[ LOG IN ▸ ]';
+  document.getElementById('auth-form').dataset.mode = mode;
+  document.getElementById('auth-password').autocomplete = mode==='register' ? 'new-password' : 'current-password';
+}
+async function submitAuth(e) {
+  e.preventDefault();
+  const mode = document.getElementById('auth-form').dataset.mode || 'login';
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const display_name = document.getElementById('auth-displayname').value.trim();
+  const errEl = document.getElementById('auth-err');
+  const submitBtn = document.getElementById('auth-submit');
+  errEl.style.display = 'none';
+  submitBtn.disabled = true; submitBtn.textContent = '...';
+  try {
+    const body = mode==='register' ? { email, password, display_name: display_name || null } : { email, password };
+    const r = await api('POST', `/lore/ambassadors/${mode}`, body);
+    STATE.token = r.token;
+    STATE.user = r.ambassador;
+    localStorage.setItem('dlds_lore_token', r.token);
+    closeAuthModal();
+    renderAuthPill();
+    if (STATE.user.is_admin) {
+      document.getElementById('tab-admin').style.display = '';
+      loadAdminBadge();
+    }
+    document.getElementById('tab-mine').style.display = '';
+    toast(`▸ Welcome, ${STATE.user.display_name}`);
+    loadCurrentTab();
+  } catch(err) {
+    errEl.textContent = '⚠ ' + (err.message || 'Auth failed');
+    errEl.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = mode==='register' ? '[ REGISTER ▸ ]' : '[ LOG IN ▸ ]';
+  }
+}
+function logout() {
+  STATE.token = null; STATE.user = null;
+  localStorage.removeItem('dlds_lore_token');
+  document.getElementById('tab-admin').style.display = 'none';
+  document.getElementById('tab-mine').style.display = 'none';
+  closeAccountModal();
+  renderAuthPill();
+  if (STATE.tab === 'mine' || STATE.tab === 'admin') switchTab('characters');
+  toast('▸ Logged out');
+}
+
+// ====== ACCOUNT MODAL ======
+async function openAccountModal() {
+  document.getElementById('account-overlay').classList.add('open');
+  const body = document.getElementById('account-body');
+  body.innerHTML = '<div class="loader"><div class="dots">⋯</div></div>';
+  try {
+    const me = await api('GET', '/lore/ambassadors/me');
+    STATE.user = me;
+    body.innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-stat"><span class="k">EMAIL</span><span class="v">${escapeHTML(me.email)}</span></div>
+        <div class="detail-stat"><span class="k">WANDERER ID</span><span class="v">${me.wanderer_id}</span></div>
+        <div class="detail-stat"><span class="k">JOINED</span><span class="v">${formatDate(me.created_at)}</span></div>
+        <div class="detail-stat"><span class="k">CONTRIBUTIONS</span><span class="v">${me.contributions_count}</span></div>
+      </div>
+      <form id="account-form" onsubmit="saveAccount(event)">
+        <div class="fld">
+          <label>DISPLAY NAME</label>
+          <input type="text" id="acc-display" value="${escapeHTML(me.display_name)}" maxlength="24">
+        </div>
+        <div style="border-top:1px dashed rgba(0,255,204,.2);padding-top:14px;margin-top:14px;">
+          <div style="font-size:10px;color:#888;letter-spacing:2px;margin-bottom:8px;">CHANGE PASSWORD (OPTIONAL)</div>
+          <div class="fld">
+            <label>CURRENT PASSWORD</label>
+            <input type="password" id="acc-current" autocomplete="current-password" placeholder="Leave blank if not changing">
+          </div>
+          <div class="fld">
+            <label>NEW PASSWORD <span style="color:#555;">(min 8 chars)</span></label>
+            <input type="password" id="acc-new" autocomplete="new-password" minlength="8" placeholder="Leave blank if not changing">
+          </div>
+        </div>
+        <div id="acc-err" style="display:none;color:var(--pink);font-size:11px;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" class="btn danger" onclick="logout()">[ LOG OUT ]</button>
+          <button type="submit" class="btn primary">SAVE CHANGES</button>
+        </div>
+      </form>
+    `;
+  } catch(err) {
+    body.innerHTML = `<div class="l-empty"><div class="e-icon">⚠</div><div>Failed to load account: ${escapeHTML(err.message)}</div></div>`;
+  }
+}
+function closeAccountModal() { document.getElementById('account-overlay').classList.remove('open'); }
+
+async function saveAccount(e) {
+  e.preventDefault();
+  const display = document.getElementById('acc-display').value.trim();
+  const cur = document.getElementById('acc-current').value;
+  const nw = document.getElementById('acc-new').value;
+  const errEl = document.getElementById('acc-err');
+  errEl.style.display = 'none';
+  const body = {};
+  if (display && display !== STATE.user.display_name) body.display_name = display;
+  if (nw) { body.new_password = nw; body.current_password = cur; }
+  if (Object.keys(body).length === 0) { toast('Nothing changed.'); return; }
+  try {
+    const me = await api('PATCH', '/lore/ambassadors/me', body);
+    STATE.user = me;
+    renderAuthPill();
+    toast('▸ Account updated');
+    if (nw) {
+      document.getElementById('acc-current').value = '';
+      document.getElementById('acc-new').value = '';
+    }
+  } catch(err) {
+    errEl.textContent = '⚠ ' + err.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// ====== TAB LOGIC ======
+function switchTab(tab) {
+  STATE.tab = tab;
+  document.querySelectorAll('.l-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('toolbar').style.display = (tab==='characters'||tab==='factions') ? '' : 'none';
+  loadCurrentTab();
+}
+async function loadCurrentTab() {
+  STATE.search = document.getElementById('search-input').value.trim();
+  STATE.sort = document.getElementById('sort-select').value;
+  const c = document.getElementById('content');
+  c.innerHTML = '<div class="loader"><div class="dots">⋯</div></div>';
+  try {
+    if (STATE.tab === 'characters' || STATE.tab === 'factions') {
+      await loadList(STATE.tab);
+    } else if (STATE.tab === 'mine') {
+      await loadMine();
+    } else if (STATE.tab === 'admin') {
+      await loadAdmin();
+    }
+  } catch(err) {
+    c.innerHTML = `<div class="l-empty"><div class="e-icon">⚠</div><div>${escapeHTML(err.message)}</div></div>`;
+  }
+}
+
+function onSearchInput() {
+  if (STATE.searchTimer) clearTimeout(STATE.searchTimer);
+  STATE.searchTimer = setTimeout(() => { loadCurrentTab(); }, 350);
+}
+
+// ====== LIST (characters / factions) ======
+async function loadList(kind) {
+  const endpoint = kind === 'characters' ? '/lore/characters' : '/lore/factions';
+  const params = new URLSearchParams({ sort: STATE.sort, limit: '120' });
+  if (STATE.search) params.set('q', STATE.search);
+  const data = await api('GET', `${endpoint}?${params}`);
+  STATE[kind] = data;
+  document.getElementById('cnt-' + kind).textContent = data.length;
+  renderGrid(data, kind);
+}
+
+function renderGrid(items, kind) {
+  const c = document.getElementById('content');
+  if (!items.length) {
+    const k = kind === 'characters' ? 'character' : 'faction';
+    c.innerHTML = `<div class="l-empty">
+      <div class="e-icon">${kind==='characters'?'☥':'⛨'}</div>
+      <div>No ${k}s found${STATE.search ? ' matching "' + escapeHTML(STATE.search) + '"' : ' yet'}.</div>
+      ${STATE.user ? `<button class="e-btn" onclick="openCreateModal()">+ CREATE THE FIRST ${k.toUpperCase()}</button>` :
+        `<button class="e-btn" onclick="openAuthModal()">[ LOG IN TO CREATE ]</button>`}
+    </div>`;
+    return;
+  }
+  c.innerHTML = `<div class="l-grid">${items.map(it => renderCard(it, kind)).join('')}</div>`;
+}
+
+function renderCard(it, kind) {
+  const isChar = kind === 'characters';
+  const sigil = !isChar && it.sigil ? `<div class="sigil-row"><div class="sigil" style="color:${it.color || '#aa44ff'};">${escapeHTML(it.sigil)}</div></div>` : '';
+  const role = isChar ? (it.role || it.faction || '') : (it.territory || it.alignment || '');
+  return `
+    <div class="l-card" onclick="openDetail('${it.id}', '${kind}')">
+      <div class="corner"></div><div class="corner2"></div>
+      <div class="kind-pill ${isChar?'':'faction'}">${isChar?'CHARACTER':'FACTION'}</div>
+      ${sigil}
+      <div class="c-name">${escapeHTML(it.name)}</div>
+      ${role ? `<div class="c-role">${escapeHTML(role)}</div>` : ''}
+      ${it.summary ? `<div class="c-summary">${escapeHTML(it.summary)}</div>` : ''}
+      ${(it.tags||[]).length ? `<div class="c-tags">${(it.tags||[]).slice(0,5).map(t => `<span class="c-tag">#${escapeHTML(t)}</span>`).join('')}</div>` : ''}
+      <div class="c-meta">
+        <span class="author">by ${escapeHTML(it.author_name)}</span>
+        <span class="vote">★ ${it.votes||0}</span>
+      </div>
+    </div>`;
+}
+
+// ====== DETAIL ======
+async function openDetail(id, kind) {
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-name').textContent = '...';
+  document.getElementById('detail-body').innerHTML = '<div class="loader"><div class="dots">⋯</div></div>';
+  document.getElementById('detail-foot').innerHTML = '';
+  try {
+    const endpoint = kind === 'characters' ? `/lore/characters/${id}` : `/lore/factions/${id}`;
+    const it = await api('GET', endpoint);
+    STATE.editingEntry = { ...it, kind };
+    document.getElementById('detail-eyebrow').textContent = kind === 'characters' ? 'CHARACTER' : 'FACTION';
+    document.getElementById('detail-name').textContent = it.name;
+    renderDetail(it, kind);
+    renderDetailFoot(it, kind);
+  } catch(err) {
+    document.getElementById('detail-body').innerHTML = `<div class="l-empty">⚠ ${escapeHTML(err.message)}</div>`;
+  }
+}
+function closeDetailModal() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  STATE.editingEntry = null;
+}
+
+function renderDetail(it, kind) {
+  const isChar = kind === 'characters';
+  let stats = [];
+  if (isChar) {
+    if (it.role) stats.push(['ROLE', it.role]);
+    if (it.faction) stats.push(['FACTION', it.faction]);
+    if (it.alignment) stats.push(['ALIGNMENT', it.alignment]);
+    if (it.strata) stats.push(['STRATA', it.strata]);
+  } else {
+    if (it.territory) stats.push(['TERRITORY', it.territory]);
+    if (it.alignment) stats.push(['ALIGNMENT', it.alignment]);
+    if (it.sigil) stats.push(['SIGIL', it.sigil]);
+    if (it.color) stats.push(['COLOR', it.color]);
+  }
+  const wid = getOrCreateWID();
+  const hasVoted = (it.voters || []).includes(wid);
+  const html = `
+    <div class="detail-body">
+      ${it.image_url ? `<img class="detail-img" src="${escapeAttr(it.image_url)}" alt="${escapeAttr(it.name)}" onerror="this.style.display='none'">` : ''}
+      ${stats.length ? `<div class="detail-grid">${stats.map(([k,v]) => `<div class="detail-stat"><span class="k">${k}</span><span class="v">${escapeHTML(v)}</span></div>`).join('')}</div>` : ''}
+      ${it.summary ? `<div style="font-size:14px;color:var(--cyan);font-style:italic;margin-bottom:10px;letter-spacing:.5px;">${escapeHTML(it.summary)}</div>` : ''}
+      <div class="detail-desc">${escapeHTML(it.description)}</div>
+      ${(it.tags||[]).length ? `<div class="detail-tags">${it.tags.map(t => `<span class="detail-tag">#${escapeHTML(t)}</span>`).join('')}</div>` : ''}
+      <div class="detail-vote">
+        <button id="vote-btn" class="${hasVoted?'voted':''}" onclick="voteEntry('${it.id}')">${hasVoted?'✓ VOTED':'★ UPVOTE'}</button>
+        <span class="count" id="vote-count">${it.votes||0}</span>
+        <span style="font-size:9px;color:#666;flex:1;text-align:right;letter-spacing:1px;">v${it.version||1} · by ${escapeHTML(it.author_name)} · ${formatDate(it.created_at)}</span>
+        <button onclick="flagEntry('${it.id}')" style="color:var(--pink);border-color:var(--pink);">⚠ FLAG</button>
+      </div>
+    </div>`;
+  document.getElementById('detail-body').innerHTML = html;
+}
+
+function renderDetailFoot(it, kind) {
+  const foot = document.getElementById('detail-foot');
+  const canEdit = STATE.user && (STATE.user.id === it.author_ambassador_id || STATE.user.is_admin);
+  foot.innerHTML = `
+    <button class="btn ghost" onclick="closeDetailModal()">CLOSE</button>
+    ${canEdit ? `<button class="btn danger" onclick="deleteEntry('${it.id}','${kind}')">DELETE</button>` : ''}
+    ${canEdit ? `<button class="btn primary" onclick="openEditModal('${it.id}','${kind}')">EDIT</button>` : ''}
+  `;
+}
+
+async function voteEntry(id) {
+  const wid = getOrCreateWID();
+  try {
+    const r = await api('POST', `/lore/entries/${id}/vote`, { wanderer_id: wid });
+    document.getElementById('vote-count').textContent = r.votes;
+    document.getElementById('vote-btn').classList.toggle('voted', (r.voters||[]).includes(wid));
+    document.getElementById('vote-btn').textContent = (r.voters||[]).includes(wid) ? '✓ VOTED' : '★ UPVOTE';
+  } catch(err) {
+    toast('Vote failed: ' + err.message, true);
+  }
+}
+async function flagEntry(id) {
+  if (!confirm('Flag this entry for review? 3 flags will hide it.')) return;
+  const wid = getOrCreateWID();
+  try {
+    const r = await api('POST', `/lore/entries/${id}/flag`, { wanderer_id: wid });
+    toast(r.hidden ? '▸ Entry flagged and hidden' : '▸ Flag recorded');
+    if (r.hidden) closeDetailModal();
+  } catch(err) {
+    toast('Flag failed: ' + err.message, true);
+  }
+}
+
+async function deleteEntry(id, kind) {
+  if (!confirm(`Delete this ${kind === 'characters' ? 'character' : 'faction'}? This cannot be undone.`)) return;
+  try {
+    await api('DELETE', `/lore/${kind}/${id}`);
+    toast('▸ Deleted');
+    closeDetailModal();
+    loadCurrentTab();
+    if (STATE.user && STATE.user.is_admin) loadAdminBadge();
+  } catch(err) {
+    toast('Delete failed: ' + err.message, true);
+  }
+}
+
+// ====== CREATE / EDIT FORM ======
+function openCreateModal() {
+  if (!STATE.user) { openAuthModal(); return; }
+  STATE.editingEntry = null;
+  const kind = STATE.tab === 'factions' ? 'factions' : 'characters';
+  document.getElementById('form-eyebrow').textContent = `NEW ${kind==='factions'?'FACTION':'CHARACTER'}`;
+  document.getElementById('form-title').textContent = 'CREATE';
+  renderForm(kind, null);
+  document.getElementById('form-overlay').classList.add('open');
+}
+function openEditModal(id, kind) {
+  const it = STATE.editingEntry;
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('form-eyebrow').textContent = `EDIT ${kind==='factions'?'FACTION':'CHARACTER'}`;
+  document.getElementById('form-title').textContent = it.name;
+  renderForm(kind, it);
+  document.getElementById('form-overlay').classList.add('open');
+}
+function closeFormModal() {
+  document.getElementById('form-overlay').classList.remove('open');
+}
+
+function renderForm(kind, entry) {
+  const isChar = kind === 'characters';
+  const f = entry || {};
+  const html = `
+    <input type="hidden" id="f-kind" value="${kind}">
+    <input type="hidden" id="f-id" value="${entry?entry.id:''}">
+    <div class="fld">
+      <label>NAME *</label>
+      <input type="text" id="f-name" required maxlength="80" value="${escapeAttr(f.name || '')}" placeholder="${isChar?'e.g. Maytradalis':'e.g. Centurion Guard'}">
+    </div>
+    ${isChar ? `
+      <div class="fld-row">
+        <div class="fld">
+          <label>ROLE</label>
+          <input type="text" id="f-role" maxlength="80" value="${escapeAttr(f.role||'')}" placeholder="e.g. Reaper-in-training">
+        </div>
+        <div class="fld">
+          <label>FACTION</label>
+          <input type="text" id="f-faction" maxlength="120" value="${escapeAttr(f.faction||'')}" placeholder="e.g. Death Tribunal">
+        </div>
+      </div>
+      <div class="fld-row">
+        <div class="fld">
+          <label>STRATA</label>
+          <input type="text" id="f-strata" maxlength="32" value="${escapeAttr(f.strata||'')}" placeholder="e.g. +12 or Zero Point">
+        </div>
+        <div class="fld">
+          <label>ALIGNMENT</label>
+          <input type="text" id="f-alignment" maxlength="80" value="${escapeAttr(f.alignment||'')}" placeholder="e.g. Lawful Neutral">
+        </div>
+      </div>
+    ` : `
+      <div class="fld-row">
+        <div class="fld">
+          <label>SIGIL <span style="color:#555;">(1-4 chars)</span></label>
+          <input type="text" id="f-sigil" maxlength="4" value="${escapeAttr(f.sigil||'')}" placeholder="e.g. ☥">
+        </div>
+        <div class="fld">
+          <label>COLOR <span style="color:#555;">(hex)</span></label>
+          <input type="text" id="f-color" pattern="^#[0-9a-fA-F]{6}$" value="${escapeAttr(f.color||'')}" placeholder="#aa44ff">
+        </div>
+      </div>
+      <div class="fld-row">
+        <div class="fld">
+          <label>TERRITORY</label>
+          <input type="text" id="f-territory" maxlength="120" value="${escapeAttr(f.territory||'')}" placeholder="e.g. Strata 0–12">
+        </div>
+        <div class="fld">
+          <label>ALIGNMENT</label>
+          <input type="text" id="f-alignment" maxlength="80" value="${escapeAttr(f.alignment||'')}" placeholder="e.g. Order">
+        </div>
+      </div>
+    `}
+    <div class="fld">
+      <label>SUMMARY <span style="color:#555;">(short tagline, max 280)</span></label>
+      <input type="text" id="f-summary" maxlength="280" value="${escapeAttr(f.summary||'')}" placeholder="One-line description">
+    </div>
+    <div class="fld">
+      <label>DESCRIPTION * <span style="color:#555;">(10-4000 chars)</span></label>
+      <textarea id="f-description" required minlength="10" maxlength="4000" placeholder="Tell their story…">${escapeHTML(f.description||'')}</textarea>
+    </div>
+    <div class="fld">
+      <label>IMAGE URL <span style="color:#555;">(optional, HTTPS only)</span></label>
+      <input type="url" id="f-image" maxlength="500" value="${escapeAttr(f.image_url||'')}" placeholder="https://...">
+    </div>
+    <div class="fld">
+      <label>TAGS <span style="color:#555;">(comma-separated, max 12)</span></label>
+      <input type="text" id="f-tags" value="${escapeAttr((f.tags||[]).join(', '))}" placeholder="reaper, council, soul-tribunal">
+    </div>
+    <div id="f-err" style="display:none;color:var(--pink);font-size:11px;margin-bottom:10px;"></div>
+  `;
+  document.getElementById('entry-form').innerHTML = html;
+  document.getElementById('form-submit-btn').textContent = entry ? 'SAVE CHANGES' : 'CREATE';
+}
+
+async function submitEntry(e) {
+  e.preventDefault();
+  const kind = document.getElementById('f-kind').value;
+  const id = document.getElementById('f-id').value;
+  const isChar = kind === 'characters';
+  const tags = (document.getElementById('f-tags').value||'').split(',').map(t=>t.trim().toLowerCase()).filter(Boolean);
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    summary: document.getElementById('f-summary').value.trim() || null,
+    description: document.getElementById('f-description').value.trim(),
+    image_url: document.getElementById('f-image').value.trim() || null,
+    tags,
+    alignment: document.getElementById('f-alignment').value.trim() || null,
+  };
+  if (isChar) {
+    body.role = document.getElementById('f-role').value.trim() || null;
+    body.faction = document.getElementById('f-faction').value.trim() || null;
+    body.strata = document.getElementById('f-strata').value.trim() || null;
+  } else {
+    body.sigil = document.getElementById('f-sigil').value.trim() || null;
+    body.color = document.getElementById('f-color').value.trim() || null;
+    body.territory = document.getElementById('f-territory').value.trim() || null;
+  }
+  const errEl = document.getElementById('f-err');
+  errEl.style.display = 'none';
+  const btn = document.getElementById('form-submit-btn');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    if (id) {
+      await api('PATCH', `/lore/${kind}/${id}`, body);
+      toast('▸ Updated');
+    } else {
+      await api('POST', `/lore/${kind}`, body);
+      toast('▸ Created');
+    }
+    closeFormModal();
+    loadCurrentTab();
+    if (STATE.user && STATE.user.is_admin) loadAdminBadge();
+  } catch(err) {
+    errEl.textContent = '⚠ ' + err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = id ? 'SAVE CHANGES' : 'CREATE';
+  }
+}
+
+// ====== MINE TAB ======
+async function loadMine() {
+  if (!STATE.user) {
+    document.getElementById('content').innerHTML = '<div class="l-empty"><div class="e-icon">⊡</div><div>Please log in to see your contributions.</div></div>';
+    return;
+  }
+  const data = await api('GET', '/lore/ambassadors/me/contributions');
+  STATE.mine = data;
+  const c = document.getElementById('content');
+  let html = '';
+  if ((data.characters||[]).length) {
+    html += `<div class="contrib-section"><h3>CHARACTERS · ${data.characters.length}</h3><div class="l-grid">${data.characters.map(it => renderCard(it,'characters')).join('')}</div></div>`;
+  }
+  if ((data.factions||[]).length) {
+    html += `<div class="contrib-section"><h3>FACTIONS · ${data.factions.length}</h3><div class="l-grid">${data.factions.map(it => renderCard(it,'factions')).join('')}</div></div>`;
+  }
+  if ((data.lore_snippets||[]).length) {
+    html += `<div class="contrib-section"><h3>LORE SNIPPETS · ${data.lore_snippets.length}</h3>` +
+      data.lore_snippets.map(s => `<div style="background:rgba(0,0,0,.4);border-left:2px solid var(--cyan);padding:10px;margin-bottom:6px;border-radius:0 3px 3px 0;"><div style="font-size:9px;letter-spacing:2px;color:#888;">${escapeHTML(s.target_type.toUpperCase())} → ${escapeHTML(s.target_id)}</div>${s.title?`<div style="font-size:13px;color:#fff;margin:4px 0;">${escapeHTML(s.title)}</div>`:''}<div style="font-size:12px;color:#bbb;">${escapeHTML(s.content)}</div></div>`).join('') +
+      '</div>';
+  }
+  if (!html) html = `<div class="l-empty"><div class="e-icon">✎</div><div>You haven't contributed any lore yet.</div><button class="e-btn" onclick="switchTab('characters');setTimeout(openCreateModal,200);">+ CREATE YOUR FIRST</button></div>`;
+  c.innerHTML = html;
+}
+
+// ====== ADMIN TAB ======
+async function loadAdminBadge() {
+  if (!STATE.user || !STATE.user.is_admin) return;
+  try {
+    const r = await api('GET', '/lore/admin/notifications?only_unread=true&limit=1');
+    document.getElementById('cnt-admin').textContent = r.unread_count;
+  } catch(e) {}
+}
+async function loadAdmin() {
+  if (!STATE.user || !STATE.user.is_admin) {
+    document.getElementById('content').innerHTML = '<div class="l-empty">Admin only.</div>';
+    return;
+  }
+  const r = await api('GET', '/lore/admin/notifications?limit=80');
+  STATE.adminNotes = r.notifications;
+  STATE.adminUnread = r.unread_count;
+  document.getElementById('cnt-admin').textContent = r.unread_count;
+  const c = document.getElementById('content');
+  if (!r.notifications.length) {
+    c.innerHTML = '<div class="l-empty"><div class="e-icon">⊡</div><div>No notifications yet. Lore changes will appear here.</div></div>';
+    return;
+  }
+  c.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:11px;letter-spacing:2px;color:#888;">${r.unread_count} UNREAD · ${r.notifications.length} TOTAL</div>
+      <button class="btn ghost" onclick="markAllRead()">MARK ALL READ</button>
+    </div>
+    <div class="admin-list">
+      ${r.notifications.map(renderAdminNote).join('')}
+    </div>`;
+}
+function renderAdminNote(n) {
+  const cls = n.kind.includes('delete') ? 'delete' : (n.kind.includes('edit') ? 'edit' : '');
+  const author = n.author_name + (n.author_email ? ` · ${n.author_email}` : '');
+  return `<div class="adm-note ${n.read?'read':''}" data-id="${n.id}">
+    <div class="body">
+      <div class="kind ${cls}">${n.kind.replace('_',' ').toUpperCase()}</div>
+      <div class="sum">${escapeHTML(n.summary)}</div>
+      <div class="by">by ${escapeHTML(author)} · WID ${n.author_wid}</div>
+      <div class="ts">${formatDate(n.created_at)}</div>
+    </div>
+    ${!n.read ? `<button onclick="markNoteRead('${n.id}')">MARK READ</button>` : ''}
+  </div>`;
+}
+async function markNoteRead(id) {
+  try {
+    await api('POST', `/lore/admin/notifications/${id}/read`);
+    loadAdmin();
+  } catch(err) { toast('Failed: '+err.message, true); }
+}
+async function markAllRead() {
+  try {
+    await api('POST', '/lore/admin/notifications/read-all');
+    loadAdmin();
+  } catch(err) { toast('Failed: '+err.message, true); }
+}
+
+// ====== UTILS ======
+function escapeHTML(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHTML(s); }
+function formatDate(s) {
+  if (!s) return '';
+  try {
+    const d = new Date(s);
+    return d.toLocaleDateString(undefined, { year:'numeric',month:'short',day:'numeric' });
+  } catch(e) { return s; }
+}
+function getOrCreateWID() {
+  if (STATE.user && STATE.user.wanderer_id) return STATE.user.wanderer_id;
+  let w = localStorage.getItem('dlds_wid');
+  if (w && /^[A-Z0-9]{4,8}$/.test(w)) return w;
+  const alpha = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  w = ''; for (let i=0;i<8;i++) w += alpha[Math.floor(Math.random()*alpha.length)];
+  localStorage.setItem('dlds_wid', w);
+  return w;
+}
+
+// keyboard: ESC closes any open modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    ['auth-overlay','detail-overlay','form-overlay','account-overlay'].forEach(id => {
+      document.getElementById(id).classList.remove('open');
+    });
+  }
+});
+
+// boot
+bootstrap();
+// Refresh admin badge every 60s while page is open
+setInterval(() => { if (STATE.user && STATE.user.is_admin) loadAdminBadge(); }, 60000);
+</script>
+</body>
+</html>

@@ -369,7 +369,7 @@
         // Paths under /api/* that are DYNAMIC backend endpoints (must hit apiBase).
         // Everything else (e.g. /api/static/, /api/service-worker.js, /api/astrolabe)
         // stays on the same origin (static host).
-        const DYNAMIC_API_PREFIXES = ['/api/lore', '/api/saves', '/api/status'];
+        const DYNAMIC_API_PREFIXES = ['./lore.html', '/api/saves', '/api/status'];
         function isDynamicApiPath(path) {
             if (typeof path !== 'string') return false;
             return DYNAMIC_API_PREFIXES.some(p => path === p || path.startsWith(p + '/') || path.startsWith(p + '?'));

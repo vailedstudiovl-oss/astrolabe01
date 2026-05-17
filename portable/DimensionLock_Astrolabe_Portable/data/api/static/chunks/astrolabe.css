@@ -1014,6 +1014,53 @@
         #event-banner.type-death { border-color: #ff5555; box-shadow: 0 0 40px rgba(255,85,85,0.5); }
         #event-banner.type-coup { border-color: #ffcc00; box-shadow: 0 0 40px rgba(255,204,0,0.5); }
         #event-banner.type-shift { border-color: #aa44ff; box-shadow: 0 0 40px rgba(170,68,255,0.5); }
+        /* Discovery / threshold variants — cinematic overhaul (Phase F) */
+        #event-banner.type-discovery { border-color: #00ffcc; box-shadow: 0 0 50px rgba(0,255,204,0.7);
+            background: linear-gradient(135deg, rgba(0,255,204,0.18), rgba(0,15,20,0.95) 60%);
+            animation: discoveryPulse 2.4s ease-in-out infinite; }
+        #event-banner.type-discovery .eb-eyebrow, #event-banner.type-discovery .eb-icon { color: #00ffcc; }
+        #event-banner.type-threshold { border-color: #ff4477; box-shadow: 0 0 50px rgba(255,68,119,0.6);
+            background: linear-gradient(135deg, rgba(255,68,119,0.18), rgba(0,5,10,0.95) 60%); }
+        #event-banner.type-threshold .eb-eyebrow, #event-banner.type-threshold .eb-icon { color: #ff4477; }
+        #event-banner.type-edge { border-color: #ffcc00; box-shadow: 0 0 60px rgba(255,204,0,0.7);
+            background: linear-gradient(135deg, rgba(255,204,0,0.18), rgba(20,5,0,0.95) 60%); }
+        #event-banner.type-edge .eb-eyebrow, #event-banner.type-edge .eb-icon { color: #ffcc00; }
+        @keyframes discoveryPulse {
+            0%,100% { box-shadow: 0 0 40px rgba(0,255,204,0.5); }
+            50%     { box-shadow: 0 0 70px rgba(0,255,204,0.85); }
+        }
+        /* Glitch overlay for cinematic ping */
+        .cinematic-glitch {
+            position: fixed; inset: 0; z-index: 998; pointer-events: none;
+            opacity: 0; mix-blend-mode: screen;
+            background:
+              linear-gradient(90deg, transparent 0%, rgba(0,255,204,0.08) 50%, transparent 100%),
+              repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(255,68,119,0.05) 2px, rgba(255,68,119,0.05) 3px);
+            transition: opacity 0.4s;
+        }
+        .cinematic-glitch.fire {
+            opacity: 1;
+            animation: glitchShake 0.35s steps(6) 2;
+        }
+        @keyframes glitchShake {
+            0%   { transform: translate(0, 0); filter: hue-rotate(0deg); }
+            20%  { transform: translate(-2px, 1px); filter: hue-rotate(15deg); }
+            40%  { transform: translate(2px, -1px); filter: hue-rotate(-15deg); }
+            60%  { transform: translate(-1px, 2px); filter: hue-rotate(20deg); }
+            80%  { transform: translate(1px, -2px); filter: hue-rotate(-10deg); }
+            100% { transform: translate(0, 0); filter: hue-rotate(0deg); }
+        }
+        /* Discovery sparkle on first contact with a strata */
+        .discovery-sparkle {
+            position: fixed; pointer-events: none; z-index: 60;
+            font-size: 36px; color: #00ffcc; text-shadow: 0 0 14px #00ffcc;
+            animation: sparkleRise 1.6s ease-out forwards;
+        }
+        @keyframes sparkleRise {
+            0%   { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+            30%  { opacity: 1; transform: translate(-50%, -20px) scale(1.4); }
+            100% { opacity: 0; transform: translate(-50%, -90px) scale(0.9); }
+        }
         #event-banner .eb-eyebrow { font-size: 9px; letter-spacing: 4px; opacity: 0.8; margin-bottom: 4px; }
         #event-banner .eb-title { font-size: 14px; font-weight: bold; letter-spacing: 2px; line-height: 1.3; color: #fff; }
         #event-banner .eb-subtitle { font-size: 11px; color: #b8b8b8; margin-top: 4px; line-height: 1.5; }

@@ -1071,6 +1071,53 @@
         #event-banner.type-death { border-color: #ff5555; box-shadow: 0 0 40px rgba(255,85,85,0.5); }
         #event-banner.type-coup { border-color: #ffcc00; box-shadow: 0 0 40px rgba(255,204,0,0.5); }
         #event-banner.type-shift { border-color: #aa44ff; box-shadow: 0 0 40px rgba(170,68,255,0.5); }
+        /* Discovery / threshold variants — cinematic overhaul (Phase F) */
+        #event-banner.type-discovery { border-color: #00ffcc; box-shadow: 0 0 50px rgba(0,255,204,0.7);
+            background: linear-gradient(135deg, rgba(0,255,204,0.18), rgba(0,15,20,0.95) 60%);
+            animation: discoveryPulse 2.4s ease-in-out infinite; }
+        #event-banner.type-discovery .eb-eyebrow, #event-banner.type-discovery .eb-icon { color: #00ffcc; }
+        #event-banner.type-threshold { border-color: #ff4477; box-shadow: 0 0 50px rgba(255,68,119,0.6);
+            background: linear-gradient(135deg, rgba(255,68,119,0.18), rgba(0,5,10,0.95) 60%); }
+        #event-banner.type-threshold .eb-eyebrow, #event-banner.type-threshold .eb-icon { color: #ff4477; }
+        #event-banner.type-edge { border-color: #ffcc00; box-shadow: 0 0 60px rgba(255,204,0,0.7);
+            background: linear-gradient(135deg, rgba(255,204,0,0.18), rgba(20,5,0,0.95) 60%); }
+        #event-banner.type-edge .eb-eyebrow, #event-banner.type-edge .eb-icon { color: #ffcc00; }
+        @keyframes discoveryPulse {
+            0%,100% { box-shadow: 0 0 40px rgba(0,255,204,0.5); }
+            50%     { box-shadow: 0 0 70px rgba(0,255,204,0.85); }
+        }
+        /* Glitch overlay for cinematic ping */
+        .cinematic-glitch {
+            position: fixed; inset: 0; z-index: 998; pointer-events: none;
+            opacity: 0; mix-blend-mode: screen;
+            background:
+              linear-gradient(90deg, transparent 0%, rgba(0,255,204,0.08) 50%, transparent 100%),
+              repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(255,68,119,0.05) 2px, rgba(255,68,119,0.05) 3px);
+            transition: opacity 0.4s;
+        }
+        .cinematic-glitch.fire {
+            opacity: 1;
+            animation: glitchShake 0.35s steps(6) 2;
+        }
+        @keyframes glitchShake {
+            0%   { transform: translate(0, 0); filter: hue-rotate(0deg); }
+            20%  { transform: translate(-2px, 1px); filter: hue-rotate(15deg); }
+            40%  { transform: translate(2px, -1px); filter: hue-rotate(-15deg); }
+            60%  { transform: translate(-1px, 2px); filter: hue-rotate(20deg); }
+            80%  { transform: translate(1px, -2px); filter: hue-rotate(-10deg); }
+            100% { transform: translate(0, 0); filter: hue-rotate(0deg); }
+        }
+        /* Discovery sparkle on first contact with a strata */
+        .discovery-sparkle {
+            position: fixed; pointer-events: none; z-index: 60;
+            font-size: 36px; color: #00ffcc; text-shadow: 0 0 14px #00ffcc;
+            animation: sparkleRise 1.6s ease-out forwards;
+        }
+        @keyframes sparkleRise {
+            0%   { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+            30%  { opacity: 1; transform: translate(-50%, -20px) scale(1.4); }
+            100% { opacity: 0; transform: translate(-50%, -90px) scale(0.9); }
+        }
         #event-banner .eb-eyebrow { font-size: 9px; letter-spacing: 4px; opacity: 0.8; margin-bottom: 4px; }
         #event-banner .eb-title { font-size: 14px; font-weight: bold; letter-spacing: 2px; line-height: 1.3; color: #fff; }
         #event-banner .eb-subtitle { font-size: 11px; color: #b8b8b8; margin-top: 4px; line-height: 1.5; }
@@ -7487,6 +7534,131 @@
             const oldOpacity = disc.material.opacity;
             disc.material.opacity = 1.0;
             setTimeout(() => { disc.material.color.setHex(orig); disc.material.opacity = oldOpacity; }, 800);
+        }
+
+        // =============================================================
+        //  PHASE F — CINEMATIC DISCOVERY SYSTEM
+        //  · Persists discoveredStrata in localStorage so progress carries over.
+        //  · Triggers a discovery banner the FIRST time you anchor on a new strata.
+        //  · Threshold milestones at ±25 / ±50 / ±75 / ±99 fire special prompts.
+        //  · scanSector() now flashes a chromatic-glitch overlay for cinematic ping.
+        // =============================================================
+        const DISC_KEY = 'astrolabe_discovered_v1';
+        const THRESHOLD_KEY = 'astrolabe_thresholds_v1';
+
+        function loadDiscoveredStrata() {
+            try {
+                const raw = localStorage.getItem(DISC_KEY);
+                if (!raw) return;
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) arr.forEach(l => GAME_STATE.discoveredStrata.add(l));
+            } catch(e) { console.warn('[discovery] failed to load saved strata', e); }
+        }
+        function saveDiscoveredStrata() {
+            try {
+                localStorage.setItem(DISC_KEY, JSON.stringify(Array.from(GAME_STATE.discoveredStrata)));
+            } catch(e) {}
+        }
+        function getCrossedThresholds() {
+            try {
+                const raw = localStorage.getItem(THRESHOLD_KEY);
+                return new Set(raw ? JSON.parse(raw) : []);
+            } catch(e) { return new Set(); }
+        }
+        function saveCrossedThresholds(set) {
+            try { localStorage.setItem(THRESHOLD_KEY, JSON.stringify(Array.from(set))); } catch(e) {}
+        }
+
+        // Threshold prompts — flavor text appearing at narrative crossings.
+        const THRESHOLD_PROMPTS = {
+             25: { icon:'◈', title:'ASCENDANT THRESHOLD',  sub:'You crossed into the third quartile. Light bleeds differently here.', type:'threshold' },
+             50: { icon:'◉', title:'HIGH ORDER REALITY',   sub:'Half-way to the apex. The factions of order grow watchful.',         type:'threshold' },
+             75: { icon:'✦', title:'AETHERIC SPIRES',      sub:'Few wanderers have anchored this high. The Endless thins.',           type:'threshold' },
+             99: { icon:'★', title:'EDGE OF CREATION',     sub:'You stand at the apex strata. Beyond is only the unwritten.',          type:'edge' },
+            '-25':{ icon:'◇', title:'DESCENDANT THRESHOLD',sub:'Reality fractures. Soul echoes drift in the dark.',                    type:'threshold' },
+            '-50':{ icon:'☠', title:'LOW ORDER REALITY',   sub:'Half-way to the abyss. The Unholy Ones notice your descent.',         type:'threshold' },
+            '-75':{ icon:'⌬', title:'NECROTIC ZONE',       sub:'The fabric here was burned thin by a Reaper\u2019s passage long ago.', type:'threshold' },
+            '-99':{ icon:'☠', title:'THE LURKER\u2019S DOMAIN', sub:'You are watched. Every step from here is recorded.',              type:'edge' }
+        };
+
+        function showDiscoveryBanner(level) {
+            const data = (typeof TERRITORY_DATA !== 'undefined') ? TERRITORY_DATA[level] : null;
+            const title = data ? data.title : `STRATA ${level >= 0 ? '+' : ''}${level}`;
+            const sub = data && data.faction ? `${data.faction.name || 'Unclaimed'} · ${data.isDead ? 'DEAD REALITY' : 'STABLE'}` :
+                                                `Reality fragment archived to the Codex.`;
+            try { showEventBanner('discovery', `DISCOVERED · ${title}`, sub, '◉'); } catch(e) {}
+            try { logMessage(`Anchor signature recorded at strata ${level >= 0 ? '+' : ''}${level} — ${title}`, 'success'); } catch(e) {}
+            // Spawn a screen-center sparkle
+            try {
+                const s = document.createElement('div');
+                s.className = 'discovery-sparkle';
+                s.textContent = '◉';
+                s.style.left = '50%';
+                s.style.top = 'calc(40% + var(--safe-top, 0px))';
+                document.body.appendChild(s);
+                setTimeout(() => s.remove(), 1800);
+            } catch(e) {}
+        }
+
+        function checkThresholdMilestone(level) {
+            const key = String(level);
+            const t = THRESHOLD_PROMPTS[key];
+            if (!t) return;
+            const crossed = getCrossedThresholds();
+            if (crossed.has(key)) return;
+            crossed.add(key); saveCrossedThresholds(crossed);
+            // Fire after the discovery banner so they don't overlap
+            setTimeout(() => {
+                try { showEventBanner(t.type, t.title, t.sub, t.icon); } catch(e) {}
+                try { logMessage(`THRESHOLD CROSSED — ${t.title}: ${t.sub}`, t.type==='edge'?'alert':'purple'); } catch(e) {}
+            }, 1800);
+        }
+
+        // Patch the discoveredStrata.add to fire cinematic events on FIRST contact.
+        (function instrumentDiscovery() {
+            loadDiscoveredStrata();
+            const origAdd = GAME_STATE.discoveredStrata.add.bind(GAME_STATE.discoveredStrata);
+            GAME_STATE.discoveredStrata.add = function(level) {
+                const lvl = typeof level === 'number' ? level : parseInt(level);
+                if (Number.isNaN(lvl)) return origAdd(level);
+                const wasNew = !this.has(lvl);
+                const r = origAdd(lvl);
+                if (wasNew && lvl !== 0) {  // 0 is always discovered at spawn
+                    showDiscoveryBanner(lvl);
+                    checkThresholdMilestone(lvl);
+                    saveDiscoveredStrata();
+                } else if (wasNew) {
+                    saveDiscoveredStrata();
+                }
+                return r;
+            };
+        })();
+
+        // Inject the chromatic glitch overlay element used by the ping.
+        (function injectGlitch() {
+            if (document.querySelector('.cinematic-glitch')) return;
+            const g = document.createElement('div');
+            g.className = 'cinematic-glitch';
+            g.id = 'cinematic-glitch';
+            document.body.appendChild(g);
+        })();
+        function cinematicGlitch() {
+            const g = document.getElementById('cinematic-glitch');
+            if (!g) return;
+            g.classList.remove('fire'); void g.offsetWidth;
+            g.classList.add('fire');
+            setTimeout(() => g.classList.remove('fire'), 900);
+        }
+
+        // Wrap scanSector to add the cinematic flash + flash the target strata.
+        if (typeof scanSector === 'function') {
+            const __origScanSector = scanSector;
+            scanSector = function() {
+                cinematicGlitch();
+                const lvlEl = document.getElementById('target-level');
+                if (lvlEl) { try { flashStrata(parseInt(lvlEl.value)); } catch(e) {} }
+                return __origScanSector();
+            };
         }
 
         function recordReaperActivity(reaper, type, text) {

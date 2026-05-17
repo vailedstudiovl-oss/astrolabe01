@@ -1213,15 +1213,106 @@ agent_communication:
         Combined with the clamp() refactor + box-sizing: content-box +
         padding-top: var(--safe-top), the layout now scales smoothly.
 
-      P1 — Re-export bundles to embed the verified fix:
-        • python3 backend/scripts/split_astrolabe.py
-            → astrolabe.css 83.5 KB / -body 55.7 KB / -engine 335.1 KB
-        • python3 backend/scripts/export_dist.py
-            → /app/dist 53 files · 38.89 MB
-        • python3 backend/scripts/build_portable.py
-            → /app/portable/DimensionLock_Astrolabe_Portable.zip 38.90 MB
-        All three scripts ran clean. Chunks now reference the
-        clamp()-based topbar and the latest 3D models/textures.
+  - agent: "main"
+    message: |
+      [2026-05-17 — Iterations 9–11: Lore Archive (Phases 1-2-3-4 in one go)]
+
+      USER REQUEST: Build a Lore section (characters + factions) with community
+      edit system, a Lore Ambassador login system with registration/login and
+      contributions tracking, a confirmation/notification system going to the
+      admin (dimensionlockdeath@gmail.com), and overhaul the Astrolabe UI to
+      be more cinematic + enhance discovery. Quickest-path defaults selected:
+      DB-logged notifications (no email), email+password auth, auto-publish
+      with admin rollback, fog-of-war + discovery banners + cinematic ping.
+
+      ─── PHASE 1: BACKEND (Lore Ambassador + Lore CRUD + Admin Notifs) ───
+        18 new endpoints under /api/lore (see "Phase E" task). Auth: JWT
+        HS256, 30-day TTL, secret in LORE_JWT_SECRET env. Three new Mongo
+        collections (lore_ambassadors, lore_entries, lore_admin_notifications).
+        Auto-publish + admin notification log per write.
+        Fixed Phase D path collision: /api/lore/{target_type}/{target_id} was
+        catching Phase E paths → moved to /api/lore/target/{target_type}/{id}.
+        Fixed ObjectId leak in notification snapshot (shallow-copy strips _id).
+        Updated 2 frontend HTML callers (astrolabe.html, astro_defense.html).
+        Cleaned 48 stale dirty rows in lore_admin_notifications.
+        TESTING: 125/125 backend assertions PASSED via deep_testing_backend_v2.
+
+      ─── PHASE 2: LORE HTML PAGE (/api/lore) ───
+        Created /app/backend/static/lore.html (1100+ lines, single-file).
+        Backend route GET /api/lore → serves lore.html.
+        Features:
+          • Cyberpunk theme matching the rest of the suite (Cinzel + Share Tech
+            Mono, starfield bg, scanlines, glitch effects).
+          • Sticky header: ← MENU button, LORE title, auth pill (login/account).
+          • 4-tab nav: CHARACTERS, FACTIONS, MY CONTRIBUTIONS (logged-in only),
+            ADMIN (admin-only, polls unread badge every 60s).
+          • Toolbar: search input (350ms debounce), sort dropdown (recent/
+            trending/top), + CREATE button.
+          • Responsive grid (1 col mobile / auto-fill desktop) of entry cards
+            with corner glyphs, kind pill, name in Cinzel, tags, vote count.
+          • Detail modal: image, stats grid, full description (preserved
+            whitespace), tag chips, vote (toggleable) + flag buttons,
+            EDIT/DELETE actions (author or admin only).
+          • Create/Edit form: name, role/faction/strata/alignment (char) OR
+            sigil/color/territory/alignment (faction), summary, description,
+            image URL, comma-tags. Color regex-validated. Sigil 1-4 chars.
+          • Auth modal: LOG IN / REGISTER tabs, JWT persisted in localStorage
+            under 'dlds_lore_token'. Inline error display.
+          • Account modal: email/WID/joined/contribution-count stats, display
+            name edit, password change (requires current password), logout.
+          • Admin dashboard: list of notifications color-coded by kind
+            (create=gold, edit=purple, delete=pink), per-note "MARK READ" +
+            "MARK ALL READ" buttons, unread/total counts.
+          • Toast notifications, ESC closes any modal, defensive try/catch
+            on every API call.
+        Updated main_menu.html: replaced CHARACTER ROSTER button with a link
+        to /api/lore (label "LORE"). Old roster modal vestiges kept but with
+        defensive ?. checks so no errors when the trigger is missing.
+
+      ─── PHASE 3: ADMIN CONFIRMATION + NOTIFICATIONS ───
+        Already covered by Phase 1's lore_admin_notifications collection +
+        Phase 2's admin tab. Notifications generated on every
+        character_create / character_edit / character_delete / faction_create
+        / faction_edit / faction_delete. Snapshot stored for rollback.
+        Admin badge polls /api/lore/admin/notifications?only_unread=true&limit=1
+        every 60 seconds while page is open.
+
+      ─── PHASE 4: ASTROLABE CINEMATIC OVERHAUL ───
+        Added to astrolabe.html (and re-split into chunks):
+          • Persistent discovery via localStorage key 'astrolabe_discovered_v1'.
+            discoveredStrata.add() is monkey-patched to fire a banner +
+            persist on FIRST contact only.
+          • showDiscoveryBanner(level): "DISCOVERED · {title}" with a
+            screen-center sparkle (cyan ◉) that rises and fades.
+          • 8 threshold prompts at ±25 (ASCENDANT/DESCENDANT THRESHOLD),
+            ±50 (HIGH/LOW ORDER REALITY), ±75 (AETHERIC SPIRES/NECROTIC
+            ZONE), ±99 (EDGE OF CREATION/THE LURKER'S DOMAIN). Crossed
+            thresholds persist in 'astrolabe_thresholds_v1' so each plays
+            once per save.
+          • cinematicGlitch() overlay: chromatic-aberration screen-shake
+            shader fires on scanSector() (ping) — combines hue-rotate +
+            translate steps for a brief flash. Also flashes the target
+            strata mesh.
+          • New banner CSS variants: type-discovery (cyan pulse),
+            type-threshold (pink), type-edge (gold).
+        TESTED via screenshot tool: triggering openLoreDatabank(25, null)
+        fires the threshold-25 banner + log message + persists to localStorage.
+        Same for -50. Confirmed cinematic glitch fires on scanSector.
+
+      ─── BUILDS REFRESHED ───
+        export_dist.py + build_portable.py updated to copy lore.html and
+        add the /api/lore route to _redirects / netlify.toml / vercel.json
+        and rewrite the offline portable links.
+        • split_astrolabe.py: chunks now 466.4 KB (CSS 79.0 / body 53.2 /
+          engine 334.1) — net +9.6 KB over previous build (the cinematic
+          discovery system added).
+        • export_dist.py: /app/dist now 54 files · 38.93 MB.
+        • build_portable.py: DimensionLock_Astrolabe_Portable.zip · 38.94 MB.
+
+      ─── CLEANUP ───
+        Removed 23 stale test lore entries, 9 test ambassadors, and 68
+        stale admin notifications left over from automated backend tests.
+        Production UI now starts empty + clean.
 
 
   - agent: "main"

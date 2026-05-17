@@ -81,6 +81,13 @@ async def astrolabe_legacy():
     return FileResponse(html_path, media_type="text/html")
 
 
+@api_router.get("/lore", response_class=FileResponse)
+async def lore_archive_page():
+    """Serves the Lore Archive page — characters + factions + ambassador auth + admin dashboard."""
+    html_path = ROOT_DIR / "static" / "lore.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
 @api_router.get("/service-worker.js")
 async def service_worker():
     """Serves the PWA service worker with Service-Worker-Allowed header so it

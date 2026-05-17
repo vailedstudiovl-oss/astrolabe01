@@ -806,11 +806,11 @@
                 <div class="desc">deathly fragments · cinematic transmissions</div>
             </button>
 
-            <button class="menu-btn roster" id="open-roster" type="button">
+            <a class="menu-btn roster" href="./lore.html" data-game="lore">
                 <div class="glyph">☥</div>
-                <div class="label">CHARACTER ROSTER</div>
-                <div class="desc">reapers · husks · lurkers · sentinels of creation</div>
-            </button>
+                <div class="label">LORE</div>
+                <div class="desc">characters · factions · ambassador login · community-edited canon</div>
+            </a>
         </nav>
 
         <!-- VIDEO ARCHIVES MODAL -->
@@ -1390,11 +1390,11 @@
             charDetail.classList.remove('open');
             charDetail.setAttribute('aria-hidden', 'true');
         }
-        rosterBtn.addEventListener('click', openRoster);
-        rosterClose.addEventListener('click', closeRoster);
-        rosterModal.addEventListener('click', (e) => { if (e.target === rosterModal) closeRoster(); });
-        charDetailClose.addEventListener('click', closeCharDetail);
-        charDetail.addEventListener('click', (e) => { if (e.target === charDetail) closeCharDetail(); });
+        rosterBtn && rosterBtn.addEventListener('click', openRoster);
+        rosterClose && rosterClose.addEventListener('click', closeRoster);
+        rosterModal && rosterModal.addEventListener('click', (e) => { if (e.target === rosterModal) closeRoster(); });
+        charDetailClose && charDetailClose.addEventListener('click', closeCharDetail);
+        charDetail && charDetail.addEventListener('click', (e) => { if (e.target === charDetail) closeCharDetail(); });
 
         // ======== DONATION MODAL WIRE-UP ========
         const donateBtn     = document.getElementById('open-donate');

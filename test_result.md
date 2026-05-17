@@ -113,10 +113,93 @@ backend:
     implemented: true
     working: false
     file: "backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: true
     status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            [2026-05-16 — re-test after Phase D /target/ route fix]
+            Phase E test suite re-run via /app/backend_test.py against the
+            external preview URL. ROUTE-ORDER BUG IS FIXED — every previously
+            broken GET endpoint now reaches the correct handler.
+              • GET /api/lore/ambassadors/me                    → 200 ✓
+              • GET /api/lore/characters/{id}                   → 200 ✓
+              • GET /api/lore/factions/{id}                     → 200 ✓
+              • GET /api/lore/admin/notifications (admin)       → 500 ✗ (new bug)
+              • GET /api/lore/admin/notifications (non-admin)   → 403 ✓
+              • POST /api/lore/admin/notifications/read-all     → 200 ✓ / 403 ✓
+              • POST /api/lore/admin/notifications/{id}/read    → reachable; couldn't
+                                                                 fully verify until 500 fixed
+
+            RESULTS: 108 PASSED / 1 FAILED.
+
+            🚨 NEW (single remaining) ISSUE — GET /api/lore/admin/notifications
+            returns HTTP 500 with traceback:
+              ValueError: [TypeError("'ObjectId' object is not iterable"),
+                           TypeError('vars() argument must have __dict__ attribute')]
+              raised in fastapi/encoders.py / jsonable_encoder.
+
+            Root cause (verified by reading backend/server.py):
+              In `_log_admin_notification(...)` (line 754), the helper does
+                snapshot=entry
+              where `entry` is the same dict that was just inserted into
+              MongoDB via `db.lore_entries.insert_one(entry)`. PyMongo
+              MUTATES that dict in place to add `_id: ObjectId(...)`. So
+              every notification row stored to lore_admin_notifications has
+              a snapshot containing a Mongo ObjectId. The same happens in
+              edit_character / delete_character / edit_faction /
+              delete_faction (lines 931, 944, 1031, 1044) — they pass `doc`
+              freshly read from Mongo, which also includes _id.
+
+              On read, list_admin_notifications (line 1090) does
+                d.pop("_id", None)
+              for the top-level note, but does NOT strip _id from the
+              nested `snapshot` dict. FastAPI's jsonable_encoder then
+              chokes on the ObjectId.
+
+            Suggested fix (one-line):
+              In `_log_admin_notification`, BEFORE building the note, do:
+                  entry = {k: v for k, v in entry.items() if k != "_id"}
+              OR equivalently `entry.pop("_id", None)` (but make sure that
+              doesn't mutate the caller's view of the doc). Then existing
+              dirty rows can be cleaned with:
+                  db.lore_admin_notifications.update_many(
+                      {"snapshot._id": {"$exists": True}},
+                      {"$unset": {"snapshot._id": ""}}
+                  )
+              OR have the GET endpoint defensively pop snapshot._id when
+              reading. Both fixes are safe and small.
+
+            EVERYTHING ELSE VERIFIED OK (108 assertions):
+              • Ambassador auth full lifecycle (register, login, /me, PATCH
+                display_name, password change w/ correct + wrong + missing
+                current_password, /me/contributions, all 422/401/409 edge
+                cases). Wanderer_id format 8 chars A-HJ-NP-Z2-9 confirmed.
+              • Characters CRUD: create (200/401/422), list, GET by id (200/404),
+                PATCH as author (200) vs non-author (403), DELETE as author
+                (200) vs non-author (403), description <10 / >4000 / missing
+                name → 422, ?q=, ?tag=, ?sort=top filters working, version
+                increments on PATCH.
+              • Factions CRUD: same shape + color regex (#aa44ff ok, aa44ff →
+                422, #xyz → 422) + sigil truncated to 4 chars.
+              • Vote / Flag on /lore/entries/{id}: toggle idempotent (1↔0
+                from same wid), bad-wid → 400, unknown id → 404, 3 distinct
+                flags → hidden=True, ?include_hidden=true returns it.
+              • Admin notifications: 403 for non-admin on GET and read-all,
+                admin login from /app/memory/test_credentials.md works,
+                is_admin=True for admin email, POST /read-all → 200, mark
+                single read endpoint reachable. Notification creation does
+                fire on every character/faction create/edit/delete (the GET
+                500 is purely a serialization issue, not a missing-write
+                issue).
+
+            ALSO RE-VERIFIED Phase D regression suite (see entry below) —
+            all NEW /api/lore/target/{target_type}/{target_id} paths and
+            all single-segment /api/lore/{id}/(vote|flag|PATCH|DELETE)
+            still working correctly. No collisions with Phase E paths.
+
         - working: false
           agent: "testing"
           comment: |
@@ -259,6 +342,24 @@ backend:
 
             Backend restarted clean (no syntax errors). Awaiting automated
             verification of the full happy-path + 401/403/409/422 edge cases.
+
+        - working: true
+          agent: "testing"
+          comment: |
+            [2026-05-16 — Phase D regression after /target/ route fix]
+            Re-tested Phase D after main agent moved the catch-all to
+            /api/lore/target/{target_type}/{target_id}. All Phase D
+            endpoints still work, and they no longer collide with Phase E
+            single-segment /lore/{id}/* paths. Confirmed in section 6 of
+            /app/backend_test.py — 19 fresh assertions, all PASS:
+              • POST /api/lore/contribute                           → 200 ✓
+              • GET  /api/lore/target/reality/zero                  → 200 ✓
+              • GET  /api/lore/target/banana/zero                   → 400 ✓
+              • POST /api/lore/{id}/vote (toggle)                   → 200 / votes 1↔0 ✓
+              • POST /api/lore/{id}/flag                            → 200 ✓
+              • PATCH /api/lore/{id}  as author / non-author         → 200 / 403 ✓
+              • DELETE /api/lore/{id} as author / non-author         → 200 / 403 ✓
+              • POST /api/lore/{unknown}/vote and /flag             → 404 / 404 ✓
 
   - task: "Phase D — Community Lore endpoints (CRUD, vote, flag)"
     implemented: true
@@ -746,6 +847,66 @@ test_plan:
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "testing"
+    message: |
+      [2026-05-16 — Phase E re-test after /target/ route fix]
+      Re-ran /app/backend_test.py against the external preview URL.
+      RESULTS: 108 PASSED · 1 FAILED.
+
+      ✅ ROUTE-ORDER BUG IS FIXED — the previous Phase D catch-all
+      collision is gone. All previously-broken GETs now hit the
+      correct handler:
+        • GET /api/lore/ambassadors/me                → 200 / 401
+        • GET /api/lore/characters/{id}               → 200 / 404
+        • GET /api/lore/factions/{id}                 → 200 / 404
+        • GET /api/lore/admin/notifications (admin)   → reaches handler
+        • GET /api/lore/admin/notifications (non-admin) → 403
+
+      ✅ Phase D regression also verified — section 6 of backend_test.py
+      added 19 fresh assertions covering POST /api/lore/contribute,
+      GET /api/lore/target/reality/zero (200), /target/banana/zero (400),
+      and POST /vote, /flag, PATCH, DELETE on /api/lore/{id}. All pass.
+
+      🚨 ONE NEW BUG REMAINING — GET /api/lore/admin/notifications (admin)
+      returns 500 with traceback:
+          ValueError: [TypeError("'ObjectId' object is not iterable"),
+                       TypeError('vars() argument must have __dict__ attribute')]
+        raised in fastapi/encoders.py / jsonable_encoder.
+
+      Root cause: _log_admin_notification() in backend/server.py:754 stores
+        snapshot=entry
+      where `entry` is a dict that PyMongo has just mutated to include
+      `_id: ObjectId(...)` (the side-effect of insert_one). The same applies
+      to edit_character / delete_character / edit_faction / delete_faction
+      where `doc` is freshly read from Mongo and carries `_id`. On read,
+      list_admin_notifications pops the TOP-LEVEL `_id` but NOT
+      `snapshot._id`, so FastAPI can't JSON-encode the ObjectId nested in
+      snapshot.
+
+      RECOMMENDED FIX (one-line, safe):
+        At the top of `_log_admin_notification`, before constructing the
+        note, do:
+            entry = {k: v for k, v in entry.items() if k != "_id"}
+        (Avoid `entry.pop("_id", None)` because that would also mutate the
+        caller's dict and could affect downstream logic.)
+
+        ALSO clean up dirty rows that were written before the fix:
+            db.lore_admin_notifications.update_many(
+                {"snapshot._id": {"$exists": True}},
+                {"$unset": {"snapshot._id": ""}}
+            )
+
+      I deliberately did NOT apply this fix myself because it's a
+      functional backend change — please apply and re-test. After the
+      fix, GET admin notifications + mark-read + mark-all-read should
+      all return 200 and the notification snapshot will contain the
+      expected fields (verified up to but not including the JSON
+      serialization step).
+
+      Test credentials used (from /app/memory/test_credentials.md):
+        email:    dimensionlockdeath@gmail.com
+        password: AdminSt0rmRiderXyz#2026
+
   - agent: "testing"
     message: |
       [2026-05-16 — Phase E backend testing]

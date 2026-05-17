@@ -655,6 +655,106 @@ def section_admin(amb_b):
                     headers=auth_headers(amb_b["token"]), timeout=10)
 
 
+# ---------------------------------------------------------------------------
+# 6.  Phase D regression — /api/lore/contribute, /api/lore/target/...,
+#      /api/lore/{id}/vote, /flag, PATCH, DELETE
+# ---------------------------------------------------------------------------
+
+def section_phase_d_regression():
+    print("\n=== 6. Phase D regression (community lore contributions) ===")
+    wid_author = "WAND0001"  # 4-8 uppercase alphanumeric
+    target_type = "reality"
+    target_id = "zero"
+
+    # POST /api/lore/contribute
+    payload = {
+        "target_type": target_type,
+        "target_id": target_id,
+        "title": f"Echoes of Strata-Zero #{TS}",
+        "content": "The lattice hums softly here. A wanderer once carved a sigil into the obsidian floor of the prime reality.",
+        "author_wid": wid_author,
+        "author_name": "Veylin the Cartographer",
+    }
+    r = requests.post(f"{API}/lore/contribute", json=payload, timeout=20)
+    expect_status(r, 200, "POST /api/lore/contribute → 200")
+    if r.status_code != 200:
+        return
+    contrib = r.json()
+    expect_eq(contrib["target_type"], target_type, "contribution target_type matches")
+    expect_eq(contrib["target_id"], target_id, "contribution target_id matches")
+    expect_eq(contrib["author_wid"], wid_author, "contribution author_wid matches")
+    contrib_id = contrib["id"]
+
+    # GET /api/lore/target/reality/zero (valid target_type)
+    r2 = requests.get(f"{API}/lore/target/{target_type}/{target_id}", timeout=20)
+    expect_status(r2, 200, "GET /api/lore/target/reality/zero → 200")
+    if r2.status_code == 200:
+        ids = [c["id"] for c in r2.json()]
+        expect(contrib_id in ids,
+               "new contribution appears in /target/reality/zero",
+               f"got {len(ids)} contributions")
+
+    # GET /api/lore/target/banana/zero (invalid target_type) → 400
+    r3 = requests.get(f"{API}/lore/target/banana/zero", timeout=20)
+    expect_status(r3, 400, "GET /api/lore/target/banana/zero → 400 (invalid target_type)")
+
+    # POST /api/lore/{id}/vote — single dynamic segment (must NOT collide
+    # with Phase E /lore/entries, /lore/characters, /lore/factions, etc.)
+    rv = requests.post(f"{API}/lore/{contrib_id}/vote",
+                       json={"wanderer_id": "VOTERA"}, timeout=20)
+    expect_status(rv, 200, "POST /api/lore/{id}/vote → 200")
+    if rv.status_code == 200:
+        expect_eq(rv.json()["votes"], 1, "votes=1 after first vote")
+    # idempotent toggle from same wid
+    rv2 = requests.post(f"{API}/lore/{contrib_id}/vote",
+                        json={"wanderer_id": "VOTERA"}, timeout=20)
+    expect_status(rv2, 200, "POST /api/lore/{id}/vote (toggle) → 200")
+    if rv2.status_code == 200:
+        expect_eq(rv2.json()["votes"], 0, "votes=0 after toggle from same wid")
+
+    # POST /api/lore/{id}/flag
+    rf = requests.post(f"{API}/lore/{contrib_id}/flag",
+                       json={"wanderer_id": "FLAGGER1"}, timeout=20)
+    expect_status(rf, 200, "POST /api/lore/{id}/flag → 200")
+    if rf.status_code == 200:
+        expect_eq(rf.json()["flags"], 1, "flags=1 after first flag")
+
+    # PATCH /api/lore/{id} as author
+    new_content = "EDITED: The lattice hums and a new sigil now glows next to the original. " * 2
+    rp = requests.patch(f"{API}/lore/{contrib_id}",
+                        json={"content": new_content, "author_wid": wid_author},
+                        timeout=20)
+    expect_status(rp, 200, "PATCH /api/lore/{id} as author → 200")
+    if rp.status_code == 200:
+        expect(rp.json()["content"].startswith("EDITED:"),
+               "PATCH /api/lore/{id} updated content",
+               f"got: {rp.json()['content'][:60]!r}")
+
+    # PATCH as wrong wid → 403
+    rp2 = requests.patch(f"{API}/lore/{contrib_id}",
+                         json={"content": new_content, "author_wid": "IMPOSTOR"},
+                         timeout=20)
+    expect_status(rp2, 403, "PATCH /api/lore/{id} as non-author → 403")
+
+    # DELETE wrong wid → 403
+    rd_bad = requests.delete(f"{API}/lore/{contrib_id}",
+                             params={"author_wid": "IMPOSTOR"}, timeout=20)
+    expect_status(rd_bad, 403, "DELETE /api/lore/{id} as non-author → 403")
+
+    # DELETE as author → 200
+    rd = requests.delete(f"{API}/lore/{contrib_id}",
+                         params={"author_wid": wid_author}, timeout=20)
+    expect_status(rd, 200, "DELETE /api/lore/{id} as author → 200")
+
+    # vote/flag on unknown id should be 404 (sanity)
+    expect_status(requests.post(f"{API}/lore/nonexistent-contribution-id/vote",
+                                json={"wanderer_id": "VOTERA"}, timeout=20),
+                  404, "POST /api/lore/{unknown}/vote → 404")
+    expect_status(requests.post(f"{API}/lore/nonexistent-contribution-id/flag",
+                                json={"wanderer_id": "FLAGGER1"}, timeout=20),
+                  404, "POST /api/lore/{unknown}/flag → 404")
+
+
 def main():
     print(f"Backend URL: {API}")
     try:
@@ -675,6 +775,7 @@ def main():
     section_factions(amb_a, amb_b)
     section_vote_flag(amb_a)
     section_admin(amb_b)
+    section_phase_d_regression()
 
     print("\n=========================================")
     print(f"PASSED: {len(PASSED)}    FAILED: {len(FAILED)}")

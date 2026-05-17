@@ -249,12 +249,18 @@ async def list_recent_lore(limit: int = Query(20, ge=1, le=100)):
     return [LoreContribution(**d) async for d in cursor]
 
 
-@api_router.get("/lore/{target_type}/{target_id}", response_model=List[LoreContribution])
+@api_router.get("/lore/target/{target_type}/{target_id}", response_model=List[LoreContribution])
 async def list_lore_for_target(target_type: str, target_id: str,
                                include_hidden: bool = Query(False),
                                sort: str = Query("trending", regex="^(trending|recent|top)$"),
                                limit: int = Query(50, ge=1, le=200)):
-    """List community contributions for a given lore target (sorted by trending/recent/top)."""
+    """List community contributions for a given lore target (sorted by trending/recent/top).
+
+    The /target/ segment was added to disambiguate this route from the Phase E
+    paths (/lore/ambassadors/*, /lore/characters/{id}, /lore/factions/{id},
+    /lore/admin/*, /lore/entries/{id}/vote etc.) which would otherwise collide
+    with the 2-segment dynamic catch-all.
+    """
     _validate_target(target_type)
     q: Dict[str, Any] = {"target_type": target_type, "target_id": target_id}
     if not include_hidden:

@@ -4804,7 +4804,7 @@
                 </div>`;
             const listEl = sec.querySelector('.community-lore-list');
             try {
-                const list = await apiGet(`/api/lore/${t.target_type}/${encodeURIComponent(t.target_id)}?sort=trending`);
+                const list = await apiGet(`/api/lore/target/${t.target_type}/${encodeURIComponent(t.target_id)}?sort=trending`);
                 if (!list.length) {
                     listEl.innerHTML = `<div style="color:#666;font-style:italic;font-size:12px;">No community lore yet. Be the first to add a fragment.</div>`;
                 } else {

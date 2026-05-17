@@ -753,6 +753,9 @@ class AdminNotification(BaseModel):
 
 async def _log_admin_notification(kind: str, entry: Dict[str, Any], author: Dict[str, Any], summary: str):
     """Write a notification row. Admin can poll /api/lore/admin/notifications."""
+    # Strip Mongo's _id from the snapshot so it can be JSON-serialised later.
+    # We make a shallow copy so we don't mutate the caller's dict.
+    snapshot = {k: v for k, v in entry.items() if k != "_id"}
     note = AdminNotification(
         kind=kind,
         entry_id=entry["id"],
@@ -1089,6 +1092,11 @@ async def list_admin_notifications(amb: Dict[str, Any] = Depends(get_current_amb
     notes = []
     async for d in db.lore_admin_notifications.find(q).sort("created_at", -1).limit(limit):
         d.pop("_id", None)
+        # Defensive: strip any leaked Mongo _id from snapshot too (covers any
+        # historical rows written before the _log_admin_notification fix).
+        snap = d.get("snapshot")
+        if isinstance(snap, dict):
+            snap.pop("_id", None)
         notes.append(d)
     unread = await db.lore_admin_notifications.count_documents({"read": False})
     return {"notifications": notes, "unread_count": unread, "total_count": len(notes)}

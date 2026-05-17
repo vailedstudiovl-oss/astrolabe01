@@ -111,12 +111,44 @@ user_problem_statement: |
 backend:
   - task: "Phase E — Lore Ambassador auth + Lore Characters + Lore Factions + Admin Notifications"
     implemented: true
-    working: false
+    working: true
     file: "backend/server.py"
-    stuck_count: 2
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            [2026-05-16 — re-test after ObjectId-leak fix in _log_admin_notification]
+            Re-ran /app/backend_test.py against external preview URL.
+            RESULTS: 125 PASSED / 0 FAILED (suite grew slightly from the prior
+            109; all original 109 assertions still pass + 16 added coverage).
+
+            ✅ The previously failing GET /api/lore/admin/notifications now
+            returns 200. snapshot fields are JSON-serializable — no ObjectId
+            leak. Verified:
+              • snapshot.name matches the created entry's name
+              • delete-snapshot retains the deleted entry data (so rollback
+                payload is intact)
+              • read-all → all notifications.read=True
+              • character_edit and character_delete notifications fire and
+                are returned with correct shape
+
+            ✅ No regressions detected:
+              • Ambassador auth full lifecycle (register, login, /me, PATCH
+                display_name, password change w/ correct + wrong + missing
+                current_password) — all green
+              • Characters CRUD + filters (?q=, ?tag=, ?sort=top) — all green
+              • Factions CRUD + color regex + sigil truncation — all green
+              • Vote/Flag toggle + 3-flag hide + ?include_hidden — all green
+              • Phase D regression (POST /lore/contribute,
+                GET /lore/target/reality/zero, POST /lore/{id}/vote|flag,
+                PATCH/DELETE /lore/{id}) — all green
+
+            Phase E officially WORKING. Marking needs_retesting=false and
+            stuck_count=0.
+
         - working: false
           agent: "testing"
           comment: |
@@ -847,6 +879,24 @@ test_plan:
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "testing"
+    message: |
+      [2026-05-16 — Phase E final re-test after ObjectId-leak fix]
+      Re-ran /app/backend_test.py against external preview URL.
+      RESULTS: 125 PASSED · 0 FAILED.
+
+      ✅ ObjectId leak in _log_admin_notification is FIXED. The shallow
+      copy that strips `_id` before assigning to `snapshot`, plus the
+      defensive snap.pop("_id", None) in GET /api/lore/admin/notifications,
+      both work as intended.
+      ✅ GET /api/lore/admin/notifications as admin now returns 200.
+      ✅ Snapshot field is JSON-serialisable (snapshot.name verified to
+         match created entry; delete-snapshot retains entry data).
+      ✅ No regressions across Phase D or Phase E suite.
+
+      Phase E task marked working: true, needs_retesting: false,
+      stuck_count reset to 0. No further backend action required.
+
   - agent: "testing"
     message: |
       [2026-05-16 — Phase E re-test after /target/ route fix]

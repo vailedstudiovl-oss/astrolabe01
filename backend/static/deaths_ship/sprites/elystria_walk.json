@@ -1,8 +1,8 @@
 {
   "src": "elystria_walk_raw.png",
   "frames": 25,
-  "frame_w": 91,
+  "frame_w": 93,
   "frame_h": 169,
-  "strip_w": 2275,
+  "strip_w": 2325,
   "strip_h": 169
 }

@@ -27,18 +27,22 @@ SAMPLE_PAD = 4
 ALPHA_CUTOFF = 10   # after soft-key, anything below this alpha → 0 (cleans stray ghosts)
 
 def keyed(im: Image.Image) -> Image.Image:
-    """Border-connected flood-fill chroma key.
+    """ULTRA-TIGHT border-connected chroma key.
 
-    Only DARK pixels reachable from the image border (i.e. true background)
-    are made transparent. Dark colours INSIDE the character — black dress,
-    hood, boots, hair shadows — are kept fully opaque. This avoids the
-    "character becomes see-through where her clothing is dark" artefact
-    that a pure luma threshold causes.
+    The sprite sheets ship with a PURE black (0,0,0) background. The
+    character's dark fabric is almost-but-not-quite-zero (e.g. 6,4,9).
+    Earlier passes used max(R,G,B) <= 42 which catches the fabric too —
+    that's the "dark colour being filtered out" bug.
 
-    Additionally, pixels that are NOT background but are immediately
-    adjacent to background get a soft alpha ramp by luma — this kills the
-    one-pixel anti-aliased dark halo around the character without eating
-    her clothing.
+    New approach: only TRULY pitch-black, BORDER-CONNECTED pixels become
+    transparent. Specifically:
+      - Candidates  : sum(R+G+B) <= 9    (almost the strictest possible)
+      - Flood fill  : 4-connectivity from the four image borders.
+      - Soft halo   : pixels adjacent to a flood-killed pixel that still
+                      have very-low luma get a gentle alpha ramp so the
+                      one-pixel anti-aliased rim disappears.
+    Everything else — including any colour with even a slight non-zero
+    channel value — is preserved fully opaque.
     """
     im = im.convert("RGBA")
     arr = np.array(im, dtype=np.uint8)
@@ -46,23 +50,20 @@ def keyed(im: Image.Image) -> Image.Image:
     g = arr[..., 1].astype(np.int32)
     b = arr[..., 2].astype(np.int32)
     a = arr[..., 3].astype(np.int32)
-    luma = np.maximum(np.maximum(r, g), b)   # max channel — keeps coloured-but-dark
-    h, w = luma.shape
+    rgb_sum = r + g + b
 
-    # 1) Identify pixels that COULD be background (very dark, max-channel <= 42)
-    BG_MAX_LUMA = 42
-    bg_candidate = luma <= BG_MAX_LUMA
+    # 1) STRICT background candidates — pure / near-pure black only.
+    PURE_BLACK_SUM = 9
+    bg_candidate = rgb_sum <= PURE_BLACK_SUM
 
-    # 2) Seed: border pixels that are candidates
+    # 2) Seed flood from the four borders.
     bg = np.zeros_like(bg_candidate, dtype=bool)
     bg[0, :]  = bg_candidate[0, :]
     bg[-1, :] = bg_candidate[-1, :]
     bg[:, 0]  = bg_candidate[:, 0]
     bg[:, -1] = bg_candidate[:, -1]
 
-    # 3) Iterative 4-connected flood-fill restricted to bg_candidate.
-    #    Vectorised dilation — terminates in O(diameter) passes (~50 max
-    #    for a 256x256 tile, in practice 8–15).
+    # 3) Iterative 4-connected dilation, restricted to candidates.
     while True:
         nb = bg.copy()
         nb[1:, :]  |= bg[:-1, :]
@@ -74,11 +75,7 @@ def keyed(im: Image.Image) -> Image.Image:
             break
         bg = nb
 
-    # 4) Build the new alpha:
-    #    - pixels in bg → fully transparent
-    #    - pixels NOT in bg but adjacent to bg → soft alpha ramp by luma
-    #      (kills the one-pixel anti-aliased halo)
-    #    - all other pixels → keep their original alpha
+    # 4) Pixels adjacent to background (but NOT in it) → soft halo ramp.
     near_bg = np.zeros_like(bg, dtype=bool)
     near_bg[1:, :]  |= bg[:-1, :]
     near_bg[:-1, :] |= bg[1:, :]
@@ -89,16 +86,14 @@ def keyed(im: Image.Image) -> Image.Image:
     new_a = a.copy()
     new_a[bg] = 0
 
-    # Soft edge: only on near_bg pixels, fade by luma (~30..90)
-    SOFT_LOW, SOFT_HIGH = 30, 90
-    ramp = ((luma - SOFT_LOW).astype(np.float32) / float(SOFT_HIGH - SOFT_LOW)) * 255.0
+    # Halo ramp: for near_bg pixels, fade alpha by RGB-sum (~10..45).
+    HALO_LOW, HALO_HIGH = 10, 45
+    ramp = ((rgb_sum - HALO_LOW).astype(np.float32) / float(HALO_HIGH - HALO_LOW)) * 255.0
     ramp = np.clip(ramp, 0, 255).astype(np.int32)
     new_a = np.where(near_bg, np.minimum(new_a, ramp), new_a)
-
-    # Final cleanup — anything below ALPHA_CUTOFF → fully transparent
     new_a = np.where(new_a < ALPHA_CUTOFF, 0, new_a)
     arr[..., 3] = new_a.astype(np.uint8)
-    # Black RGB where alpha == 0 (avoids ghosting in premultiplied compositors)
+
     mask0 = new_a == 0
     arr[..., 0][mask0] = 0
     arr[..., 1][mask0] = 0

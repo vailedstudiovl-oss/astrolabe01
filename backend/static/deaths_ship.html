@@ -234,18 +234,18 @@ const ASSET_BASE = '/api/static/deaths_ship/sprites/';
 const SPRITE_META = {
   // Maytradalis (player)
   run_down:   { src: 'may_run_down.png',   frame_w: 86,  frame_h: 192, frames: 25 },
-  run_right:  { src: 'may_run_right.png',  frame_w: 108, frame_h: 185, frames: 25 },
-  run_up:     { src: 'may_run_up.png',     frame_w: 69,  frame_h: 181, frames: 25 },
+  run_right:  { src: 'may_run_right.png',  frame_w: 112, frame_h: 187, frames: 25 },
+  run_up:     { src: 'may_run_up.png',     frame_w: 70,  frame_h: 182, frames: 25 },
   idle_right: { src: 'may_idle_right.png', frame_w: 48,  frame_h: 182, frames: 25 },
   idle_up:    { src: 'may_idle_up.png',    frame_w: 53,  frame_h: 145, frames: 25 },
   // Master Death
   death_idle: { src: 'death_idle.png',     frame_w: 81,  frame_h: 168, frames: 25 },
-  death_walk: { src: 'death_walk.png',     frame_w: 71,  frame_h: 125, frames: 25 },
+  death_walk: { src: 'death_walk.png',     frame_w: 87,  frame_h: 138, frames: 25 },
   // Grim Elystria
-  elystria_idle:      { src: 'elystria_idle.png',      frame_w: 61,  frame_h: 179, frames: 25 },
+  elystria_idle:      { src: 'elystria_idle.png',      frame_w: 62,  frame_h: 179, frames: 25 },
   elystria_idle_down: { src: 'elystria_idle_down.png', frame_w: 73,  frame_h: 182, frames: 25 },
-  elystria_walk:      { src: 'elystria_walk.png',      frame_w: 91,  frame_h: 169, frames: 25 },
-  elystria_run:       { src: 'elystria_run.png',       frame_w: 142, frame_h: 147, frames: 25 },
+  elystria_walk:      { src: 'elystria_walk.png',      frame_w: 93,  frame_h: 169, frames: 25 },
+  elystria_run:       { src: 'elystria_run.png',       frame_w: 148, frame_h: 148, frames: 25 },
   // Romaine
   romaine_idle:  { src: 'romaine_idle.png',  frame_w: 62,  frame_h: 192, frames: 25 },
   romaine_walk:  { src: 'romaine_walk.png',  frame_w: 105, frame_h: 192, frames: 25 },
@@ -253,11 +253,11 @@ const SPRITE_META = {
   romaine_sleep: { src: 'romaine_sleep.png', frame_w: 223, frame_h: 76,  frames: 25 },
   romaine_wave:  { src: 'romaine_wave.png',  frame_w: 106, frame_h: 192, frames: 25 },
   // Grim Cryious
-  cryious_idle:      { src: 'cryious_idle.png',      frame_w: 71, frame_h: 152, frames: 25 },
-  cryious_idle_up:   { src: 'cryious_idle_up.png',   frame_w: 96, frame_h: 141, frames: 25 },
-  cryious_idle_down: { src: 'cryious_idle_down.png', frame_w: 91, frame_h: 163, frames: 25 },
-  cryious_walk:      { src: 'cryious_walk.png',      frame_w: 91, frame_h: 150, frames: 25 },
-  cryious_run:       { src: 'cryious_run.png',       frame_w: 103,frame_h: 108, frames: 25 },
+  cryious_idle:      { src: 'cryious_idle.png',      frame_w: 71, frame_h: 163, frames: 25 },
+  cryious_idle_up:   { src: 'cryious_idle_up.png',   frame_w: 96, frame_h: 142, frames: 25 },
+  cryious_idle_down: { src: 'cryious_idle_down.png', frame_w: 91, frame_h: 174, frames: 25 },
+  cryious_walk:      { src: 'cryious_walk.png',      frame_w: 93, frame_h: 157, frames: 25 },
+  cryious_run:       { src: 'cryious_run.png',       frame_w: 125,frame_h: 125, frames: 25 },
 };
 const sprites = {};   // name -> Image
 
@@ -350,6 +350,57 @@ const DORM_ROSTER = (() => {
 })();
 
 // ============================================================
+//   ASTROLABE ↔ DEATH'S SHIP — LIVE REAPER STATUS SYNC
+// ============================================================
+// When a reaper "dies" inside the Astrolabe (procedural events or scripted
+// outcomes), the Astrolabe writes its ID into a localStorage list called
+// `dlds_killed_reapers`. We mirror that into the ship's dorm roster: any
+// occupant whose canonical name (or generated ID) shows up in that list
+// gets `deceased=true`, which immediately extinguishes their door sigil.
+// Major characters (Cryious / Maytradalis / Elystria / Flybutt) are
+// IMMORTAL — their entries are ignored even if force-written.
+// ------------------------------------------------------------
+function _killedReaperSet() {
+  try {
+    const raw = localStorage.getItem('dlds_killed_reapers');
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return new Set(arr.map(s => String(s).trim().toUpperCase()));
+  } catch (e) { /* swallow — corrupt JSON shouldn't break the game */ }
+  return new Set();
+}
+function applyKilledReapersToRoster() {
+  const killed = _killedReaperSet();
+  for (const slot of DORM_ROSTER) {
+    const occ = slot.occupant;
+    if (occ.immortal) continue;                  // majors can't die
+    if (occ.kind === 'sealed' || occ.kind === 'common' || occ.kind === 'skeleton') continue;
+    const nameKey = String(occ.name || '').trim().toUpperCase();
+    if (killed.has(nameKey)) occ.deceased = true;
+    // We deliberately DON'T revive — once cold, stays cold this session.
+  }
+}
+applyKilledReapersToRoster();
+window.addEventListener('storage', (e) => {
+  if (e.key !== 'dlds_killed_reapers') return;
+  applyKilledReapersToRoster();
+});
+// Same-tab dispatcher (storage event only fires cross-tab; expose a helper
+// the Astrolabe can call from the same window if both share an iframe).
+window.dlds_markReaperDead = function (name) {
+  try {
+    const k = 'dlds_killed_reapers';
+    const cur = JSON.parse(localStorage.getItem(k) || '[]');
+    const u = String(name || '').trim();
+    if (u && !cur.includes(u)) {
+      cur.push(u);
+      localStorage.setItem(k, JSON.stringify(cur));
+    }
+  } catch (e) {}
+  applyKilledReapersToRoster();
+};
+
+// ============================================================
 //   NPC sprite-based rendering (Death, Elystria, Romaine, ...)
 // ============================================================
 // An NPC entry per room has: x, y (tile units), sheet (sprite key in SPRITE_META),
@@ -418,6 +469,16 @@ const ROOM_DEFS = {
     npcs: [
       // Master Death stands centred under the inverted dome
       { x:13, y:6.0, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death' },
+      // Two roaming reapers — patrolling between holo-consoles. They use the
+      // generic procedural cryious_walk anim while moving, idle when paused.
+      { x:5,  y:7,  sheet:'cryious_walk', idleSheet:'cryious_idle', label:'Reaper-Initiate',
+        patrol:[ {x:5,y:7},{x:7,y:11},{x:5,y:11},{x:4.5,y:7} ], speed:1.6, animSpeed:8,
+        plaqueTitle:'REAPER-INITIATE · WATCH',
+        plaqueBody:'A junior reaper on rotation. Hood low, scythe shouldered, gait deliberately even — the senior reapers grade you on your stride here.\n\nThey do not stop walking to acknowledge May. The acknowledgement is the not-stopping.' },
+      { x:21, y:7,  sheet:'cryious_walk', idleSheet:'cryious_idle', label:'Reaper-Initiate',
+        patrol:[ {x:21,y:7},{x:17,y:11},{x:21,y:11},{x:21.5,y:7} ], speed:1.4, animSpeed:8,
+        plaqueTitle:'REAPER-INITIATE · WATCH',
+        plaqueBody:'The starboard-side initiate. Their hood is pinned with a fresh purple ribbon — a Madoria-token, given to anyone who has lost their wanderer this cycle.\n\nThey carry the ribbon with both hands when off-duty, and never when on.' },
     ],
   },
 
@@ -790,8 +851,25 @@ function drawControlRoom(ctx, room) {
   drawCommandTier(ctx, 2*64, 3*64, 5*64, 1.5*64, t);
   drawCommandTier(ctx, 19*64, 3*64, 5*64, 1.5*64, t);
 
+  // 4b) Scattered holographic command consoles (red-orange projection scopes)
+  drawHoloConsole(ctx, 4.5*64,  7.2*64, t, 0.7, 'STRATA-FEED');
+  drawHoloConsole(ctx, 21.5*64, 7.2*64, t, 0.7, 'SOUL-INDEX');
+  drawHoloConsole(ctx, 9*64,    11.5*64, t, 0.55, 'CYCLE  ' + (Math.floor(t*7)%999).toString().padStart(3,'0'));
+  drawHoloConsole(ctx, 17*64,   11.5*64, t, 0.55, 'LAYER  ' + ((Math.floor(t*3)%199) - 99));
+  drawHoloConsole(ctx, 3.0*64,  10.5*64, t, 0.4,  'NAV');
+  drawHoloConsole(ctx, 23.0*64, 10.5*64, t, 0.4,  'CONTAIN');
+
+  // 4c) Wall-hung reaper banners (long fabric strips with the death sigil)
+  drawReaperBanner(ctx, 0.4*64, 1.5*64, 0.6*64, 5*64, '#a83a14', '☩', t, 0);
+  drawReaperBanner(ctx, 1.7*64, 1.5*64, 0.6*64, 5*64, '#5a1f1a', '⚔', t, 1);
+  drawReaperBanner(ctx, (room.width-2.3)*64, 1.5*64, 0.6*64, 5*64, '#a83a14', '☩', t, 2);
+  drawReaperBanner(ctx, (room.width-1.0)*64, 1.5*64, 0.6*64, 5*64, '#5a1f1a', '⚔', t, 3);
+
   // 5) The INVERTED DOME hanging from the ceiling — dark wedge with red sigils
   drawInvertedDome(ctx, 13*64, 4*64, 6*64, 4.2*64, t);
+
+  // 5b) Floating ember motes drifting upward toward the dome (atmospheric)
+  drawCommandEmbers(ctx, W, H, t);
 
   // 6) Central holographic projection column — red-orange light beam UP
   drawProjectionColumn(ctx, 13*64, 9.5*64, t);
@@ -806,6 +884,106 @@ function drawControlRoom(ctx, room) {
   ctx.fillStyle = 'rgba(255,140,80,0.18)';
   ctx.textAlign = 'center';
   ctx.fillText('▾ COMMAND FLOOR · DECK I ▾', W/2, H - 96);
+  ctx.restore();
+}
+
+// Small free-floating holo projector + UI ring + status text
+function drawHoloConsole(ctx, x, y, t, scale, label) {
+  ctx.save();
+  // Base projector pedestal
+  ctx.fillStyle = '#1a2438';
+  roundRect(ctx, x - 22*scale, y + 18*scale, 44*scale, 14*scale, 3); ctx.fill();
+  ctx.fillStyle = '#262e44';
+  roundRect(ctx, x - 18*scale, y + 20*scale, 36*scale, 4*scale, 2); ctx.fill();
+  // Projection cone (additive)
+  ctx.globalCompositeOperation = 'lighter';
+  const flick = 0.85 + 0.15*Math.sin(t*5 + x*0.013);
+  const grad = ctx.createRadialGradient(x, y + 8*scale, 1, x, y + 8*scale, 36*scale);
+  grad.addColorStop(0, 'rgba(255,140,80,' + (0.45*flick).toFixed(3) + ')');
+  grad.addColorStop(1, 'rgba(255,140,80,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(x, y + 8*scale, 36*scale, 0, Math.PI*2); ctx.fill();
+  // Holographic ring(s)
+  ctx.strokeStyle = 'rgba(255,166,96,' + (0.85*flick).toFixed(3) + ')';
+  ctx.lineWidth = 1.5;
+  for (let r = 0; r < 3; r++) {
+    const radius = (10 + r*7) * scale;
+    const tilt = (Math.sin(t * (1.3 + r*0.3)) * 0.4 + 0.6);
+    ctx.beginPath();
+    ctx.ellipse(x, y + 8*scale, radius, radius * tilt, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  // Crisp central "data sigil"
+  ctx.fillStyle = 'rgba(255,210,150,' + (0.95*flick).toFixed(3) + ')';
+  ctx.font = `bold ${Math.round(10*scale)}px JetBrains Mono,Consolas,monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(label || '◆', x, y + 11*scale);
+  // Falling data ticks
+  for (let i = 0; i < 4; i++) {
+    const ty = ((t * 24 + i*9 + x*0.04) % 32) * scale;
+    ctx.globalAlpha = (1 - ty/(32*scale)) * 0.45 * flick;
+    ctx.fillStyle = '#ffba66';
+    ctx.fillRect(x - 14*scale + i*7*scale, y - 2*scale + ty, 1.4*scale, 5*scale);
+  }
+  ctx.restore();
+}
+
+// Hanging cloth banner with embroidered reaper sigil
+function drawReaperBanner(ctx, x, y, w, h, color, sigil, t, seed) {
+  ctx.save();
+  // Soft sway by row — top fixed, bottom sways a few px
+  const sway = Math.sin(t*0.9 + seed*1.7) * 3;
+  // Fabric (vertical gradient with darkening at bottom)
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0,    color);
+  g.addColorStop(0.55, '#2a1018');
+  g.addColorStop(1,    '#170810');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w + sway*0.4, y + h*0.6);
+  ctx.lineTo(x + w + sway, y + h);
+  ctx.lineTo(x + sway, y + h);
+  ctx.lineTo(x + sway*0.4, y + h*0.6);
+  ctx.closePath();
+  ctx.fill();
+  // Brass hanging rod
+  ctx.fillStyle = '#7a5226';
+  ctx.fillRect(x - 4, y - 4, w + 8, 5);
+  // Tassels
+  ctx.fillStyle = '#3a1a20';
+  ctx.fillRect(x + sway,     y + h, 3, 6);
+  ctx.fillRect(x + w + sway, y + h, 3, 6);
+  // Embroidered sigil down the middle, faintly glowing
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.55 + 0.35*Math.sin(t*1.3 + seed);
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = '#ffa050';
+  ctx.font = `bold ${Math.round(w*0.7)}px Cinzel,Georgia,serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(sigil, x + w/2 + sway*0.4, y + h*0.40);
+  ctx.fillText(sigil, x + w/2 + sway*0.6, y + h*0.72);
+  ctx.restore();
+  ctx.restore();
+}
+
+// Drifting ember particles that float up from the floor toward the dome
+function drawCommandEmbers(ctx, W, H, t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 24; i++) {
+    const seed = i * 137.5;
+    const x = ((seed * 11.3) % W);
+    const speed = 14 + (i % 5) * 4;
+    const ttotal = (H + 80);
+    const y = H - ((t * speed + seed) % ttotal);
+    const a = Math.max(0, Math.min(1, (y / H)));
+    ctx.globalAlpha = (1 - a) * 0.55;
+    ctx.fillStyle = i % 3 === 0 ? '#ff9a40' : '#ffba66';
+    ctx.beginPath(); ctx.arc(x + Math.sin(t + i)*8, y, 1.4, 0, Math.PI*2); ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -1723,8 +1901,23 @@ function update(dt) {
   let ny = state.player.y + state.player.vy * dt;
   if (collidesAt(nx, state.player.y, hbW, hbH, footOffsetY, room)) nx = state.player.x;
   if (collidesAt(nx, ny, hbW, hbH, footOffsetY, room))             ny = state.player.y;
-  nx = Math.max(64 + hbW/2, Math.min(room.width*64 - 64 - hbW/2, nx));
-  ny = Math.max(64 + hbH, Math.min(room.height*64 - 64 - hbH/2, ny));
+  // Soft clamp to room bounds — but DON'T clamp inside a door zone (doors
+  // sit on the room edge by design, and the player needs to reach the
+  // threshold to trigger the transition).
+  const _inDoorZone = (room.doors||[]).some(dr => {
+    const dx0 = dr.x*64 - 20, dx1 = (dr.x+dr.w)*64 + 20;
+    const dy0 = dr.y*64 - 20, dy1 = (dr.y+dr.h)*64 + 20;
+    return nx > dx0 && nx < dx1 && ny > dy0 && ny < dy1;
+  });
+  if (!_inDoorZone) {
+    nx = Math.max(64 + hbW/2, Math.min(room.width*64 - 64 - hbW/2, nx));
+    ny = Math.max(64 + hbH, Math.min(room.height*64 - 64 - hbH/2, ny));
+  } else {
+    // Soft outer clamp — let the player walk a bit past the inner wall into
+    // the threshold, but never off-canvas.
+    nx = Math.max(8, Math.min(room.width*64 - 8, nx));
+    ny = Math.max(8, Math.min(room.height*64 - 8, ny));
+  }
   state.player.x = nx;
   state.player.y = ny;
 
@@ -1738,6 +1931,29 @@ function update(dt) {
     state.player.animFrame = Math.floor(state.player.animTime * 16) % 25;
   } else {
     state.player.animTime = 0; state.player.animFrame = 0;
+  }
+
+  // === Patrol AI — any NPC with a `patrol` waypoint list walks the loop ===
+  for (const npc of (room.npcs || [])) {
+    if (!Array.isArray(npc.patrol) || npc.patrol.length < 2) continue;
+    if (npc._patrolIdx === undefined) { npc._patrolIdx = 0; npc._pauseT = 0; }
+    if (npc._pauseT > 0) { npc._pauseT -= dt; npc._moving = false; continue; }
+    const target = npc.patrol[npc._patrolIdx];
+    const dx = target.x - npc.x, dy = target.y - npc.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 0.08) {
+      // Reached waypoint — small pause, then advance
+      npc._patrolIdx = (npc._patrolIdx + 1) % npc.patrol.length;
+      npc._pauseT = 0.6 + Math.random() * 1.2;
+      npc._moving = false;
+      continue;
+    }
+    const step = (npc.speed || 1.5) * dt;
+    const nx = dx / dist, ny = dy / dist;
+    npc.x += nx * step;
+    npc.y += ny * step;
+    npc._moving = true;
+    npc.flip = nx < 0;
   }
 
   // interactables (use generous radius)
@@ -1793,6 +2009,17 @@ function update(dt) {
 function collidesAt(px, py, hbW, hbH, footY, room) {
   const left = px - hbW/2, right = px + hbW/2;
   const top = py + footY - hbH/2, bottom = py + footY + hbH/2;
+  // If the player's foot box overlaps a door zone, treat it as passable —
+  // doors are visual gaps cut through the room walls.
+  for (const dr of (room.doors||[])) {
+    const dx = dr.x * 64, dy = dr.y * 64, dW = dr.w * 64, dH = dr.h * 64;
+    const margin = 18;   // small buffer so the player can stand at the threshold
+    if (right > dx - margin && left < dx + dW + margin &&
+        bottom > dy - margin && top < dy + dH + margin) {
+      // We're inside a door — ignore wall blocks here.
+      return false;
+    }
+  }
   for (const w of room.walls) {
     const wx = w.x * 64, wy = w.y * 64, wW = w.w * 64, wH = w.h * 64;
     if (right > wx && left < wx + wW && bottom > wy && top < wy + wH) return true;
@@ -1850,17 +2077,55 @@ function drawInteractableMarker(x, y, near){
 }
 
 function drawDoorMarker(dr){
-  // Subtle warm threshold glow at door
+  // Real gothic archway opening — a stone-cut hallway through the wall.
+  // Pulses warm amber from the corridor beyond. The visible threshold sells
+  // the door as a physical passage, not just a glow.
   const cx = (dr.x + dr.w/2)*64, cy = (dr.y + dr.h/2)*64;
+  const w  = Math.max(48, dr.w*64);
+  const h  = Math.max(48, dr.h*64);
   ctx.save();
+  // 1) Dark recessed jamb (the inner cavity of the archway)
+  ctx.fillStyle = '#0b0610';
+  const x0 = cx - w/2, y0 = cy - h/2;
+  ctx.beginPath();
+  ctx.moveTo(x0,            y0 + h*0.32);
+  ctx.quadraticCurveTo(cx,  y0 - h*0.10, x0 + w, y0 + h*0.32);
+  ctx.lineTo(x0 + w,        y0 + h);
+  ctx.lineTo(x0,            y0 + h);
+  ctx.closePath();
+  ctx.fill();
+  // 2) Stone arch trim (brass-bronze frame)
+  ctx.strokeStyle = '#5a3a20'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x0,            y0 + h*0.32);
+  ctx.quadraticCurveTo(cx,  y0 - h*0.10, x0 + w, y0 + h*0.32);
+  ctx.stroke();
+  // 3) Soft warm corridor light spilling out
   ctx.globalCompositeOperation = 'lighter';
   const flicker = 0.55 + 0.35*Math.sin(t*3 + cx*.01);
-  ctx.globalAlpha = 0.16 * flicker;
-  ctx.fillStyle = '#ffba66';
-  ctx.fillRect(cx - dr.w*32 - 4, cy - dr.h*32 - 4, dr.w*64 + 8, dr.h*64 + 8);
-  ctx.globalAlpha = 0.30 * flicker;
-  ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI*2); ctx.fill();
+  const grad = ctx.createRadialGradient(cx, y0 + h*0.55, 2, cx, y0 + h*0.55, w*0.7);
+  grad.addColorStop(0, 'rgba(255,196,118,' + (0.55*flicker).toFixed(3) + ')');
+  grad.addColorStop(1, 'rgba(255,196,118,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x0 - 20, y0 - 20, w + 40, h + 40);
+  // 4) Door-sigil "EXIT" pip at the apex
+  ctx.globalAlpha = 0.65 + 0.25*Math.sin(t*4);
+  ctx.fillStyle = '#ffd28b';
+  ctx.font = 'bold 11px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('◆', cx, y0 + h*0.18);
   ctx.restore();
+  // 5) Threshold prompt when the player stands near
+  const dx = state.player.x - cx, dy = (state.player.y + 24) - cy;
+  if (Math.abs(dx) < w/2 + 30 && Math.abs(dy) < h/2 + 30) {
+    ctx.save();
+    ctx.fillStyle = '#ffe9b3';
+    ctx.font = 'bold 10px Cinzel,Georgia,serif';
+    ctx.textAlign = 'center';
+    const label = (dr.to||'').replace(/_/g,' ').toUpperCase();
+    ctx.fillText('▾ ' + label + ' ▾', cx, y0 - 4);
+    ctx.restore();
+  }
 }
 
 function drawPlayer(){
@@ -1885,11 +2150,21 @@ function drawPlayer(){
   const img = sprites[sheet];
   if (!img) return;
   const fIdx = frameIdx;
-  const scale = state.playerScale;
-  const drawW = meta.frame_w * scale;
-  const drawH = meta.frame_h * scale;
+  // === Consistent character size across animation sheets ===
+  // Each Maytradalis sheet has a slightly different frame_h (192 / 182 /
+  // 145 etc.). Using a single `scale` against frame_h would make her
+  // visibly grow and shrink as she switches poses. Instead we normalise
+  // by deriving the per-sheet scale from a CANONICAL target height — the
+  // tallest sheet (run_down at 192) multiplied by playerScale.
+  const refH = SPRITE_META.run_down.frame_h;       // 192 — canonical
+  const targetH = refH * state.playerScale;        // ~106 px on-screen
+  const effScale = targetH / meta.frame_h;
+  const drawW = meta.frame_w * effScale;
+  const drawH = meta.frame_h * effScale;
   const drawX = p.x - drawW/2;
-  const drawY = p.y - drawH + 20;
+  // Subtle idle "breathing" bob — only when not moving
+  const bob = isMoving ? 0 : Math.sin(t * 2.3) * 1.6;
+  const drawY = p.y - drawH + 20 + bob;
 
   // shadow
   ctx.save();
@@ -1911,19 +2186,32 @@ function drawPlayer(){
 }
 
 // Sprite-based NPCs (Death, Elystria, Cryious, Romaine, ...) — Y-sorted with player
+// Each NPC has a canonical `refSheet` (defaults to its idle sheet, falling
+// back to its walk sheet) whose frame_h is used as the reference height —
+// so the character keeps a CONSISTENT on-screen height when its animation
+// swaps between idle and walking.
 function drawNpc(npc) {
-  const meta = SPRITE_META[npc.sheet];
-  const img = sprites[npc.sheet];
+  const isMoving = !!npc._moving;
+  const sheetName = (!isMoving && npc.idleSheet) ? npc.idleSheet : npc.sheet;
+  const meta = SPRITE_META[sheetName];
+  const img = sprites[sheetName];
   if (!meta || !img) return;
-  const scale = npc.scale || 0.55;
-  const drawW = meta.frame_w * scale;
-  const drawH = meta.frame_h * scale;
+  // Canonical reference sheet for sizing — keeps the character the same
+  // visual height regardless of which pose sheet is currently rendering.
+  const refSheetName = npc.refSheet || npc.idleSheet || npc.sheet;
+  const refMeta = SPRITE_META[refSheetName] || meta;
+  const baseScale = npc.scale || 0.55;
+  const targetH = refMeta.frame_h * baseScale;
+  const effScale = targetH / meta.frame_h;
+  const drawW = meta.frame_w * effScale;
+  const drawH = meta.frame_h * effScale;
   const px = npc.x * 64;
   const py = npc.y * 64;
   const speed = npc.animSpeed || 5;
   const frame = Math.floor(t * speed) % meta.frames;
+  const bob = isMoving ? 0 : Math.sin(t * 1.8 + npc.x*0.7) * 1.4;
   const drawX = px - drawW/2;
-  const drawY = py - drawH + 20;
+  const drawY = py - drawH + 20 + bob;
   // shadow
   ctx.save();
   ctx.globalAlpha = 0.45;

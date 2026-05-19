@@ -5318,6 +5318,20 @@
             poi.reaper.status = 'DECEASED';
             poi.reaper.deathNote = `Lost during the ${CYCLE_NUMBER}th cycle. Soul-parasites have begun infesting the strata. The reality is now in slow collapse.`;
             recordReaperActivity(poi.reaper, 'death', `${poi.reaper.name} fell. ${poi.name} is no longer processing souls.`);
+            // === DEATH'S SHIP SYNC ===
+            // Notify the Death's Ship dorm-hall door sigils that this reaper has fallen.
+            // Major characters (Cryious / Maytradalis / Elystria / Flybutt) are filtered
+            // out by the Ship side, so even if their name accidentally appears here it
+            // will be ignored.
+            try {
+                const k = 'dlds_killed_reapers';
+                const cur = JSON.parse(localStorage.getItem(k) || '[]');
+                const u = String(poi.reaper.name || '').trim();
+                if (u && !cur.includes(u)) {
+                    cur.push(u);
+                    localStorage.setItem(k, JSON.stringify(cur));
+                }
+            } catch (e) { /* localStorage may be unavailable in iframe sandboxes */ }
             TERRITORY_DATA[pick.level].isDead = true;
             TERRITORY_DATA[pick.level].isStable = false;
             flashStrata(pick.level);

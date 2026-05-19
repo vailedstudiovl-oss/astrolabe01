@@ -232,12 +232,131 @@ const ASSET_BASE = '/api/static/deaths_ship/sprites/';
 
 // ---- Sprite manifest ----
 const SPRITE_META = {
+  // Maytradalis (player)
   run_down:   { src: 'may_run_down.png',   frame_w: 86,  frame_h: 192, frames: 25 },
   run_right:  { src: 'may_run_right.png',  frame_w: 112, frame_h: 187, frames: 25 },
   run_up:     { src: 'may_run_up.png',     frame_w: 69,  frame_h: 182, frames: 25 },
-  idle_right: { src: 'may_idle_right.png', frame_w: 49,  frame_h: 182, frames: 25 },
+  idle_right: { src: 'may_idle_right.png', frame_w: 48,  frame_h: 182, frames: 25 },
+  idle_up:    { src: 'may_idle_up.png',    frame_w: 53,  frame_h: 145, frames: 25 },
+  // Master Death
+  death_idle: { src: 'death_idle.png',     frame_w: 81,  frame_h: 168, frames: 25 },
+  death_walk: { src: 'death_walk.png',     frame_w: 86,  frame_h: 128, frames: 25 },
+  // Grim Elystria
+  elystria_idle:      { src: 'elystria_idle.png',      frame_w: 62,  frame_h: 179, frames: 25 },
+  elystria_idle_down: { src: 'elystria_idle_down.png', frame_w: 73,  frame_h: 182, frames: 25 },
+  elystria_walk:      { src: 'elystria_walk.png',      frame_w: 93,  frame_h: 169, frames: 25 },
+  elystria_run:       { src: 'elystria_run.png',       frame_w: 148, frame_h: 148, frames: 25 },
+  // Romaine
+  romaine_idle:  { src: 'romaine_idle.png',  frame_w: 62,  frame_h: 192, frames: 25 },
+  romaine_walk:  { src: 'romaine_walk.png',  frame_w: 105, frame_h: 192, frames: 25 },
+  romaine_run:   { src: 'romaine_run.png',   frame_w: 159, frame_h: 188, frames: 25 },
+  romaine_sleep: { src: 'romaine_sleep.png', frame_w: 223, frame_h: 76,  frames: 25 },
+  romaine_wave:  { src: 'romaine_wave.png',  frame_w: 106, frame_h: 192, frames: 25 },
+  // Grim Cryious
+  cryious_idle:      { src: 'cryious_idle.png',      frame_w: 71, frame_h: 155, frames: 25 },
+  cryious_idle_up:   { src: 'cryious_idle_up.png',   frame_w: 96, frame_h: 141, frames: 25 },
+  cryious_idle_down: { src: 'cryious_idle_down.png', frame_w: 91, frame_h: 163, frames: 25 },
+  cryious_walk:      { src: 'cryious_walk.png',      frame_w: 91, frame_h: 155, frames: 25 },
+  cryious_run:       { src: 'cryious_run.png',       frame_w: 111,frame_h: 119, frames: 25 },
 };
 const sprites = {};   // name -> Image
+
+// ============================================================
+//   PROCEDURAL REAPER ROSTER (mirrors the Astrolabe terminal)
+// ============================================================
+// The Astrolabe terminal generates reapers per-strata with name + sigil + status.
+// On the ship, off-duty reapers sleep in the Dorm Hall. We mirror the same name
+// pool here so the dorms feel canon-consistent with the map.
+// Each door has a magic sigil; it GLOWS while the reaper is INTACT, and goes
+// COLD/EXTINGUISHED when the reaper is DECEASED. Major characters (Cryious,
+// Maytradalis, Elystria, Flybutt) cannot die — their sigil always glows.
+// ------------------------------------------------------------
+const REAPER_FIRST_PARTS = ['Mordren','Harrow','Sephira','Thane','Korax','Veilwing','Sloth','Null','Obol','Cresh','Marrow','Echtor','Pyx','Quill','Sallow','Wraith','Zinder','Helix','Vren','Iris','Cantor','Bellum','Hush','Pallor','Tenebris','Murk','Caul','Stoss','Vesper','Halt','Wend','Threnody','Coda','Knell','Veil','Suth','Reek','Mir'];
+const REAPER_SUF_PARTS   = ['','-7','-12','-3X','-IX','-Δ','-9','-V','-Ω','-α','-13','-K','-77','-Σ','-2','-X','-Δ7'];
+const REAPER_EPITHETS    = ['the Quiet','the Patient','of the Threshold','the Solemn','Pale-Handed','of the Hush','the Folded','Twice-Vowed','the Untouched','the Cold','of the Long Walk','the Ferryman','Bone-Footed','Shroud-Eyed','of Last Whispers','the Mourner','of Stilled Wings','the Without','the Empty-Cup'];
+const REAPER_SIGILS      = ['☠','☥','✟','✶','◈','⚖','◊','✸','⊛','✻','♰','♱','✝','⚚','✠','✦','⚜','✺'];
+const REAPER_SCYTHES     = ['Crescent-Blade','Twin-Crescent','Hooked Glaive','Curved Sickle','Obsidian Reapinghook','Folded-Steel Crescent','Voidedge Scythe','Bone-Inlaid Hook','Mirror-Edge','Shard-Sickle','Singing Curve','Soundless Edge','Bloodglass Crescent'];
+
+// Deterministic seeded RNG keyed to a dorm slot
+function _doorSeed(side, idx, salt=0) {
+  const s = (side === 'top' ? 17 : 41) * (idx + 7) + salt * 13 + 9001;
+  return Math.abs(Math.sin(s)) * 9999 % 1;
+}
+function _genProceduralReaper(side, idx) {
+  const fi = Math.floor(_doorSeed(side, idx, 1) * REAPER_FIRST_PARTS.length);
+  const si = Math.floor(_doorSeed(side, idx, 2) * REAPER_SUF_PARTS.length);
+  const ei = Math.floor(_doorSeed(side, idx, 3) * REAPER_EPITHETS.length);
+  const sigIdx = Math.floor(_doorSeed(side, idx, 4) * REAPER_SIGILS.length);
+  const scIdx  = Math.floor(_doorSeed(side, idx, 5) * REAPER_SCYTHES.length);
+  const useEp  = _doorSeed(side, idx, 6) > 0.45;
+  const fn = REAPER_FIRST_PARTS[fi] + REAPER_SUF_PARTS[si];
+  const name = useEp ? `${fn}, ${REAPER_EPITHETS[ei]}` : fn;
+  // ~20% chance the reaper of this dorm has been lost in the field (canon: about 1 in 5)
+  const deceased = _doorSeed(side, idx, 7) < 0.20;
+  const strata = Math.floor(_doorSeed(side, idx, 8) * 99) * (_doorSeed(side, idx, 9) > 0.5 ? -1 : 1);
+  return {
+    name, sigil: REAPER_SIGILS[sigIdx], scythe: REAPER_SCYTHES[scIdx],
+    deceased, immortal: false, strata, kind: 'procedural',
+  };
+}
+
+// Fixed canon assignments — Major characters never die.
+const CANON_DORMS = {
+  // top row, slot index → fixed occupant
+  top: {
+    2: { name: 'Cryious Death', sigil: '❄', kind: 'major', immortal: true, deceased: false,
+         lore: 'A frozen mist seeps out from under the door. Inside, Cryious dreams in equations the rest of the crew can not read. Knock at your own risk — the last reaper who knocked spent a week thinking in ice.' },
+    3: { name: 'Grim Elystria', sigil: '♪', kind: 'major', immortal: true, deceased: false,
+         lore: 'Music plays softly behind the door — a song May does not recognise, in a language that may not exist outside of this corridor. Elystria is May\'s closest ally. Some nights she opens the door without being knocked on, and they share tea in silence.' },
+    4: { name: 'Madoria Lightbringer', sigil: '☀', kind: 'major', immortal: false, deceased: false,
+         lore: 'A small purple ribbon is tied to the door handle. Madoria always ties one before sleep — to remember which reality she came back from. The ribbon is fresh. Madoria is in.' },
+    5: { name: 'Flybutt', sigil: '✿', kind: 'major', immortal: true, deceased: false,
+         lore: 'A faint thrum of wings. Flybutt sleeps suspended from the ceiling of his dorm, a constellation of small luminous moths circling around him.\n\nHe is the only reaper on the ship that cannot die — the contract he signed predates Death\'s own.' },
+  },
+  bottom: {
+    // bottom row — keep the existing sealed/common/skeleton canon
+    2: { name: 'SEALED ALCOVE', sigil: '✕', kind: 'sealed', immortal: false, deceased: false,
+         lore: 'An empty alcove. There never was a dorm here — the door is welded over the stone, a placeholder from the ship\'s original build.\n\nMay tries the handle anyway. It does not yield, and was never meant to.' },
+    3: { name: 'The Common Reapers', sigil: '⚔', kind: 'common', immortal: false, deceased: false,
+         lore: 'A single shared dorm for the dozen common reapers — the ones who pilot the harvest skiffs and tend to the smaller souls. The door is always slightly ajar. Inside, twelve thin beds in two rows, each with a small bone token at the foot.\n\nThe tokens are how the reapers find their way home from a strata they did not return whole from.' },
+    4: { name: 'Skeleton Alcove', sigil: '☩', kind: 'skeleton', immortal: false, deceased: false,
+         lore: 'A small recess in the wall where one of the ship\'s skeleton-servants stands at rest. Its jaw is loose; a scrap of parchment is pinned to its sternum reading "OFF-DUTY · DO NOT DISTURB."\n\nThe skeletons are part of the ship\'s permanent crew — older than May, older than most of the reapers. Death does not say where they came from.' },
+  },
+};
+
+// Build the full 12-door roster (top 0..5, bottom 0..5)
+const DORM_ROSTER = (() => {
+  const out = [];
+  ['top','bottom'].forEach(side => {
+    for (let i = 0; i < 6; i++) {
+      const canon = (CANON_DORMS[side] || {})[i];
+      const occ = canon ? Object.assign({ kind: 'major' }, canon) : _genProceduralReaper(side, i);
+      // World coordinates of the door arch (centre)
+      const cx = (4.5 + i*4) * 64;
+      const cyTop = 0;                    // top of room (drawn from y=0 down)
+      const cyBot = (10-1) * 64;          // bottom row offset (room height 10)
+      out.push({
+        side, idx: i,
+        worldX: cx,
+        worldY: side === 'top' ? cyTop : cyBot,
+        // Plaque trigger position (in tile units) — just in front of the door
+        plaqueTileX: (4.5 + i*4),
+        plaqueTileY: side === 'top' ? 1.7 : 8.0,
+        occupant: occ,
+      });
+    }
+  });
+  return out;
+})();
+
+// ============================================================
+//   NPC sprite-based rendering (Death, Elystria, Romaine, ...)
+// ============================================================
+// An NPC entry per room has: x, y (tile units), sheet (sprite key in SPRITE_META),
+// optional flip, optional anim speed, optional plaqueTitle / plaqueBody (else
+// uses the colocated interactable already present in the room).
+// They get drawn between background and player with Y-sort.
+// ------------------------------------------------------------
 
 // ---- Game state ----
 const state = {
@@ -291,9 +410,14 @@ const ROOM_DEFS = {
       { x:13,y:2.5, kind:'plaque', title:'THE INVERTED DOME', body:'The ceiling above the central column is a massive dark inverted dome — black metal etched with red sigil-grooves. It hangs lower than any other architecture on the ship.\n\nWhen the ship is under stress, the dome\'s sigils flare red and the air on the Command Floor goes briefly warm. Some reapers say the dome is "listening." Romaine says it\'s just thermal regulation.' },
       { x:7,y:12, kind:'plaque', title:'HOODED REAPER (POSTED)', body:'A senior reaper stands at the edge of the floor, hooded, scythe planted on the deck. They do not acknowledge May as she passes.\n\nThe hooded ones serve four-hour rotations on the Command Floor whenever the ship is between strata. Their watch is over the dome, not the bridge.' },
       { x:19,y:12, kind:'plaque', title:'HOODED REAPER (POSTED)', body:'A second hooded reaper, identical posture, opposite side. The pair are never named — only their watch-numbers, etched on the inside of the hood, are ever cited in the ship\'s logbook.\n\nMay has wondered once or twice if Vivian is one of them.' },
+      { x:13,y:6.0, kind:'plaque', title:'MASTER DEATH (ON THE BRIDGE)', body:'Death himself, robed and motionless, gazes up into the inverted dome. He does not turn as May enters — but the red sigil-grooves on the dome briefly brighten.\n\n"You stayed up late again, little reaper. I told Romaine to fix your skiff. I did not tell you to ferry it to him."\n\nHe knows. He always knows. He has not raised his voice to her in twenty-six years, and will not start tonight.' },
     ],
     doors: [
       { x:1.2, y:13.5, w:1.0, h:1.5, to:'dorm_hall', spawn:{x:30,y:5} },
+    ],
+    npcs: [
+      // Master Death stands centred under the inverted dome
+      { x:13, y:6.0, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death' },
     ],
   },
 
@@ -313,20 +437,54 @@ const ROOM_DEFS = {
       { x:5,y:8.6,w:1,h:.4 }, { x:9,y:8.6,w:1,h:.4 }, { x:13,y:8.6,w:1,h:.4 },
       { x:17,y:8.6,w:1,h:.4 }, { x:21,y:8.6,w:1,h:.4 }, { x:25,y:8.6,w:1,h:.4 },
     ],
-    interactables: [
-      { x:11, y:1.7, kind:'plaque', title:'DORM 4 — CRYIOUS', body:'A frozen mist seeps out from under the door. Inside, Cryious dreams in equations that the rest of the crew can\'t read. Knock at your own risk — the last reaper who knocked spent a week thinking in ice.' },
-      { x:15, y:1.7, kind:'plaque', title:'DORM 5 — ELYSTRIA', body:'Music plays softly behind the door — a song May doesn\'t recognize, in a language that may not exist outside of this corridor.\n\nElystria is May\'s closest ally. Some nights she opens the door without being knocked on, and they share tea in silence.' },
-      { x:19, y:1.7, kind:'plaque', title:'DORM 6 — MADORIA', body:'A small purple ribbon is tied to the door handle. Madoria always ties one before sleep — to remember which reality she came back from.\n\nThe ribbon is fresh. Madoria is in.' },
-      { x:11, y:8.0, kind:'plaque', title:'DORM 9 — SEALED ALCOVE', body:'An empty alcove. There never was a dorm here — the door is welded over the stone, a placeholder from the ship\'s original build.\n\nMay tries the handle anyway. It does not yield, and was never meant to.' },
-      { x:15, y:8.0, kind:'plaque', title:'DORM 10 — THE COMMON REAPERS', body:'A single shared dorm for the dozen common reapers — the ones who pilot the harvest skiffs and tend to the smaller souls.\n\nThe door is always slightly ajar. Inside, twelve thin beds in two rows, each with a small bone token at the foot. The tokens are how the reapers find their way home from a strata they did not return whole from.' },
-      { x:19, y:8.0, kind:'plaque', title:'SKELETON ALCOVE', body:'A small recess in the wall where one of the ship\'s skeleton-servants stands at rest. Its jaw is loose; a scrap of parchment is pinned to its sternum reading \"OFF-DUTY · DO NOT DISTURB.\"\n\nThe skeletons are part of the ship\'s permanent crew — older than May, older than most of the reapers. Death does not say where they came from.' },
-      { x:23, y:5,   kind:'plaque', title:'HALL TERMINAL', body:'Roster: 12 reapers on rotation. 9 currently aboard. 3 deployed to Strata -47.\n\nVivian\'s name is highlighted in red. Investigation pending.' },
-      { x:28, y:5,   kind:'plaque', title:'CHANDELIER WINCH', body:'A small crank on the wall lowers the great bone-and-iron chandelier above for cleaning.\n\nThe chandelier is May\'s responsibility. She lowers it once a week. The candles never need replacing — they burn from the bone, not from wax.' },
-    ],
+    interactables: (function buildDormPlaques(){
+      const out = [];
+      const sideLabel = (side, idx) => `${side === 'top' ? 'NORTH' : 'SOUTH'} DORM ${idx+1}`;
+      for (const slot of DORM_ROSTER) {
+        const occ = slot.occupant;
+        let title, body;
+        if (occ.kind === 'sealed') {
+          title = `${sideLabel(slot.side, slot.idx)} — SEALED ALCOVE`;
+          body = occ.lore;
+        } else if (occ.kind === 'common') {
+          title = `${sideLabel(slot.side, slot.idx)} — THE COMMON REAPERS`;
+          body = occ.lore;
+        } else if (occ.kind === 'skeleton') {
+          title = `${sideLabel(slot.side, slot.idx)} — SKELETON ALCOVE`;
+          body = occ.lore;
+        } else if (occ.kind === 'major') {
+          title = `${sideLabel(slot.side, slot.idx)} — ${occ.name.toUpperCase()}`;
+          body = occ.lore || `${occ.name}'s dorm.`;
+        } else {
+          // Procedural reaper — body reflects intact vs deceased
+          title = `${sideLabel(slot.side, slot.idx)} — ${occ.name.toUpperCase()}`;
+          if (occ.deceased) {
+            body = `The reaper magic sigil above this door is COLD. Its glow died sometime in the last cycle, which means so did the reaper that wore it.\n\nName, by the ship\'s registry: ${occ.name}. Strata of duty: ${occ.strata > 0 ? '+' : ''}${occ.strata}. Cause: unrecorded — the lower hall is patient about its dead.\n\nA bone token has been placed in the threshold. Madoria left it. She leaves one for every reaper whose door goes dark, before the others notice.`;
+          } else {
+            body = `Sigil: ${occ.sigil}. Scythe-form: ${occ.scythe}. Strata of duty: ${occ.strata > 0 ? '+' : ''}${occ.strata}.\n\nThe sigil above the door pulses softly — ${occ.name} is intact, and either asleep within, or out on the line, ferrying.\n\nMay does not knock on doors she has not been invited to.`;
+          }
+        }
+        out.push({ x: slot.plaqueTileX, y: slot.plaqueTileY, kind: 'plaque', title, body, __slot: slot });
+      }
+      // Keep the canonical hall fixtures
+      out.push({ x:23, y:5,   kind:'plaque', title:'HALL TERMINAL', body:`Roster: 12 reapers on rotation. ${DORM_ROSTER.filter(s => !s.occupant.deceased && !['sealed','common','skeleton'].includes(s.occupant.kind)).length} sigils currently glowing.\n\nVivian\'s name is highlighted in red. Investigation pending.\n\nThe terminal pulls live status from the Astrolabe — a sigil here goes cold the instant a reaper falls in the field. The four named in gold (Cryious Death, Maytradalis, Grim Elystria, Flybutt) are protected by older contracts and cannot fall.` });
+      out.push({ x:28, y:5,   kind:'plaque', title:'CHANDELIER WINCH', body:'A small crank on the wall lowers the great bone-and-iron chandelier above for cleaning.\n\nThe chandelier is May\'s responsibility. She lowers it once a week. The candles never need replacing — they burn from the bone, not from wax.' });
+      return out;
+    })(),
     doors: [
       { x:30, y:4.5, w:1.0, h:1.5, to:'control',    spawn:{x:3,y:13} },
       { x:14, y:8.6, w:1.5, h:.7, to:'mays_room',  spawn:{x:9,y:1.5} },
       { x:1,  y:4.5, w:1.0, h:1.5, to:'surge_hanger', spawn:{x:23,y:8} },
+    ],
+    npcs: [
+      // Grim Elystria — leaning against the wall outside her dorm (slot top i=3 → x≈16.5)
+      { x:16.5, y:2.6, sheet:'elystria_idle', flip:false, animSpeed:5,
+        label:'Grim Elystria', plaqueTitle:'GRIM ELYSTRIA',
+        plaqueBody:'Tall, pale, scarlet-eyed beneath a tattered grey hood. She nods at May once — the only greeting Elystria has ever offered anyone.\n\n"I left tea outside your door. The hat one. Not the boots one.\n\nDeath asked after you. Twice. Be kind about it."' },
+      // Grim Cryious — drifts a half-step out of her dorm (slot top i=2 → x≈12.5), facing down
+      { x:12.5, y:2.6, sheet:'cryious_idle_down', flip:false, animSpeed:4,
+        label:'Grim Cryious', plaqueTitle:'GRIM CRYIOUS',
+        plaqueBody:'A thin frost-mist drifts around her boots even now. Her purple hair seems to absorb the candlelight rather than reflect it.\n\nShe does not speak when she sees May — she only tilts her head, a single calculation completing behind her gold eyes. Then she returns to her dorm without sound.\n\n"... seventeen. Yes. Tuesday." (Whatever she counts, she counts it once a day.)' },
     ],
   },
 
@@ -399,6 +557,12 @@ const ROOM_DEFS = {
     ],
     doors: [
       { x:26, y:2.5, w:1.0, h:1.5, to:'dorm_hall', spawn:{x:3,y:5} },
+    ],
+    npcs: [
+      // Romaine — standing at the workbench (waving, since his harness flower twitches as May enters)
+      { x:6.0, y:10.5, sheet:'romaine_wave', flip:false, animSpeed:6,
+        label:'Romaine', plaqueTitle:'ROMAINE',
+        plaqueBody:'The hanger\'s sole mechanic. Pink hair, green cargo pants, leather harness, sleeves rolled. He looks up just long enough to wave — mechanic-style, with the wrong hand.\n\n"Skiff Lantern is ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
     ],
   },
 };
@@ -834,10 +998,9 @@ function drawDormHall(ctx, room){
   drawWallTrim(ctx, W, H, '#1a0e2c');
   // central long carpet runner (deep wine)
   drawCarpet(ctx, 64, H/2-72, W-128, 144, '#5a1f3a');
-  // dorm doors top + bottom (gothic arched doors with iron fittings)
-  for (let i = 0; i < 6; i++) {
-    drawDormDoor(ctx, (4.5 + i*4)*64, 0,    'top',    p);
-    drawDormDoor(ctx, (4.5 + i*4)*64, H-64, 'bottom', p);
+  // 12 procedural dorm doors keyed off DORM_ROSTER (6 top + 6 bottom)
+  for (const slot of DORM_ROSTER) {
+    drawDormDoor(ctx, slot.worldX, slot.worldY, slot.side, p, slot.occupant);
   }
   // sconces between every door
   for (let i = 0; i < 7; i++) {
@@ -856,8 +1019,9 @@ function drawDormHall(ctx, room){
   ctx.restore();
 }
 
-function drawDormDoor(ctx, x, y, side, p){
-  // Tall pointed gothic door inset into the wall
+function drawDormDoor(ctx, x, y, side, p, occ){
+  // Tall pointed gothic door inset into the wall, with the reaper's magic sigil
+  // glowing above it. A DECEASED reaper's sigil goes cold and stops glowing.
   ctx.save();
   // arched recess
   ctx.fillStyle = '#0a0518';
@@ -868,6 +1032,24 @@ function drawDormDoor(ctx, x, y, side, p){
   ctx.lineTo(x-26, y+58);
   ctx.closePath();
   ctx.fill();
+  // SEALED dorm — stone-welded plate over the recess
+  if (occ && occ.kind === 'sealed') {
+    ctx.fillStyle = '#2a1828';
+    ctx.fillRect(x-22, y+14, 44, 40);
+    // iron rivets
+    ctx.fillStyle = '#0a0518';
+    for (let r = 0; r < 8; r++) {
+      const rx = x - 18 + (r%4)*12;
+      const ry = y + 18 + Math.floor(r/4)*28;
+      ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI*2); ctx.fill();
+    }
+    // Welded-over "X"
+    ctx.strokeStyle = '#5a3a52'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x-16, y+20); ctx.lineTo(x+16, y+48); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+16, y+20); ctx.lineTo(x-16, y+48); ctx.stroke();
+    ctx.restore();
+    return;
+  }
   // wooden door
   ctx.fillStyle = '#3a1c2c';
   ctx.beginPath();
@@ -881,15 +1063,63 @@ function drawDormDoor(ctx, x, y, side, p){
   ctx.strokeStyle = '#1a0e2c'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(x-20, y+22); ctx.lineTo(x+20, y+22); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x-20, y+38); ctx.lineTo(x+20, y+38); ctx.stroke();
-  // small viewing slit (warm amber light, very subtle)
+  // small viewing slit (warm amber light, very subtle — dim if deceased)
   ctx.fillStyle = '#1a0e2c';
   ctx.fillRect(x-3, y+18, 6, 6);
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = 0.45 + 0.35*Math.sin(t*2 + x*.01);
-  ctx.fillStyle = p.candle;
-  ctx.fillRect(x-2.5, y+19, 5, 5);
-  ctx.restore();
+  if (!(occ && occ.deceased)) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.45 + 0.35*Math.sin(t*2 + x*.01);
+    ctx.fillStyle = p.candle;
+    ctx.fillRect(x-2.5, y+19, 5, 5);
+    ctx.restore();
+  }
+  // === REAPER MAGIC SIGIL — drawn ABOVE the door arch, glows if INTACT ===
+  if (occ && occ.sigil) {
+    const sigY = side === 'top' ? y + 36 : y + 36;          // upper-mid of door
+    const intact = !occ.deceased;
+    const immortal = !!occ.immortal;
+    // Sigil colour: immortal = warm gold, normal-intact = pale violet, deceased = ash
+    let sigCol = intact ? (immortal ? '#ffd86a' : '#d4a3ff') : '#5a4860';
+    ctx.save();
+    ctx.font = 'bold 18px Cinzel,Georgia,serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (intact) {
+      // pulsing glow halo behind the sigil
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const pulse = immortal
+        ? (0.78 + 0.22 * Math.sin(t * 1.4 + x*0.013))
+        : (0.55 + 0.45 * Math.sin(t * 2.2 + x*0.021));
+      ctx.globalAlpha = 0.35 * pulse;
+      const grad = ctx.createRadialGradient(x, sigY, 1, x, sigY, 22);
+      grad.addColorStop(0, sigCol);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - 22, sigY - 22, 44, 44);
+      ctx.restore();
+      // Crisp sigil glyph on top
+      ctx.shadowColor = sigCol;
+      ctx.shadowBlur = immortal ? 14 : 8;
+    } else {
+      ctx.globalAlpha = 0.45;
+    }
+    ctx.fillStyle = sigCol;
+    ctx.fillText(occ.sigil, x, sigY);
+    ctx.restore();
+    // Deceased: a faint trail of soft ashen smoke rising from the sigil
+    if (!intact) {
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = '#6a5470';
+      for (let k = 0; k < 3; k++) {
+        const dy = -k*8 + ((t*22 + k*5) % 16);
+        const dx = Math.sin(t*1.5 + k*2 + x*0.05) * 3;
+        ctx.beginPath(); ctx.arc(x + dx, sigY - 18 - dy, 2 - k*0.4, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
   ctx.restore();
 }
 
@@ -1118,8 +1348,7 @@ function drawSurgeHanger(ctx, room){
   // 8) ROMAINE'S WORKBENCH (bottom-left)
   drawWorkbench(ctx, 6*64, 11*64, 3.5*64, 1.4*64, t);
 
-  // 9) ROMAINE NPC (placeholder — until real sprite arrives)
-  drawRomaine(ctx, 5.5*64, 11.5*64, t);
+  // 9) ROMAINE NPC — now drawn via the room's npcs[] sprite pipeline (see drawNpcs)
 
   // 10) Skeleton-servant (placeholder, patrolling along bottom)
   const skeletX = 25*64 + Math.sin(t*0.4)*40;
@@ -1451,12 +1680,14 @@ function loadSprite(name) {
   });
 }
 async function loadAllSprites() {
-  document.getElementById('loaderSub').textContent = 'Loading sprites… (0/4)';
+  const names = Object.keys(SPRITE_META);
+  const total = names.length;
+  document.getElementById('loaderSub').textContent = `Loading sprites… (0/${total})`;
   let done = 0;
-  for (const name of Object.keys(SPRITE_META)) {
-    await loadSprite(name);
+  for (const name of names) {
+    try { await loadSprite(name); } catch(err) { console.warn('sprite skipped:', name, err); }
     done++;
-    document.getElementById('loaderSub').textContent = `Loading sprites… (${done}/4)`;
+    document.getElementById('loaderSub').textContent = `Loading sprites… (${done}/${total})`;
   }
 }
 
@@ -1511,9 +1742,23 @@ function update(dt) {
 
   // interactables (use generous radius)
   state.nearInteract = null;
-  for (const it of (room.interactables||[])) {
-    const dx = state.player.x - it.x*64, dy = (state.player.y + footOffsetY) - it.y*64;
-    if (dx*dx + dy*dy < 110*110) { state.nearInteract = it; break; }
+  // NPCs first (proximity → speak)
+  for (const npc of (room.npcs||[])) {
+    const dx = state.player.x - npc.x*64, dy = (state.player.y + footOffsetY) - npc.y*64;
+    if (dx*dx + dy*dy < 110*110) {
+      state.nearInteract = {
+        title: npc.plaqueTitle || (npc.label||'').toUpperCase() || 'CREW MEMBER',
+        body:  npc.plaqueBody  || `${npc.label||'A reaper'} acknowledges you with a slight nod.`,
+        __npc: npc,
+      };
+      break;
+    }
+  }
+  if (!state.nearInteract) {
+    for (const it of (room.interactables||[])) {
+      const dx = state.player.x - it.x*64, dy = (state.player.y + footOffsetY) - it.y*64;
+      if (dx*dx + dy*dy < 110*110) { state.nearInteract = it; break; }
+    }
   }
   for (const dr of (room.doors||[])) {
     const cx = (dr.x + dr.w/2) * 64, cy = (dr.y + dr.h/2) * 64;
@@ -1570,7 +1815,15 @@ function render(){
     drawInteractableMarker(it.x*64, it.y*64, it === state.nearInteract);
   }
   for (const dr of (room.doors||[])) drawDoorMarker(dr);
-  drawPlayer();
+  // Y-sort NPCs and the player so closer-to-camera sprites occlude further ones
+  const drawList = [];
+  drawList.push({ y: state.player.y, kind: 'player' });
+  for (const n of (room.npcs||[])) drawList.push({ y: n.y * 64, kind: 'npc', npc: n });
+  drawList.sort((a, b) => a.y - b.y);
+  for (const item of drawList) {
+    if (item.kind === 'player') drawPlayer();
+    else drawNpc(item.npc);
+  }
   ctx.restore();
   drawVignette();
 }
@@ -1617,8 +1870,8 @@ function drawPlayer(){
   const isMoving = p.moving;
   if (!isMoving) {
     if (facing === 'down') { sheet = 'run_down'; frameIdx = 0; }
-    else if (facing === 'up')   { sheet = 'run_up';   frameIdx = 0; }
-    else { sheet = 'idle_right'; frameIdx = 0; flipped = (facing === 'left'); }
+    else if (facing === 'up')   { sheet = 'idle_up'; frameIdx = Math.floor(t*5) % SPRITE_META.idle_up.frames; }
+    else { sheet = 'idle_right'; frameIdx = Math.floor(t*5) % SPRITE_META.idle_right.frames; flipped = (facing === 'left'); }
   } else if (facing === 'down') {
     sheet = 'run_down';  frameIdx = p.animFrame % SPRITE_META.run_down.frames;
   } else if (facing === 'up') {
@@ -1655,6 +1908,49 @@ function drawPlayer(){
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, fIdx * meta.frame_w, 0, meta.frame_w, meta.frame_h, drawX, drawY, drawW, drawH);
   ctx.restore();
+}
+
+// Sprite-based NPCs (Death, Elystria, Cryious, Romaine, ...) — Y-sorted with player
+function drawNpc(npc) {
+  const meta = SPRITE_META[npc.sheet];
+  const img = sprites[npc.sheet];
+  if (!meta || !img) return;
+  const scale = npc.scale || 0.55;
+  const drawW = meta.frame_w * scale;
+  const drawH = meta.frame_h * scale;
+  const px = npc.x * 64;
+  const py = npc.y * 64;
+  const speed = npc.animSpeed || 5;
+  const frame = Math.floor(t * speed) % meta.frames;
+  const drawX = px - drawW/2;
+  const drawY = py - drawH + 20;
+  // shadow
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(px, py + 18, drawW*0.32, 8, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // sprite
+  ctx.save();
+  if (npc.flip) {
+    ctx.translate(drawX + drawW/2, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-(drawX + drawW/2), 0);
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, frame * meta.frame_w, 0, meta.frame_w, meta.frame_h, drawX, drawY, drawW, drawH);
+  ctx.restore();
+  // floating "•" indicator above an NPC the player is near
+  const near = (state.nearInteract && state.nearInteract.__npc === npc);
+  if (near) {
+    ctx.save();
+    ctx.font = 'bold 11px Cinzel,Georgia,serif';
+    ctx.fillStyle = '#ffe9b3';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦  SPEAK · ' + (npc.label || ''), px, drawY - 4);
+    ctx.restore();
+  }
 }
 
 function drawVignette(){

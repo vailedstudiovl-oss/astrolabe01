@@ -1050,6 +1050,120 @@
     (function () {
         'use strict';
 
+        // ============================================================
+        //   HOLOGRAPHIC CAMERA-ORBIT DRAG
+        // ============================================================
+        // Lets the user drag the holographic menu board to "orbit" it —
+        // adds 3D perspective rotation tied to pointer movement. Drag is
+        // damped, snaps back to the rest tilt when released, and ignores
+        // drags that started on an actionable element (links, buttons,
+        // form controls) so navigation still works.
+        // ------------------------------------------------------------
+        (function attachHoloOrbit() {
+            const board = document.querySelector('.menu-grid');
+            if (!board) return;
+            const REST_X = 2;    // matches the CSS rest rotateX(2deg)
+            const REST_Y = 0;
+            const MAX_X  = 22;
+            const MAX_Y  = 28;
+            let rotX = REST_X, rotY = REST_Y;
+            let targetX = REST_X, targetY = REST_Y;
+            let dragging = false;
+            let startPX = 0, startPY = 0;
+            let startRX = REST_X, startRY = REST_Y;
+            let pointerId = null;
+            let snapping = false;
+
+            // Idle drift so the board breathes when untouched
+            let idleSeed = Math.random() * 1000;
+
+            function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+            function isInteractive(el) {
+                if (!el) return false;
+                // walk up a few levels — links / buttons / form inputs
+                let n = el;
+                for (let i = 0; i < 5 && n; i++) {
+                    const tag = (n.tagName || '').toLowerCase();
+                    if (tag === 'a' || tag === 'button' || tag === 'input' ||
+                        tag === 'select' || tag === 'textarea' || tag === 'label') return true;
+                    if (n.classList && (n.classList.contains('menu-link') || n.classList.contains('no-orbit'))) return true;
+                    n = n.parentElement;
+                }
+                return false;
+            }
+
+            board.addEventListener('pointerdown', (e) => {
+                if (isInteractive(e.target)) return;          // let links/buttons work
+                dragging = true;
+                snapping = false;
+                pointerId = e.pointerId;
+                startPX = e.clientX; startPY = e.clientY;
+                startRX = rotX; startRY = rotY;
+                try { board.setPointerCapture(e.pointerId); } catch (_) {}
+                board.style.cursor = 'grabbing';
+                e.preventDefault();
+            }, { passive: false });
+
+            board.addEventListener('pointermove', (e) => {
+                if (!dragging || e.pointerId !== pointerId) return;
+                const dx = e.clientX - startPX;
+                const dy = e.clientY - startPY;
+                // Drag down → rotate forward, drag right → rotate right
+                // Sensitivity scales with screen size
+                const sens = 0.35;
+                targetY = clamp(startRY + dx * sens, -MAX_Y, MAX_Y);
+                targetX = clamp(startRX - dy * sens, -MAX_X, MAX_X);
+            }, { passive: true });
+
+            function endDrag(e) {
+                if (!dragging || (e && e.pointerId !== pointerId)) return;
+                dragging = false;
+                snapping = true;
+                try { board.releasePointerCapture(pointerId); } catch (_) {}
+                pointerId = null;
+                board.style.cursor = 'grab';
+                // ease back to rest over the next ~700ms
+                targetX = REST_X;
+                targetY = REST_Y;
+            }
+            board.addEventListener('pointerup', endDrag);
+            board.addEventListener('pointercancel', endDrag);
+            board.addEventListener('pointerleave', endDrag);
+
+            // Soft idle drift when not dragging — extremely subtle (≤ ±1.5°)
+            function idleDrift(t) {
+                if (dragging) return [targetX, targetY];
+                const dx = Math.sin(t * 0.0006 + idleSeed) * 1.3;
+                const dy = Math.cos(t * 0.0009 + idleSeed) * 1.6;
+                return [REST_X + dx, REST_Y + dy];
+            }
+
+            function animate(t) {
+                const [tx, ty] = dragging ? [targetX, targetY] : (snapping ? [targetX, targetY] : idleDrift(t));
+                // Critically-damped easing
+                const k = dragging ? 0.30 : 0.08;
+                rotX += (tx - rotX) * k;
+                rotY += (ty - rotY) * k;
+                // When close enough to rest, stop snapping and let idle drift take over
+                if (snapping && Math.abs(rotX - REST_X) < 0.4 && Math.abs(rotY - REST_Y) < 0.4) {
+                    snapping = false;
+                }
+                board.style.transform =
+                    `perspective(900px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+                requestAnimationFrame(animate);
+            }
+            // Wait for the holoBoot intro to finish before we take over the transform.
+            setTimeout(() => {
+                board.style.cursor = 'grab';
+                board.style.willChange = 'transform';
+                // Remove the CSS animation so JS can drive transform without it being clobbered
+                board.style.animation = 'none';
+                board.style.opacity = '1';
+                requestAnimationFrame(animate);
+            }, 3300);   // 1800ms delay + 1400ms intro
+        })();
+
         // ----- Wanderer ID (carried over from astrolabe) -----
         try {
             let wid = localStorage.getItem('astrolabe_wanderer_id');

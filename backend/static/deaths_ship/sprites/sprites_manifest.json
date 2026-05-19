@@ -1,5 +1,5 @@
 {
-  "run_down": {
+  "may_run_down": {
     "src": "run_down_raw.png",
     "frames": 25,
     "frame_w": 86,
@@ -7,7 +7,7 @@
     "strip_w": 2150,
     "strip_h": 192
   },
-  "run_right": {
+  "may_run_right": {
     "src": "run_right_raw.png",
     "frames": 25,
     "frame_w": 112,
@@ -15,7 +15,7 @@
     "strip_w": 2800,
     "strip_h": 187
   },
-  "run_up": {
+  "may_run_up": {
     "src": "run_up_raw.png",
     "frames": 25,
     "frame_w": 69,
@@ -23,12 +23,148 @@
     "strip_w": 1725,
     "strip_h": 182
   },
-  "idle_right": {
+  "may_idle_right": {
     "src": "idle_right_raw.png",
     "frames": 25,
-    "frame_w": 49,
+    "frame_w": 48,
     "frame_h": 182,
-    "strip_w": 1225,
+    "strip_w": 1200,
     "strip_h": 182
+  },
+  "may_idle_up": {
+    "src": "may_idle_up_raw.png",
+    "frames": 25,
+    "frame_w": 53,
+    "frame_h": 145,
+    "strip_w": 1325,
+    "strip_h": 145
+  },
+  "death_idle": {
+    "src": "death_idle_raw.png",
+    "frames": 25,
+    "frame_w": 81,
+    "frame_h": 168,
+    "strip_w": 2025,
+    "strip_h": 168
+  },
+  "death_walk": {
+    "src": "death_walk_raw.png",
+    "frames": 25,
+    "frame_w": 86,
+    "frame_h": 128,
+    "strip_w": 2150,
+    "strip_h": 128
+  },
+  "elystria_idle": {
+    "src": "elystria_idle_raw.png",
+    "frames": 25,
+    "frame_w": 62,
+    "frame_h": 179,
+    "strip_w": 1550,
+    "strip_h": 179
+  },
+  "elystria_idle_down": {
+    "src": "elystria_idle_down_raw.png",
+    "frames": 25,
+    "frame_w": 73,
+    "frame_h": 182,
+    "strip_w": 1825,
+    "strip_h": 182
+  },
+  "elystria_walk": {
+    "src": "elystria_walk_raw.png",
+    "frames": 25,
+    "frame_w": 93,
+    "frame_h": 169,
+    "strip_w": 2325,
+    "strip_h": 169
+  },
+  "elystria_run": {
+    "src": "elystria_run_raw.png",
+    "frames": 25,
+    "frame_w": 148,
+    "frame_h": 148,
+    "strip_w": 3700,
+    "strip_h": 148
+  },
+  "romaine_idle": {
+    "src": "romaine_idle_raw.png",
+    "frames": 25,
+    "frame_w": 62,
+    "frame_h": 192,
+    "strip_w": 1561,
+    "strip_h": 192
+  },
+  "romaine_walk": {
+    "src": "romaine_walk_raw.png",
+    "frames": 25,
+    "frame_w": 105,
+    "frame_h": 192,
+    "strip_w": 2636,
+    "strip_h": 192
+  },
+  "romaine_run": {
+    "src": "romaine_run_raw.png",
+    "frames": 25,
+    "frame_w": 159,
+    "frame_h": 188,
+    "strip_w": 3975,
+    "strip_h": 188
+  },
+  "romaine_sleep": {
+    "src": "romaine_sleep_raw.png",
+    "frames": 25,
+    "frame_w": 223,
+    "frame_h": 76,
+    "strip_w": 5575,
+    "strip_h": 76
+  },
+  "romaine_wave": {
+    "src": "romaine_wave_raw.png",
+    "frames": 25,
+    "frame_w": 106,
+    "frame_h": 192,
+    "strip_w": 2674,
+    "strip_h": 192
+  },
+  "cryious_idle": {
+    "src": "cryious_idle_raw.png",
+    "frames": 25,
+    "frame_w": 71,
+    "frame_h": 155,
+    "strip_w": 1775,
+    "strip_h": 155
+  },
+  "cryious_walk": {
+    "src": "cryious_walk_raw.png",
+    "frames": 25,
+    "frame_w": 91,
+    "frame_h": 155,
+    "strip_w": 2275,
+    "strip_h": 155
+  },
+  "cryious_run": {
+    "src": "cryious_run_raw.png",
+    "frames": 25,
+    "frame_w": 111,
+    "frame_h": 119,
+    "strip_w": 2775,
+    "strip_h": 119
+  },
+  "cryious_idle_up": {
+    "src": "cryious_idle_up_raw.png",
+    "frames": 25,
+    "frame_w": 96,
+    "frame_h": 141,
+    "strip_w": 2400,
+    "strip_h": 141
+  },
+  "cryious_idle_down": {
+    "src": "cryious_idle_down_raw.png",
+    "frames": 25,
+    "frame_w": 91,
+    "frame_h": 163,
+    "strip_w": 2275,
+    "strip_h": 163
   }
 }

@@ -269,24 +269,28 @@ const state = {
 const ROOM_DEFS = {
   control: {
     id: 'control',
-    name: 'The Control Room',
-    sub: 'Command bridge — strata navigation hub',
+    name: 'The Command Floor',
+    sub: 'A dark sci-fi bridge under an inverted dome of red sigils',
     width: 26, height: 16,
-    palette: { floor:'#1c1232', wall:'#2c1d4a', stone:'#3a2a5c', accent:'#d4a85a', candle:'#ffd28b' },
+    // Canon Command Floor palette — deep blue ceiling, red/orange floor, dark dome.
+    palette: { floor:'#3a1a18', wall:'#0e1424', stone:'#1a2438', accent:'#ff3a3a', candle:'#ff8050' },
     spawn: { x: 13, y: 13 },
     draw: drawControlRoom,
     walls: [
       { x:0,y:0,w:26,h:1 }, { x:0,y:15,w:26,h:1 }, { x:0,y:0,w:1,h:16 }, { x:25,y:0,w:1,h:16 },
-      { x:11,y:5,w:4,h:3 },   // central command pit
-      { x:2,y:3,w:5,h:1.5 },  // port console bank
-      { x:19,y:3,w:5,h:1.5 }, // starboard console bank
+      // The central dome support pillar — players cannot stand directly under it.
+      { x:11,y:4,w:4,h:4 },
+      // Tiered platforms with consoles (player walks AROUND, not on them)
+      { x:2,y:3,w:5,h:1.5 },
+      { x:19,y:3,w:5,h:1.5 },
     ],
     interactables: [
-      { x:13,y:8.5, kind:'plaque', title:'COMMAND THRONE', body:'Death\'s command seat. From here the ship pierces the 199-Layer Creation, charting strata that should not be charted.\n\nThe armrests still bear scorch marks from when Death dragged The Lurker out of Reality 47 — a story told only in whispers among the reapers.\n\nMay has tried to sit here exactly once. The chair refused her.' },
-      { x:4.5,y:5.5, kind:'plaque', title:'PORT CONSOLE — NAV', body:'Holographic strata-projector. Reads the negative-positive scale (-99 through +99) and predicts the next stable docking window.\n\nThe console hums even when no one is logged in. Vivian says that\'s normal. The Navigator says it isn\'t.' },
-      { x:21.5,y:5.5, kind:'plaque', title:'STARBOARD CONSOLE — SOULS', body:'Ledger of every soul currently aboard. Death keeps this immaculate. The ledger updates in real time — a new line ticks past every few seconds.\n\nDon\'t look too closely at line 4,221. That one\'s yours, in advance.' },
-      { x:13,y:2.5, kind:'plaque', title:'BACK WALL — STAINED GLASS', body:'A single great stained-glass panel, depicting the Cathedral Of Reapers. The figures are arranged in their hierarchy — Death at the apex, the Centurions flanking, the common reapers below, and the skeleton-servants at the foot.\n\nMay\'s outline is etched to one side, smaller than the rest. She has never asked Death why.' },
-      { x:18,y:13, kind:'plaque', title:'THE OBSERVATION RAIL', body:'A brass rail along which a small skeleton-servant patrols when on duty. Its eyes are coal — when it sees an unfamiliar soul aboard, the coals turn pale gold.\n\nThe rail is currently empty. The skeleton-servants are taking their hourly rest in the Lower Deck.' },
+      { x:13,y:9.5, kind:'plaque', title:'CENTRAL PROJECTION COLUMN', body:'A floor-mounted projector beams a column of red-orange holographic light directly UP into the inverted dome above. Souls, strata, and the entire 199-Layer Creation roll past in flickering data — readable only to Death and the senior reapers.\n\nMay can read about a third of it. She doesn\'t tell anyone which third.' },
+      { x:4.5,y:5.5, kind:'plaque', title:'PORT TIER — NAV', body:'Holographic strata-projector. Reads the negative-positive scale (-99 through +99) and predicts the next stable docking window.\n\nThe console hums even when no one is logged in. Vivian said that was normal. The Navigator says it isn\'t.' },
+      { x:21.5,y:5.5, kind:'plaque', title:'STARBOARD TIER — SOULS', body:'Ledger of every soul currently aboard. Death keeps this immaculate. The ledger updates in real time — a new line ticks past every few seconds.\n\nDon\'t look too closely at line 4,221. That one\'s yours, in advance.' },
+      { x:13,y:2.5, kind:'plaque', title:'THE INVERTED DOME', body:'The ceiling above the central column is a massive dark inverted dome — black metal etched with red sigil-grooves. It hangs lower than any other architecture on the ship.\n\nWhen the ship is under stress, the dome\'s sigils flare red and the air on the Command Floor goes briefly warm. Some reapers say the dome is "listening." Romaine says it\'s just thermal regulation.' },
+      { x:7,y:12, kind:'plaque', title:'HOODED REAPER (POSTED)', body:'A senior reaper stands at the edge of the floor, hooded, scythe planted on the deck. They do not acknowledge May as she passes.\n\nThe hooded ones serve four-hour rotations on the Command Floor whenever the ship is between strata. Their watch is over the dome, not the bridge.' },
+      { x:19,y:12, kind:'plaque', title:'HOODED REAPER (POSTED)', body:'A second hooded reaper, identical posture, opposite side. The pair are never named — only their watch-numbers, etched on the inside of the hood, are ever cited in the ship\'s logbook.\n\nMay has wondered once or twice if Vivian is one of them.' },
     ],
     doors: [
       { x:1.2, y:13.5, w:1.0, h:1.5, to:'dorm_hall', spawn:{x:30,y:5} },
@@ -313,7 +317,7 @@ const ROOM_DEFS = {
       { x:11, y:1.7, kind:'plaque', title:'DORM 4 — CRYIOUS', body:'A frozen mist seeps out from under the door. Inside, Cryious dreams in equations that the rest of the crew can\'t read. Knock at your own risk — the last reaper who knocked spent a week thinking in ice.' },
       { x:15, y:1.7, kind:'plaque', title:'DORM 5 — ELYSTRIA', body:'Music plays softly behind the door — a song May doesn\'t recognize, in a language that may not exist outside of this corridor.\n\nElystria is May\'s closest ally. Some nights she opens the door without being knocked on, and they share tea in silence.' },
       { x:19, y:1.7, kind:'plaque', title:'DORM 6 — MADORIA', body:'A small purple ribbon is tied to the door handle. Madoria always ties one before sleep — to remember which reality she came back from.\n\nThe ribbon is fresh. Madoria is in.' },
-      { x:11, y:8.0, kind:'plaque', title:'DORM 9 — TENEBRIS', body:'The door is welded shut from the outside.\n\nNo one talks about Dorm 9. May tries the handle anyway. It does not yield.' },
+      { x:11, y:8.0, kind:'plaque', title:'DORM 9 — SEALED ALCOVE', body:'An empty alcove. There never was a dorm here — the door is welded over the stone, a placeholder from the ship\'s original build.\n\nMay tries the handle anyway. It does not yield, and was never meant to.' },
       { x:15, y:8.0, kind:'plaque', title:'DORM 10 — THE COMMON REAPERS', body:'A single shared dorm for the dozen common reapers — the ones who pilot the harvest skiffs and tend to the smaller souls.\n\nThe door is always slightly ajar. Inside, twelve thin beds in two rows, each with a small bone token at the foot. The tokens are how the reapers find their way home from a strata they did not return whole from.' },
       { x:19, y:8.0, kind:'plaque', title:'SKELETON ALCOVE', body:'A small recess in the wall where one of the ship\'s skeleton-servants stands at rest. Its jaw is loose; a scrap of parchment is pinned to its sternum reading \"OFF-DUTY · DO NOT DISTURB.\"\n\nThe skeletons are part of the ship\'s permanent crew — older than May, older than most of the reapers. Death does not say where they came from.' },
       { x:23, y:5,   kind:'plaque', title:'HALL TERMINAL', body:'Roster: 12 reapers on rotation. 9 currently aboard. 3 deployed to Strata -47.\n\nVivian\'s name is highlighted in red. Investigation pending.' },
@@ -382,7 +386,7 @@ const ROOM_DEFS = {
     interactables: [
       { x:3.2, y:7.5,  kind:'plaque', title:'SKIFF · RAVENWAKE', body:'A two-seater harvest skiff. Dark hull plating still scorched from its last run into Strata -41. Cyan canopy lights cycling on standby.\n\nA strip of yellow ribbon is tied to the rear stabilizer — Romaine ties one to every skiff he repairs, "so they remember the way back."' },
       { x:3.2, y:10.5, kind:'plaque', title:'SKIFF · LANTERN', body:'May\'s personal harvest skiff. She is rated for short-strata work only — Death has not yet authorized her for a full deployment.\n\nThe seats still smell faintly of the lavender oil she insists Romaine apply after every service.' },
-      { x:24.7,y:7.5,  kind:'plaque', title:'SKIFF · BLACKHEART', body:'Tenebris\' skiff. Has not flown since Tenebris was sealed into Dorm 9. Romaine maintains it anyway — a mechanic\'s superstition.\n\nThe canopy glass is cracked from the inside.' },
+      { x:24.7,y:7.5,  kind:'plaque', title:'SKIFF · BLACKHEART', body:'A skiff that flies, but rarely. Belonged to a senior reaper who retired into a strata three cycles ago and never came back. Romaine maintains it anyway — a mechanic\'s superstition.\n\nThe canopy glass is cracked from the inside.' },
       { x:24.7,y:10.5, kind:'plaque', title:'SKIFF · UNNAMED', body:'A new harvest skiff, just out of bonding. No paint, no name, hull still bare bronze.\n\nRomaine refuses to name a skiff before it has flown. "She tells you who she is, on the first run. Not before."' },
       { x:8.5, y:8,    kind:'plaque', title:'CARGO · STRATA-47 SOULS', body:'A heavy steel-cage cargo crate, locked with a brass sigil-clamp.\n\nManifest: thirty-one souls retrieved from the collapse of Reality 47 — pending sorting. Death will personally walk this crate to the Cathedral when the cycle is right.' },
       { x:13, y:8,     kind:'plaque', title:'CARGO · SHIP PARTS', body:'A second cage crate, half-empty, full of replacement panels and brass sigil-rings. Romaine signs every panel with a small carnation stamp before installing it.' },
@@ -589,70 +593,233 @@ function roundRect(ctx, x, y, w, h, r){
 // ============================================================
 
 function drawControlRoom(ctx, room) {
+  // Canon "Command Floor" — dark blue ceiling fading to red-orange floor,
+  // a massive inverted dome hanging centrally, hooded reapers posted on both
+  // sides, a central red-orange holographic projection column. No candles,
+  // no stained glass, no purple stone.
   const W = room.width * 64, H = room.height * 64;
   const p = room.palette;
-  drawStoneFloor(ctx, W, H, p, 1);
-  // outer walls
-  ctx.fillStyle = p.wall;
+
+  // 1) Vertical gradient floor (deep blue → red-orange, like the comic ref)
+  const floorGrad = ctx.createLinearGradient(0, 0, 0, H);
+  floorGrad.addColorStop(0,    '#0e1424');   // top: deep cold blue
+  floorGrad.addColorStop(0.45, '#2a1828');   // mid: dark crimson
+  floorGrad.addColorStop(0.75, '#6a2418');   // dark orange-red
+  floorGrad.addColorStop(1,    '#a83a14');   // bottom: hot orange floor glow
+  ctx.fillStyle = floorGrad; ctx.fillRect(0, 0, W, H);
+
+  // 2) Plate seams (large hexagonal-deck grid)
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 2;
+  for (let y = 96; y < H; y += 192) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  for (let x = 96; x < W; x += 192) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+
+  // 3) Outer walls — dark grey metal panels
+  ctx.fillStyle = '#0a0f1c';
   ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
   ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
-  drawWallTrim(ctx, W, H, '#1a0e2c');
-  // back-wall stained glass — three large arches
-  drawArchWindow(ctx, 5*64,  4, 4*64, 60);
-  drawArchWindow(ctx, 11*64, 4, 4*64, 60);
-  drawArchWindow(ctx, 17*64, 4, 4*64, 60);
-  // central command pit (tiered stone)
-  ctx.fillStyle = '#2a1a3e';
-  roundRect(ctx, 11*64, 5*64, 4*64, 3*64, 14); ctx.fill();
-  ctx.fillStyle = '#3c2654';
-  roundRect(ctx, 11*64+10, 5*64+10, 4*64-20, 3*64-20, 10); ctx.fill();
-  // throne chair (back-rest + seat)
-  ctx.fillStyle = '#0a0518';
-  ctx.fillRect(12.6*64, 5.7*64, 0.8*64, 1.0*64);  // back-rest
-  ctx.fillRect(12.5*64, 6.6*64, 1.0*64, 0.8*64);  // seat
-  // gold brass trim on throne
-  ctx.fillStyle = p.accent;
-  ctx.fillRect(12.6*64+4, 5.75*64, 0.8*64-8, 4);
-  // port + starboard console banks (stone with brass plaques)
-  drawStoneConsole(ctx, 2*64, 3*64, 5*64, 1.5*64, p, t);
-  drawStoneConsole(ctx, 19*64, 3*64, 5*64, 1.5*64, p, t);
-  // sconces along walls (every ~3 tiles)
-  for (let i = 0; i < 8; i++) {
-    drawSconce(ctx, (3 + i*3)*64, 64, p.candle, t, i);
-  }
-  // observation rail (right side, near bottom)
-  ctx.fillStyle = p.accent;
-  ctx.fillRect(15*64, 12*64, 9*64, 4);
-  for (let i = 0; i < 9; i++) {
-    ctx.fillRect((15.5+i)*64, 12*64-12, 3, 12);
-  }
-  // floor stencil center text
+  // riveted seams on perimeter
+  ctx.fillStyle = '#1a2438';
+  for (let x = 32; x < W; x += 96) { ctx.fillRect(x, 4, 2, 56); ctx.fillRect(x, H-60, 2, 56); }
+  for (let y = 32; y < H; y += 96) { ctx.fillRect(4, y, 56, 2); ctx.fillRect(W-60, y, 56, 2); }
+
+  // 4) Tiered platforms (port + starboard) — raised stone with red sigil-lights
+  drawCommandTier(ctx, 2*64, 3*64, 5*64, 1.5*64, t);
+  drawCommandTier(ctx, 19*64, 3*64, 5*64, 1.5*64, t);
+
+  // 5) The INVERTED DOME hanging from the ceiling — dark wedge with red sigils
+  drawInvertedDome(ctx, 13*64, 4*64, 6*64, 4.2*64, t);
+
+  // 6) Central holographic projection column — red-orange light beam UP
+  drawProjectionColumn(ctx, 13*64, 9.5*64, t);
+
+  // 7) Hooded reapers posted left + right (placeholder shapes)
+  drawHoodedReaper(ctx, 7*64, 12*64, t, 0);
+  drawHoodedReaper(ctx, 19*64, 12*64, t, 1);
+
+  // 8) Faint floor stencil text
   ctx.save();
-  ctx.font = 'bold 14px Cinzel,Georgia,serif';
-  ctx.fillStyle = 'rgba(220,170,90,0.18)';
-  ctx.textAlign = 'center'; ctx.fillText('▾  COMMAND DECK · I  ▾', W/2, H/2 + 220);
+  ctx.font = 'bold 13px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(255,140,80,0.18)';
+  ctx.textAlign = 'center';
+  ctx.fillText('▾ COMMAND FLOOR · DECK I ▾', W/2, H - 96);
   ctx.restore();
 }
 
-function drawStoneConsole(ctx, x, y, w, h, p, t){
-  // raised stone slab
-  ctx.fillStyle = p.stone;
-  roundRect(ctx, x, y, w, h, 8); ctx.fill();
-  // top brass slab
-  ctx.fillStyle = p.accent;
-  ctx.fillRect(x+8, y+8, w-16, 8);
-  // engraved sigils (suggested via small rectangles)
-  ctx.fillStyle = '#1a0e2c';
-  for (let i = 0; i < 6; i++) ctx.fillRect(x+18+i*16, y+10, 4, 4);
-  // crystal scrying-eye (warm amber instead of cyan)
+function drawCommandTier(ctx, x, y, w, h, t) {
+  // Dark grey raised platform with a glowing red console strip on top
+  ctx.fillStyle = '#1a2438';
+  roundRect(ctx, x, y, w, h, 6); ctx.fill();
+  ctx.fillStyle = '#262e44';
+  roundRect(ctx, x+6, y+6, w-12, h-12, 4); ctx.fill();
+  // glowing red sigil-strip
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const flicker = 0.6 + 0.4*Math.sin(t*2 + x*.01);
-  ctx.globalAlpha = 0.5 * flicker;
-  ctx.fillStyle = '#ffba66';
-  ctx.beginPath(); ctx.arc(x+w/2, y+h-14, 6, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 0.16 * flicker;
-  ctx.beginPath(); ctx.arc(x+w/2, y+h-14, 22, 0, Math.PI*2); ctx.fill();
+  const pulse = 0.7 + 0.3*Math.sin(t*2 + x*0.01);
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillStyle = '#ff3a3a';
+  ctx.fillRect(x+14, y+12, w-28, 4);
+  ctx.globalAlpha = 0.20 * pulse;
+  ctx.fillRect(x+6, y+4, w-12, 18);
+  ctx.restore();
+  // small sigil dots along the strip
+  ctx.fillStyle = '#ff8050';
+  for (let i = 0; i < 5; i++) {
+    const px = x + 22 + i*((w-44)/4);
+    ctx.beginPath(); ctx.arc(px, y + h - 14, 3, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawInvertedDome(ctx, cx, cy, w, h, t) {
+  // The huge inverted dome that hangs from the ceiling, like the comic ref.
+  // Drawn as a downward-pointing wedge with red sigil grooves.
+  ctx.save();
+  // outer wedge
+  ctx.fillStyle = '#0a0e1c';
+  ctx.beginPath();
+  ctx.moveTo(cx - w/2, cy);
+  ctx.lineTo(cx + w/2, cy);
+  ctx.lineTo(cx + w*0.32, cy + h*0.72);
+  ctx.quadraticCurveTo(cx, cy + h, cx - w*0.32, cy + h*0.72);
+  ctx.closePath();
+  ctx.fill();
+  // inner shadow ridges
+  ctx.strokeStyle = '#1a2438'; ctx.lineWidth = 2;
+  for (let i = 1; i < 4; i++) {
+    const s = i / 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - w/2 + s*30, cy + 8);
+    ctx.quadraticCurveTo(cx, cy + h*(0.5+s*0.3), cx + w/2 - s*30, cy + 8);
+    ctx.stroke();
+  }
+  // central red sigil — diamond/spear
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.7 + 0.3*Math.sin(t*1.4);
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillStyle = '#ff3a3a';
+  // vertical bar
+  ctx.fillRect(cx - 2, cy + h*0.18, 4, h*0.55);
+  // spear-tip
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + h*0.78);
+  ctx.lineTo(cx - 5, cy + h*0.70);
+  ctx.lineTo(cx + 5, cy + h*0.70);
+  ctx.closePath(); ctx.fill();
+  // halo
+  ctx.globalAlpha = 0.20 * pulse;
+  ctx.beginPath(); ctx.arc(cx, cy + h*0.5, 60, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // small red dots on dome rim
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI*0.92 + (i/5)*Math.PI*0.84;
+    const px = cx + Math.cos(a) * w*0.42;
+    const py = cy + 12 + Math.sin(a) * h*0.15;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.7 + 0.3*Math.sin(t*3 + i);
+    ctx.fillStyle = '#ff3a3a';
+    ctx.beginPath(); ctx.arc(px, py, 2.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawProjectionColumn(ctx, cx, cy, t) {
+  // Vertical column of red-orange holographic data rising into the dome
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.7 + 0.3*Math.sin(t*1.8);
+
+  // outer halo
+  ctx.globalAlpha = 0.18 * pulse;
+  const grad = ctx.createRadialGradient(cx, cy, 8, cx, cy, 180);
+  grad.addColorStop(0, '#ffdd80'); grad.addColorStop(0.5, '#ff5028'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(cx - 200, cy - 200, 400, 400);
+
+  // central glowing pillar (extends UP from floor to dome above)
+  const colW = 56;
+  const gradCol = ctx.createLinearGradient(cx - colW/2, 0, cx + colW/2, 0);
+  gradCol.addColorStop(0, 'rgba(255,80,40,0.05)');
+  gradCol.addColorStop(0.5, 'rgba(255,180,90,0.85)');
+  gradCol.addColorStop(1, 'rgba(255,80,40,0.05)');
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillStyle = gradCol;
+  ctx.fillRect(cx - colW/2, cy - 340, colW, 340);
+
+  // scrolling data flakes — small bright squares rising
+  for (let i = 0; i < 16; i++) {
+    const off = ((t*60 + i*22) % 320);
+    const px = cx - 18 + ((i*7) % 36);
+    const py = cy - off + 4;
+    ctx.globalAlpha = 0.7 * pulse * (1 - off/320);
+    ctx.fillStyle = '#ffdd80';
+    ctx.fillRect(px, py, 3, 2);
+  }
+  ctx.restore();
+
+  // base projector ring on the floor
+  ctx.save();
+  ctx.fillStyle = '#1a2438';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 56, 12, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3a2828';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 48, 9, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillStyle = '#ffaa50';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 38, 6, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawHoodedReaper(ctx, x, y, t, seed) {
+  // Placeholder hooded reaper — dark cloak + black hood + thin scythe.
+  // Will be replaced with real sprites later.
+  ctx.save();
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath(); ctx.ellipse(x, y + 30, 18, 5, 0, 0, Math.PI*2); ctx.fill();
+  // cloak body (trapezoidal)
+  ctx.fillStyle = '#0a0e1c';
+  ctx.beginPath();
+  ctx.moveTo(x - 8, y - 14);
+  ctx.lineTo(x + 8, y - 14);
+  ctx.lineTo(x + 16, y + 28);
+  ctx.lineTo(x - 16, y + 28);
+  ctx.closePath(); ctx.fill();
+  // cloak inner highlight
+  ctx.fillStyle = '#1a2438';
+  ctx.beginPath();
+  ctx.moveTo(x - 5, y - 8);
+  ctx.lineTo(x + 5, y - 8);
+  ctx.lineTo(x + 10, y + 24);
+  ctx.lineTo(x - 10, y + 24);
+  ctx.closePath(); ctx.fill();
+  // hood
+  ctx.fillStyle = '#0a0e1c';
+  ctx.beginPath();
+  ctx.moveTo(x - 9, y - 12);
+  ctx.quadraticCurveTo(x, y - 26, x + 9, y - 12);
+  ctx.lineTo(x + 7, y - 4);
+  ctx.lineTo(x - 7, y - 4);
+  ctx.closePath(); ctx.fill();
+  // shadow inside hood — barely-visible coal eye
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.6 + 0.4*Math.sin(t*2 + seed);
+  ctx.fillStyle = '#ff3a3a';
+  ctx.fillRect(x - 2, y - 12, 1.5, 1.5);
+  ctx.fillRect(x + 1, y - 12, 1.5, 1.5);
+  ctx.restore();
+  // scythe — long thin staff with curved blade at top
+  ctx.strokeStyle = '#2a2018'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x + 12, y - 40); ctx.lineTo(x + 14, y + 28); ctx.stroke();
+  // blade
+  ctx.fillStyle = '#9d9d9d';
+  ctx.beginPath();
+  ctx.moveTo(x + 12, y - 40);
+  ctx.quadraticCurveTo(x + 26, y - 50, x + 38, y - 32);
+  ctx.lineTo(x + 16, y - 32);
+  ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 

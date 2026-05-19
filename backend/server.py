@@ -259,6 +259,151 @@ async def list_recent_lore(limit: int = Query(20, ge=1, le=100)):
     return [LoreContribution(**d) async for d in cursor]
 
 
+# ============================================================
+#   GENERATIVE STORYTELLING — Canon-faithful AI story endpoint
+#   Loads the consolidated lore corpus (from /app/backend/lore_canon/)
+#   into a system prompt and asks Claude to write a short story.
+# ============================================================
+_LORE_CORPUS_CACHE: Optional[str] = None
+_LORE_CORPUS_PATH = ROOT_DIR / "lore_canon" / "corpus_concatenated.txt"
+
+
+def _load_lore_corpus() -> str:
+    """Read the consolidated lore corpus once and memoize."""
+    global _LORE_CORPUS_CACHE
+    if _LORE_CORPUS_CACHE is not None:
+        return _LORE_CORPUS_CACHE
+    try:
+        if _LORE_CORPUS_PATH.exists():
+            with open(_LORE_CORPUS_PATH, "r", encoding="utf-8") as f:
+                _LORE_CORPUS_CACHE = f.read()
+        else:
+            _LORE_CORPUS_CACHE = ""
+            logging.warning(f"Lore corpus not found at {_LORE_CORPUS_PATH}")
+    except Exception as e:
+        logging.exception(f"Failed to load lore corpus: {e}")
+        _LORE_CORPUS_CACHE = ""
+    return _LORE_CORPUS_CACHE
+
+
+class LoreStoryRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=1000)
+    subject: Optional[str] = Field(None, max_length=120,
+        description="Optional subject focus: a reaper name, a strata, a faction, etc.")
+    length: Literal["short", "medium", "long"] = "medium"
+    tone: Literal["gothic", "cinematic", "intimate", "horror", "tragic", "wry"] = "gothic"
+
+
+class LoreStoryResponse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    prompt: str
+    subject: Optional[str]
+    tone: str
+    length: str
+    story: str
+    word_count: int
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+@api_router.post("/lore/generate", response_model=LoreStoryResponse)
+async def generate_lore_story(req: LoreStoryRequest):
+    """Generate a canon-faithful short story rooted in the DimensionLock lore corpus.
+
+    Uses the Emergent LLM key (Claude 4 Sonnet by default) and seeds the model
+    with the consolidated lore documents as a system prompt. Stories are saved
+    into the `lore_generated_stories` Mongo collection for the Lore Archive
+    feed and so Ambassadors can vote on / cite them later.
+    """
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="LLM service not configured (missing EMERGENT_LLM_KEY).")
+    corpus = _load_lore_corpus()
+    if not corpus:
+        raise HTTPException(status_code=500, detail="Lore corpus unavailable on server.")
+
+    # Length budget
+    word_target = {"short": 180, "medium": 380, "long": 700}.get(req.length, 380)
+
+    system_prompt = f"""You are the canon-keeper of DIMENSIONLOCK — DEATHLY STORIES, a gothic sci-fi cosmic horror universe. You write short stories rooted in the established canon below. Stay strictly faithful to the lore. Never invent contradictions. Use the established names, factions, strata layers, and personalities.
+
+TONE: {req.tone} — write in a {req.tone} prose voice. Avoid generic fantasy clichés. Lean into specific, sensory imagery (the violet of the Drege Engine; the silence of the Cathedral; the cyan glow of Centurion sigils).
+
+LENGTH: Aim for approximately {word_target} words. Do not exceed by more than 30%.
+
+STRUCTURE: 
+- Open with an evocative sensory detail or one striking line
+- Use specific canon proper-nouns where they fit (Master Death, Maytradalis, Grim Cryious, Elystria, Elexus, Romaine, the Engineer, the Centurion Guard, the Endless, the Drege Engine, etc.)
+- Give the story a small but real emotional pivot — not just exposition
+- Close on an image, not a thesis
+
+OUTPUT: Return ONLY the story prose. No title heading. No analysis. No "Here is the story:" prefix. Just the prose.
+
+=========================================================
+DIMENSIONLOCK CANON CORPUS (your reference truth)
+=========================================================
+{corpus}
+=========================================================
+END OF CANON CORPUS
+=========================================================
+"""
+
+    user_text = req.prompt.strip()
+    if req.subject:
+        user_text = f"Subject focus: {req.subject.strip()}\n\nPrompt: {user_text}"
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM library not available: {e}")
+
+    try:
+        session_id = f"lore-gen-{uuid.uuid4().hex[:12]}"
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=session_id,
+            system_message=system_prompt,
+        ).with_model("anthropic", "claude-4-sonnet-20250514")
+        msg = UserMessage(text=user_text)
+        result = await chat.send_message(msg)
+        story_text = str(result).strip()
+    except Exception as e:
+        logging.exception(f"LLM generation failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Story generation failed: {e}")
+
+    if not story_text:
+        raise HTTPException(status_code=502, detail="LLM returned empty response.")
+
+    response = LoreStoryResponse(
+        prompt=req.prompt,
+        subject=req.subject,
+        tone=req.tone,
+        length=req.length,
+        story=story_text,
+        word_count=len(story_text.split()),
+    )
+    # Persist for the lore feed
+    try:
+        await db.lore_generated_stories.insert_one(response.dict())
+    except Exception as e:
+        logging.warning(f"Failed to persist generated story: {e}")
+    return response
+
+
+@api_router.get("/lore/generated", response_model=List[LoreStoryResponse])
+async def list_generated_stories(limit: int = Query(20, ge=1, le=100)):
+    """Recent generated stories for the Lore Archive feed."""
+    cursor = db.lore_generated_stories.find({}).sort("created_at", -1).limit(limit)
+    out = []
+    async for d in cursor:
+        d.pop("_id", None)
+        # Ensure datetime is parsed back to datetime
+        if isinstance(d.get("created_at"), str):
+            try: d["created_at"] = datetime.fromisoformat(d["created_at"])
+            except Exception: d["created_at"] = datetime.utcnow()
+        out.append(LoreStoryResponse(**d))
+    return out
+
+
 @api_router.get("/lore/target/{target_type}/{target_id}", response_model=List[LoreContribution])
 async def list_lore_for_target(target_type: str, target_id: str,
                                include_hidden: bool = Query(False),

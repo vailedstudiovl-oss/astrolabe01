@@ -180,6 +180,32 @@ a{color:var(--cyan);}
 /* my contributions */
 .contrib-section{margin-bottom:24px;}
 .contrib-section h3{font-size:11px;letter-spacing:3px;color:var(--cyan);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+
+/* ✦ STORIES TAB */
+.stories-wrap{display:flex;flex-direction:column;gap:20px;}
+.story-composer{background:linear-gradient(135deg,rgba(20,8,40,.7),rgba(8,4,16,.85));border:1px solid rgba(160,80,255,.35);border-radius:6px;padding:16px;box-shadow:0 0 24px rgba(160,80,255,.08) inset;}
+.sc-title{font-size:13px;letter-spacing:4px;color:#d4a8ff;margin-bottom:4px;}
+.sc-sub{font-size:11px;color:#888;margin-bottom:14px;line-height:1.5;}
+.sc-prompt{width:100%;background:rgba(0,0,0,.55);border:1px solid rgba(160,80,255,.25);color:#eee;font-family:inherit;font-size:13px;padding:10px;border-radius:4px;resize:vertical;outline:none;transition:border-color .2s;}
+.sc-prompt:focus{border-color:#a060ff;box-shadow:0 0 8px rgba(160,80,255,.3);}
+.sc-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.sc-subject{flex:1 1 280px;background:rgba(0,0,0,.55);border:1px solid rgba(160,80,255,.25);color:#eee;font-family:inherit;font-size:12px;padding:8px 10px;border-radius:4px;outline:none;}
+.sc-subject:focus{border-color:#a060ff;}
+.sc-select{background:rgba(0,0,0,.55);border:1px solid rgba(160,80,255,.25);color:#eee;font-family:inherit;font-size:11px;padding:8px 10px;letter-spacing:2px;border-radius:4px;cursor:pointer;}
+.sc-go{background:linear-gradient(135deg,#7c40d8,#a060ff);border:none;color:#fff;font-family:inherit;font-size:12px;letter-spacing:3px;padding:8px 18px;border-radius:4px;cursor:pointer;margin-left:auto;transition:transform .15s, filter .15s;}
+.sc-go:hover{filter:brightness(1.15);transform:translateY(-1px);}
+.sc-go:disabled{opacity:.5;cursor:wait;transform:none;}
+.sc-status{font-size:11px;color:#aaa;margin-top:8px;letter-spacing:1px;min-height:14px;}
+.stories-feed{display:flex;flex-direction:column;gap:14px;}
+.story-card{background:linear-gradient(135deg,rgba(8,8,20,.85),rgba(16,8,30,.75));border:1px solid rgba(160,80,255,.22);border-left:3px solid #a060ff;border-radius:4px;padding:14px 16px;box-shadow:0 4px 12px rgba(0,0,0,.4);}
+.story-head{margin-bottom:8px;border-bottom:1px solid rgba(160,80,255,.15);padding-bottom:6px;}
+.story-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:10px;letter-spacing:2px;color:#888;}
+.story-tone{background:rgba(160,80,255,.18);color:#d4a8ff;padding:2px 8px;border-radius:2px;}
+.story-tag{background:rgba(0,200,180,.18);color:#7cf;padding:2px 8px;border-radius:2px;}
+.story-len{color:#aaa;}
+.story-date{margin-left:auto;color:#666;}
+.story-prompt{font-size:11px;color:#bbb;font-style:italic;margin-bottom:10px;border-left:2px solid rgba(160,80,255,.25);padding-left:8px;}
+.story-body{font-size:14px;color:#e8e8f0;line-height:1.65;font-family:Georgia,serif;}
 </style>
 </head>
 <body>
@@ -201,6 +227,7 @@ a{color:var(--cyan);}
   <div class="l-tabs">
     <button class="l-tab active" data-tab="characters" onclick="switchTab('characters')">CHARACTERS <span class="count" id="cnt-characters">0</span></button>
     <button class="l-tab" data-tab="factions" onclick="switchTab('factions')">FACTIONS <span class="count" id="cnt-factions">0</span></button>
+    <button class="l-tab" data-tab="stories" onclick="switchTab('stories')">✦ STORIES <span class="count" id="cnt-stories">0</span></button>
     <button class="l-tab" data-tab="mine" id="tab-mine" onclick="switchTab('mine')" style="display:none;">MY CONTRIBUTIONS</button>
     <button class="l-tab" data-tab="admin" id="tab-admin" onclick="switchTab('admin')" style="display:none;">ADMIN <span class="count" id="cnt-admin">0</span></button>
   </div>
@@ -546,6 +573,8 @@ async function loadCurrentTab() {
       await loadMine();
     } else if (STATE.tab === 'admin') {
       await loadAdmin();
+    } else if (STATE.tab === 'stories') {
+      await loadStories();
     }
   } catch(err) {
     c.innerHTML = `<div class="l-empty"><div class="e-icon">⚠</div><div>${escapeHTML(err.message)}</div></div>`;
@@ -845,6 +874,112 @@ async function submitEntry(e) {
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false; btn.textContent = id ? 'SAVE CHANGES' : 'CREATE';
+  }
+}
+
+// ====== STORIES TAB ======
+// Generative AI storytelling powered by the Lore Canon corpus.
+async function loadStories() {
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="stories-wrap">
+      <div class="story-composer">
+        <div class="sc-title">✦ GENERATE A CANON STORY</div>
+        <div class="sc-sub">Powered by Claude · seeded with the DimensionLock lore canon. Stories appear in the feed below and are saved for everyone.</div>
+        <textarea id="sc-prompt" class="sc-prompt" rows="3" placeholder="Describe a scene, a moment, a question. E.g. 'A reaper-initiate's first solo strata-run goes wrong in a quiet way.'"></textarea>
+        <div class="sc-row">
+          <input id="sc-subject" class="sc-subject" type="text" placeholder="Subject focus (optional) — e.g. Maytradalis, Strata -47, Drege Engine…" />
+        </div>
+        <div class="sc-row">
+          <select id="sc-tone" class="sc-select">
+            <option value="gothic">GOTHIC</option>
+            <option value="cinematic">CINEMATIC</option>
+            <option value="intimate">INTIMATE</option>
+            <option value="horror">HORROR</option>
+            <option value="tragic">TRAGIC</option>
+            <option value="wry">WRY</option>
+          </select>
+          <select id="sc-length" class="sc-select">
+            <option value="short">SHORT (~180w)</option>
+            <option value="medium" selected>MEDIUM (~380w)</option>
+            <option value="long">LONG (~700w)</option>
+          </select>
+          <button id="sc-go" class="sc-go" onclick="generateStory()">✦ TRANSMIT</button>
+        </div>
+        <div id="sc-status" class="sc-status"></div>
+      </div>
+      <div id="stories-feed" class="stories-feed">
+        <div class="loader"><div class="dots">⋯</div></div>
+      </div>
+    </div>
+  `;
+  await refreshStoriesFeed();
+}
+
+async function refreshStoriesFeed() {
+  try {
+    const items = await api('GET', '/lore/generated?limit=30');
+    document.getElementById('cnt-stories').textContent = items.length;
+    const feed = document.getElementById('stories-feed');
+    if (!items.length) {
+      feed.innerHTML = `<div class="l-empty"><div class="e-icon">✎</div><div>No stories yet. Compose the first one above.</div></div>`;
+      return;
+    }
+    feed.innerHTML = items.map(renderStoryCard).join('');
+  } catch (e) {
+    document.getElementById('stories-feed').innerHTML =
+      `<div class="l-empty"><div class="e-icon">⚠</div><div>${escapeHTML(e.message)}</div></div>`;
+  }
+}
+
+function renderStoryCard(s) {
+  const dateStr = (s.created_at || '').toString().slice(0, 16).replace('T', ' · ');
+  const subj = s.subject ? `<span class="story-tag">${escapeHTML(s.subject)}</span>` : '';
+  return `
+    <article class="story-card">
+      <header class="story-head">
+        <div class="story-meta">
+          <span class="story-tone">${escapeHTML((s.tone||'').toUpperCase())}</span>
+          ${subj}
+          <span class="story-len">${s.word_count||'—'} w</span>
+          <span class="story-date">${escapeHTML(dateStr)}</span>
+        </div>
+      </header>
+      <div class="story-prompt">▸ ${escapeHTML(s.prompt||'')}</div>
+      <div class="story-body">${escapeHTML(s.story||'').replace(/\n+/g, '<br><br>')}</div>
+    </article>
+  `;
+}
+
+async function generateStory() {
+  const promptEl = document.getElementById('sc-prompt');
+  const subjEl = document.getElementById('sc-subject');
+  const toneEl = document.getElementById('sc-tone');
+  const lenEl = document.getElementById('sc-length');
+  const statusEl = document.getElementById('sc-status');
+  const goBtn = document.getElementById('sc-go');
+  const prompt = promptEl.value.trim();
+  if (!prompt) { statusEl.textContent = '⚠ Please describe a scene first.'; return; }
+  goBtn.disabled = true;
+  goBtn.textContent = '◌ TRANSMITTING…';
+  statusEl.textContent = 'Channeling the canon-keeper… stories take ~10–25s.';
+  try {
+    const r = await api('POST', '/lore/generate', {
+      prompt,
+      subject: subjEl.value.trim() || null,
+      tone: toneEl.value,
+      length: lenEl.value,
+    });
+    statusEl.textContent = `✓ Story complete (${r.word_count}w).`;
+    promptEl.value = '';
+    subjEl.value = '';
+    await refreshStoriesFeed();
+    setTimeout(() => { statusEl.textContent = ''; }, 6000);
+  } catch (e) {
+    statusEl.textContent = '⚠ ' + (e.message || 'Generation failed');
+  } finally {
+    goBtn.disabled = false;
+    goBtn.textContent = '✦ TRANSMIT';
   }
 }
 

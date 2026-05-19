@@ -20,6 +20,35 @@
         </div>
     </div>
 
+    <!-- ── ASTROLABE TUTORIAL POPUP ── -->
+    <div id="tutorial-overlay" class="tutorial-overlay" onclick="if(event.target===this)closeTutorial()">
+      <div class="tutorial-modal" role="dialog" aria-labelledby="tut-title">
+        <button class="tutorial-close" onclick="closeTutorial()" aria-label="Close">×</button>
+        <div class="tutorial-header">
+          <div class="tut-eye">◉</div>
+          <div>
+            <div class="tut-eyebrow">DIMENSION LOCK · ASTROLABE PRIMER</div>
+            <h2 id="tut-title" class="tut-title">FIELD MANUAL</h2>
+          </div>
+          <div class="tut-page-indicator"><span id="tut-page-num">1</span> / <span id="tut-page-total">7</span></div>
+        </div>
+        <div class="tutorial-scroll" id="tut-scroll">
+          <!-- pages injected by JS -->
+        </div>
+        <div class="tutorial-footer">
+          <button class="tut-btn tut-prev" onclick="tutorialNav(-1)">◂ PREV</button>
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tut-btn tut-next" onclick="tutorialNav(1)">NEXT ▸</button>
+        </div>
+        <div class="tutorial-hint">
+          <label><input type="checkbox" id="tut-dont-show" /> Don't show on launch (you can always re-open via the <strong>?</strong> button)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help button to re-open the primer -->
+    <button id="tutorial-help-btn" class="tutorial-help-btn" onclick="openTutorial(true)" title="Open the Astrolabe Primer">?</button>
+
     <!-- PHASE D — CONTRIBUTE LORE MODAL -->
     <div id="contribute-lore-modal" class="community-modal-backdrop" onclick="if(event.target===this)closeContributeLoreModal()">
         <div class="community-modal" role="dialog">

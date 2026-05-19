@@ -16,33 +16,30 @@ os.makedirs(OUT_DIR, exist_ok=True)
 with open(SRC, "r", encoding="utf-8") as f:
     html = f.read()
 
-# 1) Extract <style>...</style> (the big inline CSS block)
-style_match = re.search(r"<style>(.*?)</style>", html, flags=re.DOTALL)
-assert style_match, "Inline <style> not found"
-css = style_match.group(1).strip()
+# 1) Extract ALL <style>...</style> blocks from <head> and concatenate
+style_matches = re.findall(r"<style>(.*?)</style>", html, flags=re.DOTALL)
+assert style_matches, "Inline <style> not found"
+css = "\n\n/* ─── chunk break ─── */\n\n".join(s.strip() for s in style_matches)
 
 # 2) Extract body inner HTML
 body_match = re.search(r"<body[^>]*>(.*?)</body>", html, flags=re.DOTALL)
 assert body_match, "<body> not found"
 body_inner = body_match.group(1)
 
-# 3) Extract the last big inline <script>...</script> from the body
-#    (the Three.js CDN script tags have `src=`, no inline body)
+# 3) Extract ALL inline <script>...</script> blocks from the body
+#    and concatenate them in document order. This way both the main engine
+#    script and any later supplementary scripts (e.g. the tutorial popup)
+#    all land in astrolabe-engine.js and execute in the same order they did
+#    in the monolithic source file.
 script_blocks = re.findall(r"<script>(.*?)</script>", body_inner, flags=re.DOTALL)
 assert script_blocks, "No inline body <script> found"
-# The main game script is the last (and largest) inline block
-engine_js = max(script_blocks, key=len).strip()
+engine_js = "\n\n/* ─── chunk break ─── */\n\n".join(s.strip() for s in script_blocks)
 
-# Remove the engine script from body_inner so we don't double-execute
-body_inner_clean = re.sub(
-    r"<script>\s*" + re.escape(engine_js[:50]).replace(r"\ ", r"\s*"),
-    "<!-- engine script removed -->",
-    body_inner,
-    count=1,
-    flags=re.DOTALL,
-)
-# Simpler & safer: remove ALL inline body <script> blocks (we'll inject engine.js dynamically)
-body_inner_clean = re.sub(r"<script>.*?</script>", "<!-- inline scripts loaded by launcher -->", body_inner, flags=re.DOTALL)
+# Also strip any inline <style> blocks that live inside the body
+# (we already harvested them above for the CSS chunk).
+body_inner_clean = re.sub(r"<style>.*?</style>", "<!-- styles loaded by launcher -->", body_inner, flags=re.DOTALL)
+# Remove ALL inline body <script> blocks (we inject the merged engine.js dynamically)
+body_inner_clean = re.sub(r"<script>.*?</script>", "<!-- inline scripts loaded by launcher -->", body_inner_clean, flags=re.DOTALL)
 
 # 4) Write chunk files
 chunks = {

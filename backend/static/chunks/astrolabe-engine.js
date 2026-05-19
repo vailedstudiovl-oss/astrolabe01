@@ -6064,3 +6064,190 @@
                 }
             });
         })();
+
+        // ─────────────────────────────────────────────────────────
+        // ASTROLABE TUTORIAL POPUP
+        // First-visit auto-open + always-available "?" help button
+        // ─────────────────────────────────────────────────────────
+        (function () {
+          const PAGES = [
+            {
+              title: 'THE ASTROLABE',
+              sub: '· A primer for new navigators ·',
+              html: `
+                <p>Welcome to the <strong>Astrolabe Terminal</strong> — the navigational heart of Death's Ship. From here you will look out across the <em>Endless</em>, the boundless lattice of strata that hold every reality, dead and living.</p>
+                <p>This primer walks you through the controls, the symbols on the map, and the tools you'll use to discover, judge, and intervene in the realities below.</p>
+                <div class="tut-quote">"The Astrolabe is the only place on this ship where you can see <em>all</em> of it at once. Stand here. Look. Listen. Then act." — Master Death</div>
+              `,
+            },
+            {
+              title: 'THE SPINDLE',
+              sub: '· 199 strata, stacked vertically ·',
+              html: `
+                <p>The vertical column at the centre is the <strong>strata spindle</strong>. Each glowing disc is one reality-layer of the Endless. Positive strata (+1 to +99) sit above; negative strata (-1 to -99) sit below.</p>
+                <ul>
+                  <li><span class="tut-key">Mouse drag</span> &nbsp;rotate the spindle</li>
+                  <li><span class="tut-key">Scroll wheel</span> &nbsp;zoom in and out</li>
+                  <li><span class="tut-key">Click a disc</span> &nbsp;select a strata to study</li>
+                  <li><span class="tut-key">Two-finger swipe</span> &nbsp;rotate on mobile</li>
+                </ul>
+                <p>The selected strata is highlighted with a halo. Its summary appears in the data panel on the right.</p>
+              `,
+            },
+            {
+              title: 'READING A STRATA',
+              sub: '· Status colour codes ·',
+              html: `
+                <p>Each disc carries a status colour. Watch the data-panel for the verdict:</p>
+                <ul>
+                  <li><span class="tut-chip" style="color:#00ffcc;border-color:#00ffcc">STABLE</span> &nbsp;Habitable, mapped, currently observed</li>
+                  <li><span class="tut-chip" style="color:#ffaa00;border-color:#ffaa00">UNSTABLE</span> &nbsp;Drifting, unclaimed, dangerous</li>
+                  <li><span class="tut-chip" style="color:#ff4444;border-color:#ff4444">DEAD</span> &nbsp;Collapsed reality strand — physics broken</li>
+                  <li><span class="tut-chip">INFESTED</span> &nbsp;Soul-parasites loose; Centurion Guard dispatched</li>
+                </ul>
+                <p>A pulsing green ring around a disc is the <strong>infestation wound</strong>. The tendrils rotate slowly. If you see one — pay attention.</p>
+              `,
+            },
+            {
+              title: 'POIs &amp; REAPERS',
+              sub: '· Points of Interest and Living Reapers ·',
+              html: `
+                <p>Small floating markers around the discs are <strong>POIs</strong> — Points of Interest. These are story-significant locations: outposts, anomalies, named reaper-vigils, lost ships.</p>
+                <p>Click any POI to read its dossier. POIs marked with a reaper-sigil are <strong>active reaper-watches</strong> — a real named reaper is stationed there. When a reaper dies on the map, their sigil dims on Death's Ship as well.</p>
+                <p>Use the <strong>POI INDEX</strong> panel to scroll the master list.</p>
+              `,
+            },
+            {
+              title: 'FILTERS',
+              sub: '· Survey by status or faction ·',
+              html: `
+                <p>The <strong>FILTERS</strong> panel (top-left) lets you mask the spindle by:</p>
+                <ul>
+                  <li><span class="tut-chip">STABLE REALITIES</span> — only the living, claimed strata</li>
+                  <li><span class="tut-chip" style="color:#ff4444;border-color:#ff4444">DEAD REALITIES</span> — only the collapsed strands</li>
+                  <li><span class="tut-chip">INFESTED REALITIES</span> — only Centurion-flagged outbreaks</li>
+                  <li><span class="tut-chip">FACTION FILTERS</span> — colour by faction allegiance</li>
+                </ul>
+                <p>Non-matching strata dim to near-black. Filters compound with the search bar above.</p>
+              `,
+            },
+            {
+              title: 'CINEMATIC TOUR',
+              sub: '· Auto-fly through the strata ·',
+              html: `
+                <p>Hit the <strong>CINEMATIC TOUR</strong> button (top-right) to start an auto-flythrough. The camera will hold on each strata in turn, the lore body will read itself, and you can <span class="tut-key">SPACE</span> to skip ahead or <span class="tut-key">ESC</span> to exit at any time.</p>
+                <p>Use this when you want to absorb the whole map without piloting it yourself — useful for first-timers and lore deep-dives.</p>
+              `,
+            },
+            {
+              title: 'CONTRIBUTING LORE',
+              sub: '· Become a Lore Ambassador ·',
+              html: `
+                <p>Every strata, POI, reaper, and faction has community-editable lore. To contribute:</p>
+                <ul>
+                  <li>Visit the <strong>LORE</strong> hub from the main menu</li>
+                  <li>Register as a <strong>Lore Ambassador</strong></li>
+                  <li>Submit characters, factions, or strata-lore — all reviewed by Master Death</li>
+                  <li>Use the new <strong>✦ STORIES</strong> tab to generate canon-faithful AI-written short stories rooted in the Dimension Lock lore</li>
+                </ul>
+                <p>Approved contributions appear on the Astrolabe for everyone. <strong>Welcome, navigator.</strong></p>
+              `,
+            },
+          ];
+
+          let pageIdx = 0;
+          const overlay = document.getElementById('tutorial-overlay');
+          const scroll = document.getElementById('tut-scroll');
+          const numEl = document.getElementById('tut-page-num');
+          const totEl = document.getElementById('tut-page-total');
+          const dots = document.getElementById('tut-dots');
+          const dontShowChk = document.getElementById('tut-dont-show');
+          if (!overlay) return;
+
+          totEl.textContent = PAGES.length;
+
+          function build() {
+            scroll.innerHTML = PAGES.map((p, i) => `
+              <section class="tut-page${i === 0 ? ' active' : ''}" data-idx="${i}">
+                <h3>${p.title}</h3>
+                <div class="tut-subhead">${p.sub}</div>
+                ${p.html}
+              </section>
+            `).join('');
+            dots.innerHTML = PAGES.map((_, i) =>
+              `<div class="tut-dot${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="window.tutorialGoto(${i})"></div>`
+            ).join('');
+          }
+
+          window.tutorialGoto = function (i) {
+            pageIdx = Math.max(0, Math.min(PAGES.length - 1, i));
+            scroll.querySelectorAll('.tut-page').forEach(el => el.classList.toggle('active', +el.dataset.idx === pageIdx));
+            dots.querySelectorAll('.tut-dot').forEach(el => el.classList.toggle('active', +el.dataset.idx === pageIdx));
+            numEl.textContent = pageIdx + 1;
+            scroll.scrollTop = 0;
+            const prev = document.querySelector('.tut-prev');
+            const next = document.querySelector('.tut-next');
+            if (prev) prev.disabled = pageIdx === 0;
+            if (next) {
+              next.disabled = false;
+              next.textContent = pageIdx === PAGES.length - 1 ? 'CLOSE ✓' : 'NEXT ▸';
+            }
+          };
+
+          window.tutorialNav = function (dir) {
+            if (dir > 0 && pageIdx === PAGES.length - 1) {
+              window.closeTutorial();
+              return;
+            }
+            window.tutorialGoto(pageIdx + dir);
+          };
+
+          window.openTutorial = function (forced) {
+            build();
+            window.tutorialGoto(0);
+            overlay.classList.add('active');
+            if (dontShowChk) dontShowChk.checked = (localStorage.getItem('dl_tut_skip') === '1');
+            if (forced) {
+              // remove auto-skip flag — user explicitly opened it
+            }
+          };
+
+          window.closeTutorial = function () {
+            overlay.classList.remove('active');
+            if (dontShowChk && dontShowChk.checked) {
+              try { localStorage.setItem('dl_tut_skip', '1'); } catch (e) {}
+            } else {
+              try { localStorage.removeItem('dl_tut_skip'); } catch (e) {}
+            }
+          };
+
+          // First-visit auto-open: wait for boot overlay to dismiss, then show.
+          function maybeAutoOpen() {
+            const skip = (function () { try { return localStorage.getItem('dl_tut_skip') === '1'; } catch (e) { return false; } })();
+            if (skip) return;
+            // Wait a beat for boot overlay to fade out
+            const start = Date.now();
+            const tryOpen = () => {
+              const boot = document.getElementById('boot-overlay');
+              const stillBooting = boot && getComputedStyle(boot).display !== 'none' && getComputedStyle(boot).opacity > 0.1;
+              if (stillBooting && Date.now() - start < 25000) {
+                return setTimeout(tryOpen, 600);
+              }
+              setTimeout(() => window.openTutorial(false), 800);
+            };
+            tryOpen();
+          }
+          // Run on script load
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(maybeAutoOpen, 500);
+          } else {
+            window.addEventListener('DOMContentLoaded', () => setTimeout(maybeAutoOpen, 500));
+          }
+
+          // ESC key closes the tutorial
+          window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.classList.contains('active')) window.closeTutorial();
+            if (e.key === 'ArrowRight' && overlay.classList.contains('active')) window.tutorialNav(1);
+            if (e.key === 'ArrowLeft' && overlay.classList.contains('active')) window.tutorialNav(-1);
+          });
+        })();

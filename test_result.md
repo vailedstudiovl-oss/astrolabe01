@@ -1991,3 +1991,73 @@ agent_communication:
         – May's-room cinematics + Hangar Endless-viewport (user mentioned
           reference videos earlier — need to revisit them)
         – Generative storytelling (blocked on Google Doc access)
+
+  - agent: "main"
+    date: "2026-02-19 (fork — phase 4 lore canon + AI storytelling + tutorial)"
+    note: |
+      ── LORE CANON CORPUS ──
+      ✓ Successfully fetched 11/12 Google Doc lore exports via the
+        public docs.google.com/document/d/{id}/export?format=txt trick:
+          01_pois_recurring (4239 chars)
+          02_reapers (9573 chars)
+          03_overview (1556 chars)
+          04_power_system (7977 chars)
+          05_doc_OwDqV (481 chars — appears truncated/restricted)
+          06_doc_tuS0q (large)
+          07_doc_PWVsa (4475 chars)
+          08_doc_zz9Ru, 09_doc_V2dRw, 10_doc_YBN75, 11_doc_qB696
+          (12th drive file was an interstitial HTML page; skipped)
+      ✓ Built /app/backend/lore_canon/corpus.json (per-doc) and
+        corpus_concatenated.txt (~94KB) for use as a system-prompt seed.
+
+      ── GENERATIVE STORYTELLING ──
+      ✓ Added emergentintegrations LLM chat integration to backend.
+      ✓ EMERGENT_LLM_KEY appended to backend/.env.
+      ✓ New endpoint: POST /api/lore/generate
+          {prompt, subject?, length(short|medium|long), tone(gothic|cinematic|intimate|horror|tragic|wry)}
+          Returns: {id, story, word_count, ...}
+          Uses anthropic claude-4-sonnet via Emergent universal key.
+      ✓ New endpoint: GET /api/lore/generated?limit=N → recent story feed.
+      ✓ Stories persisted to lore_generated_stories collection.
+      ✓ Live tested with curl: response 200, 242-word canon-faithful
+        gothic story produced featuring Drege Engine, Centurion Guard,
+        Flybutt, scythe, and Strata threshold imagery.
+      ✓ Frontend: new ✦ STORIES tab in /api/lore with composer
+        (textarea, subject, tone, length) + scrolling card feed.
+        Custom violet/purple "✦" styling matching Stories aesthetic.
+
+      ── ASTROLABE TUTORIAL POPUP ──
+      ✓ 7-page primer modal: THE ASTROLABE, THE SPINDLE, READING A
+        STRATA, POIs & REAPERS, FILTERS, CINEMATIC TOUR, CONTRIBUTING
+        LORE. Includes status-chip legend (STABLE/UNSTABLE/DEAD/
+        INFESTED), keyboard hints, Master Death epigraph.
+      ✓ Auto-opens on first visit (after boot animation fades);
+        suppressible via "Don't show on launch" checkbox stored in
+        localStorage flag `dl_tut_skip`.
+      ✓ Persistent "?" help-button (bottom-right) re-opens the primer
+        any time. ESC closes; arrow keys navigate pages; clickable
+        dot navigation; PREV/NEXT buttons (NEXT becomes "CLOSE ✓" on
+        final page).
+      ✓ Tutorial CSS + JS auto-survives the chunking pipeline.
+
+      ── CHUNKING PIPELINE FIX ──
+      ✓ Updated split_astrolabe.py to merge ALL inline <style> blocks
+        and ALL inline <script> blocks (not just the largest / first).
+        Multiple style/script tags now properly concatenate into the
+        respective chunk files. Critical to allow incremental feature
+        additions without losing CSS/JS at split time.
+
+      ── VERIFIED ──
+      Tutorial popup screenshot-confirmed; story generation backend
+      live-tested via curl + UI roundtrip; INFESTED filter live; no
+      console errors in any UI path.
+
+      ── DEFERRED ──
+        – Google AdSense integration (user provided OAuth ID, not
+          AdSense publisher ID; awaiting correct credentials)
+        – Hangar Endless-viewport (need to re-fetch the earlier
+          .mp4 reference videos and design an animated backdrop)
+        – Grand Hall reaper-statues & 3D holographic displays
+        – May's Room cinematics with provided photo references
+        – Reaper-banner damage system on Death's Ship (linked to
+          Astrolabe-side reaper deaths)

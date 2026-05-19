@@ -1505,6 +1505,84 @@
         }
     </style>
 
+    <style>
+    /* ── ASTROLABE TUTORIAL POPUP ── */
+    .tutorial-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(8,4,20,.88) 0%, rgba(0,0,0,.96) 90%);
+      z-index: 4000; align-items: center; justify-content: center; padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .tutorial-overlay.active { display: flex; animation: tutFadeIn .5s ease-out; }
+    @keyframes tutFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .tutorial-modal {
+      width: min(720px, 96vw); max-height: 92vh;
+      background: linear-gradient(135deg, rgba(10,6,22,.97), rgba(4,2,12,.99));
+      border: 1px solid rgba(160,180,255,.4);
+      border-radius: 6px;
+      box-shadow: 0 0 60px rgba(140,180,255,.18), 0 12px 40px rgba(0,0,0,.7);
+      color: #d5dbe8;
+      display: flex; flex-direction: column;
+      font-family: 'Cinzel', Georgia, serif;
+      position: relative;
+      overflow: hidden;
+    }
+    .tutorial-modal::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(140,180,255,.025) 4px);
+    }
+    .tutorial-header { display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid rgba(160,180,255,.18); position: relative; z-index: 1; }
+    .tut-eye { font-size: 28px; color: #7ec6ff; text-shadow: 0 0 14px #7ec6ff66; line-height: 1; }
+    .tut-eyebrow { font-size: 10px; letter-spacing: 4px; color: #6680a0; }
+    .tut-title { font-size: 18px; letter-spacing: 6px; color: #d8ecff; margin: 2px 0 0; font-weight: 600; }
+    .tut-page-indicator { margin-left: auto; font-size: 12px; color: #80a0c0; font-family: monospace; letter-spacing: 2px; }
+    .tutorial-close { position: absolute; top: 8px; right: 12px; background: transparent; border: none; color: #6680a0; font-size: 26px; cursor: pointer; padding: 0 8px; line-height: 1; transition: color .15s; z-index: 2; }
+    .tutorial-close:hover { color: #d8ecff; }
+    .tutorial-scroll {
+      flex: 1; padding: 22px 26px; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: rgba(160,180,255,.3) transparent;
+      position: relative; z-index: 1;
+    }
+    .tutorial-scroll::-webkit-scrollbar { width: 8px; }
+    .tutorial-scroll::-webkit-scrollbar-thumb { background: rgba(160,180,255,.3); border-radius: 4px; }
+    .tut-page { display: none; animation: tutPageIn .4s ease-out; }
+    .tut-page.active { display: block; }
+    @keyframes tutPageIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+    .tut-page h3 { font-size: 16px; letter-spacing: 4px; color: #b8e0ff; margin: 0 0 10px; font-weight: 600; }
+    .tut-page .tut-subhead { font-size: 11px; letter-spacing: 3px; color: #6680a0; margin-bottom: 14px; }
+    .tut-page p { font-family: Georgia, serif; font-size: 13.5px; line-height: 1.75; color: #c5cdda; margin: 0 0 12px; letter-spacing: .2px; }
+    .tut-page ul { font-family: Georgia, serif; font-size: 13px; line-height: 1.7; color: #b8c2d0; padding-left: 18px; margin: 0 0 12px; }
+    .tut-page ul li { margin-bottom: 6px; }
+    .tut-page .tut-key { display: inline-block; padding: 2px 8px; background: rgba(120,200,255,.15); border: 1px solid rgba(140,200,255,.4); border-radius: 3px; font-family: monospace; font-size: 11px; color: #b8e0ff; letter-spacing: 1px; margin: 0 2px; }
+    .tut-page .tut-chip { display: inline-block; padding: 2px 8px; background: rgba(76,255,119,.12); border: 1px solid rgba(76,255,119,.45); border-radius: 2px; font-family: monospace; font-size: 11px; color: #8cf09a; letter-spacing: 1px; }
+    .tut-quote { border-left: 2px solid rgba(160,180,255,.35); padding-left: 12px; margin: 12px 0; font-style: italic; color: #97a0b0; font-family: Georgia, serif; }
+    .tutorial-footer { display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-top: 1px solid rgba(160,180,255,.18); position: relative; z-index: 1; }
+    .tut-btn { flex-shrink: 0; background: rgba(140,200,255,.08); border: 1px solid rgba(160,180,255,.45); color: #b8e0ff; font-family: inherit; font-size: 11px; letter-spacing: 3px; padding: 8px 18px; border-radius: 3px; cursor: pointer; transition: all .15s; }
+    .tut-btn:hover:not(:disabled) { background: rgba(140,200,255,.2); color: #fff; }
+    .tut-btn:disabled { opacity: .35; cursor: default; }
+    .tut-dots { flex: 1; display: flex; gap: 6px; justify-content: center; }
+    .tut-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(160,180,255,.18); border: 1px solid rgba(160,180,255,.3); cursor: pointer; transition: all .2s; }
+    .tut-dot.active { background: #7ec6ff; box-shadow: 0 0 8px #7ec6ff80; }
+    .tutorial-hint { padding: 8px 22px 16px; border-top: 1px solid rgba(160,180,255,.08); font-size: 10.5px; color: #6680a0; letter-spacing: 1px; position: relative; z-index: 1; }
+    .tutorial-hint label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+    .tutorial-hint input[type="checkbox"] { accent-color: #7ec6ff; }
+    .tutorial-hint strong { color: #b8e0ff; font-weight: 600; }
+    .tutorial-help-btn {
+      position: fixed; bottom: 18px; right: 18px;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(40,80,120,.85), rgba(20,40,60,.95));
+      border: 1px solid rgba(140,200,255,.55);
+      color: #b8e0ff; font-size: 18px; font-weight: 600;
+      cursor: pointer; z-index: 3500;
+      box-shadow: 0 0 12px rgba(140,200,255,.3);
+      transition: all .2s;
+      font-family: 'Cinzel', Georgia, serif;
+    }
+    .tutorial-help-btn:hover { transform: scale(1.1); background: linear-gradient(135deg, rgba(60,100,160,.95), rgba(30,60,100,.95)); box-shadow: 0 0 20px rgba(140,200,255,.6); }
+    @media (max-width: 600px) { .tutorial-modal { width: 96vw; max-height: 94vh; } .tut-title { font-size: 15px; letter-spacing: 4px; } .tutorial-help-btn { bottom: 12px; right: 12px; width: 34px; height: 34px; font-size: 16px; } }
+    </style>
+
     <!-- Stable Three.js & OrbitControls Links -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -1538,6 +1616,35 @@
             <div class="boot-sub" style="margin-top:8px;color:#555;">DEATH TRIBUNAL HANDSHAKE</div>
         </div>
     </div>
+
+    <!-- ── ASTROLABE TUTORIAL POPUP ── -->
+    <div id="tutorial-overlay" class="tutorial-overlay" onclick="if(event.target===this)closeTutorial()">
+      <div class="tutorial-modal" role="dialog" aria-labelledby="tut-title">
+        <button class="tutorial-close" onclick="closeTutorial()" aria-label="Close">×</button>
+        <div class="tutorial-header">
+          <div class="tut-eye">◉</div>
+          <div>
+            <div class="tut-eyebrow">DIMENSION LOCK · ASTROLABE PRIMER</div>
+            <h2 id="tut-title" class="tut-title">FIELD MANUAL</h2>
+          </div>
+          <div class="tut-page-indicator"><span id="tut-page-num">1</span> / <span id="tut-page-total">7</span></div>
+        </div>
+        <div class="tutorial-scroll" id="tut-scroll">
+          <!-- pages injected by JS -->
+        </div>
+        <div class="tutorial-footer">
+          <button class="tut-btn tut-prev" onclick="tutorialNav(-1)">◂ PREV</button>
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tut-btn tut-next" onclick="tutorialNav(1)">NEXT ▸</button>
+        </div>
+        <div class="tutorial-hint">
+          <label><input type="checkbox" id="tut-dont-show" /> Don't show on launch (you can always re-open via the <strong>?</strong> button)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help button to re-open the primer -->
+    <button id="tutorial-help-btn" class="tutorial-help-btn" onclick="openTutorial(true)" title="Open the Astrolabe Primer">?</button>
 
     <!-- PHASE D — CONTRIBUTE LORE MODAL -->
     <div id="contribute-lore-modal" class="community-modal-backdrop" onclick="if(event.target===this)closeContributeLoreModal()">
@@ -8451,6 +8558,193 @@
                     triggerLurkerSighting('▸ MANUAL TRIGGER (DEV)');
                 }
             });
+        })();
+
+        // ─────────────────────────────────────────────────────────
+        // ASTROLABE TUTORIAL POPUP
+        // First-visit auto-open + always-available "?" help button
+        // ─────────────────────────────────────────────────────────
+        (function () {
+          const PAGES = [
+            {
+              title: 'THE ASTROLABE',
+              sub: '· A primer for new navigators ·',
+              html: `
+                <p>Welcome to the <strong>Astrolabe Terminal</strong> — the navigational heart of Death's Ship. From here you will look out across the <em>Endless</em>, the boundless lattice of strata that hold every reality, dead and living.</p>
+                <p>This primer walks you through the controls, the symbols on the map, and the tools you'll use to discover, judge, and intervene in the realities below.</p>
+                <div class="tut-quote">"The Astrolabe is the only place on this ship where you can see <em>all</em> of it at once. Stand here. Look. Listen. Then act." — Master Death</div>
+              `,
+            },
+            {
+              title: 'THE SPINDLE',
+              sub: '· 199 strata, stacked vertically ·',
+              html: `
+                <p>The vertical column at the centre is the <strong>strata spindle</strong>. Each glowing disc is one reality-layer of the Endless. Positive strata (+1 to +99) sit above; negative strata (-1 to -99) sit below.</p>
+                <ul>
+                  <li><span class="tut-key">Mouse drag</span> &nbsp;rotate the spindle</li>
+                  <li><span class="tut-key">Scroll wheel</span> &nbsp;zoom in and out</li>
+                  <li><span class="tut-key">Click a disc</span> &nbsp;select a strata to study</li>
+                  <li><span class="tut-key">Two-finger swipe</span> &nbsp;rotate on mobile</li>
+                </ul>
+                <p>The selected strata is highlighted with a halo. Its summary appears in the data panel on the right.</p>
+              `,
+            },
+            {
+              title: 'READING A STRATA',
+              sub: '· Status colour codes ·',
+              html: `
+                <p>Each disc carries a status colour. Watch the data-panel for the verdict:</p>
+                <ul>
+                  <li><span class="tut-chip" style="color:#00ffcc;border-color:#00ffcc">STABLE</span> &nbsp;Habitable, mapped, currently observed</li>
+                  <li><span class="tut-chip" style="color:#ffaa00;border-color:#ffaa00">UNSTABLE</span> &nbsp;Drifting, unclaimed, dangerous</li>
+                  <li><span class="tut-chip" style="color:#ff4444;border-color:#ff4444">DEAD</span> &nbsp;Collapsed reality strand — physics broken</li>
+                  <li><span class="tut-chip">INFESTED</span> &nbsp;Soul-parasites loose; Centurion Guard dispatched</li>
+                </ul>
+                <p>A pulsing green ring around a disc is the <strong>infestation wound</strong>. The tendrils rotate slowly. If you see one — pay attention.</p>
+              `,
+            },
+            {
+              title: 'POIs &amp; REAPERS',
+              sub: '· Points of Interest and Living Reapers ·',
+              html: `
+                <p>Small floating markers around the discs are <strong>POIs</strong> — Points of Interest. These are story-significant locations: outposts, anomalies, named reaper-vigils, lost ships.</p>
+                <p>Click any POI to read its dossier. POIs marked with a reaper-sigil are <strong>active reaper-watches</strong> — a real named reaper is stationed there. When a reaper dies on the map, their sigil dims on Death's Ship as well.</p>
+                <p>Use the <strong>POI INDEX</strong> panel to scroll the master list.</p>
+              `,
+            },
+            {
+              title: 'FILTERS',
+              sub: '· Survey by status or faction ·',
+              html: `
+                <p>The <strong>FILTERS</strong> panel (top-left) lets you mask the spindle by:</p>
+                <ul>
+                  <li><span class="tut-chip">STABLE REALITIES</span> — only the living, claimed strata</li>
+                  <li><span class="tut-chip" style="color:#ff4444;border-color:#ff4444">DEAD REALITIES</span> — only the collapsed strands</li>
+                  <li><span class="tut-chip">INFESTED REALITIES</span> — only Centurion-flagged outbreaks</li>
+                  <li><span class="tut-chip">FACTION FILTERS</span> — colour by faction allegiance</li>
+                </ul>
+                <p>Non-matching strata dim to near-black. Filters compound with the search bar above.</p>
+              `,
+            },
+            {
+              title: 'CINEMATIC TOUR',
+              sub: '· Auto-fly through the strata ·',
+              html: `
+                <p>Hit the <strong>CINEMATIC TOUR</strong> button (top-right) to start an auto-flythrough. The camera will hold on each strata in turn, the lore body will read itself, and you can <span class="tut-key">SPACE</span> to skip ahead or <span class="tut-key">ESC</span> to exit at any time.</p>
+                <p>Use this when you want to absorb the whole map without piloting it yourself — useful for first-timers and lore deep-dives.</p>
+              `,
+            },
+            {
+              title: 'CONTRIBUTING LORE',
+              sub: '· Become a Lore Ambassador ·',
+              html: `
+                <p>Every strata, POI, reaper, and faction has community-editable lore. To contribute:</p>
+                <ul>
+                  <li>Visit the <strong>LORE</strong> hub from the main menu</li>
+                  <li>Register as a <strong>Lore Ambassador</strong></li>
+                  <li>Submit characters, factions, or strata-lore — all reviewed by Master Death</li>
+                  <li>Use the new <strong>✦ STORIES</strong> tab to generate canon-faithful AI-written short stories rooted in the Dimension Lock lore</li>
+                </ul>
+                <p>Approved contributions appear on the Astrolabe for everyone. <strong>Welcome, navigator.</strong></p>
+              `,
+            },
+          ];
+
+          let pageIdx = 0;
+          const overlay = document.getElementById('tutorial-overlay');
+          const scroll = document.getElementById('tut-scroll');
+          const numEl = document.getElementById('tut-page-num');
+          const totEl = document.getElementById('tut-page-total');
+          const dots = document.getElementById('tut-dots');
+          const dontShowChk = document.getElementById('tut-dont-show');
+          if (!overlay) return;
+
+          totEl.textContent = PAGES.length;
+
+          function build() {
+            scroll.innerHTML = PAGES.map((p, i) => `
+              <section class="tut-page${i === 0 ? ' active' : ''}" data-idx="${i}">
+                <h3>${p.title}</h3>
+                <div class="tut-subhead">${p.sub}</div>
+                ${p.html}
+              </section>
+            `).join('');
+            dots.innerHTML = PAGES.map((_, i) =>
+              `<div class="tut-dot${i === 0 ? ' active' : ''}" data-idx="${i}" onclick="window.tutorialGoto(${i})"></div>`
+            ).join('');
+          }
+
+          window.tutorialGoto = function (i) {
+            pageIdx = Math.max(0, Math.min(PAGES.length - 1, i));
+            scroll.querySelectorAll('.tut-page').forEach(el => el.classList.toggle('active', +el.dataset.idx === pageIdx));
+            dots.querySelectorAll('.tut-dot').forEach(el => el.classList.toggle('active', +el.dataset.idx === pageIdx));
+            numEl.textContent = pageIdx + 1;
+            scroll.scrollTop = 0;
+            const prev = document.querySelector('.tut-prev');
+            const next = document.querySelector('.tut-next');
+            if (prev) prev.disabled = pageIdx === 0;
+            if (next) {
+              next.disabled = false;
+              next.textContent = pageIdx === PAGES.length - 1 ? 'CLOSE ✓' : 'NEXT ▸';
+            }
+          };
+
+          window.tutorialNav = function (dir) {
+            if (dir > 0 && pageIdx === PAGES.length - 1) {
+              window.closeTutorial();
+              return;
+            }
+            window.tutorialGoto(pageIdx + dir);
+          };
+
+          window.openTutorial = function (forced) {
+            build();
+            window.tutorialGoto(0);
+            overlay.classList.add('active');
+            if (dontShowChk) dontShowChk.checked = (localStorage.getItem('dl_tut_skip') === '1');
+            if (forced) {
+              // remove auto-skip flag — user explicitly opened it
+            }
+          };
+
+          window.closeTutorial = function () {
+            overlay.classList.remove('active');
+            if (dontShowChk && dontShowChk.checked) {
+              try { localStorage.setItem('dl_tut_skip', '1'); } catch (e) {}
+            } else {
+              try { localStorage.removeItem('dl_tut_skip'); } catch (e) {}
+            }
+          };
+
+          // First-visit auto-open: wait for boot overlay to dismiss, then show.
+          function maybeAutoOpen() {
+            const skip = (function () { try { return localStorage.getItem('dl_tut_skip') === '1'; } catch (e) { return false; } })();
+            if (skip) return;
+            // Wait a beat for boot overlay to fade out
+            const start = Date.now();
+            const tryOpen = () => {
+              const boot = document.getElementById('boot-overlay');
+              const stillBooting = boot && getComputedStyle(boot).display !== 'none' && getComputedStyle(boot).opacity > 0.1;
+              if (stillBooting && Date.now() - start < 25000) {
+                return setTimeout(tryOpen, 600);
+              }
+              setTimeout(() => window.openTutorial(false), 800);
+            };
+            tryOpen();
+          }
+          // Run on script load
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(maybeAutoOpen, 500);
+          } else {
+            window.addEventListener('DOMContentLoaded', () => setTimeout(maybeAutoOpen, 500));
+          }
+
+          // ESC key closes the tutorial
+          window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.classList.contains('active')) window.closeTutorial();
+            if (e.key === 'ArrowRight' && overlay.classList.contains('active')) window.tutorialNav(1);
+            if (e.key === 'ArrowLeft' && overlay.classList.contains('active')) window.tutorialNav(-1);
+          });
         })();
 
     </script>

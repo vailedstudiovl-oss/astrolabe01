@@ -34,5 +34,31 @@
  * ========================================================================= */
 window.__ASTROLABE_CONFIG = {
     apiBase:   "",
-    assetBase: ""
+    assetBase: "",
+
+    // ─────────────────────────────────────────────────────────────────────
+    // GOOGLE ADSENSE — In-world revenue integration
+    // -------------------------------------------------------------------
+    // Replace `adsensePublisherId` with your real publisher ID once your
+    // AdSense account is approved. Format: "ca-pub-XXXXXXXXXXXXXXXX"
+    //
+    // The current value is a PLACEHOLDER provided by the project owner;
+    // ads will not actually serve until a valid publisher ID and approved
+    // ad-units are configured at https://adsense.google.com .
+    //
+    // To disable ads entirely, set `enabled: false`.
+    // ─────────────────────────────────────────────────────────────────────
+    adsense: {
+        enabled: true,
+        adsensePublisherId: "ca-pub-1234567891234567",   // PLACEHOLDER — swap when AdSense is approved
+        autoAds: true,                                     // run Google's auto-ads layout
+        // In-world slot IDs (created later via AdSense UI). Until you create
+        // them, the in-game ad surfaces render a graceful "AD SPACE" placeholder.
+        slots: {
+            mainMenuFooter:   null,
+            loreSidebar:      null,
+            astrolabePanel:   null,
+            hangarBillboard:  null
+        }
+    }
 };

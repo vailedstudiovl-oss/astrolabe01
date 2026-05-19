@@ -2061,3 +2061,66 @@ agent_communication:
         – May's Room cinematics with provided photo references
         – Reaper-banner damage system on Death's Ship (linked to
           Astrolabe-side reaper deaths)
+
+  - agent: "main"
+    date: "2026-02-19 (fork — phase 5 endless viewport + adsense scaffold)"
+    note: |
+      ── SURGE HANGER → THE ENDLESS VIEWPORT ──
+      ✓ Downloaded user's hangar reference (Screenshot_20260519_065953.jpg)
+        — the cinematic bay-door view with cyan trapezoidal ceiling lights
+        and the lavender Endless horizon beyond.
+      ✓ Re-cropped to a wide 1920x600 landscape capturing the ceiling
+        pyramid + sky + bay-door opening. Saved as
+        /app/backend/static/hangar_backdrop.png.
+      ✓ Preloaded the image at game-start via loadAllSprites() —
+        attaches to window.HANGAR_BACKDROP_IMG.
+      ✓ Rewrote the top portion of drawSurgeHanger to drawImage the
+        backdrop as a 24x5-tile region with cover-fit scaling, a
+        gradient fade into the bronze floor, and an animated cyan
+        threshold-strip at the bay-floor edge.
+      ✓ Removed the duplicate procedural cyan ceiling strips that the
+        backdrop image already includes.
+      ✓ Bay-door plaque rewritten to reference the cinematic view and
+        clarify this is one of only three places aboard the ship where
+        the Endless is visible (Astrolabe Terminal + Creation Leveler).
+      ✓ Screenshot-verified: hangar now reads as a real-world hangar
+        with the Endless sky pouring in. Maytradalis (left) and
+        Romaine (right) walk on a floor that opens directly onto
+        the void.
+
+      ── GOOGLE ADSENSE SCAFFOLD ──
+      ✓ Extended /api/static/config.js with an `adsense` block:
+            { enabled, adsensePublisherId, autoAds, slots:{...} }
+      ✓ User's provided ID ("pub-1234567891234567") detected as a
+        placeholder — flagged in config.js with a comment so the
+        owner knows to swap in a real `ca-pub-...` ID after AdSense
+        approval.
+      ✓ New /api/static/adsense_loader.js module that:
+          - Conditionally injects the official adsbygoogle.js when a
+            real publisher ID is configured
+          - Exposes window.dlsRenderAdSlot(target, slotKey, opts) for
+            in-world ad surfaces
+          - Falls back to a gothic-themed "⊡ AD SPACE — AdSense
+            pending account approval" placeholder until real units
+            are configured
+          - Supports Auto-Ads (page-level) once enabled
+      ✓ Wired adsense_loader.js into main_menu.html, lore.html,
+        astrolabe.html, and deaths_ship.html (all four user-facing
+        pages).
+      ✓ First visible ad surface: a centred footer slot on the main
+        menu (above the Dimension Lock hero). Screenshot-verified —
+        clean gothic placeholder renders correctly with the
+        "AdSense pending account approval" message and a "MAIN
+        MENU · FOOTER" label.
+
+      ── NEXT STEPS ──
+      User to:
+        1) Once AdSense account is approved, replace placeholder
+           publisher ID with real `ca-pub-XXXXXXXXXXXXXXXX` in
+           config.js (line 18) — no code changes needed; the slots
+           start serving immediately.
+        2) Create AdSense ad-units for the four named slots
+           (mainMenuFooter, loreSidebar, astrolabePanel,
+           hangarBillboard) and paste their slot IDs into the
+           `slots:{}` block of config.js.
+      All ad surfaces gracefully degrade to placeholders until then.

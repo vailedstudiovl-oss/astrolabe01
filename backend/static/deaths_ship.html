@@ -156,6 +156,8 @@
                      animation:tickerScroll 18s linear infinite;letter-spacing:1.5px;}
   @keyframes tickerScroll{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
 </style>
+<script src="/api/static/config.js"></script>
+<script src="/api/static/adsense_loader.js" defer></script>
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -783,7 +785,7 @@ const ROOM_DEFS = {
       { x:7.7, y:11.7, kind:'plaque', title:"ROMAINE'S WORKBENCH", body:'A long bronze workbench scattered with skiff parts, half-finished sigil-rings, a thermos of cold black coffee, and a single wilting carnation in a brass tube.\n\nRomaine is the ship\'s only mechanic. Common reaper rank, but Death keeps him on the senior roster — "because nothing flies without him."\n\nA scrap of paper reads: "May — your skiff\'s left thruster bearing is on the high side. I\'ll have it tuned by Tuesday. — R."' },
       // Romaine NPC (placeholder) standing at his workbench, slightly left of it
       { x:5.5, y:11.5, kind:'plaque', title:'ROMAINE', body:'The hanger\'s sole mechanic. Pink hair pulled back, green cargo pants, leather harness, sleeves rolled.\n\nHe doesn\'t look up — he never does, mid-job — but the carnation pinned to his harness twitches once when May enters the bay. Acknowledgment, mechanic-style.\n\n"Skiff Lantern\'s ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
-      { x:14, y:1.7,   kind:'plaque', title:'BAY DOORS — OPEN', body:'The great trapezoidal bay doors are open. Beyond: a long bronze runway extending toward a distant docking spire, set against a lavender-purple sky.\n\nThe Surge Hanger always opens onto the same false sky — a stable horizon Death keeps tuned, regardless of which strata the ship is currently piercing. May has never seen what is REALLY beyond the bay. Romaine claims he has, twice.' },
+      { x:14, y:1.7,   kind:'plaque', title:'BAY DOORS — OPEN ONTO THE ENDLESS', body:'The great trapezoidal bay doors stand open, the cyan threshold-strip humming softly under May\'s boots. Beyond: a long bronze runway extending toward a distant pyramid spire, set against the lavender-purple sky of the Endless.\n\nThis is one of only three places aboard Death\'s Ship where the Endless can be seen with the naked eye. The others are the Astrolabe Terminal and the Creation Leveler.' },
       { x:14, y:5.0,   kind:'plaque', title:'CYAN GUIDE LIGHTS', body:'A row of cyan LED strips runs the length of the hanger floor, marking the pre-launch path each skiff must follow.\n\nThe strips dim when the bay is sealed for the night. They are humming softly — pre-flight cycle is running for Skiff Ravenwake. Someone is taking her out within the hour.' },
       { x:25, y:12,    kind:'plaque', title:'SKELETON-SERVANT (PATROLLING)', body:'A single skeleton-servant paces the bay\'s perimeter, polishing the brass rails as it walks. Its skull tilts toward May as she passes — recognition without speech.\n\nThe servant carries a small tin pail of carnation petals. Romaine\'s standing order: "replace the wilted one on my bench, when it wilts."' },
     ],
@@ -3004,24 +3006,57 @@ function drawSurgeHanger(ctx, room){
   ctx.fillRect(60, 0, 4, H);          // left
   ctx.fillRect(W-64, 0, 4, H);        // right
 
-  // 3) OPEN BAY DOOR at top — large trapezoidal opening showing purple sky + runway.
-  // We CARVE through the top wall here (so the wall is split: left piece + bay door + right piece).
-  // First repaint the area above the bay door region with the sky cutout.
-  drawBayDoorOpen(ctx, 6*64, 0, 16*64, 128);
-  // re-add the bronze wall trim on each side of the bay door
-  ctx.fillStyle = p.wall;
-  ctx.fillRect(0, 0, 6*64, 64); ctx.fillRect(22*64, 0, W - 22*64, 64);
-  // wall riveted seam strip again, for the side pieces
-  ctx.fillStyle = '#2a1d10';
-  for (let x = 32; x < 6*64; x += 96) ctx.fillRect(x, 0, 2, 64);
-  for (let x = 22*64 + 32; x < W; x += 96) ctx.fillRect(x, 0, 2, 64);
-  ctx.fillStyle = '#1a0f06';
-  ctx.fillRect(0, 60, 6*64, 4); ctx.fillRect(22*64, 60, W - 22*64, 4);
-
-  // 4) CYAN CEILING LIGHT STRIPS (top wall) — 6 rectangles glowing on the ceiling
-  for (let i = 0; i < 6; i++) {
-    drawCyanStrip(ctx, (4 + i*3.4)*64, 16, 1.6*64, 6, t, i);
+  // 3) OPEN BAY DOOR at top — cinematic Endless view rendered from the
+  // reference plate (hangar_backdrop.png). The image spans most of the
+  // top half of the room, with the bronze wall trim flanking it.
+  // Tile region: x = 2..26 (24 tiles wide), y = 0..5 (5 tiles tall).
+  const bayX = 2*64, bayW = 24*64, bayY = 0, bayH = 5*64;
+  if (window.HANGAR_BACKDROP_IMG && window.HANGAR_BACKDROP_IMG.complete) {
+    // Letterbox-fit the image into the bay region (cover, not contain).
+    const img = window.HANGAR_BACKDROP_IMG;
+    const dstAr = bayW / bayH;
+    const srcAr = img.width / img.height;
+    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (srcAr > dstAr) {
+      // image wider than bay region — crop horizontally
+      sw = img.height * dstAr;
+      sx = (img.width - sw) / 2;
+    } else {
+      // image taller than bay region — crop vertically
+      sh = img.width / dstAr;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, bayX, bayY, bayW, bayH);
+    // Subtle bottom-edge gradient so the image grades into the bronze floor
+    const fadeG = ctx.createLinearGradient(0, bayH - 32, 0, bayH);
+    fadeG.addColorStop(0, 'rgba(58, 40, 24, 0)');
+    fadeG.addColorStop(1, 'rgba(58, 40, 24, 0.85)');
+    ctx.fillStyle = fadeG;
+    ctx.fillRect(bayX, bayH - 32, bayW, 32);
+    // Cyan threshold strip at the bay-door floor edge (matches reference)
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(60,240,240,${0.55 + 0.2*Math.sin(t*1.6)})`;
+    ctx.fillRect(bayX + 18, bayH - 4, bayW - 36, 3);
+    ctx.fillStyle = `rgba(120,255,255,${0.3 + 0.15*Math.sin(t*1.6 + 1)})`;
+    ctx.fillRect(bayX + 18, bayH - 12, bayW - 36, 1);
+    ctx.restore();
+  } else {
+    // Fallback procedural sky if the image hasn't loaded yet
+    drawBayDoorOpen(ctx, bayX, bayY, bayW, bayH);
   }
+  // Re-paint the bronze wall trim on either side of the bay opening
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0, 0, bayX, 64); ctx.fillRect(bayX + bayW, 0, W - (bayX + bayW), 64);
+  ctx.fillStyle = '#2a1d10';
+  for (let x = 32; x < bayX; x += 96) ctx.fillRect(x, 0, 2, 64);
+  for (let x = bayX + bayW + 32; x < W; x += 96) ctx.fillRect(x, 0, 2, 64);
+  ctx.fillStyle = '#1a0f06';
+  ctx.fillRect(0, 60, bayX, 4); ctx.fillRect(bayX + bayW, 60, W - (bayX + bayW), 4);
+
+  // 4) CYAN CEILING LIGHT STRIPS — disabled: the backdrop image already
+  // includes the trapezoidal cyan ceiling lights, no procedural overlay needed.
+  // for (let i = 0; i < 6; i++) drawCyanStrip(ctx, (4 + i*3.4)*64, 16, 1.6*64, 6, t, i);
   // 5) CYAN FLOOR GUIDE STRIP — runs the length of the hanger down the middle
   drawCyanFloorStrip(ctx, 6.5*64, H/2 - 10, 15*64, 6, t);
   // Two side cyan strips along the inner edges of the side ship-rows
@@ -4427,6 +4462,14 @@ async function loadAllSprites() {
     done++;
     document.getElementById('loaderSub').textContent = `Loading sprites… (${done}/${total})`;
   }
+  // Also preload the hangar backdrop panorama (Endless view) so the Surge
+  // Hanger draw function can paint it as the back-wall view.
+  await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => { window.HANGAR_BACKDROP_IMG = img; resolve(); };
+    img.onerror = () => { console.warn('hangar backdrop failed to load'); resolve(); };
+    img.src = '/api/static/hangar_backdrop.png';
+  });
 }
 
 // ============================================================

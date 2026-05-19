@@ -53,7 +53,7 @@ async def astrolabe_main_menu():
 
     The main menu presents:
       - ASTROLABE TERMINAL  → /api/astrolabe-game     (chunked launcher)
-      - REALITY BREACH DEFENSE → /api/breach-defense  (standalone arcade)
+      - DEATH'S SHIP        → /api/deaths-ship        (2D top-down exploration)
       - READ THE COMIC → https://globalcomix.com/c/dimensionlock
     Plus the Maytradalis / Death / Flybutt / Lurker lore intro and the
     ambient Dimensionlock procedural theme (auto-falls-back to a custom
@@ -70,13 +70,6 @@ async def astrolabe_game():
     return FileResponse(html_path, media_type="text/html")
 
 
-@api_router.get("/breach-defense")
-async def breach_defense_standalone():
-    """Standalone Reality Breach Defense mini-game (fullscreen arcade)."""
-    html_path = ROOT_DIR / "static" / "breach_defense.html"
-    return FileResponse(html_path, media_type="text/html")
-
-
 @api_router.get("/astrolabe-legacy")
 async def astrolabe_legacy():
     """Serves the original monolithic Astrolabe HTML (fallback / debugging)."""
@@ -88,6 +81,13 @@ async def astrolabe_legacy():
 async def lore_archive_page():
     """Serves the Lore Archive page — characters + factions + ambassador auth + admin dashboard."""
     html_path = ROOT_DIR / "static" / "lore.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
+@api_router.get("/deaths-ship", response_class=FileResponse)
+async def deaths_ship_page():
+    """Serves Death's Ship — top-down 2D exploration game starring Maytradalis."""
+    html_path = ROOT_DIR / "static" / "deaths_ship.html"
     return FileResponse(html_path, media_type="text/html")
 
 

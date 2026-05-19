@@ -1,0 +1,1877 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>DEATH'S SHIP — Dimensionlock</title>
+<link rel="icon" type="image/png" sizes="192x192" href="/api/static/icon-192.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;width:100%;overflow:hidden;background:#0c0719;color:#e2d4f4;
+            font-family:'Cinzel','Cormorant Garamond',Georgia,serif;
+            user-select:none;-webkit-user-select:none;}
+  /* preferred body type for non-decorative UI text */
+  .ui-text { font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; }
+  #game{position:fixed;inset:0;background:#0c0719;display:block;width:100%;height:100%;touch-action:none;image-rendering:auto;}
+  /* Top-left HUD: gothic plaque */
+  .hud{position:fixed;left:14px;top:calc(14px + env(safe-area-inset-top));z-index:5;pointer-events:none;
+       background:linear-gradient(180deg,rgba(28,15,55,.78) 0%,rgba(18,10,38,.78) 100%);
+       padding:10px 14px;border-radius:3px;border:1px solid rgba(180,140,220,.28);
+       box-shadow:0 4px 18px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.04);
+       max-width:78vw;}
+  .hud .room-label{font-size:10px;letter-spacing:5px;color:#c8a8e8;text-transform:uppercase;font-weight:600;}
+  .hud .room-name{font-size:20px;font-weight:700;color:#fff;margin-top:2px;letter-spacing:1px;text-shadow:0 1px 8px rgba(0,0,0,.7);font-family:'Cinzel',Georgia,serif;}
+  .hud .room-sub{font-size:11px;color:#a594bf;margin-top:3px;font-style:italic;letter-spacing:.5px;}
+
+  /* Top-right buttons: gothic icons */
+  .icon-btn{position:fixed;z-index:6;width:42px;height:42px;border-radius:3px;
+            background:rgba(20,12,40,.7);border:1px solid rgba(180,140,220,.35);
+            color:#c8a8e8;font-size:18px;display:flex;align-items:center;justify-content:center;
+            cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+            transition:all .2s ease;box-shadow:0 2px 10px rgba(0,0,0,.5);}
+  .icon-btn:hover,.icon-btn:active{background:rgba(48,26,80,.92);color:#fff;border-color:rgba(220,180,255,.55);}
+  .back-btn{top:calc(14px + env(safe-area-inset-top));right:14px;}
+  .map-btn{top:calc(64px + env(safe-area-inset-top));right:14px;}
+  .codex-btn{top:calc(114px + env(safe-area-inset-top));right:14px;}
+
+  /* Mobile D-pad */
+  .dpad{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));z-index:7;width:170px;height:170px;display:none;}
+  .dpad .btn{position:absolute;width:54px;height:54px;
+             background:rgba(22,12,40,.72);border:1px solid rgba(180,140,220,.32);
+             border-radius:6px;color:#c8a8e8;display:flex;align-items:center;justify-content:center;
+             font-size:22px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+  .dpad .btn.active{background:rgba(82,42,132,.85);color:#fff;border-color:rgba(220,180,255,.7);}
+  .dpad .btn.up{top:0;left:58px;} .dpad .btn.left{top:58px;left:0;}
+  .dpad .btn.right{top:58px;right:0;} .dpad .btn.down{bottom:0;left:58px;}
+
+  .action-btn{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(28px,env(safe-area-inset-bottom));z-index:7;width:80px;height:80px;border-radius:50%;
+              background:radial-gradient(circle at 35% 35%,#8c5fc6 0%,#3a1f6a 80%);
+              border:2px solid rgba(220,180,255,.55);color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;display:none;
+              align-items:center;justify-content:center;text-align:center;
+              box-shadow:0 0 20px rgba(140,90,200,.45),inset 0 0 0 1px rgba(255,255,255,.1);
+              cursor:pointer;flex-direction:column;font-family:'Cinzel',Georgia,serif;}
+  .action-btn:active{transform:scale(.94);}
+  .action-btn .glyph{font-size:24px;line-height:1;margin-bottom:3px;}
+  .action-btn.disabled{opacity:.32;}
+  @media (pointer:coarse){ .dpad{display:block;} .action-btn{display:flex;} }
+
+  /* Floating hint pill */
+  .hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;
+        background:rgba(18,10,38,.88);border:1px solid rgba(220,170,90,.5);padding:7px 16px;border-radius:2px;
+        font-size:12px;color:#ffe9b3;letter-spacing:3px;text-transform:uppercase;pointer-events:none;
+        opacity:0;transition:opacity .2s ease;font-weight:600;
+        text-shadow:0 0 6px rgba(255,200,100,.5);
+        box-shadow:0 4px 14px rgba(255,180,80,.18);}
+  .hint.show{opacity:1;}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;z-index:9;background:rgba(6,3,16,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:24px;}
+  .modal.show{display:flex;}
+  .modal-content{max-width:520px;width:100%;
+                 background:linear-gradient(160deg,#1f1238 0%,#0e0820 100%);
+                 border:1px solid rgba(190,150,90,.35);border-radius:4px;
+                 padding:24px 26px;
+                 box-shadow:0 24px 70px rgba(0,0,0,.7),inset 0 0 0 1px rgba(220,170,90,.08);
+                 max-height:84vh;overflow-y:auto;position:relative;}
+  /* Gothic frame corners */
+  .modal-content::before, .modal-content::after{content:'';position:absolute;width:18px;height:18px;
+                 border:1px solid rgba(220,170,90,.5);}
+  .modal-content::before{top:6px;left:6px;border-right:none;border-bottom:none;}
+  .modal-content::after{bottom:6px;right:6px;border-left:none;border-top:none;}
+  .modal-eyebrow{font-size:10px;letter-spacing:5px;color:#d4a85a;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+  .modal-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:16px;
+               font-family:'Cinzel',Georgia,serif;letter-spacing:1px;
+               text-shadow:0 1px 12px rgba(0,0,0,.6);}
+  .modal-body{font-size:14px;line-height:1.7;color:#cdb8e4;white-space:pre-wrap;
+              font-family:'Cormorant Garamond',Georgia,serif;}
+  .modal-close{margin-top:20px;width:100%;padding:11px;
+               background:rgba(60,32,108,.4);border:1px solid rgba(220,170,90,.45);
+               border-radius:2px;color:#fff;font-size:11px;letter-spacing:4px;text-transform:uppercase;
+               cursor:pointer;font-weight:700;font-family:'Cinzel',Georgia,serif;
+               transition:background .2s ease;}
+  .modal-close:hover,.modal-close:active{background:rgba(110,60,180,.6);border-color:rgba(255,200,100,.6);}
+
+  /* Codex modal — log of discovered locations */
+  .codex-list{margin:14px 0 8px 0;padding:0;list-style:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;color:#cdb8e4;line-height:1.85;}
+  .codex-list li{padding:4px 0;border-bottom:1px dotted rgba(180,140,220,.18);}
+  .codex-list li.cur{color:#ffe9b3;}
+  .codex-list li.sealed{color:#5b4878;font-style:italic;}
+
+  /* Loader */
+  .loader{position:fixed;inset:0;z-index:99;background:#0c0719;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#c8a8e8;font-size:12px;letter-spacing:4px;text-transform:uppercase;transition:opacity .5s ease;font-family:'Cinzel',Georgia,serif;}
+  .loader .ring{width:60px;height:60px;border:3px solid rgba(180,140,220,.18);border-top-color:#c8a8e8;border-radius:50%;animation:spin 1.1s linear infinite;margin-bottom:18px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loader.hide{opacity:0;pointer-events:none;}
+  .loader .sub{font-size:10px;letter-spacing:3px;color:#5b4878;margin-top:8px;}
+
+  /* Door fade */
+  .fade-overlay{position:fixed;inset:0;z-index:8;background:#000;opacity:0;transition:opacity .5s ease;pointer-events:none;}
+  .fade-overlay.show{opacity:1;}
+
+  /* News Network ad popup — bottom-left, miniature TV news broadcast */
+  .news-popup{position:fixed;
+              left:max(14px,env(safe-area-inset-left));
+              bottom:max(14px,env(safe-area-inset-bottom));
+              z-index:6;width:300px;
+              background:linear-gradient(180deg,#0e0820 0%,#1c1138 100%);
+              border:1px solid rgba(220,170,90,.45);border-radius:3px;
+              box-shadow:0 8px 30px rgba(0,0,0,.7),inset 0 0 0 1px rgba(220,170,90,.1);
+              transform:translateY(140%);opacity:0;
+              transition:transform .55s cubic-bezier(.22,1,.36,1),opacity .35s ease;
+              overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;}
+  .news-popup.show{transform:translateY(0);opacity:1;}
+  /* hide on small screens when D-pad is active to avoid covering controls */
+  @media (pointer:coarse) {
+    .news-popup{ left:auto; right:max(14px,env(safe-area-inset-right));
+                 bottom:auto; top:calc(170px + env(safe-area-inset-top));
+                 width:280px; }
+  }
+  .news-header{display:flex;align-items:center;gap:8px;padding:7px 10px;
+               background:linear-gradient(90deg,#5a1a1a 0%,#3a0e0e 100%);
+               border-bottom:1px solid rgba(220,170,90,.3);}
+  .news-live{display:inline-block;font-size:9px;letter-spacing:2px;color:#fff;font-weight:800;
+             background:#c41a1a;padding:2px 7px;border-radius:2px;text-transform:uppercase;
+             animation:livepulse 1.4s ease-in-out infinite;}
+  @keyframes livepulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+  .news-channel{font-size:11px;color:#ffe9b3;letter-spacing:1.4px;font-weight:700;text-transform:uppercase;flex:1;}
+  .news-close{background:none;border:none;color:#cdb8e4;font-size:18px;cursor:pointer;line-height:1;padding:0 2px;}
+  .news-close:hover{color:#fff;}
+  .news-stage{padding:12px 12px 6px 12px;}
+  .news-anchor{display:flex;gap:10px;align-items:flex-start;}
+  .news-portrait{width:46px;height:46px;border-radius:2px;flex-shrink:0;
+                 background:linear-gradient(180deg,#3a2160 0%,#1c0e30 100%);
+                 border:1px solid rgba(220,170,90,.35);
+                 display:flex;align-items:center;justify-content:center;font-size:24px;color:#ffe9b3;}
+  .news-headline{flex:1;font-size:13px;color:#fff;line-height:1.35;font-weight:600;font-family:'Cinzel',Georgia,serif;letter-spacing:.3px;}
+  .news-body{font-size:12px;color:#bba8d4;margin-top:8px;line-height:1.45;font-family:'Cormorant Garamond',Georgia,serif;}
+  .news-cta{display:block;margin-top:10px;padding:7px 10px;text-align:center;
+            background:rgba(60,32,108,.4);border:1px solid rgba(220,170,90,.45);
+            color:#ffe9b3;font-size:10px;letter-spacing:2.5px;font-weight:700;text-transform:uppercase;
+            cursor:pointer;text-decoration:none;border-radius:2px;font-family:'Cinzel',Georgia,serif;}
+  .news-cta:hover{background:rgba(110,60,180,.6);color:#fff;}
+  .news-ticker{height:18px;background:#0a061a;color:#d4a85a;font-size:10px;
+               border-top:1px solid rgba(220,170,90,.2);
+               overflow:hidden;position:relative;}
+  .news-ticker-inner{position:absolute;white-space:nowrap;line-height:18px;padding-left:100%;
+                     animation:tickerScroll 18s linear infinite;letter-spacing:1.5px;}
+  @keyframes tickerScroll{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
+</style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="room-label">DEATH'S SHIP · DECK</div>
+    <div class="room-name" id="roomName">Loading…</div>
+    <div class="room-sub" id="roomSub"></div>
+  </div>
+
+  <button class="icon-btn back-btn" onclick="window.location.href='/api/astrolabe'" title="Return to main menu">⨯</button>
+  <button class="icon-btn map-btn" id="mapBtn" title="Ship map">⊞</button>
+  <button class="icon-btn codex-btn" id="codexBtn" title="Lore codex">☥</button>
+
+  <div class="dpad" id="dpad">
+    <div class="btn up"    data-dir="up">▲</div>
+    <div class="btn left"  data-dir="left">◀</div>
+    <div class="btn right" data-dir="right">▶</div>
+    <div class="btn down"  data-dir="down">▼</div>
+  </div>
+  <button class="action-btn disabled" id="actionBtn">
+    <span class="glyph">✦</span>
+    <span>ACT</span>
+  </button>
+
+  <div class="hint" id="hint">Press E to interact</div>
+
+  <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-content">
+      <div class="modal-eyebrow" id="modalEye">LORE FRAGMENT</div>
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-body" id="modalBody"></div>
+      <button class="modal-close" onclick="closeModal()">⨯ DISMISS</button>
+    </div>
+  </div>
+
+  <!-- News Network ad popup (miniature TV broadcast) -->
+  <div class="news-popup" id="newsPopup" role="dialog" aria-live="polite">
+    <div class="news-header">
+      <span class="news-live">LIVE</span>
+      <span class="news-channel" id="newsChannel">DLN · Dimensionlock News</span>
+      <button class="news-close" id="newsClose" aria-label="Close">×</button>
+    </div>
+    <div class="news-stage">
+      <div class="news-anchor">
+        <div class="news-portrait" id="newsPortrait">⚜</div>
+        <div class="news-headline" id="newsHeadline"></div>
+      </div>
+      <div class="news-body" id="newsBody"></div>
+      <a class="news-cta" id="newsCta" href="#" target="_blank" rel="noopener">▸ More</a>
+    </div>
+    <div class="news-ticker"><div class="news-ticker-inner" id="newsTicker"></div></div>
+  </div>
+
+  <div class="fade-overlay" id="fade"></div>
+
+  <div class="loader" id="loader">
+    <div class="ring"></div>
+    <div>Boarding Death's Ship</div>
+    <div class="sub" id="loaderSub">Loading sprites…</div>
+  </div>
+
+<script>
+/* ============================================================
+   DEATH'S SHIP — 2D top-down gothic exploration
+   Playing as Maytradalis, exploring a gothic sci-fi spaceship.
+   ============================================================ */
+(() => {
+'use strict';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const ASSET_BASE = '/api/static/deaths_ship/sprites/';
+
+// ---- Sprite manifest ----
+const SPRITE_META = {
+  run_down:   { src: 'may_run_down.png',   frame_w: 86,  frame_h: 192, frames: 25 },
+  run_right:  { src: 'may_run_right.png',  frame_w: 112, frame_h: 187, frames: 25 },
+  run_up:     { src: 'may_run_up.png',     frame_w: 69,  frame_h: 182, frames: 25 },
+  idle_right: { src: 'may_idle_right.png', frame_w: 49,  frame_h: 182, frames: 25 },
+};
+const sprites = {};   // name -> Image
+
+// ---- Game state ----
+const state = {
+  width: 0, height: 0, dpr: 1,
+  keys: { up:false, down:false, left:false, right:false },
+  player: { x: 0, y: 0, vx: 0, vy: 0, facing: 'down', moving: false, animFrame: 0, animTime: 0 },
+  camera: { x: 0, y: 0 },
+  currentRoom: null,
+  rooms: {},
+  nearInteract: null,
+  fading: false,
+  loaded: false,
+  tile: 64,
+  playerScale: 0.55,
+  visited: new Set(),  // room ids the player has stepped into
+  flickerSeed: Math.random()*1000,
+};
+
+// ============================================================
+//   ROOM DEFINITIONS
+// ============================================================
+// Coords are in TILE units. World position = tile * 64.
+//
+// Each room has: width/height (tiles), palette, spawn, walls (array of
+// {x,y,w,h}), interactables (array of {x,y,kind,title,body}), doors,
+// and a draw(ctx, room) function for the gothic background.
+// ============================================================
+
+const ROOM_DEFS = {
+  control: {
+    id: 'control',
+    name: 'The Control Room',
+    sub: 'Command bridge — strata navigation hub',
+    width: 26, height: 16,
+    palette: { floor:'#1c1232', wall:'#2c1d4a', stone:'#3a2a5c', accent:'#d4a85a', candle:'#ffd28b' },
+    spawn: { x: 13, y: 13 },
+    draw: drawControlRoom,
+    walls: [
+      { x:0,y:0,w:26,h:1 }, { x:0,y:15,w:26,h:1 }, { x:0,y:0,w:1,h:16 }, { x:25,y:0,w:1,h:16 },
+      { x:11,y:5,w:4,h:3 },   // central command pit
+      { x:2,y:3,w:5,h:1.5 },  // port console bank
+      { x:19,y:3,w:5,h:1.5 }, // starboard console bank
+    ],
+    interactables: [
+      { x:13,y:8.5, kind:'plaque', title:'COMMAND THRONE', body:'Death\'s command seat. From here the ship pierces the 199-Layer Creation, charting strata that should not be charted.\n\nThe armrests still bear scorch marks from when Death dragged The Lurker out of Reality 47 — a story told only in whispers among the reapers.\n\nMay has tried to sit here exactly once. The chair refused her.' },
+      { x:4.5,y:5.5, kind:'plaque', title:'PORT CONSOLE — NAV', body:'Holographic strata-projector. Reads the negative-positive scale (-99 through +99) and predicts the next stable docking window.\n\nThe console hums even when no one is logged in. Vivian says that\'s normal. The Navigator says it isn\'t.' },
+      { x:21.5,y:5.5, kind:'plaque', title:'STARBOARD CONSOLE — SOULS', body:'Ledger of every soul currently aboard. Death keeps this immaculate. The ledger updates in real time — a new line ticks past every few seconds.\n\nDon\'t look too closely at line 4,221. That one\'s yours, in advance.' },
+      { x:13,y:2.5, kind:'plaque', title:'BACK WALL — STAINED GLASS', body:'A single great stained-glass panel, depicting the Cathedral Of Reapers. The figures are arranged in their hierarchy — Death at the apex, the Centurions flanking, the common reapers below, and the skeleton-servants at the foot.\n\nMay\'s outline is etched to one side, smaller than the rest. She has never asked Death why.' },
+      { x:18,y:13, kind:'plaque', title:'THE OBSERVATION RAIL', body:'A brass rail along which a small skeleton-servant patrols when on duty. Its eyes are coal — when it sees an unfamiliar soul aboard, the coals turn pale gold.\n\nThe rail is currently empty. The skeleton-servants are taking their hourly rest in the Lower Deck.' },
+    ],
+    doors: [
+      { x:1.2, y:13.5, w:1.0, h:1.5, to:'dorm_hall', spawn:{x:30,y:5} },
+    ],
+  },
+
+  dorm_hall: {
+    id: 'dorm_hall',
+    name: 'Reaper Dorm Hall',
+    sub: 'A long corridor where the off-duty reapers sleep',
+    width: 32, height: 10,
+    palette: { floor:'#1a1028', wall:'#2c1a3e', stone:'#3a2354', accent:'#c89968', candle:'#ffd49a' },
+    spawn: { x: 4, y: 5 },
+    draw: drawDormHall,
+    walls: [
+      { x:0,y:0,w:32,h:1 }, { x:0,y:9,w:32,h:1 }, { x:0,y:0,w:1,h:10 }, { x:31,y:0,w:1,h:10 },
+      // door alcove framings
+      { x:5,y:1,w:1,h:.4 }, { x:9,y:1,w:1,h:.4 }, { x:13,y:1,w:1,h:.4 },
+      { x:17,y:1,w:1,h:.4 }, { x:21,y:1,w:1,h:.4 }, { x:25,y:1,w:1,h:.4 },
+      { x:5,y:8.6,w:1,h:.4 }, { x:9,y:8.6,w:1,h:.4 }, { x:13,y:8.6,w:1,h:.4 },
+      { x:17,y:8.6,w:1,h:.4 }, { x:21,y:8.6,w:1,h:.4 }, { x:25,y:8.6,w:1,h:.4 },
+    ],
+    interactables: [
+      { x:11, y:1.7, kind:'plaque', title:'DORM 4 — CRYIOUS', body:'A frozen mist seeps out from under the door. Inside, Cryious dreams in equations that the rest of the crew can\'t read. Knock at your own risk — the last reaper who knocked spent a week thinking in ice.' },
+      { x:15, y:1.7, kind:'plaque', title:'DORM 5 — ELYSTRIA', body:'Music plays softly behind the door — a song May doesn\'t recognize, in a language that may not exist outside of this corridor.\n\nElystria is May\'s closest ally. Some nights she opens the door without being knocked on, and they share tea in silence.' },
+      { x:19, y:1.7, kind:'plaque', title:'DORM 6 — MADORIA', body:'A small purple ribbon is tied to the door handle. Madoria always ties one before sleep — to remember which reality she came back from.\n\nThe ribbon is fresh. Madoria is in.' },
+      { x:11, y:8.0, kind:'plaque', title:'DORM 9 — TENEBRIS', body:'The door is welded shut from the outside.\n\nNo one talks about Dorm 9. May tries the handle anyway. It does not yield.' },
+      { x:15, y:8.0, kind:'plaque', title:'DORM 10 — THE COMMON REAPERS', body:'A single shared dorm for the dozen common reapers — the ones who pilot the harvest skiffs and tend to the smaller souls.\n\nThe door is always slightly ajar. Inside, twelve thin beds in two rows, each with a small bone token at the foot. The tokens are how the reapers find their way home from a strata they did not return whole from.' },
+      { x:19, y:8.0, kind:'plaque', title:'SKELETON ALCOVE', body:'A small recess in the wall where one of the ship\'s skeleton-servants stands at rest. Its jaw is loose; a scrap of parchment is pinned to its sternum reading \"OFF-DUTY · DO NOT DISTURB.\"\n\nThe skeletons are part of the ship\'s permanent crew — older than May, older than most of the reapers. Death does not say where they came from.' },
+      { x:23, y:5,   kind:'plaque', title:'HALL TERMINAL', body:'Roster: 12 reapers on rotation. 9 currently aboard. 3 deployed to Strata -47.\n\nVivian\'s name is highlighted in red. Investigation pending.' },
+      { x:28, y:5,   kind:'plaque', title:'CHANDELIER WINCH', body:'A small crank on the wall lowers the great bone-and-iron chandelier above for cleaning.\n\nThe chandelier is May\'s responsibility. She lowers it once a week. The candles never need replacing — they burn from the bone, not from wax.' },
+    ],
+    doors: [
+      { x:30, y:4.5, w:1.0, h:1.5, to:'control',    spawn:{x:3,y:13} },
+      { x:14, y:8.6, w:1.5, h:.7, to:'mays_room',  spawn:{x:9,y:1.5} },
+      { x:1,  y:4.5, w:1.0, h:1.5, to:'surge_hanger', spawn:{x:23,y:8} },
+    ],
+  },
+
+  mays_room: {
+    id: 'mays_room',
+    name: "May's Room",
+    sub: 'A small, warm refuge in a cold ship',
+    width: 18, height: 14,
+    palette: { floor:'#3b1f4a', wall:'#5a3070', stone:'#7748a0', accent:'#e8b9d8', candle:'#ffd9a8' },
+    spawn: { x: 9, y: 12 },
+    draw: drawMaysRoom,
+    walls: [
+      { x:0,y:0,w:18,h:1 }, { x:0,y:13,w:18,h:1 }, { x:0,y:0,w:1,h:14 }, { x:17,y:0,w:1,h:14 },
+      { x:1.2, y:2, w:4, h:3 },     // canopy bed
+      { x:13, y:1.5, w:3.5, h:2 },  // vanity
+      { x:1.2, y:6.5, w:2, h:3 },   // wardrobe
+      { x:14.5, y:5.5, w:2.5, h:5 },// bookshelf
+      { x:8, y:7.5, w:3, h:2 },     // writing desk
+    ],
+    interactables: [
+      { x:3, y:5.3,   kind:'plaque', title:'A MADE BED', body:'May\'s canopy bed — purple silks draped from the four posts, hospital corners tight enough to bounce a coin off. Three plush butterflies sit at the head — gifts from FlyButt that she\'s never had the heart to discard.\n\nUnder the pillow: an unsent letter to her mother, who died before May became a maid.' },
+      { x:14.5, y:3.7, kind:'plaque', title:'MAY\'S VANITY', body:'Twelve identical black hats line the gilt-framed mirror. A small jar holds purple hair dye. May refreshes the color every Tuesday, by the ship\'s artificial sun.\n\nA single photograph is tucked into the frame: Death holding a very small May, both of them mid-laugh. The only photograph of Death known to exist.' },
+      { x:2.2, y:9.8,  kind:'plaque', title:'WARDROBE', body:'A dozen identical maid uniforms, each pressed and labelled by day. The drawer below holds something heavier — a folded reaper\'s scythe, dismantled into three pieces.\n\nMay has not assembled it yet. Death asked her not to.' },
+      { x:15.5, y:10.6,kind:'plaque', title:'BOOKSHELF', body:'Worn spines: \"The 199 Layers (Annotated)\", \"On the Maintenance of Reapers\", \"Tea: Seven Hundred Recipes\", and one without a title — leather cover, locked with a tiny silver clasp.\n\nMay does not know who put the locked one there.' },
+      { x:9.5, y:9.7,  kind:'plaque', title:'WRITING DESK', body:'A half-finished letter to Vivian:\n\n\"I know you said not to look for you. But I went into the Memory Hall again. The bench by the projector is still warm. So either you\'re still—\"\n\nThe rest is crossed out. May has been crossing it out for months.' },
+      { x:9, y:1.7,    kind:'plaque', title:'ARCHED WINDOW', body:'A tall gothic arch of black iron tracery, set with thirteen small panes of leaded glass. Outside: not stars, but the long dark between strata, and very rarely the silhouette of a passing harvest skiff.\n\nMay leaves a candle lit on the sill every night. She has never said for whom.' },
+      { x:6, y:11.5,   kind:'plaque', title:'CANDLELIT RUG', body:'A pink woven rug worn smooth in a single oval where May reads on the floor.\n\nA stack of borrowed books is splayed open: poetry by reapers long since retired into other strata, with May\'s pencil annotations in the margins.' },
+      { x:13, y:13.0,  kind:'plaque', title:'CHANDELIER (LOWERED)', body:'A small bone-and-iron chandelier, currently lowered for the night. Three black candles burn warm yellow.\n\nThe candles are made from the wax of dissolved memories — May does not know whose. She suspects, but does not ask.' },
+    ],
+    doors: [
+      { x:8, y:1.0, w:1.5, h:.7, to:'dorm_hall', spawn:{x:14,y:5} },
+    ],
+  },
+
+  surge_hanger: {
+    id: 'surge_hanger',
+    name: 'The Surge Hanger',
+    sub: "Romaine's domain — harvest skiffs, cargo, and the open bay",
+    width: 28, height: 14,
+    // Canon palette: bronze-brown floor + cyan accent strips + dark steel ships.
+    palette: { floor:'#3a2818', wall:'#4a3520', stone:'#5a4028', accent:'#3ee0e0', candle:'#3ee0e0' },
+    spawn: { x: 23, y: 8 },
+    draw: drawSurgeHanger,
+    walls: [
+      { x:0,y:0,w:28,h:1 }, { x:0,y:13,w:28,h:1 }, { x:0,y:0,w:1,h:14 }, { x:27,y:0,w:1,h:14 },
+      // 4 docked harvest skiffs in two rows (matches canon: rows of dark sleek ships flanking the runway)
+      { x:1.5,y:5.5,w:3.5,h:1.6 },
+      { x:1.5,y:8.5,w:3.5,h:1.6 },
+      { x:23,y:5.5,w:3.5,h:1.6 },
+      { x:23,y:8.5,w:3.5,h:1.6 },
+      // 2 cargo cage crates (center of hanger)
+      { x:7,y:6.5,w:3,h:3 },
+      { x:11.5,y:6.5,w:3,h:3 },
+      // Romaine's workbench (bottom-left)
+      { x:6,y:11,w:3.5,h:1.4 },
+    ],
+    interactables: [
+      { x:3.2, y:7.5,  kind:'plaque', title:'SKIFF · RAVENWAKE', body:'A two-seater harvest skiff. Dark hull plating still scorched from its last run into Strata -41. Cyan canopy lights cycling on standby.\n\nA strip of yellow ribbon is tied to the rear stabilizer — Romaine ties one to every skiff he repairs, "so they remember the way back."' },
+      { x:3.2, y:10.5, kind:'plaque', title:'SKIFF · LANTERN', body:'May\'s personal harvest skiff. She is rated for short-strata work only — Death has not yet authorized her for a full deployment.\n\nThe seats still smell faintly of the lavender oil she insists Romaine apply after every service.' },
+      { x:24.7,y:7.5,  kind:'plaque', title:'SKIFF · BLACKHEART', body:'Tenebris\' skiff. Has not flown since Tenebris was sealed into Dorm 9. Romaine maintains it anyway — a mechanic\'s superstition.\n\nThe canopy glass is cracked from the inside.' },
+      { x:24.7,y:10.5, kind:'plaque', title:'SKIFF · UNNAMED', body:'A new harvest skiff, just out of bonding. No paint, no name, hull still bare bronze.\n\nRomaine refuses to name a skiff before it has flown. "She tells you who she is, on the first run. Not before."' },
+      { x:8.5, y:8,    kind:'plaque', title:'CARGO · STRATA-47 SOULS', body:'A heavy steel-cage cargo crate, locked with a brass sigil-clamp.\n\nManifest: thirty-one souls retrieved from the collapse of Reality 47 — pending sorting. Death will personally walk this crate to the Cathedral when the cycle is right.' },
+      { x:13, y:8,     kind:'plaque', title:'CARGO · SHIP PARTS', body:'A second cage crate, half-empty, full of replacement panels and brass sigil-rings. Romaine signs every panel with a small carnation stamp before installing it.' },
+      { x:7.7, y:11.7, kind:'plaque', title:"ROMAINE'S WORKBENCH", body:'A long bronze workbench scattered with skiff parts, half-finished sigil-rings, a thermos of cold black coffee, and a single wilting carnation in a brass tube.\n\nRomaine is the ship\'s only mechanic. Common reaper rank, but Death keeps him on the senior roster — "because nothing flies without him."\n\nA scrap of paper reads: "May — your skiff\'s left thruster bearing is on the high side. I\'ll have it tuned by Tuesday. — R."' },
+      // Romaine NPC (placeholder) standing at his workbench, slightly left of it
+      { x:5.5, y:11.5, kind:'plaque', title:'ROMAINE', body:'The hanger\'s sole mechanic. Pink hair pulled back, green cargo pants, leather harness, sleeves rolled.\n\nHe doesn\'t look up — he never does, mid-job — but the carnation pinned to his harness twitches once when May enters the bay. Acknowledgment, mechanic-style.\n\n"Skiff Lantern\'s ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
+      { x:14, y:1.7,   kind:'plaque', title:'BAY DOORS — OPEN', body:'The great trapezoidal bay doors are open. Beyond: a long bronze runway extending toward a distant docking spire, set against a lavender-purple sky.\n\nThe Surge Hanger always opens onto the same false sky — a stable horizon Death keeps tuned, regardless of which strata the ship is currently piercing. May has never seen what is REALLY beyond the bay. Romaine claims he has, twice.' },
+      { x:14, y:5.0,   kind:'plaque', title:'CYAN GUIDE LIGHTS', body:'A row of cyan LED strips runs the length of the hanger floor, marking the pre-launch path each skiff must follow.\n\nThe strips dim when the bay is sealed for the night. They are humming softly — pre-flight cycle is running for Skiff Ravenwake. Someone is taking her out within the hour.' },
+      { x:25, y:12,    kind:'plaque', title:'SKELETON-SERVANT (PATROLLING)', body:'A single skeleton-servant paces the bay\'s perimeter, polishing the brass rails as it walks. Its skull tilts toward May as she passes — recognition without speech.\n\nThe servant carries a small tin pail of carnation petals. Romaine\'s standing order: "replace the wilted one on my bench, when it wilts."' },
+    ],
+    doors: [
+      { x:26, y:2.5, w:1.0, h:1.5, to:'dorm_hall', spawn:{x:3,y:5} },
+    ],
+  },
+};
+
+// ============================================================
+//   GOTHIC BACKGROUND DRAWING
+// ============================================================
+// All drawing happens in WORLD coords (px = tile*64).
+
+function drawStoneFloor(ctx, W, H, p, seed) {
+  // Layered dark stone tile floor with mortar lines + subtle warm ambient.
+  ctx.fillStyle = p.floor; ctx.fillRect(0,0,W,H);
+  // Tile pattern (96x96, offset every other row by 48)
+  const TS = 96;
+  for (let y = 0; y < H; y += TS) {
+    for (let x = 0; x < W; x += TS) {
+      const off = ((y/TS) % 2) * (TS/2);
+      const px = x - off;
+      // Slight per-tile shade variance
+      const v = Math.abs(Math.sin((px*0.013)+(y*0.017)+seed)) * 12;
+      ctx.fillStyle = `rgb(${parseInt(p.stone.slice(1,3),16)-12+v}, ${parseInt(p.stone.slice(3,5),16)-12+v}, ${parseInt(p.stone.slice(5,7),16)-8+v})`;
+      ctx.fillRect(px+1, y+1, TS-3, TS-3);
+    }
+  }
+  // Diagonal cross-hatch shadow
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < W+H; i += 14) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0); ctx.lineTo(i - H, H); ctx.stroke();
+  }
+}
+
+function drawArchWindow(ctx, x, y, w, h, accent) {
+  // Tall pointed gothic arch with stained glass
+  ctx.save();
+  // frame
+  ctx.fillStyle = '#0a0518';
+  drawArchPath(ctx, x, y, w, h);
+  ctx.fill();
+  // inner glass — radial pink->purple gradient
+  const cx = x + w/2, cy = y + h/2;
+  const gr = ctx.createRadialGradient(cx, cy+10, 4, cx, cy, w);
+  gr.addColorStop(0, '#ffaae0');
+  gr.addColorStop(0.5, '#9344c4');
+  gr.addColorStop(1, '#3a1860');
+  ctx.fillStyle = gr;
+  drawArchPath(ctx, x+5, y+5, w-10, h-10);
+  ctx.fill();
+  // mullion bars (3 vertical + 2 horizontal)
+  ctx.strokeStyle = '#0a0518'; ctx.lineWidth = 3;
+  for (let i = 1; i < 3; i++) {
+    const px = x + (w/3)*i;
+    ctx.beginPath(); ctx.moveTo(px, y+8); ctx.lineTo(px, y+h-6); ctx.stroke();
+  }
+  for (let i = 1; i < 2; i++) {
+    const py = y + (h/2.4)*i + 6;
+    ctx.beginPath(); ctx.moveTo(x+6, py); ctx.lineTo(x+w-6, py); ctx.stroke();
+  }
+  // crown ornament
+  ctx.fillStyle = accent;
+  ctx.fillRect(cx-2, y-4, 4, 8);
+  ctx.restore();
+}
+function drawArchPath(ctx, x, y, w, h) {
+  // pointed-arch (lancet)
+  ctx.beginPath();
+  ctx.moveTo(x, y + w/2);
+  ctx.quadraticCurveTo(x + w/2, y - w/3, x + w, y + w/2);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.closePath();
+}
+
+function drawChandelier(ctx, cx, cy, scale, candleColor, t) {
+  // Hanging gothic chandelier — iron arms + 5 candles
+  ctx.save();
+  // chain
+  ctx.strokeStyle = '#1a0e2c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, cy - 50*scale); ctx.lineTo(cx, cy - 8*scale); ctx.stroke();
+  // ring
+  ctx.fillStyle = '#1a0e2c';
+  ctx.beginPath(); ctx.arc(cx, cy, 22*scale, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#0a0518';
+  ctx.beginPath(); ctx.arc(cx, cy, 17*scale, 0, Math.PI*2); ctx.fill();
+  // 5 candles
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI*2;
+    const px = cx + Math.cos(a) * 22 * scale;
+    const py = cy + Math.sin(a) * 22 * scale;
+    // candle stem
+    ctx.fillStyle = '#d4c8b8';
+    ctx.fillRect(px-1.5*scale, py-9*scale, 3*scale, 9*scale);
+    // flame glow
+    const flicker = 0.7 + 0.3*Math.sin(t*7 + i + state.flickerSeed);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.55 * flicker;
+    ctx.fillStyle = candleColor;
+    ctx.beginPath(); ctx.ellipse(px, py-12*scale, 3*scale, 5*scale, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 0.18 * flicker;
+    ctx.beginPath(); ctx.arc(px, py-12*scale, 14*scale, 0, Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+function drawSconce(ctx, x, y, candleColor, t, seed) {
+  // Wall sconce — bracket + candle + warm light pool
+  ctx.save();
+  ctx.fillStyle = '#1a0e2c';
+  ctx.fillRect(x-8, y-2, 16, 4);
+  ctx.fillRect(x-5, y, 10, 8);
+  // candle
+  ctx.fillStyle = '#d4c8b8';
+  ctx.fillRect(x-1.5, y-12, 3, 12);
+  // flame
+  const flicker = 0.7 + 0.3*Math.sin(t*8 + seed);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.7 * flicker;
+  ctx.fillStyle = candleColor;
+  ctx.beginPath(); ctx.ellipse(x, y-16, 3, 5, 0, 0, Math.PI*2); ctx.fill();
+  // light pool
+  ctx.globalAlpha = 0.22 * flicker;
+  const grad = ctx.createRadialGradient(x, y-12, 4, x, y-12, 60);
+  grad.addColorStop(0, candleColor); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x-60, y-72, 120, 90);
+  ctx.restore();
+}
+
+function drawCandle(ctx, x, y, t, seed) {
+  // base brass holder
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(x-4, y, 8, 4);
+  ctx.fillStyle = '#2a1a08';
+  ctx.fillRect(x-3, y+2, 6, 2);
+  // candle
+  ctx.fillStyle = '#e8d4b8';
+  ctx.fillRect(x-2, y-12, 4, 12);
+  // flame
+  const flicker = 0.75 + 0.25*Math.sin(t*9 + seed);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.7 * flicker;
+  ctx.fillStyle = '#ffac4a';
+  ctx.beginPath(); ctx.ellipse(x, y-15, 2.8, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(x, y-15, 1.4, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 0.15 * flicker;
+  ctx.fillStyle = '#ffac4a';
+  ctx.beginPath(); ctx.arc(x, y-15, 28, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCarpet(ctx, x, y, w, h, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  roundRect(ctx, x, y, w, h, 4); ctx.fill();
+  // tassels top + bottom
+  ctx.fillStyle = '#1a0e2c';
+  for (let i = 0; i < w; i += 14) {
+    ctx.fillRect(x+i+2, y-4, 2, 4);
+    ctx.fillRect(x+i+2, y+h, 2, 4);
+  }
+  // motif (oval)
+  ctx.strokeStyle = 'rgba(220,170,90,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(x+w/2, y+h/2, w*0.36, h*0.32, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(x+w/2, y+h/2, w*0.22, h*0.18, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
+function drawWallTrim(ctx, W, H, color) {
+  // Inner border line with crown/base molding
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 60, W, 4);              // top crown
+  ctx.fillRect(0, H-64, W, 4);            // base molding
+  ctx.fillRect(60, 0, 4, H);              // left
+  ctx.fillRect(W-64, 0, 4, H);            // right
+}
+
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+// ============================================================
+//   ROOM PAINTERS
+// ============================================================
+
+function drawControlRoom(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 1);
+  // outer walls
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#1a0e2c');
+  // back-wall stained glass — three large arches
+  drawArchWindow(ctx, 5*64,  4, 4*64, 60);
+  drawArchWindow(ctx, 11*64, 4, 4*64, 60);
+  drawArchWindow(ctx, 17*64, 4, 4*64, 60);
+  // central command pit (tiered stone)
+  ctx.fillStyle = '#2a1a3e';
+  roundRect(ctx, 11*64, 5*64, 4*64, 3*64, 14); ctx.fill();
+  ctx.fillStyle = '#3c2654';
+  roundRect(ctx, 11*64+10, 5*64+10, 4*64-20, 3*64-20, 10); ctx.fill();
+  // throne chair (back-rest + seat)
+  ctx.fillStyle = '#0a0518';
+  ctx.fillRect(12.6*64, 5.7*64, 0.8*64, 1.0*64);  // back-rest
+  ctx.fillRect(12.5*64, 6.6*64, 1.0*64, 0.8*64);  // seat
+  // gold brass trim on throne
+  ctx.fillStyle = p.accent;
+  ctx.fillRect(12.6*64+4, 5.75*64, 0.8*64-8, 4);
+  // port + starboard console banks (stone with brass plaques)
+  drawStoneConsole(ctx, 2*64, 3*64, 5*64, 1.5*64, p, t);
+  drawStoneConsole(ctx, 19*64, 3*64, 5*64, 1.5*64, p, t);
+  // sconces along walls (every ~3 tiles)
+  for (let i = 0; i < 8; i++) {
+    drawSconce(ctx, (3 + i*3)*64, 64, p.candle, t, i);
+  }
+  // observation rail (right side, near bottom)
+  ctx.fillStyle = p.accent;
+  ctx.fillRect(15*64, 12*64, 9*64, 4);
+  for (let i = 0; i < 9; i++) {
+    ctx.fillRect((15.5+i)*64, 12*64-12, 3, 12);
+  }
+  // floor stencil center text
+  ctx.save();
+  ctx.font = 'bold 14px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(220,170,90,0.18)';
+  ctx.textAlign = 'center'; ctx.fillText('▾  COMMAND DECK · I  ▾', W/2, H/2 + 220);
+  ctx.restore();
+}
+
+function drawStoneConsole(ctx, x, y, w, h, p, t){
+  // raised stone slab
+  ctx.fillStyle = p.stone;
+  roundRect(ctx, x, y, w, h, 8); ctx.fill();
+  // top brass slab
+  ctx.fillStyle = p.accent;
+  ctx.fillRect(x+8, y+8, w-16, 8);
+  // engraved sigils (suggested via small rectangles)
+  ctx.fillStyle = '#1a0e2c';
+  for (let i = 0; i < 6; i++) ctx.fillRect(x+18+i*16, y+10, 4, 4);
+  // crystal scrying-eye (warm amber instead of cyan)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const flicker = 0.6 + 0.4*Math.sin(t*2 + x*.01);
+  ctx.globalAlpha = 0.5 * flicker;
+  ctx.fillStyle = '#ffba66';
+  ctx.beginPath(); ctx.arc(x+w/2, y+h-14, 6, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 0.16 * flicker;
+  ctx.beginPath(); ctx.arc(x+w/2, y+h-14, 22, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawDormHall(ctx, room){
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 2);
+  // outer walls
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#1a0e2c');
+  // central long carpet runner (deep wine)
+  drawCarpet(ctx, 64, H/2-72, W-128, 144, '#5a1f3a');
+  // dorm doors top + bottom (gothic arched doors with iron fittings)
+  for (let i = 0; i < 6; i++) {
+    drawDormDoor(ctx, (4.5 + i*4)*64, 0,    'top',    p);
+    drawDormDoor(ctx, (4.5 + i*4)*64, H-64, 'bottom', p);
+  }
+  // sconces between every door
+  for (let i = 0; i < 7; i++) {
+    drawSconce(ctx, (3 + i*4)*64, 60, p.candle, t, i*7);
+    drawSconce(ctx, (3 + i*4)*64, H-60, p.candle, t, i*11);
+  }
+  // central chandelier
+  drawChandelier(ctx, W/2, 2*64, 1.0, p.candle, t);
+  drawChandelier(ctx, W*0.25, 2*64, 0.85, p.candle, t);
+  drawChandelier(ctx, W*0.75, 2*64, 0.85, p.candle, t);
+  // floor signage — engraved gold roman numerals
+  ctx.save();
+  ctx.font = 'bold 14px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(220,170,90,0.25)';
+  ctx.textAlign = 'center'; ctx.fillText('◂ DORM HALL · DECK II ▸', W/2, H/2 + 22);
+  ctx.restore();
+}
+
+function drawDormDoor(ctx, x, y, side, p){
+  // Tall pointed gothic door inset into the wall
+  ctx.save();
+  // arched recess
+  ctx.fillStyle = '#0a0518';
+  ctx.beginPath();
+  ctx.moveTo(x-26, y+10);
+  ctx.quadraticCurveTo(x, y-14, x+26, y+10);
+  ctx.lineTo(x+26, y+58);
+  ctx.lineTo(x-26, y+58);
+  ctx.closePath();
+  ctx.fill();
+  // wooden door
+  ctx.fillStyle = '#3a1c2c';
+  ctx.beginPath();
+  ctx.moveTo(x-22, y+14);
+  ctx.quadraticCurveTo(x, y-4, x+22, y+14);
+  ctx.lineTo(x+22, y+54);
+  ctx.lineTo(x-22, y+54);
+  ctx.closePath();
+  ctx.fill();
+  // iron banding
+  ctx.strokeStyle = '#1a0e2c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x-20, y+22); ctx.lineTo(x+20, y+22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-20, y+38); ctx.lineTo(x+20, y+38); ctx.stroke();
+  // small viewing slit (warm amber light, very subtle)
+  ctx.fillStyle = '#1a0e2c';
+  ctx.fillRect(x-3, y+18, 6, 6);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.45 + 0.35*Math.sin(t*2 + x*.01);
+  ctx.fillStyle = p.candle;
+  ctx.fillRect(x-2.5, y+19, 5, 5);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawMaysRoom(ctx, room){
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  // wood plank floor (warm purple-tinted)
+  ctx.fillStyle = '#2a1438';
+  ctx.fillRect(0,0,W,H);
+  for (let y = 0; y < H; y += 22) {
+    for (let x = 0; x < W; x += 84) {
+      const off = ((y/22) % 2) * 42;
+      const px = x - off;
+      const v = Math.abs(Math.sin(px*0.04 + y*0.05))*8;
+      ctx.fillStyle = `rgb(${42+v}, ${20+v*.5}, ${56+v})`;
+      ctx.fillRect(px+1, y+1, 84-3, 22-3);
+    }
+  }
+  // outer walls (deep purple)
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#1a0e2c');
+  // stained-glass arched window over bed (top wall)
+  drawArchWindow(ctx, 7.5*64, 4, 3*64, 56);
+  // canopy bed (with draped curtains)
+  ctx.fillStyle = '#1a0a26';
+  roundRect(ctx, 1.2*64, 2*64, 4*64, 3*64, 8); ctx.fill();
+  // mattress
+  ctx.fillStyle = '#5a2c80';
+  roundRect(ctx, 1.2*64+12, 2*64+18, 4*64-24, 3*64-30, 6); ctx.fill();
+  // pillow
+  ctx.fillStyle = '#e8b9d8';
+  ctx.fillRect(1.2*64+22, 2*64+24, 1.2*64, 0.45*64);
+  // bed posts (4)
+  ctx.fillStyle = '#1a0a26';
+  ctx.fillRect(1.2*64-2, 2*64-4, 6, 3.2*64);
+  ctx.fillRect(1.2*64+4*64-4, 2*64-4, 6, 3.2*64);
+  // curtain drapery (left & right)
+  ctx.fillStyle = 'rgba(120,60,160,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(1.2*64, 2*64-4); ctx.lineTo(1.2*64+24, 2*64+1*64);
+  ctx.lineTo(1.2*64+10, 2*64+2.5*64); ctx.lineTo(1.2*64-2, 2*64+2.5*64);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(1.2*64+4*64, 2*64-4); ctx.lineTo(1.2*64+4*64-24, 2*64+1*64);
+  ctx.lineTo(1.2*64+4*64-10, 2*64+2.5*64); ctx.lineTo(1.2*64+4*64+2, 2*64+2.5*64);
+  ctx.closePath(); ctx.fill();
+  // VANITY
+  ctx.fillStyle = '#e8b9d8';
+  roundRect(ctx, 13*64, 1.5*64, 3.5*64, 2*64, 8); ctx.fill();
+  ctx.fillStyle = '#7a4a90';
+  ctx.fillRect(13*64+10, 1.5*64+10, 3.5*64-20, 14);
+  // ornate mirror
+  ctx.fillStyle = '#1a0a26';
+  ctx.beginPath();
+  ctx.moveTo(13*64+0.5*64, 1.5*64-30);
+  ctx.quadraticCurveTo(13*64+1.75*64, 1.5*64-58, 13*64+3*64, 1.5*64-30);
+  ctx.lineTo(13*64+3*64, 1.5*64);
+  ctx.lineTo(13*64+0.5*64, 1.5*64);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(220,170,220,0.4)';
+  ctx.beginPath();
+  ctx.moveTo(13*64+0.6*64, 1.5*64-26);
+  ctx.quadraticCurveTo(13*64+1.75*64, 1.5*64-50, 13*64+2.9*64, 1.5*64-26);
+  ctx.lineTo(13*64+2.9*64, 1.5*64-4);
+  ctx.lineTo(13*64+0.6*64, 1.5*64-4);
+  ctx.closePath(); ctx.fill();
+  // gilded frame trim
+  ctx.strokeStyle = p.accent; ctx.lineWidth = 2;
+  ctx.stroke();
+  // wall portraits to the right of vanity
+  for (let i = 0; i < 4; i++) {
+    const px = 13*64 + 3*64 + 8 + (i%2)*30;
+    const py = 1*64 + Math.floor(i/2)*36;
+    ctx.fillStyle = '#1a0a26';
+    ctx.fillRect(px, py, 22, 28);
+    ctx.fillStyle = '#5a3a70';
+    ctx.fillRect(px+3, py+3, 16, 22);
+    ctx.strokeStyle = p.accent; ctx.lineWidth = 1;
+    ctx.strokeRect(px+0.5, py+0.5, 21, 27);
+  }
+  // WARDROBE (dark wood with iron clasp)
+  ctx.fillStyle = '#1a0a26';
+  roundRect(ctx, 1.2*64, 6.5*64, 2*64, 3*64, 6); ctx.fill();
+  ctx.fillStyle = '#3a1c2c';
+  roundRect(ctx, 1.2*64+4, 6.5*64+4, 2*64-8, 3*64-8, 4); ctx.fill();
+  // wardrobe panels
+  ctx.strokeStyle = '#1a0a26'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(1.2*64+1*64, 6.5*64+8); ctx.lineTo(1.2*64+1*64, 6.5*64+3*64-8); ctx.stroke();
+  // brass handles
+  ctx.fillStyle = p.accent;
+  ctx.beginPath(); ctx.arc(1.2*64+0.7*64, 6.5*64+1.5*64, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(1.2*64+1.3*64, 6.5*64+1.5*64, 3, 0, Math.PI*2); ctx.fill();
+  // BOOKSHELF
+  ctx.fillStyle = '#1a0a26';
+  roundRect(ctx, 14.5*64, 5.5*64, 2.5*64, 5*64, 4); ctx.fill();
+  ctx.fillStyle = '#2a1438';
+  ctx.fillRect(14.5*64+4, 5.5*64+4, 2.5*64-8, 5*64-8);
+  for (let row = 0; row < 4; row++) {
+    ctx.fillStyle = '#1a0a26';
+    ctx.fillRect(14.5*64+8, 5.5*64+18 + row*72, 2.5*64-16, 4);
+    const colors = ['#7a3ed8','#5a2c80','#3a205e','#9854ee','#3a1c52','#5a35a8','#c89968'];
+    for (let b = 0; b < 6; b++) {
+      ctx.fillStyle = colors[(row*6+b) % colors.length];
+      ctx.fillRect(14.5*64+12 + b*22, 5.5*64+30 + row*72, 18, 50);
+      // gold spine accent
+      if (b%2===0) {
+        ctx.fillStyle = p.accent;
+        ctx.fillRect(14.5*64+12 + b*22, 5.5*64+44 + row*72, 18, 1);
+      }
+    }
+  }
+  // WRITING DESK
+  ctx.fillStyle = '#1a0a26';
+  roundRect(ctx, 8*64, 7.5*64, 3*64, 2*64, 6); ctx.fill();
+  ctx.fillStyle = '#3a1c2c';
+  ctx.fillRect(8*64+6, 7.5*64+6, 3*64-12, 2*64-12);
+  // paper
+  ctx.fillStyle = '#e8d4b8';
+  ctx.fillRect(8*64+30, 7.5*64+22, 60, 80);
+  ctx.fillStyle = 'rgba(60,30,90,.6)';
+  for (let i = 0; i < 5; i++) ctx.fillRect(8*64+34, 7.5*64+34 + i*12, 52, 1.5);
+  // candle on desk
+  drawCandle(ctx, 8*64+2.4*64, 7.5*64+22, t, 7);
+  // PINK CARPET (the rug)
+  drawCarpet(ctx, 5*64, 9.5*64, 8*64, 3*64, '#a04068');
+  // strewn books on rug
+  ctx.fillStyle = '#3a6b3a';
+  ctx.fillRect(6*64, 11*64, 36, 22);
+  ctx.fillStyle = '#9a8a3a';
+  ctx.fillRect(6.6*64, 10.6*64, 30, 26);
+  ctx.fillStyle = '#2a1a4a';
+  ctx.fillRect(8.5*64, 11*64, 32, 22);
+  // candle on rug
+  drawCandle(ctx, 10*64, 11.4*64, t, 11);
+  // CHANDELIER (lower height, since this is a smaller room)
+  drawChandelier(ctx, 9*64, 4.4*64, 0.8, p.candle, t);
+  // wall sconces
+  drawSconce(ctx, 4*64, 64, p.candle, t, 31);
+  drawSconce(ctx, 13*64, 64, p.candle, t, 17);
+  drawSconce(ctx, 64, 4*64, p.candle, t, 23);
+  drawSconce(ctx, W-64, 4*64, p.candle, t, 47);
+}
+
+function drawSurgeHanger(ctx, room){
+  // Canon-style sci-fi hanger: bronze-brown floor, cyan LED ceiling/floor strips,
+  // 4 dark sleek skiffs in two rows, metal cage cargo crates, an open trapezoidal
+  // bay door at the top showing a lavender-purple sky, no candles or stone.
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+
+  // 1) BRONZE METAL FLOOR with subtle panel seams
+  ctx.fillStyle = p.floor; ctx.fillRect(0,0,W,H);
+  // diagonal hatch (very subtle)
+  ctx.strokeStyle = 'rgba(0,0,0,0.10)'; ctx.lineWidth = 1;
+  for (let i = 0; i < W+H; i += 32) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - H, H); ctx.stroke();
+  }
+  // large panel grid (~2 tile)
+  ctx.strokeStyle = 'rgba(0,0,0,0.20)'; ctx.lineWidth = 2;
+  for (let y = 64; y < H; y += 128) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  for (let x = 64; x < W; x += 128) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  // gentle bronze sheen highlight
+  const sheen = ctx.createLinearGradient(0, 0, 0, H);
+  sheen.addColorStop(0, 'rgba(180,140,80,0.05)');
+  sheen.addColorStop(0.5, 'rgba(255,210,150,0.04)');
+  sheen.addColorStop(1, 'rgba(120,80,40,0.06)');
+  ctx.fillStyle = sheen; ctx.fillRect(0, 0, W, H);
+
+  // 2) WALLS — bronze-brown panels with darker seam beam
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  // Riveted seams along walls (vertical strips every 96px on the perimeter)
+  ctx.fillStyle = '#2a1d10';
+  for (let x = 32; x < W; x += 96) {
+    ctx.fillRect(x, 0, 2, 64);
+    ctx.fillRect(x, H-64, 2, 64);
+  }
+  for (let y = 32; y < H; y += 96) {
+    ctx.fillRect(0, y, 64, 2);
+    ctx.fillRect(W-64, y, 64, 2);
+  }
+  // Wall accent trim (deep brown)
+  ctx.fillStyle = '#1a0f06';
+  ctx.fillRect(0, 60, W, 4);          // top inner trim
+  ctx.fillRect(0, H-64, W, 4);        // bottom inner trim
+  ctx.fillRect(60, 0, 4, H);          // left
+  ctx.fillRect(W-64, 0, 4, H);        // right
+
+  // 3) OPEN BAY DOOR at top — large trapezoidal opening showing purple sky + runway.
+  // We CARVE through the top wall here (so the wall is split: left piece + bay door + right piece).
+  // First repaint the area above the bay door region with the sky cutout.
+  drawBayDoorOpen(ctx, 6*64, 0, 16*64, 128);
+  // re-add the bronze wall trim on each side of the bay door
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0, 0, 6*64, 64); ctx.fillRect(22*64, 0, W - 22*64, 64);
+  // wall riveted seam strip again, for the side pieces
+  ctx.fillStyle = '#2a1d10';
+  for (let x = 32; x < 6*64; x += 96) ctx.fillRect(x, 0, 2, 64);
+  for (let x = 22*64 + 32; x < W; x += 96) ctx.fillRect(x, 0, 2, 64);
+  ctx.fillStyle = '#1a0f06';
+  ctx.fillRect(0, 60, 6*64, 4); ctx.fillRect(22*64, 60, W - 22*64, 4);
+
+  // 4) CYAN CEILING LIGHT STRIPS (top wall) — 6 rectangles glowing on the ceiling
+  for (let i = 0; i < 6; i++) {
+    drawCyanStrip(ctx, (4 + i*3.4)*64, 16, 1.6*64, 6, t, i);
+  }
+  // 5) CYAN FLOOR GUIDE STRIP — runs the length of the hanger down the middle
+  drawCyanFloorStrip(ctx, 6.5*64, H/2 - 10, 15*64, 6, t);
+  // Two side cyan strips along the inner edges of the side ship-rows
+  drawCyanFloorStrip(ctx, 5.2*64, 5.5*64, 0.6*64, 5*64, t, /*vertical*/ true);
+  drawCyanFloorStrip(ctx, 22.6*64, 5.5*64, 0.6*64, 5*64, t, true);
+
+  // 6) FOUR DARK SLEEK HARVEST SKIFFS in two rows (canon look)
+  drawSkiff(ctx, 1.5*64, 5.5*64, 3.5*64, 1.6*64, false /*facing right*/);
+  drawSkiff(ctx, 1.5*64, 8.5*64, 3.5*64, 1.6*64, false);
+  drawSkiff(ctx, 23*64,  5.5*64, 3.5*64, 1.6*64, true  /*facing left*/);
+  drawSkiff(ctx, 23*64,  8.5*64, 3.5*64, 1.6*64, true);
+
+  // 7) METAL CAGE CARGO CRATES (2 in the middle)
+  drawCageCrate(ctx, 7*64, 6.5*64, 3*64, 3*64);
+  drawCageCrate(ctx, 11.5*64, 6.5*64, 3*64, 3*64);
+
+  // 8) ROMAINE'S WORKBENCH (bottom-left)
+  drawWorkbench(ctx, 6*64, 11*64, 3.5*64, 1.4*64, t);
+
+  // 9) ROMAINE NPC (placeholder — until real sprite arrives)
+  drawRomaine(ctx, 5.5*64, 11.5*64, t);
+
+  // 10) Skeleton-servant (placeholder, patrolling along bottom)
+  const skeletX = 25*64 + Math.sin(t*0.4)*40;
+  drawSkeletonServant(ctx, skeletX, 12*64);
+
+  // 11) Floor signage
+  ctx.save();
+  ctx.font = 'bold 11px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.textAlign = 'center'; ctx.fillText('▾  SURGE HANGER · BAY 03  ▾', W/2, H - 78);
+  // skiff name etched plaques (in front of each ship)
+  ctx.font = 'bold 9px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(62,224,224,0.55)';
+  ctx.fillText('RAVENWAKE',  3.2*64, 5.5*64 - 6);
+  ctx.fillText('LANTERN',    3.2*64, 8.5*64 - 6);
+  ctx.fillText('BLACKHEART', 24.7*64, 5.5*64 - 6);
+  ctx.fillText('UNNAMED',    24.7*64, 8.5*64 - 6);
+  ctx.restore();
+}
+
+// ---- canon hanger primitives ----
+
+function drawBayDoorOpen(ctx, x, y, w, h) {
+  // Trapezoidal cutout in the top wall — shows lavender sky + bronze runway in the distance.
+  ctx.save();
+  // The trapezoid (narrower at top of hanger view, wider at the visible "horizon")
+  const inset = 32;
+  ctx.beginPath();
+  ctx.moveTo(x + inset, y);
+  ctx.lineTo(x + w - inset, y);
+  ctx.lineTo(x + w + inset, y + h);
+  ctx.lineTo(x - inset,     y + h);
+  ctx.closePath();
+  ctx.clip();
+
+  // Lavender sky gradient (canon: pinkish purple haze with distant clouds)
+  const sky = ctx.createLinearGradient(0, y, 0, y + h*4);
+  sky.addColorStop(0, '#cfb0e8');
+  sky.addColorStop(0.55, '#9c84c4');
+  sky.addColorStop(1, '#5d4a82');
+  ctx.fillStyle = sky;
+  ctx.fillRect(x - inset, y, w + 2*inset, h + 4);
+
+  // Distant runway/horizon line
+  ctx.fillStyle = 'rgba(60,40,80,0.45)';
+  ctx.fillRect(x + w/2 - 30, y + h - 8, 60, 4);
+  // distant docking spire silhouette
+  ctx.fillStyle = 'rgba(40,28,60,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(x + w/2 - 8, y + h - 6);
+  ctx.lineTo(x + w/2,     y + h - 14);
+  ctx.lineTo(x + w/2 + 8, y + h - 6);
+  ctx.closePath(); ctx.fill();
+  // soft cloud streaks
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillRect(x + 30, y + 14, w - 60, 4);
+  ctx.fillRect(x + 80, y + 30, w - 160, 3);
+  ctx.fillRect(x + 50, y + 44, w - 100, 2);
+
+  ctx.restore();
+
+  // Trapezoid frame trim (bronze)
+  ctx.save();
+  ctx.strokeStyle = '#3a2510'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + 32, y);
+  ctx.lineTo(x + w - 32, y);
+  ctx.lineTo(x + w + 32, y + h);
+  ctx.lineTo(x - 32,     y + h);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCyanStrip(ctx, cx, cy, w, h, t, seed) {
+  ctx.save();
+  const pulse = 0.75 + 0.25 * Math.sin(t*1.6 + seed);
+  // base strip
+  ctx.fillStyle = '#1a3838';
+  ctx.fillRect(cx - w/2, cy - h/2, w, h);
+  // glow rectangle
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillStyle = '#3ee0e0';
+  ctx.fillRect(cx - w/2 + 2, cy - h/2 + 1, w - 4, h - 2);
+  // outer halo
+  ctx.globalAlpha = 0.18 * pulse;
+  ctx.fillStyle = '#3ee0e0';
+  ctx.fillRect(cx - w/2 - 14, cy - h/2 - 8, w + 28, h + 16);
+  ctx.restore();
+}
+
+function drawCyanFloorStrip(ctx, x, y, w, h, t, vertical) {
+  ctx.save();
+  // base etched line
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+  // animated chase: chunks of cyan moving along the strip
+  const chunk = 22, gap = 12, period = chunk + gap;
+  const offset = (t * 60) % period;
+  ctx.globalCompositeOperation = 'lighter';
+  if (!vertical) {
+    for (let dx = -period; dx < w + period; dx += period) {
+      const px = x + dx + offset;
+      const pulse = 0.7 + 0.3*Math.sin(t*3 + dx);
+      ctx.globalAlpha = 0.85 * pulse;
+      ctx.fillStyle = '#3ee0e0';
+      ctx.fillRect(Math.max(x, px), y, Math.min(chunk, x + w - px), h);
+    }
+    // outer halo
+    ctx.globalAlpha = 0.12;
+    ctx.fillRect(x - 8, y - 8, w + 16, h + 16);
+  } else {
+    for (let dy = -period; dy < h + period; dy += period) {
+      const py = y + dy + offset;
+      const pulse = 0.7 + 0.3*Math.sin(t*3 + dy);
+      ctx.globalAlpha = 0.85 * pulse;
+      ctx.fillStyle = '#3ee0e0';
+      ctx.fillRect(x, Math.max(y, py), w, Math.min(chunk, y + h - py));
+    }
+    ctx.globalAlpha = 0.12;
+    ctx.fillRect(x - 8, y - 8, w + 16, h + 16);
+  }
+  ctx.restore();
+}
+
+function drawSkiff(ctx, x, y, w, h, faceLeft) {
+  // Canon: dark sleek wedge-shaped skiff, top-down. Two slim cyan engine vents
+  // at the rear, tinted canopy near the nose, brass underbelly trim.
+  ctx.save();
+  if (faceLeft) {
+    ctx.translate(x + w, y);
+    ctx.scale(-1, 1);
+    ctx.translate(-x, -y);
+  }
+
+  // shadow underneath
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.5, y + h + 6, w*0.42, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // hull — angular wedge pointing right
+  const hullColor = '#1c1820';
+  ctx.fillStyle = hullColor;
+  ctx.beginPath();
+  ctx.moveTo(x + w*0.04, y + h*0.5);
+  ctx.lineTo(x + w*0.14, y + h*0.10);
+  ctx.lineTo(x + w*0.78, y + h*0.04);
+  ctx.lineTo(x + w*1.00, y + h*0.50);
+  ctx.lineTo(x + w*0.78, y + h*0.96);
+  ctx.lineTo(x + w*0.14, y + h*0.90);
+  ctx.closePath(); ctx.fill();
+
+  // panel highlight along the spine
+  ctx.fillStyle = '#2a2630';
+  ctx.beginPath();
+  ctx.moveTo(x + w*0.18, y + h*0.18);
+  ctx.lineTo(x + w*0.74, y + h*0.16);
+  ctx.lineTo(x + w*0.92, y + h*0.50);
+  ctx.lineTo(x + w*0.74, y + h*0.84);
+  ctx.lineTo(x + w*0.18, y + h*0.82);
+  ctx.closePath(); ctx.fill();
+
+  // brass underbelly trim (visible as a strip)
+  ctx.fillStyle = '#5a4028';
+  ctx.fillRect(x + w*0.18, y + h*0.46, w*0.62, h*0.08);
+
+  // tinted canopy near the nose (amber-bronze tint)
+  ctx.fillStyle = '#3a2818';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.66, y + h*0.5, w*0.16, h*0.30, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(60,224,224,0.55)';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.66, y + h*0.5, w*0.13, h*0.24, 0, 0, Math.PI*2); ctx.fill();
+
+  // two cyan engine vents at the rear
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const vy of [y + h*0.30, y + h*0.70]) {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#3ee0e0';
+    ctx.fillRect(x + w*0.05, vy - 3, 8, 6);
+    ctx.globalAlpha = 0.22;
+    ctx.fillRect(x + w*0.04 - 12, vy - 9, 22, 18);
+  }
+  ctx.restore();
+
+  // yellow ribbon (Romaine's signature) on the rear stabilizer
+  ctx.fillStyle = '#ffd28b';
+  ctx.fillRect(x + w*0.06, y + h*0.50 - 6, 4, 12);
+
+  ctx.restore();
+}
+
+function drawCageCrate(ctx, x, y, w, h) {
+  ctx.save();
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(x + 6, y + h - 4, w - 12, 8);
+  // base
+  ctx.fillStyle = '#1f1a14';
+  ctx.fillRect(x, y, w, h);
+  // top and side cage frame (steel grey)
+  ctx.fillStyle = '#3a342c';
+  ctx.fillRect(x, y, w, 8);
+  ctx.fillRect(x, y, 8, h);
+  ctx.fillRect(x + w - 8, y, 8, h);
+  ctx.fillRect(x, y + h - 8, w, 8);
+  // grid bars
+  ctx.strokeStyle = '#5a544c'; ctx.lineWidth = 2;
+  for (let i = 1; i < 5; i++) {
+    const px = x + (w * i/5);
+    ctx.beginPath(); ctx.moveTo(px, y + 8); ctx.lineTo(px, y + h - 8); ctx.stroke();
+  }
+  for (let i = 1; i < 5; i++) {
+    const py = y + (h * i/5);
+    ctx.beginPath(); ctx.moveTo(x + 8, py); ctx.lineTo(x + w - 8, py); ctx.stroke();
+  }
+  // brass clasp (sigil-clamp) on the front
+  ctx.fillStyle = '#9d6f48';
+  ctx.fillRect(x + w/2 - 14, y + h - 14, 28, 8);
+  ctx.fillStyle = '#d4a85a';
+  ctx.fillRect(x + w/2 - 12, y + h - 12, 24, 2);
+  ctx.restore();
+}
+
+function drawWorkbench(ctx, x, y, w, h, t) {
+  ctx.save();
+  // bench
+  ctx.fillStyle = '#3a2810';
+  roundRect(ctx, x, y, w, h, 4); ctx.fill();
+  ctx.fillStyle = '#5a4028';
+  ctx.fillRect(x + 4, y + 4, w - 8, 6);
+  // tools (wrenches, panels)
+  ctx.fillStyle = '#9d6f48';
+  ctx.fillRect(x + 10, y + 22, 50, 5);
+  ctx.fillRect(x + 70, y + 32, 38, 5);
+  ctx.fillRect(x + 130, y + 22, 26, 5);
+  // brass coffee thermos
+  ctx.fillStyle = '#7a5028';
+  ctx.fillRect(x + w - 30, y + 14, 14, 22);
+  ctx.fillStyle = '#9d6f48';
+  ctx.fillRect(x + w - 30, y + 14, 14, 4);
+  // carnation in tube (Romaine's signature)
+  ctx.fillStyle = '#9d6f48';
+  ctx.fillRect(x + w - 12, y - 14, 4, 18);
+  ctx.fillStyle = '#e8b9d8';
+  ctx.beginPath(); ctx.arc(x + w - 10, y - 16, 5, 0, Math.PI*2); ctx.fill();
+  // small cyan computer screen on the bench
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.7 + 0.3*Math.sin(t*2.5);
+  ctx.fillStyle = '#3ee0e0';
+  ctx.fillRect(x + 30, y + 14, 22, 14);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawRomaine(ctx, x, y, t) {
+  // Placeholder NPC: pink-hair, green pants, leather harness, mid-job pose.
+  // Will be replaced with a real sprite when the user sends one.
+  ctx.save();
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.ellipse(x, y + 30, 12, 4, 0, 0, Math.PI*2); ctx.fill();
+  // green cargo pants
+  ctx.fillStyle = '#3a5a2e';
+  ctx.fillRect(x - 7, y + 6, 14, 22);
+  // leather harness / brown jacket
+  ctx.fillStyle = '#5a3a20';
+  ctx.fillRect(x - 9, y - 8, 18, 18);
+  // pink hair (top)
+  ctx.fillStyle = '#e890b8';
+  ctx.beginPath();
+  ctx.arc(x, y - 14, 8, 0, Math.PI*2);
+  ctx.fill();
+  // skin
+  ctx.fillStyle = '#e8c8b0';
+  ctx.beginPath();
+  ctx.arc(x, y - 8, 5, 0, Math.PI*2);
+  ctx.fill();
+  // tiny carnation pinned to harness
+  ctx.fillStyle = '#e8b9d8';
+  ctx.beginPath(); ctx.arc(x + 6, y - 4, 1.8, 0, Math.PI*2); ctx.fill();
+  // little spark from his work (subtle, pulses)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.6 + 0.4*Math.sin(t*8);
+  ctx.fillStyle = '#3ee0e0';
+  ctx.beginPath(); ctx.arc(x - 14 + Math.sin(t*5)*2, y + 4, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawSkeletonServant(ctx, x, y) {
+  // Tiny skeleton-servant placeholder
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.ellipse(x, y + 22, 9, 3, 0, 0, Math.PI*2); ctx.fill();
+  // body (dark grey robe)
+  ctx.fillStyle = '#2a2420';
+  ctx.fillRect(x - 5, y - 4, 10, 22);
+  // skull
+  ctx.fillStyle = '#d8d4cc';
+  ctx.beginPath(); ctx.arc(x, y - 10, 5, 0, Math.PI*2); ctx.fill();
+  // coal eye sockets
+  ctx.fillStyle = '#1a1814';
+  ctx.fillRect(x - 3, y - 11, 1.5, 2);
+  ctx.fillRect(x + 1.5, y - 11, 1.5, 2);
+  // tin pail of carnation petals
+  ctx.fillStyle = '#7a5028';
+  ctx.fillRect(x + 6, y + 2, 5, 6);
+  ctx.fillStyle = '#e8b9d8';
+  ctx.fillRect(x + 6, y + 1, 5, 1);
+  ctx.restore();
+}
+
+// ============================================================
+//   ASSET LOADING
+// ============================================================
+function loadSprite(name) {
+  return new Promise((resolve, reject) => {
+    const m = SPRITE_META[name];
+    const img = new Image();
+    img.onload = () => { sprites[name] = img; resolve(); };
+    img.onerror = () => reject(new Error('sprite load fail: ' + name));
+    img.src = ASSET_BASE + m.src;
+  });
+}
+async function loadAllSprites() {
+  document.getElementById('loaderSub').textContent = 'Loading sprites… (0/4)';
+  let done = 0;
+  for (const name of Object.keys(SPRITE_META)) {
+    await loadSprite(name);
+    done++;
+    document.getElementById('loaderSub').textContent = `Loading sprites… (${done}/4)`;
+  }
+}
+
+// ============================================================
+//   GAME LOOP
+// ============================================================
+let t = 0; let lastT = 0;
+function loop(timeMs){
+  const dt = Math.min(0.05, (timeMs - lastT) / 1000 || 0);
+  lastT = timeMs; t += dt;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  if (state.fading || !state.loaded) return;
+  const k = state.keys;
+  let vx = 0, vy = 0;
+  if (k.up)    vy -= 1;
+  if (k.down)  vy += 1;
+  if (k.left)  vx -= 1;
+  if (k.right) vx += 1;
+  if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
+  const speed = 220;
+  state.player.vx = vx * speed;
+  state.player.vy = vy * speed;
+  state.player.moving = !!(vx || vy);
+
+  const room = state.rooms[state.currentRoom];
+  const hbW = 32, hbH = 18, footOffsetY = 24;
+  let nx = state.player.x + state.player.vx * dt;
+  let ny = state.player.y + state.player.vy * dt;
+  if (collidesAt(nx, state.player.y, hbW, hbH, footOffsetY, room)) nx = state.player.x;
+  if (collidesAt(nx, ny, hbW, hbH, footOffsetY, room))             ny = state.player.y;
+  nx = Math.max(64 + hbW/2, Math.min(room.width*64 - 64 - hbW/2, nx));
+  ny = Math.max(64 + hbH, Math.min(room.height*64 - 64 - hbH/2, ny));
+  state.player.x = nx;
+  state.player.y = ny;
+
+  if (Math.abs(vx) > Math.abs(vy)) {
+    state.player.facing = vx > 0 ? 'right' : 'left';
+  } else if (vy !== 0) {
+    state.player.facing = vy > 0 ? 'down' : 'up';
+  }
+  if (state.player.moving) {
+    state.player.animTime += dt;
+    state.player.animFrame = Math.floor(state.player.animTime * 16) % 25;
+  } else {
+    state.player.animTime = 0; state.player.animFrame = 0;
+  }
+
+  // interactables (use generous radius)
+  state.nearInteract = null;
+  for (const it of (room.interactables||[])) {
+    const dx = state.player.x - it.x*64, dy = (state.player.y + footOffsetY) - it.y*64;
+    if (dx*dx + dy*dy < 110*110) { state.nearInteract = it; break; }
+  }
+  for (const dr of (room.doors||[])) {
+    const cx = (dr.x + dr.w/2) * 64, cy = (dr.y + dr.h/2) * 64;
+    const dx = state.player.x - cx, dy = (state.player.y + footOffsetY) - cy;
+    if (Math.abs(dx) < dr.w*32 + 18 && Math.abs(dy) < dr.h*32 + 22) {
+      enterDoor(dr); return;
+    }
+  }
+
+  // camera follow + clamp
+  const targetCx = state.player.x;
+  const targetCy = state.player.y;
+  state.camera.x += (targetCx - state.camera.x) * Math.min(1, dt*6);
+  state.camera.y += (targetCy - state.camera.y) * Math.min(1, dt*6);
+  const halfW = state.width/2, halfH = state.height/2;
+  const roomW = room.width*64, roomH = room.height*64;
+  if (roomW <= state.width)  state.camera.x = roomW/2;
+  else state.camera.x = Math.max(halfW, Math.min(roomW - halfW, state.camera.x));
+  if (roomH <= state.height) state.camera.y = roomH/2;
+  else state.camera.y = Math.max(halfH, Math.min(roomH - halfH, state.camera.y));
+
+  const actBtn = document.getElementById('actionBtn');
+  if (state.nearInteract) {
+    actBtn.classList.remove('disabled');
+    showHint(state.nearInteract.title);
+  } else {
+    actBtn.classList.add('disabled');
+    hideHint();
+  }
+}
+
+function collidesAt(px, py, hbW, hbH, footY, room) {
+  const left = px - hbW/2, right = px + hbW/2;
+  const top = py + footY - hbH/2, bottom = py + footY + hbH/2;
+  for (const w of room.walls) {
+    const wx = w.x * 64, wy = w.y * 64, wW = w.w * 64, wH = w.h * 64;
+    if (right > wx && left < wx + wW && bottom > wy && top < wy + wH) return true;
+  }
+  return false;
+}
+
+function render(){
+  const W = state.width, H = state.height, dpr = state.dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  if (!state.loaded || !state.currentRoom) return;
+  const room = state.rooms[state.currentRoom];
+  const camX = state.camera.x - W/2;
+  const camY = state.camera.y - H/2;
+  ctx.save();
+  ctx.translate(-camX, -camY);
+  room.draw(ctx, room);
+  for (const it of (room.interactables||[])) {
+    drawInteractableMarker(it.x*64, it.y*64, it === state.nearInteract);
+  }
+  for (const dr of (room.doors||[])) drawDoorMarker(dr);
+  drawPlayer();
+  ctx.restore();
+  drawVignette();
+}
+
+function drawInteractableMarker(x, y, near){
+  // Warm candle-flicker at floor level (no neon)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const flicker = 0.65 + 0.35*Math.sin(t*7 + x*.01);
+  ctx.globalAlpha = (near ? 0.85 : 0.32) * flicker;
+  ctx.fillStyle = near ? '#ffd28b' : '#d4a85a';
+  ctx.beginPath(); ctx.arc(x, y, near ? 9 : 5, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = (near ? 0.22 : 0.12) * flicker;
+  ctx.beginPath(); ctx.arc(x, y, near ? 28 : 14, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  if (near) {
+    ctx.save();
+    ctx.fillStyle = '#ffe9b3';
+    ctx.font = 'bold 11px Cinzel,Georgia,serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦  EXAMINE', x, y - 22);
+    ctx.restore();
+  }
+}
+
+function drawDoorMarker(dr){
+  // Subtle warm threshold glow at door
+  const cx = (dr.x + dr.w/2)*64, cy = (dr.y + dr.h/2)*64;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const flicker = 0.55 + 0.35*Math.sin(t*3 + cx*.01);
+  ctx.globalAlpha = 0.16 * flicker;
+  ctx.fillStyle = '#ffba66';
+  ctx.fillRect(cx - dr.w*32 - 4, cy - dr.h*32 - 4, dr.w*64 + 8, dr.h*64 + 8);
+  ctx.globalAlpha = 0.30 * flicker;
+  ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawPlayer(){
+  const p = state.player;
+  let sheet, flipped = false, frameIdx;
+  const facing = p.facing;
+  const isMoving = p.moving;
+  if (!isMoving) {
+    if (facing === 'down') { sheet = 'run_down'; frameIdx = 0; }
+    else if (facing === 'up')   { sheet = 'run_up';   frameIdx = 0; }
+    else { sheet = 'idle_right'; frameIdx = 0; flipped = (facing === 'left'); }
+  } else if (facing === 'down') {
+    sheet = 'run_down';  frameIdx = p.animFrame % SPRITE_META.run_down.frames;
+  } else if (facing === 'up') {
+    sheet = 'run_up';    frameIdx = p.animFrame % SPRITE_META.run_up.frames;
+  } else if (facing === 'right') {
+    sheet = 'run_right'; frameIdx = p.animFrame % SPRITE_META.run_right.frames;
+  } else {
+    sheet = 'run_right'; flipped = true; frameIdx = p.animFrame % SPRITE_META.run_right.frames;
+  }
+  const meta = SPRITE_META[sheet];
+  const img = sprites[sheet];
+  if (!img) return;
+  const fIdx = frameIdx;
+  const scale = state.playerScale;
+  const drawW = meta.frame_w * scale;
+  const drawH = meta.frame_h * scale;
+  const drawX = p.x - drawW/2;
+  const drawY = p.y - drawH + 20;
+
+  // shadow
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(p.x, p.y + 18, drawW*0.32, 8, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  if (flipped) {
+    ctx.translate(drawX + drawW/2, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-(drawX + drawW/2), 0);
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, fIdx * meta.frame_w, 0, meta.frame_w, meta.frame_h, drawX, drawY, drawW, drawH);
+  ctx.restore();
+}
+
+function drawVignette(){
+  const W = state.width, H = state.height;
+  const grad = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.32, W/2, H/2, Math.max(W,H)*0.78);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+}
+
+// ============================================================
+//   ROOM + DOOR LOGIC
+// ============================================================
+function loadRoom(id, spawn) {
+  const def = ROOM_DEFS[id];
+  if (!def) return;
+  state.currentRoom = id;
+  state.rooms[id] = def;
+  state.visited.add(id);
+  const sx = (spawn && typeof spawn.x === 'number') ? spawn.x : def.spawn.x;
+  const sy = (spawn && typeof spawn.y === 'number') ? spawn.y : def.spawn.y;
+  state.player.x = sx * 64;
+  state.player.y = sy * 64;
+  state.player.vx = 0; state.player.vy = 0;
+  state.player.moving = false;
+  state.player.animFrame = 0; state.player.animTime = 0;
+  state.camera.x = state.player.x;
+  state.camera.y = state.player.y;
+  document.getElementById('roomName').textContent = def.name;
+  document.getElementById('roomSub').textContent  = def.sub;
+  // count visit for ad system pacing
+  News.onRoomEnter();
+}
+function enterDoor(door){
+  state.fading = true;
+  const fade = document.getElementById('fade');
+  fade.classList.add('show');
+  setTimeout(() => {
+    loadRoom(door.to, door.spawn);
+    setTimeout(() => { fade.classList.remove('show'); state.fading = false; }, 250);
+  }, 350);
+}
+
+// ============================================================
+//   INTERACTION + MODALS
+// ============================================================
+function interact(){
+  if (!state.nearInteract || state.fading) return;
+  const it = state.nearInteract;
+  openModal(it.title, it.body, 'LORE FRAGMENT');
+}
+function openModal(title, body, eyebrow){
+  document.getElementById('modalEye').textContent = eyebrow || 'LORE FRAGMENT';
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modal').classList.add('show');
+}
+window.closeModal = function(){
+  document.getElementById('modal').classList.remove('show');
+};
+
+let hintCurrent = '';
+function showHint(text){
+  if (hintCurrent === text) return;
+  hintCurrent = text;
+  const h = document.getElementById('hint');
+  h.textContent = '✦  EXAMINE · ' + text;
+  h.classList.add('show');
+}
+function hideHint(){
+  hintCurrent = '';
+  document.getElementById('hint').classList.remove('show');
+}
+
+// Codex / map listing
+const ALL_LOCATIONS = [
+  ['control','The Control Room', true],
+  ['dorm_hall','Reaper Dorm Hall', true],
+  ['mays_room',"May's Room", true],
+  ['surge_hanger','The Surge Hanger', true],
+  ['deaths_office',"Death's Office", false],
+  ['vivians_room',"Vivian's Room", false],
+  ['memory_hall',"Death's Memory Hall", false],
+  ['blackbox','The Blackbox', false],
+  ['cathedral','The Cathedral Of Reapers', false],
+  ['obsidian','Obsidian Containment Room', false],
+  ['navigators',"Navigator's Room", false],
+  ['lower_deck','The Lower Deck', false],
+];
+document.getElementById('mapBtn').onclick = () => {
+  const html = ALL_LOCATIONS.map(([id,n,avail]) => {
+    const cur = (id === state.currentRoom) ? '▸ ' : (avail ? '• ' : '✕ ');
+    const klass = (id === state.currentRoom) ? 'cur' : (avail ? '' : 'sealed');
+    const tag = avail ? '' : '  (sealed)';
+    return `<li class="${klass}">${cur}${n}${tag}</li>`;
+  }).join('');
+  document.getElementById('modalEye').textContent = 'NAVIGATOR · DECK INDEX';
+  document.getElementById('modalTitle').textContent = "Death's Ship — Map";
+  document.getElementById('modalBody').innerHTML =
+    `<div>You are aboard Death's Ship. ${state.visited.size} chambers visited; ${ALL_LOCATIONS.filter(l=>l[2]).length - state.visited.size} reachable. The remainder are sealed pending later commits.</div>` +
+    `<ul class="codex-list">${html}</ul>` +
+    `<div style="font-size:12px;color:#a594bf;font-style:italic;margin-top:8px;">Inhabitants currently aboard: Maytradalis · the common reapers · the skeleton-servants · Romaine (Hanger) · Death (Office, off-duty) · Cryious / Elystria / Madoria (dorms).</div>`;
+  document.getElementById('modal').classList.add('show');
+};
+document.getElementById('codexBtn').onclick = () => {
+  openModal("Codex — Death's Ship",
+`A vessel that crosses the 199-Layer Creation. Older than its crew. Older than most of the souls aboard.
+
+KEY INHABITANTS
+• Maytradalis — the maid of Death. Junior in rank, senior in keys. Knows where everything is. Does not yet know why.
+• Death — captain. Most often in the Office or the Memory Hall.
+• Romaine — sole mechanic, pink-haired, in the Surge Hanger. Common reaper rank, senior privileges. Keeps the ship aloft. Pins a fresh carnation to his harness daily.
+• The common reapers — twelve, on rotation. They pilot the harvest skiffs and tend the smaller souls.
+• The skeleton-servants — older than the ship's logbook. They polish the rails, replace the wilted carnations, and walk the Lower Deck at night. They do not speak.
+• Vivian — currently missing. Status flagged red on the Hall Terminal. A bone-iron key with her name etched on it hangs in Romaine's tool rack.
+
+SHIP LAYOUT (REACHABLE)
+• Control Room — bridge, throne, port/starboard consoles, stained glass.
+• Reaper Dorm Hall — twelve doors, twelve sleepers (mostly), one welded shut.
+• May's Room — canopy bed, vanity, bookshelf, chandelier, candle on the sill.
+• Surge Hanger — Romaine's bay; four skiffs, two cargo cages, an open bay door onto a lavender sky.
+
+THE SHIP
+The hull is bronze-plated and sigil-laced. The Surge Engine — housed below the Lower Deck, not the Hanger — drives the ship between strata; its heartbeat is felt every 11 seconds throughout the decks. Death calls the Engine "a contract written into a column." No one has asked who the other party is.`, 'CODEX');
+};
+
+// ============================================================
+//   NEWS NETWORK AD POPUP (revenue placeholder)
+// ============================================================
+// Miniature TV-news broadcast that slides in from the corner.
+// Music pauses while it plays a short audio jingle + headline,
+// then auto-resumes. Designed so the user can swap NEWS_QUEUE
+// content for a real ad provider later (e.g., AdSense, custom
+// affiliate links, or a fetch() to /api/ads/next).
+const News = (function(){
+  const popup    = document.getElementById('newsPopup');
+  const channel  = document.getElementById('newsChannel');
+  const portrait = document.getElementById('newsPortrait');
+  const headline = document.getElementById('newsHeadline');
+  const body     = document.getElementById('newsBody');
+  const cta      = document.getElementById('newsCta');
+  const ticker   = document.getElementById('newsTicker');
+  const closeBtn = document.getElementById('newsClose');
+
+  // Lore-flavored ads — these double as flavor and as monetization slots.
+  // NOTE FOR FUTURE: swap this constant array with a fetch() to a real
+  // ad provider (AdSense, custom affiliate, sponsor JSON) when ready.
+  const NEWS_QUEUE = [
+    {
+      channel: "DLN · DIMENSIONLOCK NEWS",
+      portrait: "⚜",
+      headline: "READ DIMENSIONLOCK ON GLOBALCOMIX — NEW ISSUE WEDNESDAY.",
+      body: "Catch up on May, Death, and the Lurker before the next strata-rift drops.",
+      cta_label: "Open Globalcomix",
+      cta_href: "https://globalcomix.com/c/dimensionlock",
+      ticker: "BREAKING — Reality 47 sealed pending review · The Lurker spotted near Strata -71 · Vivian still missing — community tips wanted",
+      tone: "promo"
+    },
+    {
+      channel: "REAPER NETWORK · INTERNAL",
+      portrait: "☥",
+      headline: "RECRUITMENT OPEN: APPLY FOR REAPER AMBASSADORSHIP.",
+      body: "Submit characters and factions to the canon. Top contributors get cited in the comic.",
+      cta_label: "Become an Ambassador",
+      cta_href: "/api/lore",
+      ticker: "Lore Archive now accepts community submissions · Admin reviews within 48 hours · See your faction join the canon",
+      tone: "lore"
+    },
+    {
+      channel: "STRATA WEATHER · NIGHTLY",
+      portrait: "✶",
+      headline: "STRATA -47 CLEAR · STRATA +30 ANGELIC FRONT MOVING NORTH.",
+      body: "Skiff pilots advised to delay non-essential runs. Romaine is on standby in the hanger.",
+      cta_label: "View the Astrolabe",
+      cta_href: "/api/astrolabe-game",
+      ticker: "Strata weather sponsored by the Centurion Order · The Surge Engine pulses on time · Skiff Lantern grounded for service",
+      tone: "weather"
+    },
+    {
+      channel: "DLN · DIMENSIONLOCK NEWS",
+      portrait: "⚜",
+      headline: "JOIN THE DIMENSIONLOCK COMMUNITY.",
+      body: "Discord, social, comic — every story-thread starts on globalcomix and ends here.",
+      cta_label: "Read the Comic",
+      cta_href: "https://globalcomix.com/c/dimensionlock",
+      ticker: "Featured tonight: Death's Ship interior tour · New character drops Thursday · Maytradalis answers fan questions",
+      tone: "promo"
+    },
+    {
+      channel: "ROMAINE'S HANGER UPDATE",
+      portrait: "⚙",
+      headline: "SKIFF LANTERN — LEFT THRUSTER BEARING SERVICED.",
+      body: "Pickup ready Tuesday. Tip jar (and lavender oil) on the workbench.",
+      cta_label: "Visit the Hanger",
+      cta_href: "javascript:window.location.reload();",
+      ticker: "Hanger maintenance log: Ravenwake hull patched · Blackheart canopy still cracked · 1 carnation replaced today",
+      tone: "internal"
+    },
+  ];
+
+  let idx = 0;
+  let active = false;
+  let roomEnters = 0;
+  let timer = null;
+  let dismissTimer = null;
+  let audioCtx = null;
+
+  function show(adIndex) {
+    if (active) return;
+    const ad = NEWS_QUEUE[adIndex % NEWS_QUEUE.length];
+    channel.textContent  = ad.channel;
+    portrait.textContent = ad.portrait;
+    headline.textContent = ad.headline;
+    body.textContent     = ad.body;
+    cta.textContent      = '▸ ' + ad.cta_label;
+    cta.href             = ad.cta_href;
+    ticker.textContent   = ad.ticker;
+    popup.classList.add('show');
+    active = true;
+    pauseGameMusic();
+    playJingle(ad.tone);
+    // auto-dismiss after 14s
+    clearTimeout(dismissTimer);
+    dismissTimer = setTimeout(hide, 14000);
+  }
+
+  function hide() {
+    popup.classList.remove('show');
+    active = false;
+    clearTimeout(dismissTimer);
+    resumeGameMusic();
+  }
+
+  closeBtn.addEventListener('click', hide);
+
+  function tick() {
+    show(idx); idx++;
+  }
+
+  function start() {
+    // First ad ~25s in (gives the player a moment to read the room),
+    // then every 90s after.
+    timer = setTimeout(() => { tick(); timer = setInterval(tick, 90000); }, 25000);
+  }
+
+  function onRoomEnter() {
+    roomEnters++;
+    // Every 4th room change also nudges an ad (in addition to the timer).
+    if (roomEnters > 1 && roomEnters % 4 === 0 && !active) {
+      tick();
+    }
+  }
+
+  // Audio: small Web-Audio jingle then auto-stop. We don't try to do
+  // TTS — the user reads the headline. Music pauses for the duration.
+  function playJingle(tone) {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioCtx;
+      const now = ctx.currentTime;
+      const notes = (tone === 'lore')   ? [392, 466, 587]
+                  : (tone === 'weather')? [523, 622, 784]
+                  : (tone === 'internal')? [349, 440, 523]
+                                         : [440, 554, 659];
+      notes.forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.value = 0;
+        o.connect(g); g.connect(ctx.destination);
+        const start = now + i * 0.18;
+        o.start(start);
+        g.gain.linearRampToValueAtTime(0.10, start + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0008, start + 0.55);
+        o.stop(start + 0.6);
+      });
+    } catch (e) { /* swallow audio errors */ }
+  }
+
+  return { show, hide, tick, start, onRoomEnter, isActive: () => active };
+})();
+window.News = News; // expose for debugging / programmatic trigger
+
+// ============================================================
+//   GAME MUSIC — softly pause when ad plays, resume after.
+// ============================================================
+// (We reuse the existing /api/static/dimensionlock_theme.mp3 if available.)
+let musicEl = null;
+let musicWasPlaying = false;
+function ensureMusic() {
+  if (musicEl) return musicEl;
+  musicEl = new Audio('/api/static/dimensionlock_theme.mp3');
+  musicEl.loop = true;
+  musicEl.volume = 0.32;
+  return musicEl;
+}
+function startGameMusic() {
+  const m = ensureMusic();
+  m.play().then(() => { musicWasPlaying = true; }).catch(()=>{ /* autoplay blocked, will play on first key press */ });
+}
+function pauseGameMusic() {
+  if (!musicEl) return;
+  if (!musicEl.paused) { musicEl.pause(); musicWasPlaying = true; }
+}
+function resumeGameMusic() {
+  if (!musicEl) return;
+  if (musicWasPlaying) { musicEl.play().catch(()=>{}); }
+}
+
+// ============================================================
+//   INPUT
+// ============================================================
+const keyMap = {
+  'ArrowUp':'up', 'KeyW':'up',
+  'ArrowDown':'down', 'KeyS':'down',
+  'ArrowLeft':'left', 'KeyA':'left',
+  'ArrowRight':'right', 'KeyD':'right',
+};
+window.addEventListener('keydown', e => {
+  if (keyMap[e.code]) { state.keys[keyMap[e.code]] = true; e.preventDefault(); startGameMusic(); }
+  if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') {
+    if (document.getElementById('modal').classList.contains('show')) closeModal();
+    else interact();
+    e.preventDefault();
+  }
+  if (e.code === 'Escape') {
+    if (document.getElementById('modal').classList.contains('show')) closeModal();
+  }
+});
+window.addEventListener('keyup', e => {
+  if (keyMap[e.code]) { state.keys[keyMap[e.code]] = false; e.preventDefault(); }
+});
+
+// Dev hatch — press 1/2/3/4 to teleport between the 4 rooms (debug)
+window.addEventListener('keydown', e => {
+  if (e.code === 'Digit1') loadRoom('control');
+  else if (e.code === 'Digit2') loadRoom('dorm_hall');
+  else if (e.code === 'Digit3') loadRoom('mays_room');
+  else if (e.code === 'Digit4') loadRoom('surge_hanger');
+});
+
+const dpadEl = document.getElementById('dpad');
+dpadEl.querySelectorAll('.btn').forEach(b => {
+  const dir = b.dataset.dir;
+  const press   = ev => { ev.preventDefault(); state.keys[dir] = true;  b.classList.add('active'); startGameMusic(); };
+  const release = ev => { ev.preventDefault(); state.keys[dir] = false; b.classList.remove('active'); };
+  b.addEventListener('touchstart', press,  { passive:false });
+  b.addEventListener('touchend',   release,{ passive:false });
+  b.addEventListener('touchcancel',release,{ passive:false });
+  b.addEventListener('mousedown',  press);
+  b.addEventListener('mouseup',    release);
+  b.addEventListener('mouseleave', release);
+});
+document.getElementById('actionBtn').addEventListener('click', interact);
+document.getElementById('actionBtn').addEventListener('touchstart', e => { e.preventDefault(); interact(); }, { passive:false });
+
+// ============================================================
+//   RESIZE + BOOT
+// ============================================================
+function resize(){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const w = window.innerWidth, h = window.innerHeight;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  state.width = w; state.height = h; state.dpr = dpr;
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+resize();
+
+(async function boot(){
+  try {
+    await loadAllSprites();
+    loadRoom('control');
+    state.loaded = true;
+    document.getElementById('loader').classList.add('hide');
+    News.start();
+    requestAnimationFrame(loop);
+  } catch (err) {
+    document.getElementById('loaderSub').textContent = 'Load failed: ' + err.message;
+    console.error(err);
+  }
+})();
+})();
+</script>
+</body>
+</html>

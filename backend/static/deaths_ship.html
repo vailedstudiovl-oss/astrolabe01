@@ -308,8 +308,6 @@ const CANON_DORMS = {
          lore: 'A frozen mist seeps out from under the door. Inside, Cryious dreams in equations the rest of the crew can not read. Knock at your own risk — the last reaper who knocked spent a week thinking in ice.' },
     3: { name: 'Grim Elystria', sigil: '♪', kind: 'major', immortal: true, deceased: false,
          lore: 'Music plays softly behind the door — a song May does not recognise, in a language that may not exist outside of this corridor. Elystria is May\'s closest ally. Some nights she opens the door without being knocked on, and they share tea in silence.' },
-    4: { name: 'Madoria Lightbringer', sigil: '☀', kind: 'major', immortal: false, deceased: false,
-         lore: 'A small purple ribbon is tied to the door handle. Madoria always ties one before sleep — to remember which reality she came back from. The ribbon is fresh. Madoria is in.' },
     5: { name: 'Flybutt', sigil: '✿', kind: 'major', immortal: true, deceased: false,
          lore: 'A faint thrum of wings. Flybutt sleeps suspended from the ceiling of his dorm, a constellation of small luminous moths circling around him.\n\nHe is the only reaper on the ship that cannot die — the contract he signed predates Death\'s own.' },
   },
@@ -407,7 +405,133 @@ window.dlds_markReaperDead = function (name) {
 // optional flip, optional anim speed, optional plaqueTitle / plaqueBody (else
 // uses the colocated interactable already present in the room).
 // They get drawn between background and player with Y-sort.
+// An NPC can also use a `customDraw` vector renderer via NPC_DRAW below.
 // ------------------------------------------------------------
+
+// Vector NPC renderers — used by `customDraw: 'name'` on an NPC entry.
+// Each draws at (cx, cy) where cy is the FOOT position. The drawer is
+// responsible for the entire silhouette (cloak/hood/scythe/etc).
+const NPC_DRAW = {
+  // Tall, hooded, scythe-bearing initiate reaper. Animated subtle sway.
+  // Total height ~100 * scale px.
+  hoodedReaper(ctx, cx, cy, t, scale, npc) {
+    scale = scale || 1.0;
+    const moving = !!(npc && npc._moving);
+    const flip = !!(npc && npc.flip);
+    // Walking gait — slight horizontal sway + step bob
+    const sway = moving ? Math.sin(t * 6 + cx*0.01) * 1.5 * scale : 0;
+    const bob  = moving ? Math.abs(Math.sin(t * 6 + cx*0.01)) * 2 * scale
+                        : Math.sin(t * 1.8 + cx*0.01) * 1.2 * scale;
+    ctx.save();
+    if (flip) { ctx.translate(cx, 0); ctx.scale(-1, 1); ctx.translate(-cx, 0); }
+    ctx.translate(sway, bob - 4 * scale);
+    // Long cloak silhouette (trapezoid)
+    ctx.fillStyle = '#0a0a14';
+    ctx.beginPath();
+    ctx.moveTo(cx - 26*scale, cy);
+    ctx.lineTo(cx + 26*scale, cy);
+    ctx.lineTo(cx + 19*scale, cy - 80*scale);
+    ctx.lineTo(cx - 19*scale, cy - 80*scale);
+    ctx.closePath();
+    ctx.fill();
+    // Cloak inner shadow seam
+    ctx.fillStyle = '#15131e';
+    ctx.beginPath();
+    ctx.moveTo(cx - 22*scale, cy - 2*scale);
+    ctx.lineTo(cx + 22*scale, cy - 2*scale);
+    ctx.lineTo(cx + 16*scale, cy - 60*scale);
+    ctx.lineTo(cx - 16*scale, cy - 60*scale);
+    ctx.closePath();
+    ctx.fill();
+    // Sash / belt with sigil
+    ctx.fillStyle = '#3a1c2c';
+    ctx.fillRect(cx - 22*scale, cy - 44*scale, 44*scale, 6*scale);
+    ctx.fillStyle = '#a05038';
+    ctx.fillRect(cx - 2*scale, cy - 44*scale, 4*scale, 6*scale);
+    // Hood
+    ctx.fillStyle = '#06060c';
+    ctx.beginPath();
+    ctx.moveTo(cx - 22*scale, cy - 78*scale);
+    ctx.quadraticCurveTo(cx, cy - 110*scale, cx + 22*scale, cy - 78*scale);
+    ctx.lineTo(cx + 18*scale, cy - 60*scale);
+    ctx.lineTo(cx - 18*scale, cy - 60*scale);
+    ctx.closePath();
+    ctx.fill();
+    // Hood opening (darkest)
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 80*scale, 11*scale, 14*scale, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Twin glowing eyes inside the hood
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const eyePulse = 0.7 + 0.3*Math.sin(t * 2 + cx);
+    ctx.fillStyle = '#ff4040';
+    ctx.globalAlpha = eyePulse;
+    ctx.beginPath(); ctx.arc(cx - 4*scale, cy - 82*scale, 1.4*scale, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 4*scale, cy - 82*scale, 1.4*scale, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    // Scythe over the shoulder — diagonal pole + curved blade tip
+    ctx.save();
+    ctx.translate(cx + 14*scale, cy - 30*scale);
+    ctx.rotate(-0.42);
+    // pole
+    ctx.fillStyle = '#3a2a18';
+    ctx.fillRect(-1.5*scale, -68*scale, 3*scale, 80*scale);
+    // bone end-cap
+    ctx.fillStyle = '#d9c79a';
+    ctx.fillRect(-2*scale, 10*scale, 4*scale, 4*scale);
+    // crescent blade
+    ctx.strokeStyle = '#cfcfd5'; ctx.lineWidth = 3*scale;
+    ctx.beginPath();
+    ctx.moveTo(0, -68*scale);
+    ctx.quadraticCurveTo(-22*scale, -76*scale, -32*scale, -56*scale);
+    ctx.stroke();
+    // inner blade shadow
+    ctx.strokeStyle = '#8a8a96'; ctx.lineWidth = 1*scale;
+    ctx.beginPath();
+    ctx.moveTo(-2*scale, -68*scale);
+    ctx.quadraticCurveTo(-22*scale, -74*scale, -30*scale, -57*scale);
+    ctx.stroke();
+    ctx.restore();
+    ctx.restore();
+  },
+  // Static skeleton-servant standing in an alcove or patrol point.
+  skeletonServant(ctx, cx, cy, t, scale, npc) {
+    scale = scale || 1.0;
+    ctx.save();
+    ctx.translate(0, Math.sin(t*1.5 + cx*0.02) * 0.8);
+    // tattered cloak/robe stub
+    ctx.fillStyle = '#2a1828';
+    ctx.beginPath();
+    ctx.moveTo(cx - 18*scale, cy);
+    ctx.lineTo(cx + 18*scale, cy);
+    ctx.lineTo(cx + 12*scale, cy - 60*scale);
+    ctx.lineTo(cx - 12*scale, cy - 60*scale);
+    ctx.closePath();
+    ctx.fill();
+    // skull
+    ctx.fillStyle = '#e8dfc6';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 70*scale, 9*scale, 11*scale, 0, 0, Math.PI*2);
+    ctx.fill();
+    // eye sockets
+    ctx.fillStyle = '#0a0a14';
+    ctx.beginPath(); ctx.arc(cx - 3.5*scale, cy - 71*scale, 1.8*scale, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 3.5*scale, cy - 71*scale, 1.8*scale, 0, Math.PI*2); ctx.fill();
+    // jaw line
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(cx - 3*scale, cy - 64*scale, 6*scale, 1.2*scale);
+    // OFF-DUTY parchment pin
+    ctx.fillStyle = '#e8dfc6';
+    ctx.fillRect(cx - 6*scale, cy - 40*scale, 12*scale, 6*scale);
+    ctx.fillStyle = '#3a2a18';
+    ctx.font = `${Math.round(3.6*scale)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('OFF-DUTY', cx, cy - 36*scale);
+    ctx.restore();
+  },
+};
 
 // ---- Game state ----
 const state = {
@@ -465,20 +589,25 @@ const ROOM_DEFS = {
     ],
     doors: [
       { x:1.2, y:13.5, w:1.0, h:1.5, to:'dorm_hall', spawn:{x:30,y:5} },
+      // Long corridor leading north to the Grand Hall
+      { x:12.5, y:0.4, w:1.0, h:0.6, to:'grand_corridor', spawn:{x:2,y:5} },
+      // Side passage to the East Vestibule (future room — wired but stub)
+      { x:24.4, y:7.5, w:0.5, h:1.2, to:'grand_corridor', spawn:{x:14,y:5} },
     ],
     npcs: [
-      // Master Death stands centred under the inverted dome
-      { x:13, y:6.0, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death' },
-      // Two roaming reapers — patrolling between holo-consoles. They use the
-      // generic procedural cryious_walk anim while moving, idle when paused.
-      { x:5,  y:7,  sheet:'cryious_walk', idleSheet:'cryious_idle', label:'Reaper-Initiate',
-        patrol:[ {x:5,y:7},{x:7,y:11},{x:5,y:11},{x:4.5,y:7} ], speed:1.6, animSpeed:8,
+      // Master Death stands on his throne dais — see drawCommandThrone()
+      { x:13, y:5.4, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death' },
+      // Two roaming HOODED REAPER initiates — vector-drawn (no character
+      // sprite). They patrol between the holo-consoles. Taller than the
+      // posted hooded reapers so they read clearly across the floor.
+      { x:5,  y:7,  customDraw:'hoodedReaper', scale:1.0, label:'Reaper-Initiate',
+        patrol:[ {x:5,y:7},{x:7,y:11},{x:5,y:11},{x:4.5,y:7} ], speed:1.6,
         plaqueTitle:'REAPER-INITIATE · WATCH',
         plaqueBody:'A junior reaper on rotation. Hood low, scythe shouldered, gait deliberately even — the senior reapers grade you on your stride here.\n\nThey do not stop walking to acknowledge May. The acknowledgement is the not-stopping.' },
-      { x:21, y:7,  sheet:'cryious_walk', idleSheet:'cryious_idle', label:'Reaper-Initiate',
-        patrol:[ {x:21,y:7},{x:17,y:11},{x:21,y:11},{x:21.5,y:7} ], speed:1.4, animSpeed:8,
+      { x:21, y:7,  customDraw:'hoodedReaper', scale:1.0, label:'Reaper-Initiate',
+        patrol:[ {x:21,y:7},{x:17,y:11},{x:21,y:11},{x:21.5,y:7} ], speed:1.4,
         plaqueTitle:'REAPER-INITIATE · WATCH',
-        plaqueBody:'The starboard-side initiate. Their hood is pinned with a fresh purple ribbon — a Madoria-token, given to anyone who has lost their wanderer this cycle.\n\nThey carry the ribbon with both hands when off-duty, and never when on.' },
+        plaqueBody:'The starboard-side initiate. Their hood is pinned with a small bone charm.\n\nThe charm is how a reaper-initiate signals they have made their first solo strata-run and returned whole. The ship\'s seniors check for the charm without looking like they are checking for it.' },
     ],
   },
 
@@ -520,7 +649,7 @@ const ROOM_DEFS = {
           // Procedural reaper — body reflects intact vs deceased
           title = `${sideLabel(slot.side, slot.idx)} — ${occ.name.toUpperCase()}`;
           if (occ.deceased) {
-            body = `The reaper magic sigil above this door is COLD. Its glow died sometime in the last cycle, which means so did the reaper that wore it.\n\nName, by the ship\'s registry: ${occ.name}. Strata of duty: ${occ.strata > 0 ? '+' : ''}${occ.strata}. Cause: unrecorded — the lower hall is patient about its dead.\n\nA bone token has been placed in the threshold. Madoria left it. She leaves one for every reaper whose door goes dark, before the others notice.`;
+            body = `The reaper magic sigil above this door is COLD. Its glow died sometime in the last cycle, which means so did the reaper that wore it.\n\nName, by the ship\'s registry: ${occ.name}. Strata of duty: ${occ.strata > 0 ? '+' : ''}${occ.strata}. Cause: unrecorded — the lower hall is patient about its dead.\n\nA small bone-token has been placed in the threshold. The seniors leave one for every reaper whose door goes dark, before the rest of the hall notices.`;
           } else {
             body = `Sigil: ${occ.sigil}. Scythe-form: ${occ.scythe}. Strata of duty: ${occ.strata > 0 ? '+' : ''}${occ.strata}.\n\nThe sigil above the door pulses softly — ${occ.name} is intact, and either asleep within, or out on the line, ferrying.\n\nMay does not knock on doors she has not been invited to.`;
           }
@@ -626,12 +755,314 @@ const ROOM_DEFS = {
         plaqueBody:'The hanger\'s sole mechanic. Pink hair, green cargo pants, leather harness, sleeves rolled. He looks up just long enough to wave — mechanic-style, with the wrong hand.\n\n"Skiff Lantern is ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
     ],
   },
+
+  grand_corridor: {
+    id: 'grand_corridor',
+    name: 'The Grand Corridor',
+    sub: 'A long candle-lit passage between the bridge and the Grand Hall',
+    width: 22, height: 9,
+    palette: { floor:'#2a1828', wall:'#1a0e2c', stone:'#3a1c2c', accent:'#ff8050', candle:'#ffd28b' },
+    spawn: { x: 2, y: 5 },
+    draw: drawGrandCorridor,
+    walls: [
+      { x:0,y:0,w:22,h:1 }, { x:0,y:8,w:22,h:1 }, { x:0,y:0,w:1,h:9 }, { x:21,y:0,w:1,h:9 },
+      // Pillars dotting the corridor (player walks around)
+      { x:4,  y:2,  w:1, h:1 },
+      { x:4,  y:6,  w:1, h:1 },
+      { x:9,  y:2,  w:1, h:1 },
+      { x:9,  y:6,  w:1, h:1 },
+      { x:14, y:2,  w:1, h:1 },
+      { x:14, y:6,  w:1, h:1 },
+      { x:18, y:2,  w:1, h:1 },
+      { x:18, y:6,  w:1, h:1 },
+    ],
+    interactables: [
+      { x:6,  y:4, kind:'plaque', title:'CORRIDOR CARPET', body:'A long crimson carpet runs the full length of the Grand Corridor, threaded with gold reaper-sigils every six feet. It muffles bootsteps almost entirely.\n\nThe carpet is replaced once per cycle — Romaine claims he has never seen the old one removed, only the new one rolled out on top.' },
+      { x:11, y:4, kind:'plaque', title:'PORTRAIT GALLERY', body:'Twelve framed portraits of senior reapers lost across the cycles line the corridor walls. Each portrait is hand-painted by Death himself, in silence, the night the reaper falls.\n\nThe twelfth frame is empty. Death has not yet decided whose face it will hold.' },
+      { x:16, y:4, kind:'plaque', title:'BRONZE BRAZIER', body:'A waist-high bronze brazier with a continuous purple-edged flame. The flame is fed not by oil but by the residual heat of every reaper who has ever walked this corridor.\n\nIt warms even the centre of the ship.' },
+      { x:20, y:4, kind:'plaque', title:'GREAT DOORS (AHEAD)', body:'At the far end of the corridor, the great obsidian doors of the GRAND HALL stand closed. They are taller than three reapers and inlaid with a single enormous sigil that reads, simply: ENTER.\n\nMay has only seen the Grand Hall during cycle-end ceremonies. Tonight the doors are unbarred.' },
+    ],
+    doors: [
+      // Back to the Command Floor (south entry) — full-height archway so the
+      // player can return regardless of which side of the carpet they're on.
+      { x:0.4, y:2, w:0.6, h:5, to:'control', spawn:{x:12.5, y:1.5} },
+      // Forward to the Grand Hall (north entry) — same generous height.
+      { x:21.0, y:2, w:0.6, h:5, to:'grand_hall', spawn:{x:2, y:11} },
+    ],
+    npcs: [
+      // A single hooded reaper standing at-watch in the corridor
+      { x:13, y:5, customDraw:'hoodedReaper', scale:1.0, label:'Posted Reaper',
+        plaqueTitle:'POSTED REAPER · CORRIDOR WATCH',
+        plaqueBody:'A senior reaper assigned to walk the corridor between strata-shifts. Their hood is so deep May cannot tell if they have eyes at all.\n\nThey do not stop her. They do not stop anyone — but the ship\'s logs note every step she takes past them.' },
+    ],
+  },
+
+  grand_hall: {
+    id: 'grand_hall',
+    name: 'The Grand Hall',
+    sub: 'A vaulted cathedral-hall of pews, banners and a vast skylight sigil',
+    width: 28, height: 18,
+    palette: { floor:'#2a1828', wall:'#1a0e2c', stone:'#3a1c2c', accent:'#a85040', candle:'#ffd28b' },
+    spawn: { x: 14, y: 16 },
+    draw: drawGrandHall,
+    walls: [
+      { x:0,y:0,w:28,h:1 }, { x:0,y:17,w:28,h:1 }, { x:0,y:0,w:1,h:18 }, { x:27,y:0,w:1,h:18 },
+      // Two rows of pews flanking the aisle (player walks DOWN the aisle, around the pews)
+      { x:3,  y:4,  w:7, h:1.2 },
+      { x:3,  y:6,  w:7, h:1.2 },
+      { x:3,  y:8,  w:7, h:1.2 },
+      { x:3,  y:10, w:7, h:1.2 },
+      { x:3,  y:12, w:7, h:1.2 },
+      { x:18, y:4,  w:7, h:1.2 },
+      { x:18, y:6,  w:7, h:1.2 },
+      { x:18, y:8,  w:7, h:1.2 },
+      { x:18, y:10, w:7, h:1.2 },
+      { x:18, y:12, w:7, h:1.2 },
+      // High altar / sigil-stage at the north end
+      { x:11, y:2,  w:6, h:2 },
+    ],
+    interactables: [
+      { x:14, y:3.5, kind:'plaque', title:'THE HIGH ALTAR', body:'A great obsidian altar at the north end of the hall, etched with one single enormous sigil that pulses red in time with the ship\'s heart.\n\nDeath performs the Cycle-End rites here, with all reapers in attendance. The altar is cold to the touch even when its sigil is burning.' },
+      { x:14, y:7,   kind:'plaque', title:'THE CENTRAL AISLE', body:'A long aisle of black-and-white stone, polished to a mirror. The reapers walk this aisle in single file at the end of every cycle, each laying a single bone-token at the foot of the altar.\n\nMay has yet to lay her first. She has the token already — Death gave it to her on her twentieth birthday.' },
+      { x:6,  y:9,   kind:'plaque', title:'PORT PEWS', body:'The senior reapers sit on the port side during ceremonies — Cryious and Elystria in the front row, the rest of the seniors behind. The pews are old, dark wood, polished by uncountable robes.' },
+      { x:21, y:9,   kind:'plaque', title:'STARBOARD PEWS', body:'The junior reapers and the common reapers sit starboard. The pews here are scratched with quiet sigils carved by bored apprentices over generations.\n\nMay carved one when she was nine. Death pretended not to notice.' },
+      { x:1.5, y:15, kind:'plaque', title:'BANNER OF THE FALLEN', body:'A long dark banner with twelve embroidered names — the reapers who have fallen this cycle. Each name is stitched in silver thread that dims when its bearer dies.\n\nSeveral names on this banner are already dim tonight.' },
+      { x:26.5,y:15, kind:'plaque', title:'BANNER OF THE BOUND', body:'A companion banner listing the FOUR who cannot die — Cryious Death, Maytradalis, Grim Elystria, Flybutt — embroidered in gold thread that has never dimmed in any cycle on record.\n\nMay has caught herself staring at the gold thread bearing her name more times than she will admit.' },
+      { x:14, y:16,  kind:'plaque', title:'GREAT SIGIL SKYLIGHT', body:'Set into the vaulted ceiling overhead: a circular skylight of leaded glass, twenty feet across, depicting the great seal of Death\'s House. Light filters through it in the shape of a slow-rotating sigil cast onto the aisle below.\n\nThe sigil never falls in the same place twice.' },
+    ],
+    doors: [
+      // Back to the corridor (south)
+      { x:0.4, y:11, w:0.6, h:1.5, to:'grand_corridor', spawn:{x:20, y:4} },
+    ],
+    npcs: [
+      // Two more posted hooded reapers flanking the aisle as honour guards
+      { x:11, y:5,  customDraw:'hoodedReaper', scale:1.0, label:'Altar Watch',
+        plaqueTitle:'ALTAR WATCH · HONOUR GUARD',
+        plaqueBody:'A senior reaper assigned to the high altar. They stand at parade rest, scythe planted, for the full eight-hour cycle.\n\nThey have not spoken in May\'s memory.' },
+      { x:17, y:5,  customDraw:'hoodedReaper', scale:1.0, flip:true, label:'Altar Watch',
+        plaqueTitle:'ALTAR WATCH · HONOUR GUARD',
+        plaqueBody:'The starboard-side honour guard. They turn their head exactly once per cycle — at midnight by the ship\'s reckoning. May was awake for it once. The eyes inside the hood were closed.' },
+    ],
+  },
 };
 
 // ============================================================
 //   GOTHIC BACKGROUND DRAWING
 // ============================================================
 // All drawing happens in WORLD coords (px = tile*64).
+
+// === GRAND CORRIDOR — long candle-lit hallway between bridge & Grand Hall ===
+function drawGrandCorridor(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 5);
+  // Outer walls
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#0a0518');
+  // Long carpet runner down the centre — crimson with gold sigil trim
+  drawCarpet(ctx, 64, H/2 - 64, W - 128, 128, '#5a1f3a');
+  ctx.save();
+  ctx.fillStyle = 'rgba(220,170,90,0.30)';
+  ctx.font = 'bold 10px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center';
+  for (let i = 80; i < W - 80; i += 96) {
+    ctx.fillText('☩', i, H/2 - 14);
+    ctx.fillText('☩', i, H/2 + 22);
+  }
+  ctx.restore();
+  // Tall pillars on either side of the carpet
+  const pillarX = [4, 9, 14, 18];
+  for (const xt of pillarX) {
+    drawCorridorPillar(ctx, xt*64 + 32, 2*64,  t);
+    drawCorridorPillar(ctx, xt*64 + 32, 6*64,  t);
+  }
+  // Wall sconces between pillars
+  for (let i = 0; i < 5; i++) {
+    drawSconce(ctx, (3 + i*4)*64, 72,    p.candle, t, i*5);
+    drawSconce(ctx, (3 + i*4)*64, H - 72, p.candle, t, i*7);
+  }
+  // Portrait frames hanging on the walls between pillars
+  drawCorridorPortrait(ctx, 6.5*64 + 16, 80,  '#5a1f3a');
+  drawCorridorPortrait(ctx, 11.5*64 + 16, 80, '#3a1c2c');
+  drawCorridorPortrait(ctx, 16*64 + 16, 80,   '#5a1f3a');
+  drawCorridorPortrait(ctx, 6.5*64 + 16, H - 168,  '#3a1c2c');
+  drawCorridorPortrait(ctx, 11.5*64 + 16, H - 168, '#5a1f3a');
+  drawCorridorPortrait(ctx, 16*64 + 16, H - 168,   '#3a1c2c');
+  // Central bronze brazier mid-corridor
+  drawBrazier(ctx, 16*64,  4.5*64, 0.7, t, 4);
+  drawBrazier(ctx, 6.5*64, 4.5*64, 0.7, t, 9);
+  // Floor stencil
+  ctx.save();
+  ctx.font = 'bold 12px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(220,170,90,0.18)';
+  ctx.textAlign = 'center';
+  ctx.fillText('— THE GRAND CORRIDOR —', W/2, H/2 + 38);
+  ctx.restore();
+  // Ambient dust motes
+  drawCommandEmbers(ctx, W, H, t);
+}
+
+function drawCorridorPillar(ctx, cx, cy, t) {
+  ctx.save();
+  // base
+  ctx.fillStyle = '#1a0e2c';
+  ctx.fillRect(cx - 18, cy + 30, 36, 6);
+  // shaft
+  ctx.fillStyle = '#2c1832';
+  ctx.fillRect(cx - 12, cy - 22, 24, 56);
+  ctx.fillStyle = '#3a1c40';
+  ctx.fillRect(cx - 10, cy - 22, 4,  56);   // left highlight
+  ctx.fillRect(cx - 4,  cy - 22, 2,  56);   // mid fluting line
+  ctx.fillRect(cx + 4,  cy - 22, 2,  56);   // mid fluting line
+  // capital
+  ctx.fillStyle = '#1a0e2c';
+  ctx.fillRect(cx - 18, cy - 28, 36, 8);
+  // small bronze brand
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.55 + 0.30*Math.sin(t*1.7 + cx*0.01);
+  ctx.fillStyle = '#ffa050';
+  ctx.font = 'bold 12px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('☩', cx, cy + 8);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawCorridorPortrait(ctx, x, y, frameColor) {
+  ctx.save();
+  // gilded frame
+  ctx.fillStyle = '#7a5226';
+  ctx.fillRect(x, y, 32, 44);
+  ctx.fillStyle = '#3a2418';
+  ctx.fillRect(x + 3, y + 3, 26, 38);
+  // canvas (dark portrait silhouette of a reaper)
+  ctx.fillStyle = frameColor;
+  ctx.fillRect(x + 5, y + 5, 22, 34);
+  ctx.fillStyle = '#0a0a14';
+  // hood + shoulders silhouette
+  ctx.beginPath();
+  ctx.arc(x + 16, y + 16, 5, Math.PI, 0); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + 8, y + 38); ctx.lineTo(x + 24, y + 38);
+  ctx.lineTo(x + 22, y + 20); ctx.lineTo(x + 10, y + 20);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// === GRAND HALL — cathedral with pews, banners, altar, skylight sigil ===
+function drawGrandHall(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 9);
+  // Walls + trim
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#0a0518');
+  // Long black-and-white aisle running south to north
+  const aisleW = 5*64;
+  const aisleX = W/2 - aisleW/2;
+  ctx.fillStyle = '#1a1320';
+  ctx.fillRect(aisleX, 64, aisleW, H - 128);
+  ctx.fillStyle = '#e3d8c4';
+  for (let y = 64; y < H - 128; y += 64) {
+    for (let i = 0; i < 5; i++) {
+      if ((i + (y/64)) % 2 === 0) ctx.fillRect(aisleX + i*64, y, 60, 60);
+    }
+  }
+  // Aisle red runner down the centre 1.5 tiles wide
+  drawCarpet(ctx, W/2 - 48, 80, 96, H - 160, '#5a1f3a');
+  // === HIGH ALTAR (north end) ===
+  const altarX = 11*64, altarY = 2*64, altarW = 6*64, altarH = 2*64;
+  ctx.fillStyle = '#0a0518';
+  roundRect(ctx, altarX, altarY, altarW, altarH, 4); ctx.fill();
+  ctx.fillStyle = '#1a0e2c';
+  roundRect(ctx, altarX + 8, altarY + 8, altarW - 16, altarH - 16, 4); ctx.fill();
+  // Altar sigil (pulsing red, large)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const altarPulse = 0.65 + 0.35*Math.sin(t*1.2);
+  ctx.globalAlpha = altarPulse;
+  const altarGrad = ctx.createRadialGradient(altarX + altarW/2, altarY + altarH/2, 2, altarX + altarW/2, altarY + altarH/2, 80);
+  altarGrad.addColorStop(0, '#ff5230');
+  altarGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = altarGrad;
+  ctx.fillRect(altarX - 20, altarY - 20, altarW + 40, altarH + 40);
+  ctx.fillStyle = '#ffba66';
+  ctx.font = 'bold 56px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('☩', altarX + altarW/2, altarY + altarH/2);
+  ctx.restore();
+  // === ROW OF PEWS (port + starboard) ===
+  for (let row = 0; row < 5; row++) {
+    const pewY = (4 + row*2)*64;
+    drawPew(ctx, 3*64, pewY, 7*64, 1.2*64);
+    drawPew(ctx, 18*64, pewY, 7*64, 1.2*64);
+  }
+  // === HANGING BANNERS (along side walls) ===
+  for (let i = 0; i < 3; i++) {
+    drawReaperBanner(ctx, 1.2*64, (3 + i*4.5)*64, 0.6*64, 3.5*64, '#5a1f1a', '☩', t, i);
+    drawReaperBanner(ctx, (room.width - 1.8)*64, (3 + i*4.5)*64, 0.6*64, 3.5*64, '#a83a14', '⚔', t, i+5);
+  }
+  // === CANDLE CHANDELIERS — 3 hanging down the aisle ===
+  drawChandelier(ctx, W/2, 5*64,  1.1, p.candle, t);
+  drawChandelier(ctx, W/2, 10*64, 1.1, p.candle, t);
+  drawChandelier(ctx, W/2, 14*64, 1.0, p.candle, t);
+  // === GREAT SKYLIGHT SIGIL projected on the aisle ===
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const sky = 0.45 + 0.25*Math.sin(t*0.8);
+  ctx.globalAlpha = sky;
+  const skyGrad = ctx.createRadialGradient(W/2, H*0.55, 4, W/2, H*0.55, 160);
+  skyGrad.addColorStop(0, '#ffba66');
+  skyGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = skyGrad;
+  ctx.beginPath(); ctx.arc(W/2, H*0.55, 160, 0, Math.PI*2); ctx.fill();
+  // slow-rotating outer sigil ring
+  ctx.translate(W/2, H*0.55);
+  ctx.rotate(t * 0.15);
+  ctx.strokeStyle = 'rgba(255,186,102,0.55)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI*2); ctx.stroke();
+  for (let k = 0; k < 12; k++) {
+    const a = (k/12) * Math.PI*2;
+    const rx = Math.cos(a)*120, ry = Math.sin(a)*120;
+    ctx.beginPath(); ctx.arc(rx, ry, 3.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // floor stencil
+  ctx.save();
+  ctx.font = 'bold 14px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(220,170,90,0.18)';
+  ctx.textAlign = 'center';
+  ctx.fillText('— THE GRAND HALL —', W/2, H - 96);
+  ctx.restore();
+  drawCommandEmbers(ctx, W, H, t);
+}
+
+function drawPew(ctx, x, y, w, h) {
+  ctx.save();
+  // Bench seat
+  ctx.fillStyle = '#3a1c2c';
+  roundRect(ctx, x, y, w, h*0.55, 3); ctx.fill();
+  // Backrest
+  ctx.fillStyle = '#2a131e';
+  roundRect(ctx, x, y + h*0.55, w, h*0.45, 3); ctx.fill();
+  // Highlights along the top edges
+  ctx.fillStyle = '#5a2e44';
+  ctx.fillRect(x, y, w, 3);
+  ctx.fillRect(x, y + h*0.55, w, 2);
+  // small carved sigils on the backrest
+  ctx.fillStyle = '#7a4860';
+  ctx.font = 'bold 9px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center';
+  for (let i = 1; i < 4; i++) {
+    ctx.fillText('☩', x + (w * i/4), y + h*0.85);
+  }
+  ctx.restore();
+}
 
 function drawStoneFloor(ctx, W, H, p, seed) {
   // Layered dark stone tile floor with mortar lines + subtle warm ambient.
@@ -868,15 +1299,35 @@ function drawControlRoom(ctx, room) {
   // 5) The INVERTED DOME hanging from the ceiling — dark wedge with red sigils
   drawInvertedDome(ctx, 13*64, 4*64, 6*64, 4.2*64, t);
 
+  // 5a) THE COMMAND THRONE — a raised dais of obsidian and bronze beneath
+  //     the dome, with a tall high-backed chair of bone-and-iron rings.
+  //     Master Death stands on this dais, not floating mid-air.
+  drawCommandThrone(ctx, 13*64, 6.6*64, t);
+
   // 5b) Floating ember motes drifting upward toward the dome (atmospheric)
   drawCommandEmbers(ctx, W, H, t);
+
+  // 5c) Stained-glass-style runic windows along the side walls (deep red)
+  drawCommandRuneWindow(ctx, 1.0*64,  8.5*64, 0.5*64, 2.5*64, t, 0);
+  drawCommandRuneWindow(ctx, 1.0*64,  12.0*64, 0.5*64, 2.5*64, t, 1);
+  drawCommandRuneWindow(ctx, (room.width-1.5)*64, 8.5*64, 0.5*64, 2.5*64, t, 2);
+  drawCommandRuneWindow(ctx, (room.width-1.5)*64, 12.0*64, 0.5*64, 2.5*64, t, 3);
+
+  // 5d) Bronze brazier urns on the floor (flames lick out the top)
+  drawBrazier(ctx, 6.5*64, 9.0*64, 0.6, t, 0);
+  drawBrazier(ctx, 19.5*64, 9.0*64, 0.6, t, 7);
+  drawBrazier(ctx, 9.0*64, 13.4*64, 0.55, t, 3);
+  drawBrazier(ctx, 17.0*64, 13.4*64, 0.55, t, 11);
 
   // 6) Central holographic projection column — red-orange light beam UP
   drawProjectionColumn(ctx, 13*64, 9.5*64, t);
 
+  // 6a) Concentric sigil circles around the central column (engraved floor)
+  drawFloorSigilRings(ctx, 13*64, 9.5*64, [42, 78, 118], t);
+
   // 7) Hooded reapers posted left + right (placeholder shapes)
-  drawHoodedReaper(ctx, 7*64, 12*64, t, 0);
-  drawHoodedReaper(ctx, 19*64, 12*64, t, 1);
+  drawHoodedReaper(ctx, 7*64, 13*64, t, 0);
+  drawHoodedReaper(ctx, 19*64, 13*64, t, 1);
 
   // 8) Faint floor stencil text
   ctx.save();
@@ -884,6 +1335,201 @@ function drawControlRoom(ctx, room) {
   ctx.fillStyle = 'rgba(255,140,80,0.18)';
   ctx.textAlign = 'center';
   ctx.fillText('▾ COMMAND FLOOR · DECK I ▾', W/2, H - 96);
+  ctx.restore();
+}
+
+// The Command Throne — raised obsidian dais, bone-and-iron high-back chair,
+// hanging chains from the dome above, sigil-runes pulsing along the steps.
+function drawCommandThrone(ctx, cx, cy, t) {
+  ctx.save();
+  // ===== DAIS (3-tier ziggurat) =====
+  // Lowest step (widest)
+  ctx.fillStyle = '#15131e';
+  roundRect(ctx, cx - 138, cy - 6, 276, 26, 4); ctx.fill();
+  ctx.fillStyle = '#0e0c16';
+  ctx.fillRect(cx - 138, cy - 6, 276, 4);
+  // Middle step
+  ctx.fillStyle = '#1a1726';
+  roundRect(ctx, cx - 108, cy - 22, 216, 22, 4); ctx.fill();
+  ctx.fillStyle = '#0e0c16';
+  ctx.fillRect(cx - 108, cy - 22, 216, 4);
+  // Top step (throne platform)
+  ctx.fillStyle = '#1f1b2d';
+  roundRect(ctx, cx - 80, cy - 38, 160, 18, 4); ctx.fill();
+  ctx.fillStyle = '#0e0c16';
+  ctx.fillRect(cx - 80, cy - 38, 160, 3);
+  // Bronze trim strips on each step edge — pulsing red sigil-line
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.7 + 0.3*Math.sin(t*1.3);
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = '#ff5230';
+  ctx.fillRect(cx - 138, cy - 5, 276, 1.5);
+  ctx.fillRect(cx - 108, cy - 21, 216, 1.5);
+  ctx.fillRect(cx - 80,  cy - 37, 160, 1.5);
+  ctx.restore();
+
+  // ===== THE THRONE (high-backed chair) =====
+  // Backrest spire — tall bone arch rising up
+  ctx.fillStyle = '#23202f';
+  ctx.beginPath();
+  ctx.moveTo(cx - 28, cy - 36);
+  ctx.lineTo(cx - 28, cy - 134);
+  ctx.quadraticCurveTo(cx, cy - 168, cx + 28, cy - 134);
+  ctx.lineTo(cx + 28, cy - 36);
+  ctx.closePath();
+  ctx.fill();
+  // Inner panel of the backrest (slightly lighter)
+  ctx.fillStyle = '#2c2940';
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy - 38);
+  ctx.lineTo(cx - 22, cy - 128);
+  ctx.quadraticCurveTo(cx, cy - 156, cx + 22, cy - 128);
+  ctx.lineTo(cx + 22, cy - 38);
+  ctx.closePath();
+  ctx.fill();
+  // Sigil sun-disc embedded high in the backrest
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const sigilPulse = 0.6 + 0.4*Math.sin(t*1.1);
+  ctx.globalAlpha = 0.85 * sigilPulse;
+  const sigilGrad = ctx.createRadialGradient(cx, cy - 130, 2, cx, cy - 130, 20);
+  sigilGrad.addColorStop(0, '#ff8050');
+  sigilGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = sigilGrad;
+  ctx.fillRect(cx - 22, cy - 152, 44, 44);
+  ctx.fillStyle = '#ffba66';
+  ctx.font = 'bold 18px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('☼', cx, cy - 130);
+  ctx.restore();
+  // Twin bone arm-rests / horns on either side
+  ctx.fillStyle = '#d9c79a';
+  ctx.beginPath(); ctx.ellipse(cx - 36, cy - 60, 6, 14, 0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 36, cy - 60, 6, 14, -0.3, 0, Math.PI*2); ctx.fill();
+  // Two iron rings hanging from the dome via chains (left + right of throne)
+  ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(cx - 60, cy - 160); ctx.lineTo(cx - 60, cy - 90); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + 60, cy - 160); ctx.lineTo(cx + 60, cy - 90); ctx.stroke();
+  ctx.fillStyle = '#3a2a18';
+  ctx.beginPath(); ctx.arc(cx - 60, cy - 88, 6, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx + 60, cy - 88, 6, 0, Math.PI*2); ctx.stroke();
+  // Small dangling sigil-charms below each ring
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.7 + 0.3*Math.sin(t*2.1);
+  ctx.fillStyle = '#ff8050';
+  ctx.font = 'bold 11px Cinzel,Georgia,serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('☩', cx - 60, cy - 76);
+  ctx.fillText('☩', cx + 60, cy - 76);
+  ctx.restore();
+
+  // ===== FLOOR-CARVED RUNE-RING in front of the throne =====
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.55 + 0.20*Math.sin(t*1.8);
+  ctx.strokeStyle = '#ff5230'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.ellipse(cx, cy + 32, 86, 14, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx, cy + 32, 60, 9, 0, 0, Math.PI*2); ctx.stroke();
+  // 8 small tick-marks on the outer ring
+  for (let k = 0; k < 8; k++) {
+    const ang = (k / 8) * Math.PI * 2;
+    const rx = cx + Math.cos(ang) * 86;
+    const ry = cy + 32 + Math.sin(ang) * 14;
+    ctx.beginPath(); ctx.arc(rx, ry, 1.6, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+// Tall narrow stained-glass-style window with a red sigil inside.
+function drawCommandRuneWindow(ctx, x, y, w, h, t, seed) {
+  ctx.save();
+  // Iron tracery frame
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  // Glass — dark crimson, faint diagonal sheen
+  const g = ctx.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, '#3a0a10');
+  g.addColorStop(0.6, '#7a1818');
+  g.addColorStop(1, '#3a0a10');
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+  // Cross-mullion
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(x, y + h*0.5 - 1, w, 2);
+  ctx.fillRect(x + w*0.5 - 1, y, 2, h);
+  // Glowing inner sigil
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.55 + 0.30*Math.sin(t*1.2 + seed);
+  ctx.fillStyle = '#ff8050';
+  ctx.font = `bold ${Math.round(w*0.7)}px Cinzel,Georgia,serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(['☩','✶','◈','♰'][seed % 4], x + w*0.5, y + h*0.5);
+  ctx.restore();
+  ctx.restore();
+}
+
+// Bronze brazier with a small live flame at the top.
+function drawBrazier(ctx, x, y, scale, t, seed) {
+  scale = scale || 0.6;
+  ctx.save();
+  // Tripod base
+  ctx.fillStyle = '#3a2a18';
+  ctx.fillRect(x - 8*scale, y, 16*scale, 4*scale);
+  ctx.beginPath();
+  ctx.moveTo(x - 7*scale, y);
+  ctx.lineTo(x - 14*scale, y + 18*scale);
+  ctx.lineTo(x - 11*scale, y + 18*scale);
+  ctx.lineTo(x - 4*scale, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + 7*scale, y);
+  ctx.lineTo(x + 14*scale, y + 18*scale);
+  ctx.lineTo(x + 11*scale, y + 18*scale);
+  ctx.lineTo(x + 4*scale, y);
+  ctx.closePath();
+  ctx.fill();
+  // Bowl
+  ctx.fillStyle = '#5a4028';
+  ctx.beginPath();
+  ctx.ellipse(x, y - 4*scale, 14*scale, 5*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#7a5226';
+  ctx.beginPath();
+  ctx.ellipse(x, y - 5*scale, 13*scale, 4*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Live flame
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const flick = 0.85 + 0.20*Math.sin(t*8 + seed);
+  for (let k = 0; k < 4; k++) {
+    ctx.globalAlpha = (0.55 - k*0.10) * flick;
+    ctx.fillStyle = ['#ffd66e','#ff8050','#ff5230','#a83a14'][k];
+    const yy = y - 12*scale - k*6*scale + Math.sin(t*6 + seed + k) * 1.2 * scale;
+    const ww = (12 - k*2.6) * scale;
+    const hh = (14 - k*2) * scale;
+    ctx.beginPath();
+    ctx.ellipse(x + Math.sin(t*5 + k) * 0.6 * scale, yy, ww, hh, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+// Concentric carved rings around the central projection column.
+function drawFloorSigilRings(ctx, cx, cy, radii, t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < radii.length; i++) {
+    const r = radii[i];
+    ctx.globalAlpha = (0.45 - i*0.08) * (0.75 + 0.25*Math.sin(t*1.5 + i));
+    ctx.strokeStyle = '#ff8050'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.ellipse(cx, cy + 22, r, r*0.30, 0, 0, Math.PI*2); ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -2191,13 +2837,39 @@ function drawPlayer(){
 // so the character keeps a CONSISTENT on-screen height when its animation
 // swaps between idle and walking.
 function drawNpc(npc) {
+  // Custom vector-drawn NPCs (hooded reapers, skeletons, etc.) — no sprite sheet.
+  if (npc.customDraw) {
+    const px = npc.x * 64;
+    const py = npc.y * 64;
+    const scale = npc.scale || 1.0;
+    const drawer = NPC_DRAW[npc.customDraw];
+    if (drawer) {
+      // Shadow
+      ctx.save();
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.ellipse(px, py + 18, 18*scale, 6, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Custom drawer — they handle the entire sprite render at (px, py)
+      drawer(ctx, px, py, t, scale, npc);
+      // Speak hint
+      const near = (state.nearInteract && state.nearInteract.__npc === npc);
+      if (near) {
+        ctx.save();
+        ctx.font = 'bold 11px Cinzel,Georgia,serif';
+        ctx.fillStyle = '#ffe9b3';
+        ctx.textAlign = 'center';
+        ctx.fillText('✦  SPEAK · ' + (npc.label || ''), px, py - 110*scale);
+        ctx.restore();
+      }
+    }
+    return;
+  }
   const isMoving = !!npc._moving;
   const sheetName = (!isMoving && npc.idleSheet) ? npc.idleSheet : npc.sheet;
   const meta = SPRITE_META[sheetName];
   const img = sprites[sheetName];
   if (!meta || !img) return;
-  // Canonical reference sheet for sizing — keeps the character the same
-  // visual height regardless of which pose sheet is currently rendering.
   const refSheetName = npc.refSheet || npc.idleSheet || npc.sheet;
   const refMeta = SPRITE_META[refSheetName] || meta;
   const baseScale = npc.scale || 0.55;

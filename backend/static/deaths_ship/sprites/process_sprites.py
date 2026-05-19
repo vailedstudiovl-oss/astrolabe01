@@ -112,30 +112,47 @@ def crop_to_content(im: Image.Image) -> Image.Image:
     return im.crop((x0, y0, x1, y1))
 
 def process(filename: str, out_name: str):
+    """Read a 5x5 sprite sheet, key out background, and rebuild as a horizontal strip.
+
+    IMPORTANT — frame alignment:
+    We do NOT horizontally crop each frame. We keep the FULL 256-pixel cell
+    width and only trim the top of the cell down to a uniform max-content
+    height. This guarantees that the character's anchor stays at the SAME
+    horizontal position across all 25 frames, otherwise the player visibly
+    slides side-to-side while idle as the bbox-centre drifts frame-by-frame
+    (e.g. hat lifts on frame 7 → bbox grows up-and-left → centred frame
+    appears shifted right).
+    """
     src_path = HERE / filename
     print(f"[process] {filename} -> {out_name}")
     sheet = Image.open(src_path).convert("RGBA")
     frames = []
-    max_w = 0
     max_h = 0
     for row in range(GRID):
         for col in range(GRID):
             x = col * TILE
             y = row * TILE
             cell = sheet.crop((x, y, x + TILE, y + TILE))
-            cell = keyed(cell)
-            cell = crop_to_content(cell)
-            if cell.size[0] <= 4 or cell.size[1] <= 4:
+            cell = keyed(cell)            # alpha-key the background only
+            # Crop VERTICALLY only — keep horizontal extent at full TILE so
+            # all 25 frames share the same X-anchor.
+            bbox = cell.getbbox()
+            if not bbox:
                 continue
+            _, y0, _, y1 = bbox
+            y0 = max(0, y0 - SAMPLE_PAD)
+            y1 = min(cell.size[1], y1 + SAMPLE_PAD)
+            cell = cell.crop((0, y0, TILE, y1))
             frames.append(cell)
-            max_w = max(max_w, cell.size[0])
             max_h = max(max_h, cell.size[1])
 
     n = len(frames)
-    strip = Image.new("RGBA", (max_w * n, max_h), (0, 0, 0, 0))
+    # Each cell of the strip is FULL_TILE x max_h, frame bottom-aligned.
+    cell_w = TILE
+    strip = Image.new("RGBA", (cell_w * n, max_h), (0, 0, 0, 0))
     for i, fr in enumerate(frames):
-        fx = i * max_w + (max_w - fr.size[0]) // 2
-        fy = max_h - fr.size[1]  # bottom-aligned within cell
+        fx = i * cell_w
+        fy = max_h - fr.size[1]
         strip.paste(fr, (fx, fy), fr)
 
     target_h = 192
@@ -144,7 +161,7 @@ def process(filename: str, out_name: str):
         new_w = int(strip.size[0] * scale)
         new_h = int(strip.size[1] * scale)
         strip = strip.resize((new_w, new_h), Image.LANCZOS)
-        max_w = int(max_w * scale)
+        cell_w = int(cell_w * scale)
         max_h = int(max_h * scale)
 
     out_png = HERE / f"{out_name}.png"
@@ -152,14 +169,14 @@ def process(filename: str, out_name: str):
     meta = {
         "src": filename,
         "frames": n,
-        "frame_w": max_w,
+        "frame_w": cell_w,
         "frame_h": max_h,
         "strip_w": strip.size[0],
         "strip_h": strip.size[1],
     }
     with open(HERE / f"{out_name}.json", "w") as f:
         json.dump(meta, f, indent=2)
-    print(f"  -> {n} frames, frame {max_w}x{max_h}, strip {strip.size[0]}x{strip.size[1]}, {out_png.stat().st_size//1024}KB")
+    print(f"  -> {n} frames, frame {cell_w}x{max_h}, strip {strip.size[0]}x{strip.size[1]}, {out_png.stat().st_size//1024}KB")
     return meta
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 {
   "src": "elystria_idle_down_raw.png",
   "frames": 25,
-  "frame_w": 73,
+  "frame_w": 256,
   "frame_h": 182,
-  "strip_w": 1825,
+  "strip_w": 6400,
   "strip_h": 182
 }

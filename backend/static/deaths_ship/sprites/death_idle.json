@@ -1,8 +1,8 @@
 {
   "src": "death_idle_raw.png",
   "frames": 25,
-  "frame_w": 81,
+  "frame_w": 256,
   "frame_h": 168,
-  "strip_w": 2025,
+  "strip_w": 6400,
   "strip_h": 168
 }

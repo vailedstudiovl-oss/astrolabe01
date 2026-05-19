@@ -2,177 +2,177 @@
   "may_run_down": {
     "src": "run_down_raw.png",
     "frames": 25,
-    "frame_w": 86,
+    "frame_w": 256,
     "frame_h": 192,
-    "strip_w": 2150,
+    "strip_w": 6400,
     "strip_h": 192
   },
   "may_run_right": {
     "src": "run_right_raw.png",
     "frames": 25,
-    "frame_w": 112,
+    "frame_w": 256,
     "frame_h": 187,
-    "strip_w": 2800,
+    "strip_w": 6400,
     "strip_h": 187
   },
   "may_run_up": {
     "src": "run_up_raw.png",
     "frames": 25,
-    "frame_w": 70,
+    "frame_w": 256,
     "frame_h": 182,
-    "strip_w": 1750,
+    "strip_w": 6400,
     "strip_h": 182
   },
   "may_idle_right": {
     "src": "idle_right_raw.png",
     "frames": 25,
-    "frame_w": 48,
+    "frame_w": 256,
     "frame_h": 182,
-    "strip_w": 1200,
+    "strip_w": 6400,
     "strip_h": 182
   },
   "may_idle_up": {
     "src": "may_idle_up_raw.png",
     "frames": 25,
-    "frame_w": 67,
+    "frame_w": 256,
     "frame_h": 178,
-    "strip_w": 1675,
+    "strip_w": 6400,
     "strip_h": 178
   },
   "may_idle_down": {
     "src": "may_idle_down_raw.png",
     "frames": 25,
-    "frame_w": 140,
+    "frame_w": 256,
     "frame_h": 188,
-    "strip_w": 3500,
+    "strip_w": 6400,
     "strip_h": 188
   },
   "death_idle": {
     "src": "death_idle_raw.png",
     "frames": 25,
-    "frame_w": 81,
+    "frame_w": 256,
     "frame_h": 168,
-    "strip_w": 2025,
+    "strip_w": 6400,
     "strip_h": 168
   },
   "death_walk": {
     "src": "death_walk_raw.png",
     "frames": 25,
-    "frame_w": 87,
+    "frame_w": 256,
     "frame_h": 138,
-    "strip_w": 2175,
+    "strip_w": 6400,
     "strip_h": 138
   },
   "elystria_idle": {
     "src": "elystria_idle_raw.png",
     "frames": 25,
-    "frame_w": 62,
+    "frame_w": 256,
     "frame_h": 179,
-    "strip_w": 1550,
+    "strip_w": 6400,
     "strip_h": 179
   },
   "elystria_idle_down": {
     "src": "elystria_idle_down_raw.png",
     "frames": 25,
-    "frame_w": 73,
+    "frame_w": 256,
     "frame_h": 182,
-    "strip_w": 1825,
+    "strip_w": 6400,
     "strip_h": 182
   },
   "elystria_walk": {
     "src": "elystria_walk_raw.png",
     "frames": 25,
-    "frame_w": 93,
+    "frame_w": 256,
     "frame_h": 169,
-    "strip_w": 2325,
+    "strip_w": 6400,
     "strip_h": 169
   },
   "elystria_run": {
     "src": "elystria_run_raw.png",
     "frames": 25,
-    "frame_w": 148,
+    "frame_w": 256,
     "frame_h": 148,
-    "strip_w": 3700,
+    "strip_w": 6400,
     "strip_h": 148
   },
   "romaine_idle": {
     "src": "romaine_idle_raw.png",
     "frames": 25,
-    "frame_w": 62,
+    "frame_w": 235,
     "frame_h": 192,
-    "strip_w": 1561,
+    "strip_w": 5879,
     "strip_h": 192
   },
   "romaine_walk": {
     "src": "romaine_walk_raw.png",
     "frames": 25,
-    "frame_w": 105,
+    "frame_w": 254,
     "frame_h": 192,
-    "strip_w": 2636,
+    "strip_w": 6366,
     "strip_h": 192
   },
   "romaine_run": {
     "src": "romaine_run_raw.png",
     "frames": 25,
-    "frame_w": 159,
+    "frame_w": 256,
     "frame_h": 188,
-    "strip_w": 3975,
+    "strip_w": 6400,
     "strip_h": 188
   },
   "romaine_sleep": {
     "src": "romaine_sleep_raw.png",
     "frames": 25,
-    "frame_w": 223,
+    "frame_w": 256,
     "frame_h": 76,
-    "strip_w": 5575,
+    "strip_w": 6400,
     "strip_h": 76
   },
   "romaine_wave": {
     "src": "romaine_wave_raw.png",
     "frames": 25,
-    "frame_w": 106,
+    "frame_w": 234,
     "frame_h": 192,
-    "strip_w": 2674,
+    "strip_w": 5851,
     "strip_h": 192
   },
   "cryious_idle": {
     "src": "cryious_idle_raw.png",
     "frames": 25,
-    "frame_w": 71,
+    "frame_w": 256,
     "frame_h": 163,
-    "strip_w": 1775,
+    "strip_w": 6400,
     "strip_h": 163
   },
   "cryious_walk": {
     "src": "cryious_walk_raw.png",
     "frames": 25,
-    "frame_w": 93,
+    "frame_w": 256,
     "frame_h": 157,
-    "strip_w": 2325,
+    "strip_w": 6400,
     "strip_h": 157
   },
   "cryious_run": {
     "src": "cryious_run_raw.png",
     "frames": 25,
-    "frame_w": 125,
+    "frame_w": 256,
     "frame_h": 125,
-    "strip_w": 3125,
+    "strip_w": 6400,
     "strip_h": 125
   },
   "cryious_idle_up": {
     "src": "cryious_idle_up_raw.png",
     "frames": 25,
-    "frame_w": 96,
+    "frame_w": 256,
     "frame_h": 142,
-    "strip_w": 2400,
+    "strip_w": 6400,
     "strip_h": 142
   },
   "cryious_idle_down": {
     "src": "cryious_idle_down_raw.png",
     "frames": 25,
-    "frame_w": 91,
+    "frame_w": 256,
     "frame_h": 174,
-    "strip_w": 2275,
+    "strip_w": 6400,
     "strip_h": 174
   }
 }

@@ -10,18 +10,18 @@
   "may_run_right": {
     "src": "run_right_raw.png",
     "frames": 25,
-    "frame_w": 112,
-    "frame_h": 187,
-    "strip_w": 2800,
-    "strip_h": 187
+    "frame_w": 108,
+    "frame_h": 185,
+    "strip_w": 2700,
+    "strip_h": 185
   },
   "may_run_up": {
     "src": "run_up_raw.png",
     "frames": 25,
     "frame_w": 69,
-    "frame_h": 182,
+    "frame_h": 181,
     "strip_w": 1725,
-    "strip_h": 182
+    "strip_h": 181
   },
   "may_idle_right": {
     "src": "idle_right_raw.png",
@@ -50,17 +50,17 @@
   "death_walk": {
     "src": "death_walk_raw.png",
     "frames": 25,
-    "frame_w": 86,
-    "frame_h": 128,
-    "strip_w": 2150,
-    "strip_h": 128
+    "frame_w": 71,
+    "frame_h": 125,
+    "strip_w": 1775,
+    "strip_h": 125
   },
   "elystria_idle": {
     "src": "elystria_idle_raw.png",
     "frames": 25,
-    "frame_w": 62,
+    "frame_w": 61,
     "frame_h": 179,
-    "strip_w": 1550,
+    "strip_w": 1525,
     "strip_h": 179
   },
   "elystria_idle_down": {
@@ -74,18 +74,18 @@
   "elystria_walk": {
     "src": "elystria_walk_raw.png",
     "frames": 25,
-    "frame_w": 93,
+    "frame_w": 91,
     "frame_h": 169,
-    "strip_w": 2325,
+    "strip_w": 2275,
     "strip_h": 169
   },
   "elystria_run": {
     "src": "elystria_run_raw.png",
     "frames": 25,
-    "frame_w": 148,
-    "frame_h": 148,
-    "strip_w": 3700,
-    "strip_h": 148
+    "frame_w": 142,
+    "frame_h": 147,
+    "strip_w": 3550,
+    "strip_h": 147
   },
   "romaine_idle": {
     "src": "romaine_idle_raw.png",
@@ -131,25 +131,25 @@
     "src": "cryious_idle_raw.png",
     "frames": 25,
     "frame_w": 71,
-    "frame_h": 155,
+    "frame_h": 152,
     "strip_w": 1775,
-    "strip_h": 155
+    "strip_h": 152
   },
   "cryious_walk": {
     "src": "cryious_walk_raw.png",
     "frames": 25,
     "frame_w": 91,
-    "frame_h": 155,
+    "frame_h": 150,
     "strip_w": 2275,
-    "strip_h": 155
+    "strip_h": 150
   },
   "cryious_run": {
     "src": "cryious_run_raw.png",
     "frames": 25,
-    "frame_w": 111,
-    "frame_h": 119,
-    "strip_w": 2775,
-    "strip_h": 119
+    "frame_w": 103,
+    "frame_h": 108,
+    "strip_w": 2575,
+    "strip_h": 108
   },
   "cryious_idle_up": {
     "src": "cryious_idle_up_raw.png",

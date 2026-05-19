@@ -170,6 +170,7 @@ if __name__ == "__main__":
     metas["may_run_up"]     = process("run_up_raw.png",            "may_run_up")
     metas["may_idle_right"] = process("idle_right_raw.png",        "may_idle_right")
     metas["may_idle_up"]    = process("may_idle_up_raw.png",       "may_idle_up")
+    metas["may_idle_down"]  = process("may_idle_down_raw.png",     "may_idle_down")
     # Master Death
     metas["death_idle"]     = process("death_idle_raw.png",        "death_idle")
     metas["death_walk"]     = process("death_walk_raw.png",        "death_walk")

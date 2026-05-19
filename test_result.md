@@ -1809,3 +1809,83 @@ agent_communication:
         • export_dist.py → /app/dist 53 files · 38.87 MB
         • build_portable.py → DimensionLock_Astrolabe_Portable.zip 38.88 MB
 
+
+  - agent: "main"
+    date: "2026-02-19 (fork continuation)"
+    note: |
+      ──────────────────────────────────────────────────────────────────
+      DEATH'S SHIP — Sprite + Room Expansion (session continuation)
+      ──────────────────────────────────────────────────────────────────
+
+      USER REQUEST RECAP:
+        • Fix Maytradalis sprite transparency + animation distortion
+        • Apply Elite Reaper / Elexus / Engineer sprite uploads to their
+          respective characters
+        • Apply Engine Room / Court of Judgement / Reaper Godkin Market /
+          Creation Leveler reference art to their respective rooms
+        • Proceed with previous tasks (build remaining ship rooms)
+
+      DONE THIS SESSION:
+        ✓ Verified Maytradalis no longer transparent — flood-fill chroma
+          key correctly preserves her dark dress. Confirmed via screenshot
+          of all 3 new rooms.
+        ✓ Downloaded + processed 17 new sprite sheets:
+            elite2_{idle_down, idle_up, idle_right, walk_up}
+            elite3_{idle_down, idle_up, idle_right, walk_right, run_up}
+            elexus_{walk_down, walk_up, walk_right, run_down, run_right}
+            engineer_{idle, walk, run}
+          process_sprites.py ran successfully; all strips saved.
+        ✓ Added SPRITE_META entries for all new sprites in
+          deaths_ship.html so loadAllSprites() picks them up.
+        ✓ Replaced 2 vector hoodedReaper roamers in Command Floor with
+          Elite-1 (port) + Elite-3 (starboard) sprite-based NPCs that
+          patrol the same waypoints, with new lore plaques.
+        ✓ Replaced Grand Corridor posted hoodedReaper with Elite-2
+          Sentinel sprite NPC.
+        ✓ Replaced Grand Hall altar honour-guards with paired Elite-3
+          sprite NPCs.
+        ✓ Built 3 entirely new rooms (~480 lines of new code):
+            – engine_room       (Drege Engine, Engineer NPC, rose
+                                 stained-glass window, 6-banded violet
+                                 core, brass gear train, pipework)
+            – judgement_court   (Magistrate's obsidian dais, Grim Elexus
+                                 + 2 Court Sentinels, cyan-glyph readout,
+                                 accused's iron ring with sigils,
+                                 witness pillars with cyan rune-cables)
+            – creation_leveler  (Lattice scaffold column with teal core
+                                 + descending/ascending glyph, twin pink
+                                 sigil rotors, strata readout panel)
+        ✓ Each room ships with: walls, doors, plaques (5+ per room),
+          custom draw function, and uses existing drawStoneFloor /
+          drawWallTrim / drawArchPath helpers for style cohesion.
+        ✓ Wired doors:
+            – Command Floor → Engine Room (south lift)
+            – Engine Room  → Creation Leveler (catwalk stair down)
+            – Grand Hall   → Court of Judgement (behind altar)
+            – All return doors in place.
+        ✓ Added Digit5 / Digit6 / Digit7 hotkeys for debug warp.
+        ✓ Updated ALL_LOCATIONS codex: 9 reachable (was 4), 8 sealed.
+
+      ARTIFACTS STAGED FOR FUTURE USE:
+        • /app/backend/static/deaths_ship/refs/  — all 5 reference
+          images (engine_room.png, court_of_judgement.png,
+          reaper_market.png, creation_leveler_engine.png,
+          soul_infestation_centurion.png) for later use as concept
+          plates or codex illustrations.
+        • Elexus raw sheets (5 directions) + Elite Reaper 1 strips
+          remain in /sprites/ ready for additional placements.
+
+      DEFERRED / NOT STARTED:
+        – Reaper Godkin Market (5-storey off-ship destination) — should
+          live in Astrolabe map, not Death's Ship; awaiting user nod.
+        – Soul Infestation/Centurion art — to be applied to Astrolabe
+          map as an "infested strata" visual state, also deferred.
+        – Remaining sealed rooms: Death's Office, Vivian's Room, Memory
+          Hall, Blackbox, Cathedral of Reapers, Obsidian Containment,
+          Navigator's Room, Lower Deck.
+        – Reaper-banner damage system (visual fray when Astrolabe-side
+          reaper dies — extends existing localStorage sync).
+        – Real-email integration for admin lore notifications (still
+          DB-backed; awaiting SMTP/Resend/SendGrid credentials).
+
+      USER VERIFICATION PENDING.

@@ -208,6 +208,48 @@ if __name__ == "__main__":
     metas["cryious_run"]       = process("cryious_run_raw.png",       "cryious_run")
     metas["cryious_idle_up"]   = process("cryious_idle_up_raw.png",   "cryious_idle_up")
     metas["cryious_idle_down"] = process("cryious_idle_down_raw.png", "cryious_idle_down")
+    # Elite Grim Reaper 1 (existing roaming guards — walk/run set)
+    for key, src in [
+        ("elite1_walk_down",  "elite1_walk_down_raw.png"),
+        ("elite1_walk_up",    "elite1_walk_up_raw.png"),
+        ("elite1_walk_right", "elite1_walk_right_raw.png"),
+        ("elite1_run_down",   "elite1_run_down_raw.png"),
+        ("elite1_run_up",     "elite1_run_up_raw.png"),
+    ]:
+        metas[key] = process(src, key)
+    # Elite Grim Reaper 2
+    for key, src in [
+        ("elite2_idle_down",  "elite2_idle_down_raw.png"),
+        ("elite2_idle_up",    "elite2_idle_up_raw.png"),
+        ("elite2_idle_right", "elite2_idle_right_raw.png"),
+        ("elite2_walk_up",    "elite2_walk_up_raw.png"),
+    ]:
+        metas[key] = process(src, key)
+    # Elite Grim Reaper 3
+    for key, src in [
+        ("elite3_idle_down",  "elite3_idle_down_raw.png"),
+        ("elite3_idle_up",    "elite3_idle_up_raw.png"),
+        ("elite3_idle_right", "elite3_idle_right_raw.png"),
+        ("elite3_walk_right", "elite3_walk_right_raw.png"),
+        ("elite3_run_up",     "elite3_run_up_raw.png"),
+    ]:
+        metas[key] = process(src, key)
+    # Grim Elexus
+    for key, src in [
+        ("elexus_walk_down",  "elexus_walk_down_raw.png"),
+        ("elexus_walk_up",    "elexus_walk_up_raw.png"),
+        ("elexus_walk_right", "elexus_walk_right_raw.png"),
+        ("elexus_run_down",   "elexus_run_down_raw.png"),
+        ("elexus_run_right",  "elexus_run_right_raw.png"),
+    ]:
+        metas[key] = process(src, key)
+    # The Grim Engineer
+    for key, src in [
+        ("engineer_idle", "engineer_idle_raw.png"),
+        ("engineer_walk", "engineer_walk_raw.png"),
+        ("engineer_run",  "engineer_run_raw.png"),
+    ]:
+        metas[key] = process(src, key)
     with open(HERE / "sprites_manifest.json", "w") as f:
         json.dump(metas, f, indent=2)
     print("[done] sprites_manifest.json written.")

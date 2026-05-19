@@ -263,6 +263,33 @@ const SPRITE_META = {
   cryious_idle_down: { src: 'cryious_idle_down.png', frame_w: 256, frame_h: 174, frames: 25 },
   cryious_walk:      { src: 'cryious_walk.png',      frame_w: 256, frame_h: 157, frames: 25 },
   cryious_run:       { src: 'cryious_run.png',       frame_w: 256, frame_h: 125, frames: 25 },
+  // Elite Grim Reaper 1 — armoured roamer (walk/run set, no static idle: uses walk_down frame 0)
+  elite1_walk_down:  { src: 'elite1_walk_down.png',  frame_w: 256, frame_h: 183, frames: 25 },
+  elite1_walk_up:    { src: 'elite1_walk_up.png',    frame_w: 256, frame_h: 174, frames: 25 },
+  elite1_walk_right: { src: 'elite1_walk_right.png', frame_w: 256, frame_h: 189, frames: 25 },
+  elite1_run_down:   { src: 'elite1_run_down.png',   frame_w: 256, frame_h: 170, frames: 25 },
+  elite1_run_up:     { src: 'elite1_run_up.png',     frame_w: 256, frame_h: 153, frames: 25 },
+  // Elite Grim Reaper 2 — sentinel form with idle set
+  elite2_idle_down:  { src: 'elite2_idle_down.png',  frame_w: 256, frame_h: 181, frames: 25 },
+  elite2_idle_up:    { src: 'elite2_idle_up.png',    frame_w: 256, frame_h: 157, frames: 25 },
+  elite2_idle_right: { src: 'elite2_idle_right.png', frame_w: 236, frame_h: 192, frames: 25 },
+  elite2_walk_up:    { src: 'elite2_walk_up.png',    frame_w: 256, frame_h: 168, frames: 25 },
+  // Elite Grim Reaper 3 — heavy honour-guard
+  elite3_idle_down:  { src: 'elite3_idle_down.png',  frame_w: 256, frame_h: 172, frames: 25 },
+  elite3_idle_up:    { src: 'elite3_idle_up.png',    frame_w: 256, frame_h: 177, frames: 25 },
+  elite3_idle_right: { src: 'elite3_idle_right.png', frame_w: 229, frame_h: 192, frames: 25 },
+  elite3_walk_right: { src: 'elite3_walk_right.png', frame_w: 242, frame_h: 192, frames: 25 },
+  elite3_run_up:     { src: 'elite3_run_up.png',     frame_w: 256, frame_h: 171, frames: 25 },
+  // Grim Elexus — Magistrate of the Court of Judgement
+  elexus_walk_down:  { src: 'elexus_walk_down.png',  frame_w: 256, frame_h: 176, frames: 25 },
+  elexus_walk_up:    { src: 'elexus_walk_up.png',    frame_w: 256, frame_h: 155, frames: 25 },
+  elexus_walk_right: { src: 'elexus_walk_right.png', frame_w: 256, frame_h: 182, frames: 25 },
+  elexus_run_down:   { src: 'elexus_run_down.png',   frame_w: 256, frame_h: 161, frames: 25 },
+  elexus_run_right:  { src: 'elexus_run_right.png',  frame_w: 256, frame_h: 129, frames: 25 },
+  // The Grim Engineer — keeper of the Drege Engine
+  engineer_idle:     { src: 'engineer_idle.png',     frame_w: 256, frame_h: 164, frames: 25 },
+  engineer_walk:     { src: 'engineer_walk.png',     frame_w: 256, frame_h: 165, frames: 25 },
+  engineer_run:      { src: 'engineer_run.png',      frame_w: 256, frame_h: 159, frames: 25 },
 };
 const sprites = {};   // name -> Image
 
@@ -598,21 +625,25 @@ const ROOM_DEFS = {
       { x:12.5, y:0.4, w:1.0, h:0.6, to:'grand_corridor', spawn:{x:2,y:5} },
       // East passage to the Grand Corridor (alt route)
       { x:24.4, y:1.5, w:0.6, h:12, to:'grand_corridor', spawn:{x:14,y:5} },
+      // Iron lift down to the Engine Room
+      { x:13, y:14.4, w:2, h:0.6, to:'engine_room', spawn:{x:3, y:6.5} },
     ],
     npcs: [
       // Master Death stands on his throne dais — see drawCommandThrone()
       { x:13, y:5.4, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death' },
-      // Two roaming HOODED REAPER initiates — vector-drawn (no character
-      // sprite). They patrol between the holo-consoles. Taller than the
-      // posted hooded reapers so they read clearly across the floor.
-      { x:5,  y:7,  customDraw:'hoodedReaper', scale:1.0, label:'Reaper-Initiate',
+      // Two roaming ELITE GRIM REAPERS (sprite-based). Their armoured shapes
+      // patrol between the holo-consoles. Elite-1 (heavy plate) takes the
+      // port side; Elite-3 (honour-guard) takes starboard.
+      { x:5,  y:7,  sheet:'elite1_walk_down', idleSheet:'elite1_walk_down', refSheet:'elite1_walk_down',
+        scale:0.62, animSpeed:7, label:'Elite Reaper',
         patrol:[ {x:5,y:7},{x:7,y:11},{x:5,y:11},{x:4.5,y:7} ], speed:1.6,
-        plaqueTitle:'REAPER-INITIATE · WATCH',
-        plaqueBody:'A junior reaper on rotation. Hood low, scythe shouldered, gait deliberately even — the senior reapers grade you on your stride here.\n\nThey do not stop walking to acknowledge May. The acknowledgement is the not-stopping.' },
-      { x:21, y:7,  customDraw:'hoodedReaper', scale:1.0, label:'Reaper-Initiate',
+        plaqueTitle:'ELITE GRIM REAPER · WATCH',
+        plaqueBody:'A reaper of the Elite Cohort — heavy plate over robe, scythe carried two-handed across the back. They are the warden-class: dispatched into strata where the standard reapers would not return whole.\n\nThis one acknowledges May with the smallest tilt of the helm. Among the Elite, that is a salute.' },
+      { x:21, y:7,  sheet:'elite3_walk_right', idleSheet:'elite3_idle_down', refSheet:'elite3_walk_right',
+        scale:0.62, animSpeed:6, label:'Elite Reaper',
         patrol:[ {x:21,y:7},{x:17,y:11},{x:21,y:11},{x:21.5,y:7} ], speed:1.4,
-        plaqueTitle:'REAPER-INITIATE · WATCH',
-        plaqueBody:'The starboard-side initiate. Their hood is pinned with a small bone charm.\n\nThe charm is how a reaper-initiate signals they have made their first solo strata-run and returned whole. The ship\'s seniors check for the charm without looking like they are checking for it.' },
+        plaqueTitle:'ELITE GRIM REAPER · HONOUR-GUARD',
+        plaqueBody:'A reaper of the Honour-Guard sub-cohort — ceremonial sashes layered over war-plate, scythe shaft inlaid with bone. They walk a fixed loop, never breaking stride, never speaking.\n\nThey were the ones who carried Master Death down from the dome the night he chose his title. Three of the five are still alive. This is one of them.' },
     ],
   },
 
@@ -710,7 +741,7 @@ const ROOM_DEFS = {
       { x:13, y:13.0,  kind:'plaque', title:'CHANDELIER (LOWERED)', body:'A small bone-and-iron chandelier, currently lowered for the night. Three black candles burn warm yellow.\n\nThe candles are made from the wax of dissolved memories — May does not know whose. She suspects, but does not ask.' },
     ],
     doors: [
-      { x:8, y:1.0, w:1.5, h:.7, to:'dorm_hall', spawn:{x:14,y:5} },
+      { x:8, y:1.0, w:2.5, h:1.4, to:'dorm_hall', spawn:{x:14,y:5} },
     ],
   },
 
@@ -797,10 +828,11 @@ const ROOM_DEFS = {
       { x:21.0, y:2, w:0.6, h:5, to:'grand_hall', spawn:{x:2, y:11} },
     ],
     npcs: [
-      // A single hooded reaper standing at-watch in the corridor
-      { x:13, y:5, customDraw:'hoodedReaper', scale:1.0, label:'Posted Reaper',
-        plaqueTitle:'POSTED REAPER · CORRIDOR WATCH',
-        plaqueBody:'A senior reaper assigned to walk the corridor between strata-shifts. Their hood is so deep May cannot tell if they have eyes at all.\n\nThey do not stop her. They do not stop anyone — but the ship\'s logs note every step she takes past them.' },
+      // A posted ELITE REAPER 2 (Sentinel) at the heart of the corridor.
+      { x:13, y:5, sheet:'elite2_idle_down', idleSheet:'elite2_idle_down', refSheet:'elite2_idle_down',
+        scale:0.62, animSpeed:3, label:'Elite Sentinel',
+        plaqueTitle:'ELITE SENTINEL · CORRIDOR WATCH',
+        plaqueBody:'A Sentinel-class Elite Reaper — heavier plate than the Honour-Guard, helm welded shut for the duration of their watch. Their scythe is held two-handed at parade rest, blade up.\n\nThey do not stop her. They do not stop anyone — but the ship\'s logs note every step she takes past them.' },
     ],
   },
 
@@ -840,16 +872,158 @@ const ROOM_DEFS = {
     doors: [
       // Back to the corridor (south)
       { x:0.4, y:11, w:0.6, h:1.5, to:'grand_corridor', spawn:{x:20, y:4} },
+      // Behind the high altar — door to the Court of Judgement (north)
+      { x:13, y:0.4, w:2, h:0.6, to:'judgement_court', spawn:{x:12, y:11} },
     ],
     npcs: [
-      // Two more posted hooded reapers flanking the aisle as honour guards
-      { x:11, y:5,  customDraw:'hoodedReaper', scale:1.0, label:'Altar Watch',
+      // Two posted ELITE GRIM REAPER 3 (Honour Guard) flanking the aisle
+      { x:11, y:5,  sheet:'elite3_idle_down', idleSheet:'elite3_idle_down', refSheet:'elite3_idle_down',
+        scale:0.66, animSpeed:3, label:'Altar Watch',
         plaqueTitle:'ALTAR WATCH · HONOUR GUARD',
-        plaqueBody:'A senior reaper assigned to the high altar. They stand at parade rest, scythe planted, for the full eight-hour cycle.\n\nThey have not spoken in May\'s memory.' },
-      { x:17, y:5,  customDraw:'hoodedReaper', scale:1.0, flip:true, label:'Altar Watch',
+        plaqueBody:'An Elite Reaper of the Honour-Guard sub-cohort, assigned to the High Altar for the full eight-hour cycle. Their ceremonial sashes pool around the boots; the war-plate beneath is older than the ship.\n\nThey have not spoken in May\'s memory.' },
+      { x:17, y:5,  sheet:'elite3_idle_down', idleSheet:'elite3_idle_down', refSheet:'elite3_idle_down',
+        scale:0.66, animSpeed:3, flip:true, label:'Altar Watch',
         plaqueTitle:'ALTAR WATCH · HONOUR GUARD',
         plaqueBody:'The starboard-side honour guard. They turn their head exactly once per cycle — at midnight by the ship\'s reckoning. May was awake for it once. The eyes inside the hood were closed.' },
     ],
+  },
+
+  // ============================================================
+  //   THE ENGINE ROOM — DREGE ENGINE
+  //   A vast vaulted chamber housing the violet-cored Drege Engine,
+  //   the magical machine that powers Death\'s Ship\'s protections.
+  //   Reached via the lift behind the Command Floor.
+  // ============================================================
+  engine_room: {
+    id: 'engine_room',
+    name: 'The Engine Room',
+    sub: 'The Drege Engine — gothic core of the ship\'s magical protections',
+    width: 28, height: 14,
+    palette: { floor:'#1a1428', wall:'#0a0816', stone:'#1c1430', accent:'#b070ff', candle:'#c08bff' },
+    spawn: { x: 3, y: 11 },
+    draw: drawEngineRoom,
+    walls: [
+      { x:0,y:0,w:28,h:1 }, { x:0,y:13,w:28,h:1 }, { x:0,y:0,w:1,h:14 }, { x:27,y:0,w:1,h:14 },
+      // The massive Drege Engine cylinder occupies the centre-right (walk around it)
+      { x:14, y:4,  w:9, h:5 },
+      // Side machinery / gear housings (collidable)
+      { x:2,  y:3,  w:2, h:2 },
+      { x:2,  y:9,  w:2, h:2 },
+      { x:24, y:3,  w:2, h:2 },
+      { x:24, y:10, w:2, h:2 },
+      // Walkway railing along the front catwalk
+      { x:6,  y:11.6, w:16, h:0.3 },
+    ],
+    interactables: [
+      { x:18, y:7, kind:'plaque', title:'THE DREGE ENGINE', body:'A colossal cylindrical engine, banded in iron and lit from within by a slow-pulsing violet core. The Drege Engine is the heart of every magical protection Death\'s Ship carries — wards, cloaking, soul-locks, the gravity that keeps the corridors level no matter where the ship hangs in the Endless.\n\nThe core does not burn fuel. It burns time — a few seconds of cycle per second of operation. The Engineer is the only living being who knows by how much.' },
+      { x:6, y:5, kind:'plaque', title:'STAINED GLASS — VIOLET ROSE', body:'A wall of leaded violet-and-cyan stained glass set into the engine-room\'s outer hull. The rose-window depicts the Reaper Seal in glass shards.\n\nThe glass should not survive being this close to the Drege Engine. The Engineer says it is reinforced with bone-marrow paste. Nobody asks whose.' },
+      { x:22, y:5, kind:'plaque', title:'PRIMARY GEAR ASSEMBLY', body:'Six gears, each two reapers tall, turn in perfect interlocked silence. The Drege Engine produces no sound at all when running — the silence in this chamber is so complete that May\'s heartbeat is audible to her.\n\nThe Engineer claims to dampen the sound on purpose. Some say silence is the actual fuel.' },
+      { x:14, y:11, kind:'plaque', title:'PRESSURE PIPES', body:'Thick copper-and-iron pipes leave the Drege Engine\'s base and feed up into the ceiling, distributing wardlight to every corridor on the ship.\n\nWhen a corridor\'s pipe runs cold, the wards in that corridor fail. The Engineer keeps a single iron chime by the engine — he strikes it whenever a pipe is about to go dark.' },
+      { x:3, y:6, kind:'plaque', title:'IRON CATWALK', body:'A narrow iron catwalk wraps the rear of the engine, suspended over a drop that does not appear to have a bottom. The catwalk is gated when the engine is running at full draw. Tonight the gate is open.\n\nThe drop, the Engineer once said, leads to the Creation Leveler.' },
+    ],
+    doors: [
+      // Back up to the Command Floor (entry from the bridge)
+      { x:0.4, y:6, w:0.6, h:2, to:'control', spawn:{x:13, y:12} },
+      // Stairwell down to the Creation Leveler
+      { x:13, y:13.0, w:2, h:0.6, to:'creation_leveler', spawn:{x:14, y:2} },
+    ],
+    npcs: [
+      // The Grim Engineer — keeper of the Drege Engine
+      { x:6, y:9, sheet:'engineer_walk', idleSheet:'engineer_idle', refSheet:'engineer_idle',
+        scale:0.62, animSpeed:5, label:'The Grim Engineer',
+        patrol:[ {x:6,y:9},{x:6,y:6},{x:9,y:6},{x:9,y:9} ], speed:1.0,
+        plaqueTitle:'THE GRIM ENGINEER',
+        plaqueBody:'The reaper-mechanic charged with keeping the Drege Engine alive. He is older than Romaine, older than most of the seniors, and he speaks rarely — usually only in numbers.\n\n"Wardlight at ninety-two on corridor three, little reaper. Ninety-two. Not ninety-three. Tell Death."\n\nHe is the only being aboard who can tune the engine. If he ever falls, the Engineer\'s position passes to the next reaper who can carry the iron chime without flinching.' },
+    ],
+  },
+
+  // ============================================================
+  //   THE COURT OF JUDGEMENT
+  //   The hall where betrayer-reapers are stripped of their Grim title.
+  //   Reached from behind the Grand Hall\'s high altar.
+  // ============================================================
+  judgement_court: {
+    id: 'judgement_court',
+    name: 'The Court of Judgement',
+    sub: 'Where the unworthy are stripped of their Grim title',
+    width: 24, height: 14,
+    palette: { floor:'#0e1a22', wall:'#080e16', stone:'#162638', accent:'#5cd9ff', candle:'#9cf4ff' },
+    spawn: { x: 12, y: 12 },
+    draw: drawJudgementCourt,
+    walls: [
+      { x:0,y:0,w:24,h:1 }, { x:0,y:13,w:24,h:1 }, { x:0,y:0,w:1,h:14 }, { x:23,y:0,w:1,h:14 },
+      // The Magistrate\'s dais (raised platform — collidable except its front step)
+      { x:9, y:2, w:6, h:2 },
+      // Witness gear pillars
+      { x:3, y:5, w:1, h:1 },
+      { x:20, y:5, w:1, h:1 },
+      { x:3, y:9, w:1, h:1 },
+      { x:20, y:9, w:1, h:1 },
+    ],
+    interactables: [
+      { x:12, y:5, kind:'plaque', title:'THE MAGISTRATE\'S DAIS', body:'A circular obsidian dais lifted on three iron steps. At its centre, a holographic spread of cyan judgement-glyphs hovers waist-high — names, charges, verdicts, all written in the same Reaper script.\n\nGrim Elexus presides here when a reaper has betrayed the cycle. The verdict is never recorded; the punishment always is.' },
+      { x:12, y:9, kind:'plaque', title:'THE STAND', body:'A single iron circle on the floor, six feet across, ringed with cyan light. The accused stands within. When the verdict is read, the ring brightens, and the accused\'s sigil is burned out of the air above them.\n\nA reaper without a sigil is no longer a reaper. They are released, mortal and forgotten, into a strata of Elexus\' choosing.' },
+      { x:5, y:7, kind:'plaque', title:'WITNESS PILLAR — PORT', body:'A floor-to-ceiling iron pillar threaded with cyan rune-cables. Every judgement held in this court is recorded into the pillar\'s memory.\n\nThe pillar has never been read. Elexus keeps the only key, and Elexus has never opened it.' },
+      { x:19, y:7, kind:'plaque', title:'WITNESS PILLAR — STARBOARD', body:'The companion pillar. Together the two pillars form the Court\'s record-binding. If either pillar is destroyed, every judgement ever rendered here returns — and the betrayers are made reapers again.\n\nDeath, asked once if the pillars are safe, declined to answer.' },
+      { x:12, y:12, kind:'plaque', title:'THE COURT DOORS', body:'A pair of tall iron doors lead back to the Grand Hall behind the high altar. The doors only open inward; once the Court is in session, no reaper can leave until the verdict is read.\n\nMay was brought here once when she was twelve, for a small infraction. The doors closed behind her. She does not remember the verdict — only Elexus\' single, quiet sentence: "Be better, little reaper."' },
+    ],
+    doors: [
+      // Back to the Grand Hall (the doors are behind the altar)
+      { x:11, y:13.0, w:2, h:0.6, to:'grand_hall', spawn:{x:14, y:4.5} },
+    ],
+    npcs: [
+      // Grim Elexus — Magistrate of the Court
+      { x:12, y:3.4, sheet:'elexus_walk_down', idleSheet:'elexus_walk_down', refSheet:'elexus_walk_down',
+        scale:0.66, animSpeed:3, label:'Grim Elexus',
+        plaqueTitle:'GRIM ELEXUS · MAGISTRATE',
+        plaqueBody:'Grim Elexus, Magistrate of the Court of Judgement — the only reaper Death has ever granted absolute juridical authority. Her robes are court-black with a single red sash; her scythe hangs unused on the wall behind the dais.\n\n"Sentence is not punishment, little reaper. Sentence is the cycle correcting itself. The cycle does not blame. It only re-balances."\n\nShe is feared in the corridors. May has never feared her.' },
+      // Two posted Elite Sentinels flanking the dais
+      { x:7, y:3.5, sheet:'elite2_idle_down', idleSheet:'elite2_idle_down', refSheet:'elite2_idle_down',
+        scale:0.6, animSpeed:3, label:'Court Sentinel',
+        plaqueTitle:'COURT SENTINEL', plaqueBody:'An Elite Sentinel reaper posted to the Court of Judgement. They do not blink. They do not speak. They are the only entity in the chamber permitted to interrupt the Magistrate.' },
+      { x:17, y:3.5, sheet:'elite2_idle_down', idleSheet:'elite2_idle_down', refSheet:'elite2_idle_down',
+        scale:0.6, animSpeed:3, flip:true, label:'Court Sentinel',
+        plaqueTitle:'COURT SENTINEL', plaqueBody:'The starboard sentinel. They watch the gallery; the port sentinel watches the dais. Between them no movement in the court goes unobserved.' },
+    ],
+  },
+
+  // ============================================================
+  //   THE CREATION LEVELER ENGINE
+  //   Located on the lowest deck — allows the ship to ascend and
+  //   descend through the strata of the Endless. Reached from
+  //   the iron catwalk behind the Drege Engine.
+  // ============================================================
+  creation_leveler: {
+    id: 'creation_leveler',
+    name: 'The Creation Leveler',
+    sub: 'Ancient technology that walks the ship between strata',
+    width: 30, height: 16,
+    palette: { floor:'#0a1218', wall:'#050a12', stone:'#142028', accent:'#0fdcc0', candle:'#5ff6ff' },
+    spawn: { x: 14, y: 2 },
+    draw: drawCreationLeveler,
+    walls: [
+      { x:0,y:0,w:30,h:1 }, { x:0,y:15,w:30,h:1 }, { x:0,y:0,w:1,h:16 }, { x:29,y:0,w:1,h:16 },
+      // Central rune-column (huge — walk all the way around it)
+      { x:12, y:5,  w:6, h:6 },
+      // Pink sigil rotors on either side
+      { x:3,  y:7,  w:3, h:3 },
+      { x:24, y:7,  w:3, h:3 },
+      // Lattice scaffolding (decorative collidables — small cells)
+      { x:9,  y:12, w:1, h:1 },
+      { x:20, y:12, w:1, h:1 },
+    ],
+    interactables: [
+      { x:15, y:8, kind:'plaque', title:'THE LEVELER COLUMN', body:'A towering cylindrical engine reaching from the lowest deck up through a hole in the floor of the Engine Room. Inside, suspended in a stream of teal rune-light, hangs a single floating glyph that slowly cycles through the Reaper script for "DEEPER" and "HIGHER."\n\nWhen Death orders the ship to ascend or descend the strata of the Endless, this glyph rotates one notch. There has never been a record of the column having to be re-aimed.' },
+      { x:4, y:9, kind:'plaque', title:'PINK ROTOR — PORT', body:'A massive disc of black iron etched with pink-burning sigils, rotating slowly counter-clockwise. The rotor balances the Leveler\'s drift — without it, the ship would walk sideways through the strata instead of up and down.\n\nThe sigils on the rotor are renewed every cycle. The Engineer carries the chisel.' },
+      { x:25, y:9, kind:'plaque', title:'PINK ROTOR — STARBOARD', body:'The mirror rotor. It rotates clockwise. Together the two rotors form a balance no reaper has ever managed to upset. The Engineer once tried to stop one; the entire ship listed for twelve hours.\n\nDeath, on hearing of it, laughed for the first time in a generation.' },
+      { x:15, y:12, kind:'plaque', title:'STRATA READOUT', body:'A floor-mounted readout in faded teal runes reports the ship\'s current strata position. Tonight it reads: -47 · DESCENDING · LOCK STABLE.\n\nThe number ticks down whenever the ship descends. Astrolabe currently shows strata -47 as a stable wilderness — May knows because she checked.' },
+      { x:14, y:2, kind:'plaque', title:'CATWALK STAIR (UP)', body:'A spiral iron stair leads up through a tight hole in the ceiling to the Engine Room above. The stair is too narrow for two reapers to pass shoulder-to-shoulder — by design.\n\nThe Engineer is the only being who descends to the Leveler regularly. He keeps the rotor sigils sharp.' },
+    ],
+    doors: [
+      // Back up to the Engine Room
+      { x:13.5, y:0.4, w:2, h:0.6, to:'engine_room', spawn:{x:14, y:11.5} },
+    ],
+    npcs: [],
   },
 };
 
@@ -1972,145 +2146,546 @@ function drawDormDoor(ctx, x, y, side, p, occ){
 }
 
 function drawMaysRoom(ctx, room){
+  // Mays Room — rebuilt from the user's canon reference image:
+  // ▸ Purple walls + light-blue arched alcoves on the LEFT wall
+  // ▸ Black wrought-iron candle chandelier overhead
+  // ▸ 4-poster canopy bed with purple drapes, centre of room
+  // ▸ Burgundy chaise/bench at the foot of the bed
+  // ▸ White vanity desk (mirror + candelabra + jewellery) on the RIGHT
+  // ▸ Gallery wall of mirrors / frames (right wall)
+  // ▸ Bat decoration on the wall, white wedding-dress mannequin (left)
+  // ▸ Pink area rug with books, candle, scrolls, cushion
   const W = room.width * 64, H = room.height * 64;
   const p = room.palette;
-  // wood plank floor (warm purple-tinted)
-  ctx.fillStyle = '#2a1438';
+
+  // ===== 1) FLOOR — warm dark hardwood plank =====
+  ctx.fillStyle = '#2a1a35';
   ctx.fillRect(0,0,W,H);
-  for (let y = 0; y < H; y += 22) {
-    for (let x = 0; x < W; x += 84) {
-      const off = ((y/22) % 2) * 42;
-      const px = x - off;
-      const v = Math.abs(Math.sin(px*0.04 + y*0.05))*8;
-      ctx.fillStyle = `rgb(${42+v}, ${20+v*.5}, ${56+v})`;
-      ctx.fillRect(px+1, y+1, 84-3, 22-3);
+  for (let y = 0; y < H; y += 26) {
+    for (let x = 0; x < W; x += 92) {
+      const off = ((y/26) % 2) * 46;
+      const px2 = x - off;
+      const v = Math.abs(Math.sin(px2*0.05 + y*0.06))*7;
+      ctx.fillStyle = `rgb(${48+v}, ${28+v*.5}, ${62+v})`;
+      ctx.fillRect(px2+1, y+1, 92-3, 26-3);
     }
   }
-  // outer walls (deep purple)
-  ctx.fillStyle = p.wall;
+
+  // ===== 2) WALLS — deep purple with deeper trim =====
+  ctx.fillStyle = '#5a2c80';
   ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
   ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
-  drawWallTrim(ctx, W, H, '#1a0e2c');
-  // stained-glass arched window over bed (top wall)
-  drawArchWindow(ctx, 7.5*64, 4, 3*64, 56);
-  // canopy bed (with draped curtains)
-  ctx.fillStyle = '#1a0a26';
-  roundRect(ctx, 1.2*64, 2*64, 4*64, 3*64, 8); ctx.fill();
-  // mattress
-  ctx.fillStyle = '#5a2c80';
-  roundRect(ctx, 1.2*64+12, 2*64+18, 4*64-24, 3*64-30, 6); ctx.fill();
-  // pillow
-  ctx.fillStyle = '#e8b9d8';
-  ctx.fillRect(1.2*64+22, 2*64+24, 1.2*64, 0.45*64);
-  // bed posts (4)
-  ctx.fillStyle = '#1a0a26';
-  ctx.fillRect(1.2*64-2, 2*64-4, 6, 3.2*64);
-  ctx.fillRect(1.2*64+4*64-4, 2*64-4, 6, 3.2*64);
-  // curtain drapery (left & right)
-  ctx.fillStyle = 'rgba(120,60,160,0.85)';
-  ctx.beginPath();
-  ctx.moveTo(1.2*64, 2*64-4); ctx.lineTo(1.2*64+24, 2*64+1*64);
-  ctx.lineTo(1.2*64+10, 2*64+2.5*64); ctx.lineTo(1.2*64-2, 2*64+2.5*64);
-  ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(1.2*64+4*64, 2*64-4); ctx.lineTo(1.2*64+4*64-24, 2*64+1*64);
-  ctx.lineTo(1.2*64+4*64-10, 2*64+2.5*64); ctx.lineTo(1.2*64+4*64+2, 2*64+2.5*64);
-  ctx.closePath(); ctx.fill();
-  // VANITY
-  ctx.fillStyle = '#e8b9d8';
-  roundRect(ctx, 13*64, 1.5*64, 3.5*64, 2*64, 8); ctx.fill();
-  ctx.fillStyle = '#7a4a90';
-  ctx.fillRect(13*64+10, 1.5*64+10, 3.5*64-20, 14);
-  // ornate mirror
-  ctx.fillStyle = '#1a0a26';
-  ctx.beginPath();
-  ctx.moveTo(13*64+0.5*64, 1.5*64-30);
-  ctx.quadraticCurveTo(13*64+1.75*64, 1.5*64-58, 13*64+3*64, 1.5*64-30);
-  ctx.lineTo(13*64+3*64, 1.5*64);
-  ctx.lineTo(13*64+0.5*64, 1.5*64);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(220,170,220,0.4)';
-  ctx.beginPath();
-  ctx.moveTo(13*64+0.6*64, 1.5*64-26);
-  ctx.quadraticCurveTo(13*64+1.75*64, 1.5*64-50, 13*64+2.9*64, 1.5*64-26);
-  ctx.lineTo(13*64+2.9*64, 1.5*64-4);
-  ctx.lineTo(13*64+0.6*64, 1.5*64-4);
-  ctx.closePath(); ctx.fill();
-  // gilded frame trim
-  ctx.strokeStyle = p.accent; ctx.lineWidth = 2;
-  ctx.stroke();
-  // wall portraits to the right of vanity
-  for (let i = 0; i < 4; i++) {
-    const px = 13*64 + 3*64 + 8 + (i%2)*30;
-    const py = 1*64 + Math.floor(i/2)*36;
-    ctx.fillStyle = '#1a0a26';
-    ctx.fillRect(px, py, 22, 28);
-    ctx.fillStyle = '#5a3a70';
-    ctx.fillRect(px+3, py+3, 16, 22);
-    ctx.strokeStyle = p.accent; ctx.lineWidth = 1;
-    ctx.strokeRect(px+0.5, py+0.5, 21, 27);
+  // wall sheen
+  const wgrad = ctx.createLinearGradient(0, 0, 0, 64);
+  wgrad.addColorStop(0, 'rgba(140,80,180,0.40)');
+  wgrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = wgrad;
+  ctx.fillRect(64, 0, W-128, 64);
+  // dark baseboard trim
+  ctx.fillStyle = '#1a0e2c';
+  ctx.fillRect(0, 60, W, 4);
+  ctx.fillRect(0, H-64, W, 4);
+  ctx.fillRect(60, 0, 4, H);
+  ctx.fillRect(W-64, 0, 4, H);
+
+  // ===== 3) LEFT-WALL ARCHED ALCOVES (3 tall light-blue arches) =====
+  // These are inset niches in the purple wall, glowing soft cyan from within.
+  const archX = 64;       // flush with the inside of the left wall
+  const archY0 = 2*64;
+  for (let i = 0; i < 3; i++) {
+    const ay = archY0 + i * 2.6*64;
+    drawArchAlcove(ctx, archX, ay, 0.5*64, 2.2*64, t, i);
   }
-  // WARDROBE (dark wood with iron clasp)
-  ctx.fillStyle = '#1a0a26';
-  roundRect(ctx, 1.2*64, 6.5*64, 2*64, 3*64, 6); ctx.fill();
-  ctx.fillStyle = '#3a1c2c';
-  roundRect(ctx, 1.2*64+4, 6.5*64+4, 2*64-8, 3*64-8, 4); ctx.fill();
-  // wardrobe panels
-  ctx.strokeStyle = '#1a0a26'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(1.2*64+1*64, 6.5*64+8); ctx.lineTo(1.2*64+1*64, 6.5*64+3*64-8); ctx.stroke();
-  // brass handles
-  ctx.fillStyle = p.accent;
-  ctx.beginPath(); ctx.arc(1.2*64+0.7*64, 6.5*64+1.5*64, 3, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(1.2*64+1.3*64, 6.5*64+1.5*64, 3, 0, Math.PI*2); ctx.fill();
-  // BOOKSHELF
-  ctx.fillStyle = '#1a0a26';
-  roundRect(ctx, 14.5*64, 5.5*64, 2.5*64, 5*64, 4); ctx.fill();
-  ctx.fillStyle = '#2a1438';
-  ctx.fillRect(14.5*64+4, 5.5*64+4, 2.5*64-8, 5*64-8);
+
+  // ===== 4) RIGHT-WALL GALLERY (mirrors + framed portraits + bat) =====
+  // A symmetrical 3×3 cluster of small frames on the right wall.
+  const gx = W - 64 - 22;
   for (let row = 0; row < 4; row++) {
-    ctx.fillStyle = '#1a0a26';
-    ctx.fillRect(14.5*64+8, 5.5*64+18 + row*72, 2.5*64-16, 4);
-    const colors = ['#7a3ed8','#5a2c80','#3a205e','#9854ee','#3a1c52','#5a35a8','#c89968'];
-    for (let b = 0; b < 6; b++) {
-      ctx.fillStyle = colors[(row*6+b) % colors.length];
-      ctx.fillRect(14.5*64+12 + b*22, 5.5*64+30 + row*72, 18, 50);
-      // gold spine accent
-      if (b%2===0) {
-        ctx.fillStyle = p.accent;
-        ctx.fillRect(14.5*64+12 + b*22, 5.5*64+44 + row*72, 18, 1);
+    for (let col = 0; col < 2; col++) {
+      const px2 = gx - col*36;
+      const py2 = 1.4*64 + row*42;
+      ctx.fillStyle = '#1a0e2c';
+      ctx.fillRect(px2, py2, 24, 30);
+      // alternate: mirror / portrait
+      if ((row+col)%2 === 0) {
+        // Mirror — pale lavender glass
+        ctx.fillStyle = '#d8b4f4';
+        ctx.fillRect(px2+2, py2+2, 20, 26);
+        ctx.strokeStyle = '#e8b9d8'; ctx.lineWidth = 1; ctx.strokeRect(px2+0.5, py2+0.5, 23, 29);
+      } else {
+        // Portrait — burgundy
+        ctx.fillStyle = '#5a1f3a';
+        ctx.fillRect(px2+2, py2+2, 20, 26);
+        ctx.fillStyle = '#0a0518';
+        ctx.beginPath(); ctx.arc(px2+12, py2+13, 4, Math.PI, 0); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(px2+6, py2+28); ctx.lineTo(px2+18, py2+28);
+        ctx.lineTo(px2+16, py2+17); ctx.lineTo(px2+8, py2+17);
+        ctx.closePath(); ctx.fill();
       }
     }
   }
-  // WRITING DESK
-  ctx.fillStyle = '#1a0a26';
-  roundRect(ctx, 8*64, 7.5*64, 3*64, 2*64, 6); ctx.fill();
-  ctx.fillStyle = '#3a1c2c';
-  ctx.fillRect(8*64+6, 7.5*64+6, 3*64-12, 2*64-12);
-  // paper
+  // ▸ Wrought-iron BAT decoration on the right wall, between the gallery rows
+  drawWallBat(ctx, gx - 16, 0.8*64);
+
+  // ===== 5) THE 4-POSTER CANOPY BED (centred) =====
+  // Bed footprint matches the wall-collider (1.2..5.2, 2..5).
+  const bedX = 1.2*64, bedY = 2*64, bedW = 4*64, bedH = 3*64;
+  // Bed posts (4 tall ones — drawn before the canopy)
+  ctx.fillStyle = '#0a0518';
+  ctx.fillRect(bedX - 6,            bedY - 26, 10, bedH + 30);
+  ctx.fillRect(bedX + bedW - 4,     bedY - 26, 10, bedH + 30);
+  // Canopy frame (top cross-rail with two sweeping drapes)
+  ctx.fillStyle = '#0a0518';
+  ctx.fillRect(bedX - 6, bedY - 30, bedW + 14, 8);
+  // Bed frame
+  ctx.fillStyle = '#1a0e2c';
+  roundRect(ctx, bedX, bedY + 20, bedW, bedH - 20, 6); ctx.fill();
+  // Mattress (rich purple)
+  ctx.fillStyle = '#7a3aa8';
+  roundRect(ctx, bedX + 12, bedY + 36, bedW - 24, bedH - 50, 5); ctx.fill();
+  // Wrinkled bedding — soft purple sheet thrown across
+  ctx.fillStyle = 'rgba(220,180,240,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(bedX + 14, bedY + bedH - 26);
+  ctx.bezierCurveTo(bedX + bedW*0.30, bedY + bedH - 6,
+                    bedX + bedW*0.55, bedY + bedH - 30,
+                    bedX + bedW*0.85, bedY + bedH - 14);
+  ctx.lineTo(bedX + bedW - 14, bedY + bedH - 18);
+  ctx.lineTo(bedX + bedW - 14, bedY + bedH - 8);
+  ctx.lineTo(bedX + 14, bedY + bedH - 8);
+  ctx.closePath();
+  ctx.fill();
+  // Crumpled pillows at the head
+  ctx.fillStyle = '#d8b4f4';
+  ctx.beginPath(); ctx.ellipse(bedX + 0.6*64, bedY + 0.85*64, 24, 16, -0.15, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(bedX + 1.3*64, bedY + 0.80*64, 22, 14, 0.10, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#7a3aa8';
+  ctx.beginPath(); ctx.ellipse(bedX + 1.0*64, bedY + 0.75*64, 18, 11, 0.0, 0, Math.PI*2); ctx.fill();
+  // Twin curtain drapes hanging from canopy
+  ctx.fillStyle = 'rgba(118,52,178,0.78)';
+  ctx.beginPath();
+  ctx.moveTo(bedX - 8, bedY - 22);
+  ctx.lineTo(bedX + 36, bedY - 22);
+  ctx.lineTo(bedX + 22, bedY + 1.6*64);
+  ctx.lineTo(bedX,       bedY + 2.4*64);
+  ctx.lineTo(bedX - 8,   bedY + 2.4*64);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(bedX + bedW + 4, bedY - 22);
+  ctx.lineTo(bedX + bedW - 36, bedY - 22);
+  ctx.lineTo(bedX + bedW - 22, bedY + 1.6*64);
+  ctx.lineTo(bedX + bedW,       bedY + 2.4*64);
+  ctx.lineTo(bedX + bedW + 4,   bedY + 2.4*64);
+  ctx.closePath();
+  ctx.fill();
+  // Drape vertical pleat lines
+  ctx.strokeStyle = 'rgba(60,20,90,0.7)'; ctx.lineWidth = 1.4;
+  for (let k = 0; k < 4; k++) {
+    ctx.beginPath();
+    ctx.moveTo(bedX - 8 + k*10, bedY - 18);
+    ctx.lineTo(bedX - 4 + k*10, bedY + 1.4*64);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(bedX + bedW + 4 - k*10, bedY - 18);
+    ctx.lineTo(bedX + bedW - k*10, bedY + 1.4*64);
+    ctx.stroke();
+  }
+  // FlyButt's plush butterfly at the head (canon detail)
+  drawPlushButterfly(ctx, bedX + 0.4*64, bedY + 0.55*64, 0.8);
+
+  // ===== 6) BURGUNDY CHAISE / BENCH at the foot of the bed =====
+  drawChaiseBench(ctx, bedX + 0.5*64, bedY + bedH + 10, bedW - 1.0*64, 0.8*64);
+
+  // ===== 7) THE VANITY DESK on the right wall =====
+  const vX = 13*64, vY = 1.5*64, vW = 3.5*64, vH = 2*64;
+  // Desk body — bone white with gold trim
   ctx.fillStyle = '#e8d4b8';
-  ctx.fillRect(8*64+30, 7.5*64+22, 60, 80);
-  ctx.fillStyle = 'rgba(60,30,90,.6)';
-  for (let i = 0; i < 5; i++) ctx.fillRect(8*64+34, 7.5*64+34 + i*12, 52, 1.5);
-  // candle on desk
-  drawCandle(ctx, 8*64+2.4*64, 7.5*64+22, t, 7);
-  // PINK CARPET (the rug)
-  drawCarpet(ctx, 5*64, 9.5*64, 8*64, 3*64, '#a04068');
-  // strewn books on rug
-  ctx.fillStyle = '#3a6b3a';
-  ctx.fillRect(6*64, 11*64, 36, 22);
-  ctx.fillStyle = '#9a8a3a';
-  ctx.fillRect(6.6*64, 10.6*64, 30, 26);
-  ctx.fillStyle = '#2a1a4a';
-  ctx.fillRect(8.5*64, 11*64, 32, 22);
-  // candle on rug
-  drawCandle(ctx, 10*64, 11.4*64, t, 11);
-  // CHANDELIER (lower height, since this is a smaller room)
-  drawChandelier(ctx, 9*64, 4.4*64, 0.8, p.candle, t);
-  // wall sconces
+  roundRect(ctx, vX, vY, vW, vH, 6); ctx.fill();
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(vX + 6, vY + 6, vW - 12, vH - 12);
+  // Drawer fronts
+  ctx.fillStyle = '#c9a47e';
+  ctx.fillRect(vX + 12, vY + vH - 36, vW - 24, 18);
+  ctx.fillStyle = '#7a5226';
+  ctx.beginPath(); ctx.arc(vX + vW*0.30, vY + vH - 27, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(vX + vW*0.70, vY + vH - 27, 3, 0, Math.PI*2); ctx.fill();
+  // Tall ornate mirror with arch
+  ctx.fillStyle = '#1a0e2c';
+  ctx.beginPath();
+  ctx.moveTo(vX + 0.4*64,  vY - 70);
+  ctx.quadraticCurveTo(vX + vW/2, vY - 110, vX + vW - 0.4*64, vY - 70);
+  ctx.lineTo(vX + vW - 0.4*64, vY);
+  ctx.lineTo(vX + 0.4*64, vY);
+  ctx.closePath(); ctx.fill();
+  // Mirror glass — pale lavender reflection
+  ctx.fillStyle = 'rgba(220,200,240,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(vX + 0.5*64,  vY - 64);
+  ctx.quadraticCurveTo(vX + vW/2, vY - 100, vX + vW - 0.5*64, vY - 64);
+  ctx.lineTo(vX + vW - 0.5*64, vY - 6);
+  ctx.lineTo(vX + 0.5*64, vY - 6);
+  ctx.closePath(); ctx.fill();
+  // Gold frame trim
+  ctx.strokeStyle = '#d8a548'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(vX + 0.4*64,  vY - 70);
+  ctx.quadraticCurveTo(vX + vW/2, vY - 110, vX + vW - 0.4*64, vY - 70);
+  ctx.lineTo(vX + vW - 0.4*64, vY);
+  ctx.lineTo(vX + 0.4*64, vY);
+  ctx.closePath(); ctx.stroke();
+  // Candelabra (3 candles) on the vanity
+  drawVanityCandelabra(ctx, vX + 0.55*64, vY + 0.3*64, t, 3);
+  // Small perfume bottles + jewellery box
+  ctx.fillStyle = '#8a5cb8'; ctx.fillRect(vX + vW - 60, vY + 18, 9, 22);    // tall perfume
+  ctx.fillStyle = '#d4b896'; ctx.fillRect(vX + vW - 60, vY + 16, 9, 4);
+  ctx.fillStyle = '#a83a14'; ctx.fillRect(vX + vW - 44, vY + 22, 11, 18);   // red bottle
+  ctx.fillStyle = '#d8a548'; ctx.fillRect(vX + vW - 44, vY + 20, 11, 4);
+  ctx.fillStyle = '#7a5226';                                                // jewellery box
+  ctx.fillRect(vX + vW - 28, vY + 22, 18, 16);
+  ctx.fillStyle = '#d8a548';
+  ctx.fillRect(vX + vW - 27, vY + 24, 16, 2);
+
+  // ===== 8) WHITE WEDDING-DRESS MANNEQUIN (left foreground) =====
+  drawDressMannequin(ctx, 2.5*64, 9.2*64);
+
+  // ===== 9) PINK AREA RUG with FRINGE — bottom centre =====
+  const rugX = 5.4*64, rugY = 8.8*64, rugW = 7.2*64, rugH = 3.4*64;
+  drawCarpet(ctx, rugX, rugY, rugW, rugH, '#c45c80');
+  // Rug fringe
+  ctx.fillStyle = '#e8b9d8';
+  for (let i = 0; i < rugW; i += 6) {
+    ctx.fillRect(rugX + i, rugY - 4, 4, 6);
+    ctx.fillRect(rugX + i, rugY + rugH - 2, 4, 6);
+  }
+  // Pile of books on the rug (open + closed)
+  drawBookPile(ctx, rugX + 0.6*64, rugY + 1.6*64);
+  drawScroll(ctx,   rugX + 2.6*64, rugY + 2.0*64);
+  drawScroll(ctx,   rugX + 4.4*64, rugY + 2.6*64);
+  // Plush round cushion
+  ctx.fillStyle = '#7a3aa8';
+  ctx.beginPath(); ctx.ellipse(rugX + 5.6*64, rugY + 0.8*64, 26, 18, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#9854c8';
+  ctx.beginPath(); ctx.ellipse(rugX + 5.6*64, rugY + 0.75*64, 22, 14, 0, 0, Math.PI*2); ctx.fill();
+  // Black iron candleholder with single candle on the rug
+  drawIronCandle(ctx, rugX + 1.3*64, rugY + 2.4*64, t, 11);
+
+  // ===== 10) BLACK IRON CHANDELIER overhead (centred above the rug) =====
+  drawBigIronChandelier(ctx, 9*64, 3.6*64, 1.0, t);
+
+  // Two simple sconces flanking the top
   drawSconce(ctx, 4*64, 64, p.candle, t, 31);
   drawSconce(ctx, 13*64, 64, p.candle, t, 17);
-  drawSconce(ctx, 64, 4*64, p.candle, t, 23);
-  drawSconce(ctx, W-64, 4*64, p.candle, t, 47);
+
+  // Faint floor stencil
+  ctx.save();
+  ctx.font = 'bold 11px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(220,170,220,0.15)';
+  ctx.textAlign = 'center';
+  ctx.fillText("· MAY'S ROOM ·", W/2, H - 76);
+  ctx.restore();
+}
+
+// Tall pointed-arch alcove in the left wall — light-blue interior, candle inside.
+function drawArchAlcove(ctx, x, y, w, h, t, seed) {
+  ctx.save();
+  // Outer frame (deep purple to match wall)
+  ctx.fillStyle = '#1a0e2c';
+  ctx.beginPath();
+  ctx.moveTo(x - 4,     y + h*0.18);
+  ctx.quadraticCurveTo(x + w/2, y - 12, x + w + 4, y + h*0.18);
+  ctx.lineTo(x + w + 4, y + h);
+  ctx.lineTo(x - 4,     y + h);
+  ctx.closePath();
+  ctx.fill();
+  // Interior — pale-blue glow (light-blue paint)
+  ctx.fillStyle = '#a8c4e8';
+  ctx.beginPath();
+  ctx.moveTo(x,         y + h*0.22);
+  ctx.quadraticCurveTo(x + w/2, y - 4, x + w, y + h*0.22);
+  ctx.lineTo(x + w, y + h - 4);
+  ctx.lineTo(x,     y + h - 4);
+  ctx.closePath();
+  ctx.fill();
+  // Sheen overlay
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.20 + 0.10*Math.sin(t*1.5 + seed);
+  ctx.fillStyle = '#d8ecff';
+  ctx.fillRect(x + 2, y + 4, w - 4, h - 8);
+  ctx.restore();
+  // A single candle inside the alcove
+  drawCandle(ctx, x + w/2, y + h - 18, t, seed * 3);
+  ctx.restore();
+}
+
+// Wrought-iron bat decoration mounted on the wall.
+function drawWallBat(ctx, x, y) {
+  ctx.save();
+  ctx.fillStyle = '#0a0518';
+  // body
+  ctx.beginPath(); ctx.ellipse(x, y, 5, 8, 0, 0, Math.PI*2); ctx.fill();
+  // wings
+  ctx.beginPath();
+  ctx.moveTo(x, y - 2);
+  ctx.quadraticCurveTo(x - 18, y - 14, x - 22, y - 4);
+  ctx.quadraticCurveTo(x - 16, y, x - 10, y + 4);
+  ctx.lineTo(x, y + 2);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x, y - 2);
+  ctx.quadraticCurveTo(x + 18, y - 14, x + 22, y - 4);
+  ctx.quadraticCurveTo(x + 16, y, x + 10, y + 4);
+  ctx.lineTo(x, y + 2);
+  ctx.closePath(); ctx.fill();
+  // ears
+  ctx.beginPath();
+  ctx.moveTo(x - 3, y - 6); ctx.lineTo(x - 5, y - 12); ctx.lineTo(x, y - 7);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + 3, y - 6); ctx.lineTo(x + 5, y - 12); ctx.lineTo(x, y - 7);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// Small plush butterfly — purple wings, white spots
+function drawPlushButterfly(ctx, x, y, scale) {
+  scale = scale || 1.0;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(scale, scale);
+  // body
+  ctx.fillStyle = '#5a3070';
+  ctx.beginPath(); ctx.ellipse(0, 0, 3, 8, 0, 0, Math.PI*2); ctx.fill();
+  // wings
+  ctx.fillStyle = '#9854c8';
+  ctx.beginPath(); ctx.ellipse(-10, -3, 9, 7, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(+10, -3, 9, 7, +0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-8,  +5, 6, 5, -0.4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(+8,  +5, 6, 5, +0.4, 0, Math.PI*2); ctx.fill();
+  // wing spots
+  ctx.fillStyle = '#e8b9d8';
+  ctx.beginPath(); ctx.arc(-9, -3, 2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(+9, -3, 2, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// Tufted burgundy chaise / bench at the foot of the bed.
+function drawChaiseBench(ctx, x, y, w, h) {
+  ctx.save();
+  // Underframe legs
+  ctx.fillStyle = '#1a0a14';
+  ctx.fillRect(x + 6, y + h - 6, 6, 12);
+  ctx.fillRect(x + w - 12, y + h - 6, 6, 12);
+  // Burgundy cushion
+  ctx.fillStyle = '#7a1f1a';
+  roundRect(ctx, x, y, w, h, 8); ctx.fill();
+  // Lighter highlight strip
+  ctx.fillStyle = '#a83a14';
+  roundRect(ctx, x + 4, y + 4, w - 8, h*0.55, 6); ctx.fill();
+  // Tufted button dots
+  ctx.fillStyle = '#3a0a14';
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 4; c++) {
+      const px2 = x + 16 + c * (w - 32) / 3;
+      const py2 = y + 12 + r * (h - 22) / 2;
+      ctx.beginPath(); ctx.arc(px2, py2, 1.6, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// Three-candle gold candelabra on the vanity.
+function drawVanityCandelabra(ctx, x, y, t, seed) {
+  ctx.save();
+  // base
+  ctx.fillStyle = '#7a5226';
+  ctx.fillRect(x - 12, y + 24, 24, 4);
+  // stem
+  ctx.fillStyle = '#d8a548';
+  ctx.fillRect(x - 1, y + 4, 2, 22);
+  // arms (3 candles)
+  for (let i = -1; i <= 1; i++) {
+    const cx = x + i*10;
+    const cy = y - 6;
+    // candle stick (gold cup)
+    ctx.fillStyle = '#d8a548';
+    ctx.fillRect(cx - 2, cy + 4, 4, 5);
+    // wax candle (white)
+    ctx.fillStyle = '#f4e9c8';
+    ctx.fillRect(cx - 1.6, cy - 6, 3.2, 10);
+    // flame
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const flick = 0.85 + 0.18*Math.sin(t*8 + seed + i);
+    ctx.globalAlpha = 0.85 * flick;
+    ctx.fillStyle = '#ffd66e';
+    ctx.beginPath(); ctx.ellipse(cx, cy - 9, 1.4, 3.2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// White wedding-dress mannequin on a stand.
+function drawDressMannequin(ctx, x, y) {
+  ctx.save();
+  // Stand (dark wood pole)
+  ctx.fillStyle = '#1a0a14';
+  ctx.fillRect(x - 2, y, 4, 50);
+  ctx.fillStyle = '#3a1c2c';
+  ctx.beginPath(); ctx.ellipse(x, y + 52, 14, 4, 0, 0, Math.PI*2); ctx.fill();
+  // Bust (skin-tone neck)
+  ctx.fillStyle = '#e8d4b8';
+  ctx.fillRect(x - 4, y - 12, 8, 14);
+  // Bodice (white satin with lace details)
+  ctx.fillStyle = '#f4e9d8';
+  ctx.beginPath();
+  ctx.moveTo(x - 18, y);
+  ctx.lineTo(x + 18, y);
+  ctx.lineTo(x + 16, y + 24);
+  ctx.lineTo(x - 16, y + 24);
+  ctx.closePath(); ctx.fill();
+  // Lace cuff lines
+  ctx.strokeStyle = '#d4b896'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(x - 14, y + 6);  ctx.lineTo(x + 14, y + 6);  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 13, y + 12); ctx.lineTo(x + 13, y + 12); ctx.stroke();
+  // Layered skirt (wide, draping down)
+  ctx.fillStyle = '#f4e9d8';
+  ctx.beginPath();
+  ctx.moveTo(x - 16, y + 24);
+  ctx.lineTo(x + 16, y + 24);
+  ctx.lineTo(x + 36, y + 84);
+  ctx.lineTo(x - 36, y + 84);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e8d4b8';
+  ctx.beginPath();
+  ctx.moveTo(x - 30, y + 80);
+  ctx.lineTo(x + 30, y + 80);
+  ctx.lineTo(x + 42, y + 96);
+  ctx.lineTo(x - 42, y + 96);
+  ctx.closePath(); ctx.fill();
+  // Skirt pleat lines
+  ctx.strokeStyle = '#c9a47e'; ctx.lineWidth = 0.8;
+  for (let k = -3; k <= 3; k++) {
+    ctx.beginPath();
+    ctx.moveTo(x + k*5, y + 24);
+    ctx.lineTo(x + k*10, y + 96);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Pile of 3 open + closed books on the rug.
+function drawBookPile(ctx, x, y) {
+  ctx.save();
+  // Green book (large, base)
+  ctx.fillStyle = '#3a6b3a';
+  ctx.fillRect(x, y, 56, 14);
+  ctx.fillStyle = '#1a3a1a';
+  ctx.fillRect(x + 2, y + 2, 52, 10);
+  ctx.fillStyle = '#d8a548';
+  ctx.fillRect(x + 4, y + 5, 22, 1);
+  // Yellow book (offset on top)
+  ctx.fillStyle = '#9a8a3a';
+  ctx.fillRect(x + 6, y - 14, 44, 14);
+  ctx.fillStyle = '#7a6a1a';
+  ctx.fillRect(x + 8, y - 12, 40, 10);
+  // Purple open book (small, beside)
+  ctx.fillStyle = '#2a1a4a';
+  ctx.fillRect(x - 18, y + 4, 22, 12);
+  ctx.fillStyle = '#f4e9d8';
+  ctx.fillRect(x - 16, y + 6, 18, 8);
+  ctx.strokeStyle = '#7a6a4a'; ctx.lineWidth = 0.6;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(x - 15, y + 7 + i*1.5); ctx.lineTo(x + 1, y + 7 + i*1.5); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Single rolled parchment scroll with red wax seal.
+function drawScroll(ctx, x, y) {
+  ctx.save();
+  ctx.fillStyle = '#e8d4b8';
+  ctx.beginPath(); ctx.ellipse(x, y, 22, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#d4b896';
+  ctx.beginPath(); ctx.ellipse(x - 18, y, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x + 18, y, 4, 5, 0, 0, Math.PI*2); ctx.fill();
+  // Red wax seal centred
+  ctx.fillStyle = '#a8101a';
+  ctx.beginPath(); ctx.arc(x, y - 1, 3.5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// Black iron candleholder with a single live candle.
+function drawIronCandle(ctx, x, y, t, seed) {
+  ctx.save();
+  // Base
+  ctx.fillStyle = '#0a0518';
+  ctx.beginPath(); ctx.ellipse(x, y + 14, 12, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(x - 1, y - 4, 2, 18);
+  // Cup
+  ctx.fillStyle = '#1a0e2c';
+  ctx.fillRect(x - 6, y - 6, 12, 4);
+  // Candle
+  ctx.fillStyle = '#f4e9c8';
+  ctx.fillRect(x - 2, y - 18, 4, 14);
+  // Flame
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const flick = 0.85 + 0.20*Math.sin(t*8 + seed);
+  ctx.globalAlpha = 0.85 * flick;
+  ctx.fillStyle = '#ffd66e';
+  ctx.beginPath(); ctx.ellipse(x, y - 22, 2.2, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 0.55 * flick;
+  ctx.fillStyle = '#ff8050';
+  ctx.beginPath(); ctx.ellipse(x, y - 24, 3, 6.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+// Larger wrought-iron candle chandelier (the one in Mays Room ref art).
+function drawBigIronChandelier(ctx, x, y, scale, t) {
+  scale = scale || 1.0;
+  ctx.save();
+  // Chain up to ceiling
+  ctx.strokeStyle = '#0a0518'; ctx.lineWidth = 2*scale;
+  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, y - 26*scale); ctx.stroke();
+  // Outer iron ring
+  ctx.strokeStyle = '#0a0518'; ctx.lineWidth = 3*scale;
+  ctx.beginPath(); ctx.ellipse(x, y, 48*scale, 12*scale, 0, 0, Math.PI*2); ctx.stroke();
+  // Inner iron ring (smaller)
+  ctx.beginPath(); ctx.ellipse(x, y - 6*scale, 30*scale, 7*scale, 0, 0, Math.PI*2); ctx.stroke();
+  // Vertical iron struts crossing the rings
+  for (let k = 0; k < 6; k++) {
+    const ang = (k / 6) * Math.PI * 2;
+    const x1 = x + Math.cos(ang) * 48 * scale;
+    const x2 = x + Math.cos(ang) * 30 * scale;
+    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y - 6*scale); ctx.stroke();
+  }
+  // 6 candles standing on the outer ring
+  for (let k = 0; k < 6; k++) {
+    const ang = (k / 6) * Math.PI * 2;
+    const cx = x + Math.cos(ang) * 48 * scale;
+    const cy = y + Math.sin(ang) * 12 * scale;
+    // Candle (cream)
+    ctx.fillStyle = '#f4e9c8';
+    ctx.fillRect(cx - 2, cy - 14*scale, 4*scale, 14*scale);
+    // Wax drip down the chandelier ring
+    ctx.fillStyle = '#e8d4a8';
+    ctx.fillRect(cx - 1, cy, 2*scale, 6*scale);
+    // Flame
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const flick = 0.85 + 0.18 * Math.sin(t*7 + k);
+    ctx.globalAlpha = 0.80 * flick;
+    ctx.fillStyle = '#ffd66e';
+    ctx.beginPath(); ctx.ellipse(cx, cy - 17*scale, 1.6*scale, 3.5*scale, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 0.55 * flick;
+    ctx.fillStyle = '#ff8050';
+    ctx.beginPath(); ctx.ellipse(cx, cy - 19*scale, 2.4*scale, 4.5*scale, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function drawSurgeHanger(ctx, room){
@@ -2512,6 +3087,506 @@ function drawSkeletonServant(ctx, x, y) {
   ctx.fillRect(x + 6, y + 2, 5, 6);
   ctx.fillStyle = '#e8b9d8';
   ctx.fillRect(x + 6, y + 1, 5, 1);
+  ctx.restore();
+}
+
+// ============================================================
+//   ENGINE ROOM — THE DREGE ENGINE
+//   Gothic cathedral interior dominated by a violet-cored cylinder
+//   engine, brass gears, copper pipework, and a stained-glass rose
+//   window on the port wall.
+// ============================================================
+function drawEngineRoom(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  // dark stone floor with cool indigo veining
+  drawStoneFloor(ctx, W, H, p, 11);
+  // walls
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#080414');
+  // Vaulted gothic arches in the back wall
+  for (let i = 0; i < 5; i++) {
+    const ax = 64 + i * ((W - 128) / 5);
+    const aw = (W - 128) / 5 - 4;
+    drawArchPath(ctx, ax+2, 12, aw-4, 90);
+    ctx.fillStyle = '#0a0810';
+    ctx.fill();
+    ctx.strokeStyle = '#1a1428';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  // Stained-glass rose window on the port wall (frame x≈3 tiles, y≈3 tiles)
+  drawRoseStainedGlass(ctx, 96, 192, 220, 280, t);
+  // Pressure pipes leaving the engine and feeding up into the ceiling
+  ctx.save();
+  for (const pipeX of [W*0.62, W*0.72, W*0.82]) {
+    ctx.fillStyle = '#3c2818';
+    ctx.fillRect(pipeX - 14, 64, 28, H - 200);
+    ctx.fillStyle = '#1a1208';
+    ctx.fillRect(pipeX - 14, 64, 4, H - 200);
+    ctx.fillRect(pipeX + 10, 64, 4, H - 200);
+    // brass collars every 80px
+    for (let py = 100; py < H - 220; py += 80) {
+      ctx.fillStyle = '#7e5a28';
+      ctx.fillRect(pipeX - 18, py, 36, 8);
+    }
+  }
+  ctx.restore();
+  // Side machinery (housings at the collidable squares — render iron boxes)
+  drawIronHousing(ctx, 2*64+8, 3*64+8, 2*64-16, 2*64-16, '#221a32');
+  drawIronHousing(ctx, 2*64+8, 9*64+8, 2*64-16, 2*64-16, '#221a32');
+  drawIronHousing(ctx, 24*64+8, 3*64+8, 2*64-16, 2*64-16, '#221a32');
+  drawIronHousing(ctx, 24*64+8, 10*64+8, 2*64-16, 2*64-16, '#221a32');
+  // The DREGE ENGINE — massive cylinder at tile region (14..23, 4..9)
+  drawDregeEngine(ctx, 14*64, 4*64, 9*64, 5*64, t);
+  // Floor sigil-rings glowing under the engine front
+  drawFloorSigilRings(ctx, (14+4.5)*64, 9.5*64, [55, 95, 140], t);
+  // Iron catwalk railing along the front catwalk (y=11.6 to 11.9)
+  ctx.save();
+  ctx.strokeStyle = '#5a4030';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(6*64, 11.6*64 + 8); ctx.lineTo(22*64, 11.6*64 + 8);
+  ctx.stroke();
+  ctx.fillStyle = '#3a2818';
+  for (let cx = 6*64; cx <= 22*64; cx += 48) {
+    ctx.fillRect(cx - 2, 11.6*64 + 8, 4, 16);
+  }
+  ctx.restore();
+  // Violet motes floating around the engine
+  drawCommandEmbers(ctx, W, H, t);
+}
+
+function drawDregeEngine(ctx, x, y, w, h, t) {
+  ctx.save();
+  // shadow under the engine
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath();
+  ctx.ellipse(x + w/2, y + h + 4, w*0.46, 22, 0, 0, Math.PI*2);
+  ctx.fill();
+  // outer iron frame
+  const grad = ctx.createLinearGradient(x, y, x, y+h);
+  grad.addColorStop(0, '#1c1424');
+  grad.addColorStop(0.5, '#3a2840');
+  grad.addColorStop(1, '#160e1c');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y + 24, w, h - 36);
+  // top dome
+  ctx.beginPath();
+  ctx.ellipse(x + w/2, y + 24, w/2, 28, 0, Math.PI, 0);
+  ctx.fill();
+  // bottom plate
+  ctx.beginPath();
+  ctx.ellipse(x + w/2, y + h - 12, w/2, 14, 0, 0, Math.PI);
+  ctx.fill();
+  // iron banding
+  ctx.strokeStyle = '#0a0612';
+  ctx.lineWidth = 3;
+  for (let i = 1; i < 6; i++) {
+    const by = y + 24 + i * (h - 60) / 6;
+    ctx.beginPath();
+    ctx.ellipse(x + w/2, by, w/2 - 4, 6, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  // VIOLET CORE — inner glowing window
+  const coreX = x + w*0.18, coreY = y + 60, coreW = w*0.64, coreH = h - 110;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.65 + 0.25 * Math.sin(t * 1.5);
+  // halo
+  ctx.fillStyle = `rgba(180,120,255,${0.18 * pulse})`;
+  ctx.fillRect(coreX - 30, coreY - 20, coreW + 60, coreH + 40);
+  // bright core column
+  const cg = ctx.createLinearGradient(coreX, 0, coreX + coreW, 0);
+  cg.addColorStop(0, 'rgba(120,40,200,0.95)');
+  cg.addColorStop(0.5, `rgba(220,170,255,${pulse})`);
+  cg.addColorStop(1, 'rgba(120,40,200,0.95)');
+  ctx.fillStyle = cg;
+  ctx.fillRect(coreX, coreY, coreW, coreH);
+  ctx.restore();
+  // rune ribbons floating in the core
+  ctx.save();
+  ctx.fillStyle = `rgba(255,230,255,${0.7 + 0.2*Math.sin(t*2)})`;
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  const runes = ['☥','✶','◈','✟','♰'];
+  for (let i = 0; i < 5; i++) {
+    const ry = coreY + 22 + ((t * 18 + i * 60) % (coreH - 20));
+    ctx.fillText(runes[i], x + w/2, ry);
+  }
+  ctx.restore();
+  // gear assembly on the right side of the engine
+  for (let i = 0; i < 3; i++) {
+    drawEngineGear(ctx, x + w + 14 + (i%2)*8, y + 80 + i * 70, 30 + (i%2)*8, t * (0.4 + i*0.1) * (i%2 ? -1 : 1));
+  }
+  ctx.restore();
+}
+
+function drawEngineGear(ctx, cx, cy, r, rot) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#5a4028';
+  // teeth
+  for (let i = 0; i < 12; i++) {
+    ctx.save();
+    ctx.rotate(i * Math.PI / 6);
+    ctx.fillRect(-4, -r - 4, 8, 8);
+    ctx.restore();
+  }
+  // body
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3a2818';
+  ctx.beginPath(); ctx.arc(0, 0, r*0.7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a1008';
+  ctx.beginPath(); ctx.arc(0, 0, r*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawIronHousing(ctx, x, y, w, h, fill) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(x+4, y+h-6, w-8, 8);
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#0a0612';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x+0.5, y+0.5, w-1, h-1);
+  // grille slats
+  ctx.fillStyle = '#0a0612';
+  for (let i = 0; i < 5; i++) {
+    ctx.fillRect(x + 8 + i*((w-16)/5), y + 10, 4, h - 20);
+  }
+  ctx.restore();
+}
+
+function drawRoseStainedGlass(ctx, x, y, w, h, t) {
+  ctx.save();
+  // dark frame
+  ctx.fillStyle = '#1a0e22';
+  ctx.fillRect(x - 8, y - 8, w + 16, h + 16);
+  // arch top
+  ctx.beginPath();
+  ctx.moveTo(x - 8, y);
+  ctx.lineTo(x - 8, y + h);
+  ctx.lineTo(x + w + 8, y + h);
+  ctx.lineTo(x + w + 8, y);
+  ctx.fill();
+  // rose petals
+  const cx = x + w/2, cy = y + h/2 - 30;
+  const rOuter = Math.min(w, h)*0.32;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(t * 0.05);
+  const colors = ['#a060d0','#5acaff','#ff7090','#ffa0ff','#7a40b8','#5acaff','#a060d0','#ff7090'];
+  for (let i = 0; i < 8; i++) {
+    ctx.save();
+    ctx.rotate(i * Math.PI / 4);
+    ctx.fillStyle = colors[i];
+    ctx.beginPath();
+    ctx.ellipse(0, -rOuter*0.6, rOuter*0.32, rOuter*0.55, 0, 0, Math.PI*2);
+    ctx.globalAlpha = 0.65 + 0.2 * Math.sin(t*0.8 + i);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+  // central glowing sun
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = 'rgba(255,220,255,0.7)';
+  ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI*2); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  // long stained-glass shaft below the rose
+  for (let i = 0; i < 4; i++) {
+    const sx = x + 14 + i * (w-28)/4, sw = (w-28)/4 - 4;
+    const sy = cy + 36, sh = y + h - sy - 10;
+    const grad = ctx.createLinearGradient(0, sy, 0, sy+sh);
+    grad.addColorStop(0, ['#9a55d8','#ff6090','#5acaff','#9a55d8'][i]);
+    grad.addColorStop(1, '#1a0820');
+    ctx.fillStyle = grad;
+    ctx.fillRect(sx, sy, sw, sh);
+  }
+  // leading
+  ctx.strokeStyle = '#080410';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
+// ============================================================
+//   COURT OF JUDGEMENT — Gothic court with cyan holo glyphs
+// ============================================================
+function drawJudgementCourt(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 13);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#02060a');
+  // Vaulted back wall with arched alcoves — cyan stained-glass slivers
+  for (let i = 0; i < 4; i++) {
+    const ax = 64 + 80 + i * ((W - 288) / 4);
+    const aw = (W - 288) / 4 - 8;
+    drawArchPath(ctx, ax, 16, aw, 110);
+    const grad = ctx.createLinearGradient(0, 16, 0, 126);
+    grad.addColorStop(0, 'rgba(70,220,255,0.85)');
+    grad.addColorStop(1, 'rgba(10,40,80,0.4)');
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.strokeStyle = '#0a182c'; ctx.lineWidth = 3; ctx.stroke();
+  }
+  // The Magistrate's dais (raised obsidian platform at x=9..15, y=2..4)
+  drawMagistrateDais(ctx, 9*64, 2*64, 6*64, 2*64, t);
+  // Witness gear pillars at (3,5)(20,5)(3,9)(20,9) — collidable 1x1 tiles
+  for (const [px, py] of [[3,5],[20,5],[3,9],[20,9]]) {
+    drawWitnessPillar(ctx, px*64+8, py*64+8, 48, 48, t);
+  }
+  // THE STAND — accused's iron ring at floor centre (around y=9 tile)
+  drawAccusedRing(ctx, 12*64, 9*64, 110, t);
+  // Floating cyan glyph readout above the dais
+  drawCyanGlyphs(ctx, 12*64, 3.4*64, t);
+  // Floor inlaid sigils between pillars (decorative)
+  drawFloorSigilRings(ctx, 12*64, 7*64, [40, 70, 100], t);
+  // Cool cyan motes
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 36; i++) {
+    const mx = (i * 67 + (t*16)) % W;
+    const my = (i * 113 + (t*22)) % H;
+    ctx.fillStyle = `rgba(120,240,255,${0.18 + 0.15*Math.sin(t+i)})`;
+    ctx.fillRect(mx, my, 2, 2);
+  }
+  ctx.restore();
+}
+
+function drawMagistrateDais(ctx, x, y, w, h, t) {
+  ctx.save();
+  // three iron steps
+  for (let s = 0; s < 3; s++) {
+    ctx.fillStyle = ['#1a1828','#252238','#322e48'][s];
+    ctx.fillRect(x - 6 + s*4, y + h - 12 + s*4, w + 12 - s*8, 8);
+  }
+  // dais top (obsidian)
+  const grad = ctx.createLinearGradient(0, y, 0, y+h);
+  grad.addColorStop(0, '#0a0814');
+  grad.addColorStop(1, '#181628');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+  // cyan edge glow
+  ctx.strokeStyle = `rgba(90,220,255,${0.6+0.25*Math.sin(t*1.5)})`;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x+1.5, y+1.5, w-3, h-3);
+  // central sigil pulse
+  ctx.fillStyle = `rgba(90,220,255,${0.4 + 0.2*Math.sin(t*2)})`;
+  ctx.beginPath(); ctx.arc(x + w/2, y + h*0.55, 16, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawWitnessPillar(ctx, x, y, w, h, t) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(x+2, y+h-6, w-4, 8);
+  ctx.fillStyle = '#0e1828';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#06101a'; ctx.lineWidth = 2;
+  ctx.strokeRect(x+0.5, y+0.5, w-1, h-1);
+  // cyan rune-cables threaded vertically
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    const cx = x + 10 + i * (w-20)/2;
+    ctx.fillStyle = `rgba(90,220,255,${0.55 + 0.25*Math.sin(t*2 + i)})`;
+    ctx.fillRect(cx-1, y+6, 2, h-12);
+  }
+  ctx.restore();
+}
+
+function drawAccusedRing(ctx, cx, cy, r, t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(120,240,255,${0.55+0.25*Math.sin(t*2)})`;
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.5, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = `rgba(90,220,255,${0.35+0.2*Math.sin(t*2.4)})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.55, 0, Math.PI*2); ctx.stroke();
+  // 4 cardinal sigils around the ring
+  const sigs = ['⚖','✟','◊','✶'];
+  ctx.font = 'bold 18px Cinzel,Georgia,serif';
+  ctx.fillStyle = `rgba(180,250,255,${0.7+0.2*Math.sin(t*2)})`;
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI/2 + Math.PI/2;
+    ctx.fillText(sigs[i], cx + Math.cos(a)*(r*0.5+12), cy + Math.sin(a)*(r*0.5+12) + 6);
+  }
+  ctx.restore();
+}
+
+function drawCyanGlyphs(ctx, cx, cy, t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  // three columns of scrolling glyphs
+  for (let col = 0; col < 3; col++) {
+    const x = cx + (col - 1) * 56;
+    for (let row = 0; row < 6; row++) {
+      const ch = ['◇','⌬','▢','▣','⌖','⊞'][(row+col*7) % 6];
+      const y = cy - 28 + ((row * 14 + (t*22 - col*8)) % 90);
+      ctx.fillStyle = `rgba(110,230,255,${0.35 + 0.3*Math.sin(t*2 + row + col)})`;
+      ctx.fillText(ch, x, y);
+    }
+  }
+  ctx.restore();
+}
+
+// ============================================================
+//   CREATION LEVELER ENGINE — neon turquoise & pink cathedral
+//   The ancient engine that lets Death\'s Ship walk strata.
+// ============================================================
+function drawCreationLeveler(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 19);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#02060a');
+  // Back-wall vaulted arches with deep night-sky tint
+  for (let i = 0; i < 7; i++) {
+    const ax = 80 + i * ((W - 160) / 7);
+    const aw = (W - 160) / 7 - 6;
+    drawArchPath(ctx, ax, 16, aw, 110);
+    const grad = ctx.createLinearGradient(0, 16, 0, 126);
+    grad.addColorStop(0, 'rgba(40,20,70,0.95)');
+    grad.addColorStop(1, 'rgba(10,30,60,0.4)');
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.strokeStyle = '#08101a'; ctx.lineWidth = 2; ctx.stroke();
+  }
+  // Central LEVELER COLUMN (collidable 6x6 at tile 12..18, 5..11)
+  drawLevelerColumn(ctx, 12*64, 5*64, 6*64, 6*64, t);
+  // Pink rotors (3*64 area at 3..6,7..10 and 24..27,7..10)
+  drawLevelerRotor(ctx, 3*64+8, 7*64+8, 3*64-16, 3*64-16, t, false);
+  drawLevelerRotor(ctx, 24*64+8, 7*64+8, 3*64-16, 3*64-16, t, true);
+  // Lattice scaffolding mini-cells
+  drawIronHousing(ctx, 9*64+8, 12*64+8, 48, 48, '#0a1418');
+  drawIronHousing(ctx, 20*64+8, 12*64+8, 48, 48, '#0a1418');
+  // Strata readout floor panel near (15,12)
+  drawStrataReadout(ctx, 15*64, 12.4*64, t);
+  // Cool sparkle motes drifting up
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 60; i++) {
+    const mx = (i * 89 + 0.4*t*40) % W;
+    const phase = (i * 0.7 + t * 0.6) % 1;
+    const my = H - phase * H;
+    const tint = i % 3 === 0 ? 'rgba(255,120,200,' : 'rgba(80,240,220,';
+    ctx.fillStyle = tint + (0.25 + 0.2*Math.sin(t*2 + i)) + ')';
+    ctx.fillRect(mx, my, 2, 2);
+  }
+  ctx.restore();
+}
+
+function drawLevelerColumn(ctx, x, y, w, h, t) {
+  ctx.save();
+  // halo behind column
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.55 + 0.25 * Math.sin(t * 1.2);
+  ctx.fillStyle = `rgba(60,240,210,${0.12 * pulse})`;
+  ctx.fillRect(x - 40, y - 16, w + 80, h + 32);
+  ctx.globalCompositeOperation = 'source-over';
+  // iron scaffolding frame
+  ctx.fillStyle = '#08101a';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#142028'; ctx.lineWidth = 3;
+  ctx.strokeRect(x+1.5, y+1.5, w-3, h-3);
+  // diagonal lattice
+  ctx.strokeStyle = '#1c2c38'; ctx.lineWidth = 1.5;
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + i * (h/8));
+    ctx.lineTo(x + w, y + (i+1) * (h/8));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + w, y + i * (h/8));
+    ctx.lineTo(x, y + (i+1) * (h/8));
+    ctx.stroke();
+  }
+  // glowing teal core
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const cg = ctx.createLinearGradient(x + w*0.3, 0, x + w*0.7, 0);
+  cg.addColorStop(0, 'rgba(20,80,90,0.9)');
+  cg.addColorStop(0.5, `rgba(120,255,230,${pulse})`);
+  cg.addColorStop(1, 'rgba(20,80,90,0.9)');
+  ctx.fillStyle = cg;
+  ctx.fillRect(x + w*0.3, y + 8, w*0.4, h - 16);
+  ctx.restore();
+  // central floating rune
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.font = 'bold 32px Cinzel,Georgia,serif';
+  ctx.fillStyle = `rgba(220,255,250,${0.8 + 0.15*Math.sin(t*2.4)})`;
+  ctx.textAlign = 'center';
+  ctx.fillText((Math.floor(t*0.3) % 2 === 0) ? '▽' : '△', x + w/2, y + h/2 + 10);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawLevelerRotor(ctx, x, y, w, h, t, cw) {
+  const cx = x + w/2, cy = y + h/2;
+  const r = Math.min(w, h)/2;
+  ctx.save();
+  // base disc
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath(); ctx.arc(cx, cy + 4, r*0.95, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#0a0818';
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.95, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#1c1828'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, r*0.95, 0, Math.PI*2); ctx.stroke();
+  // rotating sigil ring
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((cw ? 1 : -1) * t * 0.4);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(255,90,180,${0.65 + 0.2*Math.sin(t*1.6)})`;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(0, 0, r*0.7, 0, Math.PI*2); ctx.stroke();
+  // sigil notches
+  ctx.fillStyle = `rgba(255,150,220,${0.85})`;
+  for (let i = 0; i < 12; i++) {
+    ctx.save();
+    ctx.rotate(i * Math.PI / 6);
+    ctx.fillRect(-3, -r*0.86, 6, 14);
+    ctx.restore();
+  }
+  // inner star
+  ctx.strokeStyle = `rgba(255,110,200,0.8)`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    const x1 = Math.cos(a) * r*0.5, y1 = Math.sin(a) * r*0.5;
+    const a2 = a + Math.PI;
+    ctx.moveTo(x1, y1); ctx.lineTo(Math.cos(a2)*r*0.5, Math.sin(a2)*r*0.5);
+  }
+  ctx.stroke();
+  // central hub
+  ctx.fillStyle = `rgba(255,180,230,${0.9})`;
+  ctx.beginPath(); ctx.arc(0, 0, r*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawStrataReadout(ctx, cx, cy, t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = `rgba(80,240,220,${0.85+0.15*Math.sin(t*2)})`;
+  ctx.fillText('-47 · DESCENDING', cx, cy);
+  ctx.fillStyle = `rgba(80,240,220,${0.6+0.2*Math.sin(t*2.5)})`;
+  ctx.fillText('LOCK STABLE', cx, cy + 14);
   ctx.restore();
 }
 
@@ -3062,6 +4137,11 @@ const ALL_LOCATIONS = [
   ['dorm_hall','Reaper Dorm Hall', true],
   ['mays_room',"May's Room", true],
   ['surge_hanger','The Surge Hanger', true],
+  ['grand_corridor','The Grand Corridor', true],
+  ['grand_hall','The Grand Hall', true],
+  ['engine_room','The Engine Room (Drege Engine)', true],
+  ['judgement_court','The Court of Judgement', true],
+  ['creation_leveler','The Creation Leveler Engine', true],
   ['deaths_office',"Death's Office", false],
   ['vivians_room',"Vivian's Room", false],
   ['memory_hall',"Death's Memory Hall", false],
@@ -3320,6 +4400,9 @@ window.addEventListener('keydown', e => {
   else if (e.code === 'Digit2') loadRoom('dorm_hall');
   else if (e.code === 'Digit3') loadRoom('mays_room');
   else if (e.code === 'Digit4') loadRoom('surge_hanger');
+  else if (e.code === 'Digit5') loadRoom('engine_room');
+  else if (e.code === 'Digit6') loadRoom('judgement_court');
+  else if (e.code === 'Digit7') loadRoom('creation_leveler');
 });
 
 const dpadEl = document.getElementById('dpad');

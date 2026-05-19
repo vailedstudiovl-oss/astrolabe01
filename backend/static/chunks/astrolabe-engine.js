@@ -404,7 +404,12 @@
             }
             
             let isStable = !isDead && (faction !== FACTIONS.UNCLAIMED || Math.random() > 0.4);
-            TERRITORY_DATA[i] = { title, faction, isDead, isStable };
+            // Soul-Infestation: ~6% of non-dead strata are flagged as INFESTED.
+            // Heavily skewed toward the negative (Lovecraftian) layers; deep
+            // positive strata are nearly immune. Centurion Guard responds.
+            let infestChance = isDead ? 0 : (i < -20 ? 0.10 : (i < 0 ? 0.06 : 0.015));
+            let isInfested = Math.random() < infestChance;
+            TERRITORY_DATA[i] = { title, faction, isDead, isStable, isInfested };
 
             // CANON: Each LAYER contains many realities. Higher |level| → fewer realities
             // ("the weight of deeds gets harder to reach"). Approx exponential falloff.
@@ -420,6 +425,7 @@
                         faction: realityPoi.faction, 
                         isDead: i === -66 || i === -99, 
                         isStable: true,
+                        isInfested: false,
                         realityCount: TERRITORY_DATA[i].realityCount
                     };
                 }
@@ -761,8 +767,72 @@
                 const wireDisc = new THREE.Mesh(new THREE.RingGeometry(innerRadius, outerRadius, 64), new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: i === 0 ? 0.4 : 0.15, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -i - 0.5 }));
                 wireDisc.renderOrder = (100 - Math.abs(i)) + 0.5;
                 disc.add(wireDisc); 
-                disc.userData = { level: i, originalColor: color, originalOpacity: material.opacity, originalWireOpacity: wireDisc.material.opacity, isDead: TERRITORY_DATA[i].isDead };
+                disc.userData = { level: i, originalColor: color, originalOpacity: material.opacity, originalWireOpacity: wireDisc.material.opacity, isDead: TERRITORY_DATA[i].isDead, isInfested: !!TERRITORY_DATA[i].isInfested };
                 discMeshes[i] = disc; astrolabeGroup.add(disc);
+
+                // SOUL-INFESTATION OVERLAY — sickly green pulsing wound-ring
+                // hovering just above the disc, with rotating tendril lines.
+                if (TERRITORY_DATA[i].isInfested) {
+                    const infestGroup = new THREE.Group();
+                    infestGroup.position.y = i * ySpacing + 0.05;
+                    // Wound ring — bright green
+                    const woundMat = new THREE.MeshBasicMaterial({
+                        color: 0x4cff77,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.75,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false
+                    });
+                    const wound = new THREE.Mesh(
+                        new THREE.RingGeometry(Math.max(innerRadius + 0.4, outerRadius * 0.4), outerRadius * 0.85, 80),
+                        woundMat
+                    );
+                    wound.rotation.x = Math.PI / 2;
+                    wound.renderOrder = (100 - Math.abs(i)) + 0.7;
+                    infestGroup.add(wound);
+                    // Inner sickly halo
+                    const halo = new THREE.Mesh(
+                        new THREE.CircleGeometry(outerRadius * 0.4, 48),
+                        new THREE.MeshBasicMaterial({
+                            color: 0x88ff88, side: THREE.DoubleSide,
+                            transparent: true, opacity: 0.35,
+                            blending: THREE.AdditiveBlending, depthWrite: false
+                        })
+                    );
+                    halo.rotation.x = Math.PI / 2;
+                    halo.renderOrder = (100 - Math.abs(i)) + 0.8;
+                    infestGroup.add(halo);
+                    // Rotating tendril lines (cross of 4 thin radial bars)
+                    const tendrilMat = new THREE.LineBasicMaterial({
+                        color: 0x99ffaa, transparent: true, opacity: 0.6,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const tendrilGeo = new THREE.BufferGeometry();
+                    const tendrilPts = [];
+                    const segs = 6;
+                    for (let k = 0; k < segs; k++) {
+                        const angle = (k * Math.PI * 2) / segs;
+                        const r1 = outerRadius * 0.42;
+                        const r2 = outerRadius * 0.95;
+                        tendrilPts.push(
+                            Math.cos(angle) * r1, 0, Math.sin(angle) * r1,
+                            Math.cos(angle) * r2, 0, Math.sin(angle) * r2
+                        );
+                    }
+                    tendrilGeo.setAttribute('position', new THREE.Float32BufferAttribute(tendrilPts, 3));
+                    const tendrils = new THREE.LineSegments(tendrilGeo, tendrilMat);
+                    tendrils.renderOrder = (100 - Math.abs(i)) + 0.9;
+                    infestGroup.add(tendrils);
+                    infestGroup.userData = {
+                        kind: 'infestation',
+                        baseLevel: i,
+                        wound, halo, tendrils
+                    };
+                    astrolabeGroup.add(infestGroup);
+                    if (!window.__INFESTATION_GROUPS) window.__INFESTATION_GROUPS = [];
+                    window.__INFESTATION_GROUPS.push(infestGroup);
+                }
 
                 const volPlane = new THREE.Mesh(new THREE.CircleGeometry(4.5, 64), new THREE.MeshBasicMaterial({ color: color, map: spineTex, transparent: true, opacity: i === 0 ? 0.9 : 0.15, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
                 volPlane.rotation.x = Math.PI / 2; volPlane.position.y = i * ySpacing;
@@ -986,6 +1056,7 @@
                 if (isFactionFilter) { tc = 0x111111; to = 0.03; two = 0.01; } 
                 else if (type === 'stable') { if (data.isStable) { tc = 0x00aaff; to = 0.8; two = 0.6; } else { tc = 0x222222; to = 0.05; two = 0.02; } } 
                 else if (type === 'dead') { if (!data.isDead) { tc = 0x222222; to = 0.05; two = 0.02; } }
+                else if (type === 'infested') { if (data.isInfested) { tc = 0x4cff77; to = 0.9; two = 0.7; } else { tc = 0x222222; to = 0.04; two = 0.02; } }
                 disc.material.color.setHex(tc); disc.material.opacity = to;
                 if(disc.children.length > 0) { disc.children[0].material.color.setHex(tc); disc.children[0].material.opacity = two; }
             });
@@ -1007,6 +1078,7 @@
                 let isMatch = true;
                 if (type === 'dead' && !data.isDead) isMatch = false;
                 else if (type === 'stable' && !data.isStable) isMatch = false;
+                else if (type === 'infested' && !data.isInfested) isMatch = false;
                 else if (isFactionFilter) {
                     const sf = type.replace('factions-', '');
                     if (type === 'factions' && poiFaction === FACTIONS.UNCLAIMED) isMatch = false;
@@ -1965,6 +2037,19 @@
             if (projectorGroup) projectorGroup.children.forEach(child => { if (child.userData.rotSpeed) child.rotation.z += child.userData.rotSpeed; });
             poiMeshes.forEach(marker => { marker.rotation.y += 0.02; marker.rotation.x += 0.01; });
 
+            // === SOUL-INFESTATION ANIMATION ===
+            // Pulse the wound-ring opacity, slowly spin the tendril cross.
+            if (window.__INFESTATION_GROUPS) {
+                for (const g of window.__INFESTATION_GROUPS) {
+                    const ud = g.userData;
+                    if (!ud) continue;
+                    const pulse = 0.55 + 0.35 * Math.sin(t * 1.6 + ud.baseLevel * 0.4);
+                    if (ud.wound) ud.wound.material.opacity = pulse;
+                    if (ud.halo)  ud.halo.material.opacity  = 0.20 + 0.20 * Math.sin(t * 2.1 + ud.baseLevel);
+                    if (ud.tendrils) ud.tendrils.rotation.y = t * 0.35 + ud.baseLevel * 0.3;
+                }
+            }
+
             // === Dynamic bloom attenuation when zooming in ===
             // The closer the camera is to the spindle center, the less bloom we render
             // — keeps close-up text/strata crisp, while still letting the bloom dazzle
@@ -2377,6 +2462,7 @@
                 let loreText = templateList[loreIndex];
 
                 if (data.isDead) loreText = "WARNING: Collapsed reality strand. Standard physics do not apply here. Heavy chronal distortions, rogue data remnants, and necrotic energy signatures detected throughout the sector. Survival rate without specialized shielding is 0%. Do not linger. " + loreText;
+                if (data.isInfested) loreText = "⚠ CENTURION ALERT — SOUL-INFESTATION ACTIVE. This strata has been overrun by soul-parasites; reality is being slowly consumed from the inside. The Centurion Guard has been dispatched to contain the breach. Do not engage. " + loreText;
                 
                 bodyEl.innerHTML = `<p class="text-gray-200">${loreText}</p><p class="mt-4 text-gray-500">>> STRATA OFFSET: ${level} | ESTIMATED DENSITY: ${(Math.random() * 99).toFixed(2)}%</p>`;
             }
@@ -3231,8 +3317,8 @@
                     const pois = POIS[lvl] || [];
                     document.getElementById('rt-level').innerText = (lvl > 0 ? '+' : '') + lvl;
                     document.getElementById('rt-faction').innerText = data.faction.name.toUpperCase().slice(0, 18);
-                    document.getElementById('rt-status').innerText = data.isDead ? 'DEAD' : (data.isStable ? 'STABLE' : 'UNSTABLE');
-                    document.getElementById('rt-status').style.color = data.isDead ? '#ff4444' : (data.isStable ? '#00ffcc' : '#ffaa00');
+                    document.getElementById('rt-status').innerText = data.isInfested ? 'INFESTED' : (data.isDead ? 'DEAD' : (data.isStable ? 'STABLE' : 'UNSTABLE'));
+                    document.getElementById('rt-status').style.color = data.isInfested ? '#4cff77' : (data.isDead ? '#ff4444' : (data.isStable ? '#00ffcc' : '#ffaa00'));
                     document.getElementById('rt-pois').innerText = pois.length || '0';
                 }
                 // live flux jitter
@@ -3593,6 +3679,7 @@
                 bodyText = list[Math.abs(lvl * 13) % list.length];
             }
             if (data.isDead && !poi) bodyText = 'WARNING: Collapsed reality strand. ' + bodyText;
+            if (data.isInfested && !poi) bodyText = '⚠ CENTURION ALERT — SOUL-INFESTATION ACTIVE. ' + bodyText;
             typewriter('tour-body', bodyText, 22);
 
             checkAchievements();

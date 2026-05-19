@@ -4489,6 +4489,8 @@ function update(dt) {
   if (state.player.moving) {
     state.player.animTime += dt;
     state.player.animFrame = Math.floor(state.player.animTime * 16) % 25;
+    // Procedural footstep — running gives a faster cadence
+    if (window.AmbientAudio) AmbientAudio.footstep('player', { running: speed > 220 });
   } else {
     state.player.animTime = 0; state.player.animFrame = 0;
   }
@@ -4514,6 +4516,16 @@ function update(dt) {
     npc.y += ny * step;
     npc._moving = true;
     npc.flip = nx < 0;
+    // Distant footstep for NPC — softer than the player's
+    if (window.AmbientAudio) {
+      // Distance-based attenuation: NPCs further away are quieter
+      const ddx = npc.x*64 - state.player.x, ddy = npc.y*64 - state.player.y;
+      const npcDist = Math.hypot(ddx, ddy);
+      if (npcDist < 700) {
+        AmbientAudio.footstep('npc_'+(npc.label||npc.x+'_'+npc.y),
+          { running: (npc.speed||1.5) > 1.8, distant: npcDist > 250 });
+      }
+    }
   }
 
   // interactables (use generous radius)
@@ -4894,6 +4906,7 @@ function enterDoor(door){
   // Guard against re-entry from a still-in-progress fade
   if (state.fading) return;
   console.log('[door] entering', door.to, 'spawn', door.spawn);
+  if (typeof playDoorCue === 'function') playDoorCue();
   state.fading = true;
   const fade = document.getElementById('fade');
   fade.classList.add('show');
@@ -5160,6 +5173,195 @@ const News = (function(){
 window.News = News; // expose for debugging / programmatic trigger
 
 // ============================================================
+//   AMBIENT AUDIO ENGINE
+//   Procedural footsteps, distant whisper-chatter, and a slow
+//   gothic-organ drone — all built with one shared AudioContext.
+// ============================================================
+const AmbientAudio = (function() {
+  let ctx = null;
+  let masterGain = null;
+  let ambientBus = null;     // for chatter + drone
+  let sfxBus = null;         // for footsteps + door cues
+  let started = false;
+  let droneNodes = [];
+  let chatterTimer = null;
+  let lastFootAt = { player: 0 };
+
+  function ensureCtx() {
+    if (ctx) return ctx;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain(); masterGain.gain.value = 0.85; masterGain.connect(ctx.destination);
+    ambientBus = ctx.createGain(); ambientBus.gain.value = 0.55; ambientBus.connect(masterGain);
+    sfxBus = ctx.createGain();     sfxBus.gain.value = 0.7;     sfxBus.connect(masterGain);
+    return ctx;
+  }
+
+  // --- FOOTSTEPS — short low-passed noise burst with a click-thump
+  function footstep(speakerKey, opts) {
+    if (!started) return;
+    const c = ctx;
+    const now = c.currentTime;
+    const last = lastFootAt[speakerKey] || 0;
+    const minGap = opts && opts.running ? 0.20 : 0.34;
+    if (now - last < minGap) return;
+    lastFootAt[speakerKey] = now;
+    // Noise burst
+    const bufLen = Math.floor(c.sampleRate * 0.16);
+    const buf = c.createBuffer(1, bufLen, c.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const env = Math.exp(-i / (bufLen * 0.3));
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = c.createBufferSource(); src.buffer = buf;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.value = opts && opts.running ? 1100 : 750;
+    lp.Q.value = 0.7;
+    const g = c.createGain();
+    const peak = (opts && opts.distant) ? 0.035 : (opts && opts.running ? 0.13 : 0.09);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(peak, now + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    src.connect(lp); lp.connect(g); g.connect(sfxBus);
+    src.start(now); src.stop(now + 0.2);
+    // Subtle low-thump
+    const o = c.createOscillator(); const og = c.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(opts && opts.running ? 95 : 70, now);
+    o.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+    og.gain.setValueAtTime(0, now);
+    og.gain.linearRampToValueAtTime(peak * 0.65, now + 0.01);
+    og.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    o.connect(og); og.connect(sfxBus);
+    o.start(now); o.stop(now + 0.16);
+  }
+
+  // --- DISTANT WHISPER CHATTER — formant-shaped noise pulses
+  function scheduleChatter() {
+    if (!started) return;
+    const c = ctx;
+    const now = c.currentTime;
+    // Random whisper "syllable" — a short noise burst routed through a bandpass
+    const dur = 0.18 + Math.random() * 0.4;
+    const bufLen = Math.floor(c.sampleRate * dur);
+    const buf = c.createBuffer(1, bufLen, c.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const env = Math.sin(Math.PI * i / bufLen);
+      data[i] = (Math.random() * 2 - 1) * env * 0.6;
+    }
+    const src = c.createBufferSource(); src.buffer = buf;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = 600 + Math.random() * 1200;
+    bp.Q.value = 4 + Math.random() * 6;
+    const delay = c.createDelay(); delay.delayTime.value = 0.07;
+    const fb = c.createGain(); fb.gain.value = 0.38;
+    const g = c.createGain(); g.gain.value = 0.08 + Math.random() * 0.05;
+    // pan slightly
+    let panner = null;
+    try { panner = c.createStereoPanner(); panner.pan.value = (Math.random()*2 - 1) * 0.85; } catch(e){}
+    src.connect(bp);
+    bp.connect(delay); delay.connect(fb); fb.connect(delay);
+    bp.connect(g); delay.connect(g);
+    if (panner) { g.connect(panner); panner.connect(ambientBus); } else { g.connect(ambientBus); }
+    src.start(now); src.stop(now + dur + 0.1);
+    // schedule next chatter — 6–14s gap, random
+    const next = 5500 + Math.random() * 9000;
+    chatterTimer = setTimeout(scheduleChatter, next);
+  }
+
+  // --- GOTHIC ORGAN DRONE — sustained pad, slow chord progression
+  function startDrone() {
+    if (!started) return;
+    const c = ctx;
+    const now = c.currentTime;
+    // Three slowly-overlapping voices forming a minor 6th–7th pad
+    // base ~ A1 (55), with E2 (82.4) and C3 (~130.8)
+    const freqs = [55, 82.41, 130.81];
+    const overall = c.createGain(); overall.gain.value = 0.0; overall.connect(ambientBus);
+    overall.gain.linearRampToValueAtTime(0.34, now + 4.0);
+    droneNodes.push(overall);
+    // Slow chorus modulation
+    const lfo = c.createOscillator(); lfo.frequency.value = 0.07;
+    const lfoGain = c.createGain(); lfoGain.gain.value = 1.6;
+    lfo.connect(lfoGain);
+    lfo.start(now);
+    droneNodes.push(lfo);
+    freqs.forEach((f, i) => {
+      // Two detuned saw-tooths per voice — organ-like reediness
+      [0, 1].forEach(j => {
+        const o = c.createOscillator(); o.type = 'sawtooth';
+        o.frequency.value = f * (j === 0 ? 1.0 : 1.005);
+        lfoGain.connect(o.frequency);
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass';
+        lp.frequency.value = 380 + i * 70; lp.Q.value = 4;
+        const og = c.createGain(); og.gain.value = 0.07 / freqs.length;
+        // gentle amplitude wobble per voice
+        const ampLfo = c.createOscillator(); ampLfo.frequency.value = 0.04 + i*0.013;
+        const ampLfoGain = c.createGain(); ampLfoGain.gain.value = 0.018;
+        ampLfo.connect(ampLfoGain); ampLfoGain.connect(og.gain);
+        ampLfo.start(now);
+        o.connect(lp); lp.connect(og); og.connect(overall);
+        o.start(now);
+        droneNodes.push(o); droneNodes.push(ampLfo);
+      });
+    });
+    // Add a tall fifth above (E3 ~ 164.8) that fades in much later
+    const upperOsc = c.createOscillator(); upperOsc.type = 'triangle';
+    upperOsc.frequency.value = 164.81;
+    const upperGain = c.createGain(); upperGain.gain.value = 0;
+    upperGain.gain.setValueAtTime(0, now + 14);
+    upperGain.gain.linearRampToValueAtTime(0.03, now + 30);
+    upperOsc.connect(upperGain); upperGain.connect(overall);
+    upperOsc.start(now);
+    droneNodes.push(upperOsc);
+  }
+
+  function start() {
+    if (started) return;
+    ensureCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    started = true;
+    startDrone();
+    chatterTimer = setTimeout(scheduleChatter, 4000);
+  }
+
+  function setVolume(v) {
+    if (!ctx || !masterGain) return;
+    masterGain.gain.value = Math.max(0, Math.min(1, v));
+  }
+
+  function pause() {
+    if (!ctx) return;
+    if (ctx.state === 'running') ctx.suspend();
+  }
+  function resume() {
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  return { start, footstep, setVolume, pause, resume,
+           isStarted: () => started, getCtx: () => ctx };
+})();
+window.AmbientAudio = AmbientAudio;
+
+// Door enter cue — short bell tone
+function playDoorCue() {
+  if (!AmbientAudio.isStarted()) return;
+  try {
+    const c = AmbientAudio.getCtx();
+    const now = c.currentTime;
+    const o = c.createOscillator(); const g = c.createGain();
+    o.type = 'triangle'; o.frequency.value = 220;
+    o.frequency.exponentialRampToValueAtTime(330, now + 0.18);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.08, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    o.connect(g); g.connect(c.destination);
+    o.start(now); o.stop(now + 0.6);
+  } catch (e) {}
+}
+
+// ============================================================
 //   GAME MUSIC — softly pause when ad plays, resume after.
 // ============================================================
 // (We reuse the existing /api/static/dimensionlock_theme.mp3 if available.)
@@ -5195,7 +5397,7 @@ const keyMap = {
   'ArrowRight':'right', 'KeyD':'right',
 };
 window.addEventListener('keydown', e => {
-  if (keyMap[e.code]) { state.keys[keyMap[e.code]] = true; e.preventDefault(); startGameMusic(); }
+  if (keyMap[e.code]) { state.keys[keyMap[e.code]] = true; e.preventDefault(); startGameMusic(); if (window.AmbientAudio) AmbientAudio.start(); }
   if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') {
     if (document.getElementById('modal').classList.contains('show')) closeModal();
     else interact();

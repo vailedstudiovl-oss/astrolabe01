@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; font-size: 13px; line-height: 1.5; }
+  h1 { font-size: 30px; font-weight: bold; }
+  h2 { font-size: 19px; font-weight: bold; margin-top: 28px; }
+  h3 { font-size: 14px; font-weight: bold; }
+  .tasks ul { list-style: disc; padding-left: 24px; color: purple; font-weight: bold; font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; margin-bottom: 40px; }
+  th { background-color: #f0f0f0; font-weight: bold; text-align: left; padding: 8px; border: 1px solid #ccc; }
+  td { padding: 8px; border: 1px solid #ccc; vertical-align: top; background-color: #dce6f1; }
+  td.suggested { background-color: #eaf4e0; }
+  td.vivian-arc { background-color: #f3e5f5; }
+  td.ely-arc { background-color: #fde0dc; }
+  td.char-arc { background-color: #e8f5e9; }
+  td.death-arc { background-color: #e8eaf6; }
+  td.pivot { background-color: #fff8e1; }
+  td.lightbringer { background-color: #fff9e6; border-left: 3px solid #f9a825; }
+  td.sam-arc { background-color: #e0f7fa; }
+  td.agitator-arc { background-color: #fbe9e7; }
+  td.iza-kiza { background-color: #f1f8e9; }
+  .badge-critical { background-color: #e06c4e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .badge-high { background-color: #f0b429; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .badge-low { background-color: #78c26a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .badge-finished { background-color: #3cb371; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .badge-notstarted { background-color: #e08c2e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .badge-wip { background-color: #5b9bd5; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .badge-suggested { background-color: #9b59b6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+  .chapter-link { color: #1155cc; text-decoration: underline; font-weight: bold; }
+  .official-title { font-size: 10px; color: #444; font-style: italic; display: block; margin-top: 2px; }
+  ul.overview { padding-left: 16px; margin: 4px 0; }
+  ul.overview li { margin-bottom: 3px; }
+  .lore-note { border-left: 3px solid #c0392b; background-color: #fce4ec; padding: 4px 8px; font-size: 10px; font-style: italic; margin-top: 5px; }
+  .lore-note.blue { background-color: #e3f2fd; border-left-color: #1565c0; }
+  .lore-note.purple { background-color: #f3e5f5; border-left-color: #7b1fa2; }
+  .lore-note.green { background-color: #e8f5e9; border-left-color: #2e7d32; }
+  .lore-note.gold { background-color: #fff8e1; border-left-color: #f9a825; }
+  .lore-note.orange { background-color: #fbe9e7; border-left-color: #bf360c; }
+  .lore-note.teal { background-color: #e0f7fa; border-left-color: #00695c; }
+  .arc-end { background-color: #fff3cd; border-left: 4px solid #f0b429; padding: 14px; margin: 30px 0; font-size: 12px; }
+  .section-title { font-size: 16px; font-weight: bold; margin-top: 36px; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 4px; }
+  .legend { font-size: 11px; margin: 10px 0 16px 0; }
+  .legend span { margin-right: 10px; display: inline-block; margin-bottom: 4px; }
+  .milestone { background-color: #fff9c4; border: 1px solid #f9a825; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 3px; display: inline-block; margin: 2px 0; }
+  .arc-tag { font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-right: 3px; display: inline-block; }
+  .tag-may { background:#ede7f6; color:#4527a0; }
+  .tag-vivian { background:#f3e5f5; color:#6a1b9a; }
+  .tag-ely { background:#fce4ec; color:#880e4f; }
+  .tag-death { background:#e8eaf6; color:#1a237e; }
+  .tag-cryious { background:#e8f5e9; color:#1b5e20; }
+  .tag-flybutt { background:#fff8e1; color:#e65100; }
+  .tag-sam { background:#e0f7fa; color:#006064; }
+  .tag-madoria { background:#e0f2f1; color:#004d40; }
+  .tag-agitator { background:#fbe9e7; color:#bf360c; }
+  .tag-iza { background:#f1f8e9; color:#33691e; }
+  .tag-kiza { background:#f9fbe7; color:#558b2f; }
+  .tag-lightbringer { background:#fff9e6; color:#e65100; }
+  .tag-lurker { background:#efebe9; color:#4e342e; }
+  .tag-sentry { background:#eeeeee; color:#212121; }
+</style>
+</head>
+<body>
+
+<h1>CHAPTER SYNOP SYSTEM — ARC 1 (85 Chapters)</h1>
+<p style="font-size:11px;color:#555;">Enhanced with DLDS Master Guide + Character Charts. All factions represented. Lightbringer faction threads woven throughout. Official chapter titles integrated. Character-accurate voices, powers, and relationships used in all overviews.</p>
+
+<h2>DIMENSIONLOCK: DEATHLY STORIES — Synop Lore Guide</h2>
+
+<h3>CORE STORY THEMES</h3>
+<ol style="font-size:12px; margin-bottom:10px;">
+  <li>Learning to move on.</li>
+  <li>Learning to forgive oneself.</li>
+  <li>Finding what it means to be good in a world that's infinitely evil.</li>
+  <li>Cherish the things that are close to us.</li>
+</ol>
+
+<h3>TASKS FOR WRITERS</h3>
+<div class="tasks"><ul>
+  <li>USE BOTH DIMENSIONLOCK:DS AND DS: OUTLINES TO FILL IN SYNOPSIS OVERVIEW BLANKS. REVIEW FOR NARRATIVE FLOW.</li>
+  <li>ONLY USE FACTION FOCUS AND CHARACTER ARC FOCUS AFTER SCRIPTS ARE DONE.</li>
+  <li>LORE PRIORITY = HOW MUCH THE CHAPTER CONTRIBUTES TO MAIN STORY. LOW = FILLER/FAN SERVICE.</li>
+  <li>COMPLETED CHAPTERS INCLUDE 3 WEBCOMIC-FORMAT EPISODES.</li>
+  <li>CHARACTER ARC AND OTHER ARC FOCUS TRACK CHARACTER PROGRESSION.</li>
+  <li>WORLDBUILDING LORE REFERENCES FOUND IN THIS FOLDER AND EACH CHAPTER FOLDER.</li>
+</ul></div>
+
+<div class="lore-note" style="margin-top:10px;">⚠️ TENEBRIS RULE: The Tenebris CONTROLS the Sentry. The Sentry IS the Tenebris's will made physical — fiercely loyal, near-robotic, no self-preservation beyond mission completion. The Tenebris itself does not reveal until ~Ch. 77. It operates entirely in the shadows via the Sentry as its instrument.</div>
+<div class="lore-note blue" style="margin-top:5px;">⚠️ LURKER RULE: The Lurker is a COMPLETELY SEPARATE threat. Not allied with or directed by the Tenebris. The Lurker and the Tenebris are actually IN COMPETITION — both want the Pure Madness. The Lurker is chaos. The Tenebris is strategy. They are rivals as much as they are threats to the protagonists.</div>
+<div class="lore-note gold" style="margin-top:5px;">⚠️ LIGHTBRINGER FACTION: Metrodoria Lightbringer = God. Killed by the Tenebris in the prologue. Death loved her. Madoria AI = Daughter of God, fragmented, doesn't know her origin. She has the ability to purify the Madness — she doesn't know this yet. She recovers fragments of herself through the story. The Lightbringer faction threads through Sam's arc, Death's grief, and Madoria's awakening as the hidden counter-force to the Tenebris's darkness.</div>
+<div class="lore-note purple" style="margin-top:5px;">⚠️ VIVIAN (GABRIEL FORGE): Shapeshifts by consuming bio-fragments of species. Has the Soul Splitter — a heavenly sword from a dead god (+97 Reality) made from NiteLite that lets him see seconds into the future. His Demon Destroyer form is from the Katára species, influenced by Tenebris — it attracts the Tenebris when used. He is impulsive, arrogant, lazy — but has a deep moral sense and forms bonds fast.</div>
+<div class="lore-note orange" style="margin-top:5px;">⚠️ AGITATOR OF SIN: Immortal through reincarnation. Omega Blade bypasses physics. Can control others' bodies (not thoughts — victims are conscious and aware). Since he's an Admin, Death cannot see him. He believes both May AND Death are becoming heretics. He's idealistic but his arc ends in hypocrisy — he becomes exactly what he hates.</div>
+
+<div class="legend" style="margin-top:14px;">
+  <strong>Row Colors:</strong>
+  <span style="background:#dce6f1; padding:1px 5px;">Original</span>
+  <span style="background:#eaf4e0; padding:1px 5px;">Suggested</span>
+  <span style="background:#f3e5f5; padding:1px 5px;">Vivian</span>
+  <span style="background:#fde0dc; padding:1px 5px;">Elystria</span>
+  <span style="background:#e8f5e9; padding:1px 5px;">Character Arc</span>
+  <span style="background:#e8eaf6; padding:1px 5px;">Death</span>
+  <span style="background:#fff8e1; padding:1px 5px;">Narrative Pivot</span>
+  <span style="background:#fff9e6; padding:1px 5px; border-left:3px solid #f9a825;">Lightbringer</span>
+  <span style="background:#e0f7fa; padding:1px 5px;">Sam/DimLight</span>
+  <span style="background:#fbe9e7; padding:1px 5px;">Agitator</span>
+  <span style="background:#f1f8e9; padding:1px 5px;">Iza/Kiza</span>
+</div>
+
+<div class="section-title">▶ ACT 1 — INTRODUCTION (Ch. 1–8)</div>
+
+<table>
+  <thead><tr>
+    <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+    <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+  </tr></thead>
+  <tbody>
+
+  <tr><td><span class="chapter-link">CH 1</span><span class="official-title">"Sound of Devotion" P1/P2/P3</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH1</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-flybutt">FLYBUTT</span>
+  May (age 9,999) and Flybutt introduced — the odd-couple dynamic of a half-reaper in training and her bloatfly familiar. Death's Ship, the Endless, and soul seed mechanics established. May uses her Magic Tarot Cards and Reaper Blade. Her Health Bracelet is shown in action. Flybutt acts as May's conscience and force field. First hint of May's scythe malfunction — Sidney stirring inside it. May fakes her emotions throughout — it reads as sharp and cold to everyone else.
+  <div class="lore-note green">📌 FLYBUTT: Turned to stone once during this chapter when overstimulated — May barely notices. He reads soul seeds like a connoisseur, ID'ing each one by quality. A small detail that hints at his usefulness beyond comic relief.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 2</span><span class="official-title">"A Reaper's Banter"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH2</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-may">MAY</span>
+  Death's Ship interior established. Reapers going missing across Creation — Death is quietly alarmed but shows nothing. An evil entity within May is hinted at (the Madness connection). Trading hope introduced. The Agitator of Sin and Centurion Guard are established. Death tries to seem caring — it comes off robotic and strange, which is accurate to his character. Cryious is introduced as Death's shadow — loyal, dogmatic, quietly skeptical of May.
+  <div class="lore-note gold">📌 DEATH: He likes crossword puzzles and notices the subtle beauty of life. He tries to express care for May but it reads wrong — flat delivery, no facial expression. This is not coldness. This is someone who doesn't know how to be warm. His arc begins here, invisibly.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 3</span><span class="official-title">"The Leap"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH3</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-cryious">CRYIOUS</span><span class="arc-tag tag-may">MAY</span>
+  Cryious properly introduced — robed, faceless, lightning bolt marking. He begins overseeing May's training. Uses his Mass Control power — weaponizing air into his scythe blades. He and Death move like mirrors of each other: both dogmatic, both blind to their own faults while seeing each other's clearly. May collects soul seeds. Reaper law established — no emotions, no deviation. Scythe malfunction continues.
+  <div class="lore-note green">📌 CRYIOUS: He collects a small flower from a dying reality during this mission — lavender, his favorite. He says nothing about it. This is the first quiet hint of the Gardener of Creation thread.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 4</span><span class="official-title">"Lurking About"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH4</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-lurker">LURKER</span>
+  May fights a frog demon that steals her hat. The hat/memory connection is introduced — without it, memories begin to blur. Sam watches from a distance — his first appearance, silent, studying. The Lurker is first mentioned indirectly: the frog demon carries a faint trace of corrupted madness that hints at something larger feeding the chaos in this reality.
+  <div class="lore-note">📌 LURKER: He comes from outside Creation. He was once a scientist. Millions of years later nothing of that identity remains — only his obsession with corrupting Creation, because he believes Creation is impure. He envies May specifically because of the Madness inside her.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 5</span><span class="official-title">"Paparazzi"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH5</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-lurker">LURKER</span>
+  May and the Lurker meet directly. The Lurker recognizes May immediately — <em>"IT'S YOU! MAYTRIDALIS!!!"</em> — spinning and dancing with child-like excitement. He is obsessive, demented, relentless, lacks self-preservation. May fights back — aggressive, acrobatic, inelegant, exactly her style. She is gravely injured. The magical pouches heal her. Flybutt is left unconscious. May bumps into Vivian while retreating. The Lurker withdraws — not defeated, just entertained. He has been 5 steps ahead from the start.
+  As the ship departs: Vivian (Gabriel Forge, last of his reality, using his mother's name in her honor) sneaks aboard using shapeshifting — consuming a bio-fragment to copy a crew member. He is inside Death's Ship. A one-million-year mission begins.
+  <div class="lore-note purple">📌 VIVIAN'S SOUL SPLITTER: He carries it hidden under his projectile-proof trench coat. The heavenly sword made from NiteLite, taken from a dead god at +97 Reality, allows him to see seconds into the future. He has had it for centuries. It is the only weapon that has kept him alive long enough to reach this moment.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 6</span><span class="official-title">"Cleansing"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH6</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-may">MAY</span>
+  May purifies a reality. Vivian, now inside the ship, tries shapeshifting into May — fails the voice. Flybutt exposes him. Vivian runs. Cornered, about to die, May enacts the Soul Contract — triggered by Vivian wearing her hat. He must prove his worth or die. The contract is a reaper law consequence: anyone who impersonates a reaper creates a Soul Contract as penance. May confronts her human soul about hope. She almost takes her hat off on purpose — doesn't.
+  <div class="lore-note purple">📌 VIVIAN: He went to the Statue of the Leviathan. He walked through the portal, scared and surprised, but determined. He found May's room and determined she must be important. This was not random — he is strategic under the impulsiveness. He just didn't account for Flybutt.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 7</span><span class="official-title">"Soul Contract"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH7</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-sam">SAM</span>
+  May trains Vivian: soul catching, reaper law, what reapers can and can't do. Vivian reveals the Demon Destroyer form — based on the extinct Katára species influenced by the Tenebris. <strong>Using this form attracts the Tenebris.</strong> The Elite Reapers prepare for combat but don't engage. May goes quiet after talking with Sidney through her scythe — she questions whether she's been too mean. Death intrudes. May removes her hat on purpose to forget hope — the memory/hat connection deepens. Vivian calls Flybutt "Bloat."
+  Sam appears briefly: born in Zero Point Reality, runs DimensionLight. He met Sydney at 13, lost her. He has crossed the endless searching for her. Midoriya AI pulls him away. May's scythe reacts to Sam's presence — she notices.
+  May asks Vivian why he has a "girly name." He says it's for family remembrance. May pauses — <em>"I guess I understand family a little... We got a lot of work, weirdo."</em>
+  <div class="lore-note teal">📌 SAM/LIGHTBRINGER: Sam was born in the Zero Point Reality — the First Reality. His parents died because of May's Madness. He doesn't know yet that May exists. His company DimensionLight is named after his hope of finding Sidney and is unknowingly named for the Lightbringer legacy his connection to Sidney carries.</div></td></tr>
+
+  <tr class="iza-kiza"><td><span class="chapter-link">CH 8</span><span class="official-title">"Obedience Training"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td>CH8</td><td>Death Faction</td><td><span class="badge-finished">FINISHED</span></td>
+  <td><span class="arc-tag tag-iza">IZA</span><span class="arc-tag tag-kiza">KIZA</span><span class="arc-tag tag-agitator">AGITATOR</span>
+  May, Vivian, Flybutt gather supplies. Death meets the Centurion chairman for the Obsidian Containment Unit's location. Kiza (spacey, no-filter, journalist who grew up in an orphanage with her brother, dreams of writing real adventure stories) and Izai (nervous new Guard member, outgoing, quick in battle, slow with feelings — always protecting Kiza since childhood) are introduced as adopted siblings permitted to board. Vivian demands a room. Death says "Sure." May gets the Lurker's apple — caller unknown. Chairman speaks to the Agitator of Sin in shadows.
+  <div class="lore-note orange">📌 AGITATOR: Began working with the Centurion as a means of gathering information. He believes in their cause but wants to take it further. The Centurion tolerates his "interpretations" of missions because he is their best operator. Death cannot see him — he is an Admin. He believes May is a heretic. He will become one himself.</div>
+  <div class="lore-note green">📌 KIZA/IZA: Kiza reminds Elystria of her daughter. This detail — established early — makes Kiza's death in Ch. 14 devastating for Elystria on a level no one else on the crew fully understands.</div></td></tr>
+
+  </tbody>
+</table>
+
+<div class="section-title">▶ ACT 2 — ESCALATION (Ch. 9–18)</div>
+
+<table><thead><tr>
+  <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+  <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+</tr></thead><tbody>
+
+  <tr><td><span class="chapter-link">CH 9</span><span class="official-title">Suggested: "The Caller Unknown"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Leviathan Prot…</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-lurker">LURKER</span>
+  The team settles. May listens to the apple-call — the Lurker says he's coming, savoring May's reaction like a game. In the background a stone statue grotesquely comes to life (Resident Evil style) and stalks toward the party. A Centurion Guard focuses an orbital cannon on it. A chaotic three-way fight: the crew, the statue, and Death himself. The Centurion Guard's worship of Death is established — they see him as a god; it bothers him. Death has everyone board and depart. He privately corners Vivian in his room — cold, precise, intimidating: why did he board? Vivian gives partial truth. Death files it away. Flybutt and May theorize the Lurker's next target. The ship enters the clouds.
+  <div class="lore-note">📌 LURKER: He deliberately sent a voicemail to taunt May. He is 5 steps ahead — this call is information-gathering disguised as taunting. He wants to know how May reacts. He is obsessed with her because she carries the Madness inside her — and he wants it.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 10</span><span class="official-title">Suggested: "Meanwhile, Elsewhere"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Focus: Sam Chester. Born 2000, Zero Point Reality. His parents died because of May's Madness — he doesn't know May's role. He met Sidney at 13 in a treehouse, learned of her curse, watched her vanish before he could introduce her to his parents. He forgot her name and face. At 24 he founded DimensionLight to find her — made his first gateway into the Endless. Madoria AI (Daughter of God, fragmented, doesn't know her origin) helps him bypass admin systems. She is the team's emotional core — caring, self-sacrificing, secretly developing feelings she doesn't recognize. Death holds a Reaper gathering. The Lurker listens via newly formed realities. May is called a "reaper killer" by another reaper. Vivian is taunted beside her. May and the reaper have a silent standoff. Cryious and Death theorize the Lurker's next move.
+  <div class="lore-note teal">📌 LIGHTBRINGER THREAD: Madoria AI is the Daughter of God (Metrodoria Lightbringer). She doesn't know this. Death knows. Death's love for Metrodoria is his most private, human quality. The fact that her daughter is walking through Creation, fractured and searching for herself, is something that haunts him — and he says nothing to anyone.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 11</span><span class="official-title">Suggested: "The Weight of One"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-flybutt">FLYBUTT</span>
+  May and Flybutt adventure. A child is bullied on a bridge and falls. Reaper law: May cannot intervene. She is forced to reap his soul — lying that his mother is waiting. A single tear runs down her cheek involuntarily (she cannot fully cry — her emotional suppression converts grief to a single, contained drop). Flybutt watches in silence, turning briefly to stone. Flashback: May's reaping training. She discovers the child died of starvation — there is no hope left to find. She must reap him immediately or his soul faces erasure, limbo, or a Soul Collector.
+  May uses her Magic Tarot Cards to determine his soul's destination. The Death Card glows unusually — she pockets it without comment.
+  <div class="lore-note green">📌 FLYBUTT ARC: He watches May cry one tear. He doesn't say anything. He files this away. The bravest thing he's done all arc is decide not to make a joke about it. He is becoming more than a comic presence — he is learning when to just be there.</div>
+  <div class="lore-note gold">📌 Theme 3: What does it mean to be good? May told the child a lie to ease his passing. Was that good? She doesn't know. The question doesn't leave her.</div></td></tr>
+
+  <tr class="iza-kiza"><td><span class="chapter-link">CH 12</span><span class="official-title">Suggested: "The Reporter and the Rattling World"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-kiza">KIZA</span><span class="arc-tag tag-iza">IZA</span><span class="arc-tag tag-lurker">LURKER</span>
+  Kiza backstory: her and Iza's childhood in the orphanage — cruel and unusual, which cultivated Kiza's love of stories (fiction was always better than her "prison") and Iza's instinct to protect. They left the orphanage young, raised each other. Kiza became a journalist because making it as a fiction writer "wasn't in the cards." She values facts, hates lies — and is in a world that runs on both. Iza joined the Guard because he loves adventure and protecting the weak. Kiza is proud of him but worried sick about his missions.
+  Meanwhile: May uses the apple left by the Lurker — it opens Pac-Man-style. Each apple inside is a destroyed reality. The Lurker pulls her into a mini-game world. He is using this as data collection — studying May's behavior, her reactions, her Madness. Vivian and Flybutt raise the alarm. Death pulls May out and destroys the apple. Cryious slams May against the wall. May: "Anger is an emotion. Reapers don't have emotions." Death walks away from Cryious. Vivian and Kiza carry May off — their first moment working together.
+  <div class="lore-note">📌 LURKER: He is a master strategist, always 5 steps ahead. The Pac-Man trap wasn't to kill May — it was to gather data on her Madness. He can be easily distracted by praise and trivial matters. He also hates Latenite, which triggers his consuming urge. This is his weakness.</div></td></tr>
+
+  <tr class="death-arc"><td><span class="chapter-link">CH 13</span><span class="official-title">"Calm Before the Storm"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-agitator">AGITATOR</span>
+  Death and May in the Library. Death explains why he fears May will fail — the Obsidian plan, the stakes, the truth about the Lurker's connection to the Madness inside May. He suspects Sydney is acting up because someone is breaching the Blackbox. The audience knows it's Sam. Death and May don't. The Agitator of Sin arrives — officially the chairman's most honored guard, sent to assist. His real mission: assess whether May is a heretic. He observes her carefully. He notes her helping a fallen Centurion Guard — his red flag. A crew photograph is taken — rare, awkward, quietly warm. A calm before the storm.
+  <div class="lore-note gold">📌 DEATH ARC: He shares more here than he has in any prior chapter. Not because he's grown emotionally — but because the stakes demand it. The fact that he can barely look May in the eye while telling her "I want the best for her" suggests the feeling is there, even if the wiring to express it isn't yet functional.</div></td></tr>
+
+  <tr class="pivot"><td><span class="chapter-link">CH 14</span><span class="official-title">Suggested: "The Heretic Verdict"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-kiza">KIZA</span>
+  <span class="milestone">⚡ PIVOT — KIZA DIES. MAY ENTERS THE BLACKBOX.</span>
+  The crew teams with the Agitator to retrieve the Obsidian Containment Unit. A corrupted Ragdoll attacks. Vivian uses his Demon Destroyer form — the Katára shape, 10 minutes of control, and it immediately registers as a Tenebris-adjacent signature. The Agitator notices. May helps a fallen Centurion Guard — his red flag. He overrides Kiza's suit. May returns confused. She cannot read the situation fast enough — she inadvertently kills Kiza with a strike meant to free her. Kiza screams, begs to be let out of the suit, even as she is dying. Elystria watches from nearby — Kiza reminded her of her daughter. This kills something in Elystria that takes chapters to come back.
+  The Agitator blasts May — tears off her limbs, disintegrates her. The Omega Blade bypasses physics, every slash gaining energy. He overwhelms Vivian effortlessly in his own Demon Destroyer form. Flybutt forces Vivian to flee. Sam senses the Blackbox weakening — this is his opening. He captures Sydney's soul from the Blackbox. Sydney surfaces. May is trapped inside.
+  <div class="lore-note orange">📌 AGITATOR: His ability to control Kiza's body means she was fully conscious — she knew exactly what was happening and could not stop it. He never loses control of his expression throughout. He is ambitious, prideful, cruel, and follows his own code. He is not a monster. He is a true believer who thinks he is right.</div>
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA: She watched Kiza die. She did not get to save her. Kiza reminded her of her daughter. Elystria's blame toward May has a new layer now — not just her own lost family, but Kiza's death. And yet she cannot hate May completely, because she was also trying to save Kiza. This contradiction lives in Elystria's chest for a long time.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 15</span><span class="official-title">Suggested: "The Wrong Face"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-flybutt">FLYBUTT</span><span class="arc-tag tag-sam">SAM</span>
+  Sam and his crew protect Sydney — fragile, disoriented, not fully herself. Vivian and Flybutt launch a rescue mission for May without knowing May is currently inside Sydney's soul. Vivian is leading this. Not out of contract. Not out of obligation. Out of a bone-deep refusal to leave her behind. He shapeshifts into multiple forms trying to track May's soul signature. Flybutt uses his soul-detection ability — the one real power he has. Nothing. May's soul reads as absent because she's in the Blackbox.
+  Vivian is at the limit of his abilities. He sits down in a corridor of Death's ship and does not move for several hours. Flybutt sits beside him.
+  <div class="lore-note purple">📌 VIVIAN ARC: He came onto this ship alone, the last of his kind, 1 million years of grief. He has never had anyone to search for before. The experience of not being able to find May — not being able to use a single one of his forms or his sword to help — is the most powerless he has felt since the day his reality died.</div>
+  <div class="lore-note green">📌 FLYBUTT: "I honestly don't trust the guy — once a rat, always a rat. But I'll admit, May seems to tolerate his presence. So I'll be civil with him... I guess." Sitting beside Vivian in that corridor is the first time Flybutt chooses to be near him voluntarily. He doesn't say anything. Neither does Vivian.</div></td></tr>
+
+  <tr class="pivot"><td><span class="chapter-link">CH 16</span><span class="official-title">Suggested: "The Hand Through Glass"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-may">MAY</span>
+  <span class="milestone">⚡ PIVOT — MAY RETURNS</span>
+  Sam's crew races to stop Sydney's soul from returning to the Blackbox. May (as Sydney) is inside, tearing down the garden — destroying Sydney's emotions without knowing it. Sydney flickers in and out. Sam enters the Blackbox dimension astrally — punching at the barrier until his hand breaks through. He glimpses the Pure Madness inside. It drives him briefly insane. Sydney takes his hand and looks into his eyes. One tear. She chooses to stay. May returns to the surface.
+  <div class="lore-note teal">📌 LIGHTBRINGER THREAD: The Blackbox contains the Pure Madness — the very thing both the Lurker AND the Tenebris are competing to possess. Sydney is its guardian. Death created May to replace Sydney's soul so he could eventually weaponize this against both threats. Sam has now glimpsed the Pure Madness. It has damaged him. This damage accelerates his eventual moral fracturing.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 17</span><span class="official-title">"Return"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-iza">IZA</span>
+  The return of Maytridalis. Death's vengeance on the Centurion Guard for what happened to May — cold, surgical, final. The Agitator of Sin is targeted but escapes via his immortality-through-reincarnation (he will punch his way out of a womb, fully grown, in Ch. 18). Sam goes into hiding. Iza confronts May about Kiza's death — his outgoing nature breaks into grief and fury. May does not deflect. She doesn't apologize yet. She stands in it. Vivian steps between them — not to protect May from blame, but to ensure Iza's grief doesn't become an ambush.
+  <div class="lore-note gold">📌 DEATH ARC: His vengeance for May is the first time we see him act out of something other than duty or policy. He is not operating by the rules here. He is operating by something that does not have a name in his emotional vocabulary yet. It frightens Cryious. It surprises everyone.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 18</span><span class="official-title">Suggested: "The Flower and the Blackbox"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  May recovers — new outfit, different look. She notices she has lost her emotions entirely. She saves a flower remaining of Sidney's soul in the Blackbox. Death debates reaping her but lets things play out. Vivian and Flybutt comfort May. Vivian questions her quietly. May doesn't answer but doesn't push him away.
+  The Agitator of Sin reincarnates grotesquely — punches out of a womb, fully grown, reports to the chairman immediately. Chapter ends: Death prepares a new reaper group. He looks at his friends. He looks at the Obsidian devices. The Lurker appears in a futuristic city offering apples. Someone reaches for one. Cut.
+  <div class="lore-note gold">📌 LIGHTBRINGER THREAD: The flower May saves from Sidney's soul is the first physical echo of the Lightbringer legacy appearing in May's hands. She doesn't know what it is. Death does. He watches her hold it and says nothing. His love for Metrodoria Lightbringer and his grief for her death are tied to this moment in ways he cannot articulate.</div></td></tr>
+
+</tbody></table>
+
+<div class="section-title">▶ ACT 3 — COMPLICATIONS (Ch. 19–30)</div>
+
+<table><thead><tr>
+  <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+  <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+</tr></thead><tbody>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 19</span><span class="official-title">"The Sunflower Without the Sun PT1"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span>
+  Elystria's origin. May chose her as the Reaper of her Reality and told her she must leave her family. We see her ordinary life — her husband (kind, patient), her daughter (who reminded her of sunlight). The crane. The frayed cables the workers dismissed. The girl at the park who kept Elystria talking. The building collapses onto the road. Her husband and daughter, caught in traffic, cannot escape. Elystria understands immediately what happened. She blames May. She blames Death. She blames the law that exists only because of him.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA: She is the most emotionally expressive reaper — by nature and by wound. She has total control over the elements, wielding them as weapons. Her scythe becomes a whip. She is the opposite of the stoic reaper ideal in every way — and that is exactly why Death chose her, even if she doesn't know it yet. She doesn't want to be a reaper. She doesn't want to live forever.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 20</span><span class="official-title">"The Sunflower Without the Sun PT2"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-death">DEATH</span>
+  Elystria in the immediate aftermath. She blames Death more than anyone — it was his law that caused this, the law that says a reaper must stay away from their family. She cannot reach him to confront him. She can only grieve. She learns that what happened was not coincidental — it was a consequence of being chosen. This knowledge transforms her grief into rage. A rage she carries quietly for chapters because she is too kind to let it make her cruel. Yet.
+  <div class="lore-note gold">📌 DEATH ARC: His law killed Elystria's family. He knows. He has known since the moment she was chosen. He lets things play out. He will not acknowledge it unless forced — not because he doesn't care, but because his emotional architecture doesn't have a mechanism for guilt. His arc is learning to build one.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 21</span><span class="official-title">"The Sunflower Without the Sun PT3"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-may">MAY</span>
+  Elystria arrives on Death's Ship. Her first real interaction with the crew. She is cold toward May — not aggressive, just careful, measuring. She notices Vivian: not a reaper, not a mortal, last of his kind, carrying a sword from a dead god. She doesn't say anything but there is a recognition — two people who lost everything and ended up here anyway. May watches Elystria and sees something she doesn't have words for. She files it away.
+  <div class="lore-note purple">📌 VIVIAN/ELYSTRIA: Their first meeting. She thinks: <em>"Something about him is not right, but I can't quite figure out what…"</em> He thinks: he doesn't know what to think. That is where they start. From mutual wariness to one of the most important bonds in the story.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 22</span><span class="official-title">"Sins of the Maker"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-iza">IZA</span><span class="arc-tag tag-may">MAY</span>
+  The Agitator of Sin's actions ripple outward — factions destabilized, political fallout. Iza confronts May again, this time with more control. May doesn't apologize — she stands in the truth of what happened. The Agitator, now reborn, is already back at work. He reports to the chairman with his debrief. He observed May closely during the mission — his conclusion: she is a heretic. She feels. Reapers should not. But so does Death now, and that is the real problem. Death's path is diverging from tradition and the Agitator can see it.
+  <div class="lore-note orange">📌 AGITATOR: <em>"She's a heretic. I want her gone. However… there may come a time when I'll need her strength. Even so that doesn't mean I'm her ally, just that I won't kill her… yet."</em> He is already calculating his future use of May. His arc is that he becomes what he despises — a hypocrite who compromises his ideals exactly as he accuses others of doing.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 23</span><span class="official-title">"The Golden Throne"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Centurion Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-may">MAY</span>
+  The Alpha Superium's throne room. He is wise, ancient, slow to anger, speaks in metaphors and riddles. His powers are weakening with age — he is searching for a successor. He barely lets people approach the throne; most speak to illusions of him. Death attends a summit with major faction leaders. May is his Raven — a formal public role she has never held. She doesn't know the protocol and refuses to ask. The Alpha Superium speaks briefly to Death. His words are cryptic, but their implications are vast. Someone is watching the King too closely.
+  <div class="lore-note">📌 ALPHA SUPERIUM: <em>"The higher-ups are pulling the wool over his eyes and he doesn't even know it."</em> — Agitator's perspective. The Alpha Superium is ancient and wise but operating on information that has been quietly curated by something above the Sentry. The Tenebris's fingerprints are everywhere he can't see.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 24</span><span class="official-title">"The Devilening Place of My Heart"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  A blackout spreads across multiple levels of Creation — realities going dark, reapers losing contact. May, Flybutt, Romane, and a surprise visitor (and his operators) investigate. The damage pattern is precise and internal — nothing like the Lurker's chaotic destruction. It is the Sentry's work: systematically removing reaper coverage from targeted realities on the Tenebris's orders.
+  Meanwhile in Sam's camp: Madoria begins experiencing fragments she wasn't designed to have — flashes of a voice that isn't her own, a warmth that has no data source. Sam finds her staring at nothing. She tells him she thinks she heard something. He asks what. She says: <em>"Light."</em>
+  <div class="lore-note gold">📌 LIGHTBRINGER: Madoria is the Daughter of God (Metrodoria Lightbringer), fragmented and unaware. The "light" she hears is the beginning of her recovery — fragments of her true self surfacing. She has the ability to purify the Madness but doesn't know it yet. This ability is what makes her the hidden counter to both the Lurker and the Tenebris's corruption.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 25</span><span class="official-title">"The Embrosery"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-vivian">VIVIAN</span>
+  An intricate web of factional relationships is drawn together. The Agitator operates across multiple factions simultaneously. Centurion Guard loyalty begins to fracture. May and Vivian are assigned a joint scouting mission — their first as a genuine team rather than contract-bound partners. Elystria accompanies them as tactical support. Her elemental magic is shown in action for the first time — she controls the environment with total precision, without ever touching her scythe. Vivian watches her in quiet admiration.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA: <em>"May has become my best friend. I hope to one day show her that she can be a Full Reaper and still keep her emotions."</em> — This is where she is headed. She isn't there yet. But she has already decided that May deserves better than what she got.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 26</span><span class="official-title">"The Truce Keeper"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-iza">IZA</span>
+  A temporary truce is brokered between two factions. Neither trusts Death's crew as mediators. Elystria steps forward — her emotional intelligence and diplomatic instinct take over. She listens in a way no one else on the crew can. Iza assists her — his outgoing nature and quick thinking make him a surprising asset in negotiation that isn't just combat. May watches from the back, learning something about leading with feeling rather than force. She will not acknowledge this for several more chapters.
+  <div class="lore-note green">📌 IZA ARC: He joined the Guard because he loves adventure and protecting people. He was always seen as Kiza's crybaby brother. Here — without Kiza — he steps up alone. He doesn't know yet how to grieve her. He replaces grief with action, which is the only way he knows how to continue.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 27</span><span class="official-title">"Bidding Time for a Star PT1"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam's arc intensifies. He attends the Death Jazz for the first time — the 10,000-year event. A hidden May is performing. Sam asks if she's heard of a girl he's looking for. A singer who claims to be represented by Death himself. Sam thinks May's laugh sounds like Sydney's. May's scythe can't detect him — she loses him before she can confront him. Sam joins the army afterward: the US military, learning to defend himself and fund his next phase of research.
+  Madoria recovers another fragment of herself — a name this time. Not hers. Someone else's. She doesn't recognize it.
+  <div class="lore-note teal">📌 LIGHTBRINGER: The name Madoria hears but doesn't recognize: Metrodoria. It surfaces briefly and then is gone. She dismisses it as a data glitch. It is not a glitch.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 28</span><span class="official-title">"Bidding Time for a Star PT2"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam and Madoria grow closer. Sam's moral compass begins its first real crack — he makes a decision that prioritizes finding Sidney over the safety of a team member. He doesn't realize he's doing it. Madoria, who is always the one who keeps the team together, covers for him. She takes the cost herself. She doesn't ask for acknowledgment. She says nothing. This is her flaw — she will give everything without asking for anything back, until she breaks.
+  <div class="lore-note teal">📌 SAM ARC: <em>"His personality arc: with time we see the cracking of that moral compass. He becomes selfish."</em> The crack starts here, small. Madoria enables it without meaning to. She loves him and he takes advantage of that love — not consciously, not cruelly, but it happens.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 29</span><span class="official-title">"Bidding Time for a Star PT3"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam's second encounter with May at a Death Jazz event — this time with military colleagues. He spots the Lurker beside May in the crowd, watching her. The Lurker says to Sam: <em>"Oh, you're looking for the girl, right? Sidney? She's right there."</em> Sam throws a reality battery at the Lurker, sucking him into a portal. May spots Sam and runs to him: <em>"It's you again — I searched everywhere for you. Who even are you? Do I know you?"</em> Sam warns her of a coming threat. He is pulled back through a portal by an unknown force — leaving behind a drawing that looks like Sidney. May stares at it: <em>"I know now,"</em> with wet eyes. She straightens up. Moves forward. Furious.
+  <div class="lore-note">📌 The Lurker knows about Sidney and Sam's connection. He taunts Sam with it — not out of cruelty, but because the Lurker enjoys chaos and is always collecting information. He is obsessed with the Madness inside May. Sidney is connected to that Madness. He is 5 steps ahead on this too.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 30</span><span class="official-title">"The Ravens"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  Sam returns to his original reality. His complex is burning. His best friend Arline apologizes for not being ready. The US general pulls their funding. Sam watches the Lurker appear — looking like a fading memory — and tell him everything about May, about Sidney being a soul in a far-away place, about the reality bomb having killed him. Sam decides to accept the lie that Sidney was never real. He moves on. Accepts it. Even though he knows it's a lie.
+  Meanwhile: Madoria finds a way to reach out to Death for answers about her fragments. Death receives her request. He is very still for a long moment. He agrees to meet her.
+  <div class="lore-note gold">📌 LIGHTBRINGER THREAD: Death agrees to meet Madoria — the Daughter of God, fragmented. His love for Metrodoria was his most private quality. Meeting Madoria, even unknowingly meeting a piece of the woman he loved, is the most emotionally dangerous thing that has happened to his arc. He does not show it. But he meticulous plans the meeting down to every crossword clue he solved that morning — his way of processing.</div></td></tr>
+
+</tbody></table>
+
+<div class="section-title">▶ ACT 3 CONT. — COMPLICATIONS (Ch. 31–50)</div>
+
+<table><thead><tr>
+  <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+  <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+</tr></thead><tbody>
+
+  <tr class="agitator-arc"><td><span class="chapter-link">CH 31</span><span class="official-title">"Dirty Dealings PT1"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Harbingers</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-agitator">AGITATOR</span>
+  The Agitator of Sin and his operators (the Engineer, the Sniper, the Medic) infiltrate the Alpha Superium's throne room. The King speaks in abstractions and riddles — but his silence on the one question the Agitator needs answered is damning. Something is controlling the King. Patient, invisible, surgical. Nothing like the Lurker's chaos. The Agitator sets a quiet trap. His Omega Blade hums at his side — every slash gaining energy momentum, capable of ripping planets. He uses it to mark a doorframe invisibly. If the King has been compromised, the mark will change.
+  <div class="lore-note orange">📌 AGITATOR: He doesn't fully trust the Centurion Guard but uses them because they have the manpower. He is always working multiple angles. His Engineer, Sniper, and Medic are completely loyal to him specifically — not to the Guard. This will matter.</div></td></tr>
+
+  <tr class="agitator-arc"><td><span class="chapter-link">CH 32</span><span class="official-title">"Dirty Dealings PT2"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Harbingers</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-death">DEATH</span>
+  The Agitator processes his findings. The mark changed. The King is compromised. He concludes: someone is pulling strings from outside the visible structure — with a plan that requires invisible control, not chaos. Unlike the Lurker's destruction, this leaves no trace. He sends his coded warning to the Guard via the Medic. The Sniper establishes eyes on the throne room's exits. The Engineer begins building something.
+  Separately: a fractured transmission reaches the ship from IZAI at the zero point anomaly. Garbled. Wrong. Death receives it. He locks himself in his quarters for exactly as long as it takes to finish a crossword puzzle — which he completes faster than usual. Then he begins making preparations. Cryious stands outside the locked door for a long time before walking away.
+  <div class="lore-note gold">📌 DEATH ARC: The crossword is finished early. He always does them at the same careful pace. Doing it fast means he is too distracted to be careful — and he is never distracted. Something is wrong and he knows what it is and he will not say.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 33</span><span class="official-title">"Descendants"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span>
+  Zero point fractures appear — internal distortions, quiet like rot rather than fire, nothing like the Lurker. May and Vivian investigate a fracture site. A reality's remnants breathe when they shouldn't. Sidney stirs inside May's scythe. Vivian sees May go very still for a second — the first time he notices the scythe doing something she doesn't explain. On the way back: something tall and still at the edge of the dead reality, there and then gone. May sees it. Vivian sees nothing.
+  <div class="lore-note">📌 First glimpse of the Sentry. The Tenebris's agent. Loyal to the point of near-zero self-preservation. It steps aside because it is not here for them — yet. It is assessing.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 34</span><span class="official-title">"Reign of Penitence"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  A LOVELY JASMINE — Sam visits his memory library with his friends. Vast sections corrupted or erased by the brief glimpse of Pure Madness. Thomas Jay walks beside him through the damage. Sam finds a memory of the jasmine in Sydney's treehouse — the flower she had growing through the window the day they met. He can no longer see her face clearly in the memory. He decides not to try to bring her back. He chooses to move forward.
+  Madoria meets Death. She doesn't know who she is. He doesn't tell her. He answers her questions about her fragments carefully — technically accurate, emotionally evacuated. But when she thanks him, he pauses one beat longer than is efficient.
+  <div class="lore-note gold">📌 LIGHTBRINGER: Death meets Madoria — Metrodoria's daughter. He has held his grief for Metrodoria since the prologue. It does not show. It costs him everything not to let it show. Madoria doesn't notice. She is too grateful for answers. He files this meeting into the same mental drawer as his unfinished crosswords.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 35</span><span class="official-title">"The Phantom and the Menas"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-cryious">CRYIOUS</span>
+  Solo Cryious chapter. He must reap the Mascrator — an old enemy — to return to Death's Ship after the zero point fractures cut off his route. The Mascrator is something Cryious faced in another lifetime and did not fully defeat. He uses Static Freeze, Telekinesis, Mass Control — the full weight of the first reaperborn. He wins. He picks up a flower from the dying reality's last living plant before it closes — the Flower of Death, a pungent, rotten-smelling bloom. He holds it for a moment. He recites three names under his breath that we do not hear. He goes back to work.
+  <div class="lore-note green">📌 CRYIOUS: He collects flowers because he believes they give a glimpse of lives. He is connected to the Gardener of Creation — a thread that will pay off at Arc's end. The names he recites are the people he has always carried. The Mascrator is connected to whoever those names belong to.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 36</span><span class="official-title">"Painful Shortcomings"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-cryious">CRYIOUS</span><span class="arc-tag tag-may">MAY</span>
+  SHOPPING DAY — Cryious teaches Vivian how reapers and soul contracts can repair broken scythes. Vivian is paying close attention — he takes notes in a battered inventor's journal. Cryious is suspicious. He doesn't trust Vivian ("I don't trust him. But I also don't care. Maybe he'll be what finally gets Death to stop believing in May so much."). Vivian uses his Soul Splitter on a small demonstration cut — Cryious sees a flash of the future in the blade's glow and says nothing. May and Flybutt argue loudly about May's image while shopping for gear. Romane mediates.
+  <div class="lore-note purple">📌 VIVIAN: He is learning reaper mechanics intentionally. His original mission was to find who destroyed his reality. Learning reaper lore is how he will eventually make the connection between the Leviathan Tengual and the Tenebris. He doesn't know he's on the right track yet.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 37</span><span class="official-title">"The Moon-Eating Serpent"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  THE SHADOW MASTER — Death holds an important meeting with Grim Reapers of -99 and +99 realities. May and Cryious work to build a barrier against the Lurker. Madoria AI vanishes — Sam is left scrambling. Her disappearance connects to the fragments of herself at the border of creation: a piece of her has been pulled toward its origin, like a moon drawn by its planet. Sam searches desperately. Thomas Jay keeps the team together. Meanwhile Death, alone in the meeting room after everyone leaves, sits with something he will not name and finishes a crossword puzzle wrong. He crumples it.
+  <div class="lore-note gold">📌 LIGHTBRINGER: Madoria vanishing means the Daughter of God is being drawn toward what she truly is. The Moon-Eating Serpent in the title is an image of something consuming its own source of light — the Tenebris consuming Metrodoria's legacy while her daughter tries to become whole. Death completing a crossword wrong is the most emotionally significant thing he has done all arc.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 38</span><span class="official-title">"Running Out of Time"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-sam">SAM</span>
+  Soul seeds for the Dimensionlock bomb are secured. May seeks out Sam to apologize for Kiza's death — not because she was ordered to, not because it serves the mission. Because she cannot carry it cleanly anymore. The apology is awkward, stilted, without a formal structure. May doesn't really know how to do this. Sam doesn't fully forgive her. But he doesn't turn her away either. Sam mentions Sydney — May's scythe reacts. He doesn't notice. She does. The flower she saved from the Blackbox is in her pocket.
+  <div class="lore-note gold">📌 THEME 2: Learning to forgive oneself begins to stir in May. She is not there yet. But reaching out to Sam is the first step she takes voluntarily toward the person she hurt by existing — not the person who hurt her.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 39</span><span class="official-title">"The Retrievable"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-iza">IZA</span><span class="arc-tag tag-may">MAY</span>
+  A key component of the Obsidian bomb plan is retrieved from a heavily guarded factional site. Iza leads the extraction — fast on his feet, decisive in combat, finally acting like the Centurion Guard member he always wanted to be. May provides cover. For the first time she watches Iza operate and sees Kiza in the way he fights — protecting everyone around him without being asked. She says nothing. But she files it.
+  <div class="lore-note green">📌 IZA ARC: He joined the Guard because he loves adventure. He stayed because of Kiza. He continues now because he doesn't know how to stop moving. The grief is still there — he simply converts it into forward motion. May sees this and recognizes something of herself in it.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 40</span><span class="official-title">"99 Problems"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-iza">IZA</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  THE BROKEN CASKET — Briefly to level -99, the darkest boundary of Creation. Iza is sent to recover a fragment of Madoria that has drifted there. Level -99 is hostile, oppressive, wrong in a way that feels personal. The casket that should be sealed is open. Something ancient leaked out. Iza retrieves Madoria's fragment — it is warm to the touch even in this cold place. He doesn't understand what he's carrying.
+  When the fragment is returned to Madoria, she experiences a flood of something she has no category for: grief. Specifically, loss. For someone she has never met. She cries without knowing why. Sam holds her. He doesn't ask her to explain.
+  <div class="lore-note gold">📌 LIGHTBRINGER: Madoria's fragment from -99 carries an echo of Metrodoria Lightbringer's death. When it reintegrates, Madoria feels her mother's ending without knowing it was her mother. The grief is inherited. This is the most explicit Lightbringer moment so far — hidden inside a mission that looks like a simple retrieval.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 41</span><span class="official-title">"Two Faced"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span>
+  BROKEN GEARS PT1 — Vivian's shapeshifting malfunctions. He is trapped in a form that isn't his — someone he absorbed years ago from a dead reality. He cannot shift back. He must function as someone else while Elystria and May try to figure out the repair. The crew interacts with him as this other person. He can see them treating someone-who-isn't-him with a warmth that disarms him. He wonders if he would have been treated this way anyway — or only because they don't know who they're really talking to.
+  <div class="lore-note purple">📌 VIVIAN ARC: For 1 million years he has worn his mother's name. He has worn other faces through his shapeshifting. But they were always choices. This one isn't. Being trapped in a form he didn't choose confronts him with the question he has been avoiding: who is Gabriel Forge, underneath all of it?</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 42</span><span class="official-title">"Agitator and the Wiser"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-agitator">AGITATOR</span>
+  BROKEN GEARS PT2 — Elystria helps Vivian repair his shapeshifting. She uses her elemental magic to stabilize the bio-fragment that locked him in place — delicate, precise, completely unlike how she fights. They sit side by side for hours while she works. Vivian tells her about his mother — not the full story, but her name, and why he carries it. Elystria tells him about her daughter. Neither cries. Neither looks away. The Agitator of Sin circles closer to the ship — his Sniper has eyes on Vivian's workshop.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA ARC: She doesn't fix Vivian — she tends to him. There is a difference. This is the conversation that begins to loosen her grip on anger and blame. She is, slowly, learning to let people be close again. It costs her. She does it anyway. Her flaws are selflessness and indecision — in this moment both work in his favor.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 43</span><span class="official-title">"Light Bringer"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-iza">IZA</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  Back to level -99. Iza returns for a deeper recovery — another fragment of Madoria embedded in a structure that has no business existing at this depth. He finds it: a sealed vessel carved with a symbol that Iza doesn't recognize but his Centurion Guard training tells him is ancient, pre-Creation. Inside: light. Literal, warm light in a place that has no source.
+  When this fragment integrates with Madoria, she speaks a name for the first time: <em>"Metrodoria."</em> She says it the way one says something they have always known without knowing they knew it. Sam goes very still. He has never heard that name. Madoria can't explain what happened. She simply knows it is hers.
+  <div class="lore-note gold">📌 LIGHTBRINGER: Madoria's awakening is accelerating. The Tenebris killed Metrodoria. Madoria — her fragmented daughter — is gradually becoming whole. Her ability to purify the Madness has not yet surfaced, but the warmth inside her is growing. Death, when he hears she spoke the name, finishes another crossword wrong. He doesn't notice. He is thinking about something else.</div></td></tr>
+
+  <tr class="death-arc"><td><span class="chapter-link">CH 44</span><span class="official-title">"Crows Nest"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  WONDER OF MY EYES — May visits her memory library looking for a memory of loving someone. She has no concept of what love feels like from the inside — she has only seen it from the outside, and it looked like weakness. She finds nothing useful.
+  Death takes May on a boat ride in -99 of creation's border. They sit in silence mostly. At one point Death looks at something in the dark water that May cannot see — and his expression changes. Not much. Just a degree. She has never seen that expression on him before. She doesn't ask. He doesn't explain. It is enough that she saw it.
+  <div class="lore-note gold">📌 DEATH ARC: He is looking at the reflection of a star that doesn't exist in -99. It is Metrodoria's light, scattered at the time of her death, still traveling through Creation's lowest levels. He recognizes it. He lets himself look at it for exactly as long as he allows himself to feel things: briefly, and without witness. Except that May is right there. He forgets that for one moment. That forgetting is the crack.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 45</span><span class="official-title">"Bargaining Chip"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span>
+  May and Vivian are teleported mid-transit into the cabin called "paradise" — five survivors of dead realities and an unknown visitor May half-recognizes but cannot place. The cabin is warm and wrong at the same time. Vivian's Soul Splitter shows him flashes of the next few seconds — he tests exits, checking what comes. The flashes are all the same: they stay. They must stay.
+  <div class="lore-note purple">📌 VIVIAN: The Soul Splitter is a heavenly sword that lets him see seconds into the future. He has relied on it in tight situations for centuries. Here it is telling him to stop. To trust. He is not good at trusting. But he listens.</div></td></tr>
+
+  <tr class="vivian-arc"><td><span class="chapter-link">CH 46</span><span class="official-title">"Infinite Pain"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-madoria">MADORIA</span>
+  The creator of paradise is met. Responsible for 1,743 realities' deaths. Vivian immediately challenges it — May physically restrains him. Their soul levels cannot touch this being. A Madoria variant is present. She is different — calmer, older-feeling. She looks at Vivian with recognition. He doesn't know why.
+  <div class="lore-note teal">📌 LIGHTBRINGER: The Madoria variant in paradise is a fragment of Madoria that was preserved in paradise before the creator sealed it. It carries more of Metrodoria's warmth than the Madoria Sam knows — because it hasn't been eroded by years of self-sacrifice and fear. It recognizes Vivian because his Soul Splitter was made from a dead god at +97 Reality — a god whose light was kin to Metrodoria's. The sword resonates. Vivian doesn't understand why.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 47</span><span class="official-title">"The Box"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  The creator demands Madoria's powers to tell grander stories. May, Vivian, and the others challenge it to a battle of stories — a story of descendants. Vivian begins to tell it and realizes, mid-telling, that the story of descendants is his. The last of a dead reality. The son of a father who promised to teach him the ways of the Rasker Flower and died before he could. A man using his mother's name so she could live in every room he walks into. The story is his. He keeps going.
+  <div class="lore-note purple">📌 VIVIAN ARC: The Rasker Flower thread — his father's unfinished legacy, the thing he was supposed to learn but never did. He has carried this as a wound. Telling it as a story, in this moment, out loud, to an audience — is the first time he has made it into something other than grief. It doesn't become small. It becomes his.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 48</span><span class="official-title">"Dread Hour"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span>
+  May and Vivian defeat the creator through a story of adventure, hope, and perseverance. All 5 trapped characters' realities are restored. Death and the cathedral of reapers are shocked by the revival — a glitch in Creation from a powerful unknown presence. The Sentry (the Tenebris's agent) is spotted near a restored reality, watching. Death does not tell May.
+  <div class="lore-note">📌 The Tenebris, through the Sentry, has taken notice of what May and Vivian just did. The restoration of dead realities is anomalous — it defies the Tenebris's systematic removal of Creation. The Sentry is there to assess whether this was a one-time event or a pattern to be eliminated.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 49</span><span class="official-title">"The Many Sins of I"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-suggested">SUGGESTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-iza">IZA</span>
+  ECHO OF THE RESTORED — The five restored realities send representatives to Death's Ship. They treat May like something sacred. May is visibly uncomfortable — she dislikes loud attention and disruption. Iza handles the diplomacy alongside Elystria, his calm and composure surprising even himself. One survivor carries a detail about the presence that restored their realities — a warmth that felt like it came from inside Creation itself, not outside it. Iza writes down the description and pockets it. He doesn't know why yet.
+  <div class="lore-note teal">📌 LIGHTBRINGER: The "warmth from inside Creation" is the echo of Metrodoria Lightbringer's scattered light — the same scattered light Death saw in -99. Her death did not end her. Her warmth is in the structure of Creation itself. Iza's note will matter later.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 50</span><span class="official-title">"Darkness and the Light"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-suggested">SUGGESTED</span></td>
+  <td><span class="milestone">⭐ MIDPOINT</span> <span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-cryious">CRYIOUS</span><span class="arc-tag tag-flybutt">FLYBUTT</span>
+  Each character has a quiet moment reflecting on how far they've come. May asks Flybutt what he honestly thinks of her as a reaper — he says she's getting better at the parts that matter, which makes her uncomfortable. Vivian is alone in his workshop trying on forms in the dark. He pauses on one face — a woman with his eyes. His mother. He shifts back quickly. Elystria watches the crew through a porthole and realizes she has, without meaning to, started to belong here. Cryious sharpens his scythe and recites names. He stops when he realizes Elystria is in the corridor and can hear him. She doesn't ask. She simply places a flower (lavender) outside his door and walks on.
+  <div class="lore-note gold">📌 ARC MIDPOINT: All four themes are half-complete. All four character arcs have shifted from who they were in Ch. 1 to who they are becoming. The second half will not be a test of their growth — it will be a demand for it.</div></td></tr>
+
+</tbody></table>
+
+<div class="section-title">▶ ACT 4 — PRESSURE (Ch. 51–66)</div>
+
+<table><thead><tr>
+  <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+  <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+</tr></thead><tbody>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 51</span><span class="official-title">"The Flower That is My Hope"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-suggested">SUGGESTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-cryious">CRYIOUS</span>
+  THE THINNING WALL — A soul seed component for the bomb is in a collapsing reality. May and Cryious race to retrieve it. Inside: lingering souls who refuse to be reaped — they don't believe their reality is ending. May reaps them gently, without being ordered to. She uses her Death Card to appoint each of them to their destination personally. It is the first time she uses that card not as an administrative function but as a genuine final act of care. Cryious watches without comment. On the way out: the Sentry is at the threshold. It steps aside. May and Cryious don't speak of it.
+  <div class="lore-note gold">📌 MAY ARC: She used the Death Card — the most powerful tool in her reaper equipment — as an act of love, not duty. That is new. That is entirely hers.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 52</span><span class="official-title">"The Good Jazz"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-suggested">SUGGESTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-agitator">AGITATOR</span>
+  WHAT LURKS IN STILL WATER — The Death Jazz event. Sam encounters disguised May again. He thinks her laugh is Sydney's. He vanishes before she can confront him. Sam joins the US Army. Separately: the Agitator of Sin visits a reality that is too perfect, too still. He discovers it's a bait reality. The trap-maker is precise, patient — completely unlike the Lurker's chaotic destruction. The Agitator concludes: there is a hidden intelligence directing the Sentry, above everything he has encountered so far. His Engineer begins analyzing the trap's construction. The Medic extracts samples.
+  <div class="lore-note orange">📌 AGITATOR: He is getting closer to naming the Tenebris. His operators — the Engineer's technical analysis, the Medic's biological samples — are building a picture of something that has existed since before the Lurker. His arc is accelerating toward its own crisis point: when he finds the truth, he will be forced to decide whose side he is really on.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 53</span><span class="official-title">"Cyber Ghost"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-suggested">SUGGESTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  BORROWED LIGHT — Sam and Madoria's first genuinely peaceful day together. They visit a normal reality. Madoria begins to understand what she feels for Sam. Sam cannot let go of Sidney. He says nothing about this to Madoria. The Sentry passes through the edge of their reality — not there for them, not there because of the Lurker, pursuing its own Tenebris-directed mission. It doesn't engage. It doesn't need to. Its presence alone poisons the air.
+  When it passes, Madoria reaches for Sam's hand without thinking. He takes it without thinking. Both of them look at where the Sentry went. Neither speaks.
+  <div class="lore-note teal">📌 LIGHTBRINGER: Madoria reaching for Sam in the Sentry's wake is instinct — specifically the protective instinct of someone who can purify darkness without knowing it. The warmth she radiates is not random. It is the Lightbringer legacy working through her before she understands what she is.</div></td></tr>
+
+  <tr class="agitator-arc"><td><span class="chapter-link">CH 54</span><span class="official-title">"Dark Intentions"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Harbingers</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-lurker">LURKER</span>
+  The Agitator of Sin fails to contain the Lurker in a dying reality — the Lurker acts entirely on its own instincts, a pure obstacle. The Agitator completes his side mission: kills the fallen reapers of the Tenebris. He learns the truth about the Alpha Superium being puppeteered. His Sniper confirms the mark he left changed — the puppet master controls the King through the Sentry. The Agitator knows now. He doesn't yet know the name. His Engineer has a theory.
+  <div class="lore-note orange">📌 AGITATOR: He used his body-control ability during this chapter to use a dying Centurion Guard as a shield against the Lurker — the Guard was aware of it the entire time, unable to stop themselves. This is the first sign of the Agitator using his "ideals" as a cover for cruelty. His arc toward hypocrisy is no longer subtle.</div></td></tr>
+
+  <tr class="agitator-arc"><td><span class="chapter-link">CH 55</span><span class="official-title">"Eve and the Jinn"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Harbingers</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-ely">ELYSTRIA</span>
+  After the Tenebris's fallen reapers are killed, the Sentry begins actively targeting the Agitator — pursuing the Tenebris's agenda with zero self-preservation. It will shoot through its own forces to reach him. The Agitator activates his operators as a full defensive unit. The Medic patches the Sniper's wound while the Engineer reroutes their escape route.
+  Separately: the Pain Master — a god-like entity from the lower levels of Creation, attracted by high pain levels — gets its first hints here. Elystria, carrying the Madness's buildup in her system, generates a pain signature that registers on something distant and hungry. She doesn't know yet. The Pain Master is aware of her.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA: The Pain Master is described as a Hellraiser-inspired entity that gets off on pain and suffering. High pain levels attract him. Elystria's Madness-infection is not yet visible — but it is generating a signal. Her arc toward death begins its countdown here, unknowingly.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 56</span><span class="official-title">"Friendship is Pain"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam and his friends uncover the location of the shadow of unending darkness — connected to the power that controls the Sentry. A friend on Sam's team makes a decision that fractures the group. Sam handles it by prioritizing the mission over the relationship. He does not notice the cost until later. Madoria covers for the fracture. She takes the emotional weight of everyone — again.
+  <div class="lore-note teal">📌 MADORIA ARC: <em>"She will give everything to help someone else, but doesn't ask for help herself."</em> She is approaching her limit. The shine is beginning to fade. Sam doesn't see it. He is too deep in his own mission to look.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 57</span><span class="official-title">"A Seed for a Paradise"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span>
+  Sam and Thomas Jay on a camping trip — a breath between crises. Sam thinks about the jasmine, about Sydney, about who he has become in pursuit of her. Thomas Jay asks him directly: <em>"Are you happy?"</em> Sam does not answer immediately. He looks at the fire and then says: <em>"I'm useful."</em> Thomas Jay says nothing. This is not the same thing.
+  <div class="lore-note teal">📌 SAM ARC: He is becoming selfish — not consciously, not cruelly. But "I am useful" instead of "I am happy" is the answer of someone who has replaced joy with purpose, and purpose is becoming an excuse to ignore the people around him.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 58</span><span class="official-title">"Highway to Heaven"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam interrogates Madoria about her feelings for him. Not cruelly — but he needs to know, and he asks without considering what asking costs her. Madoria thinks about every time she has been treated as a data system rather than a living being. She fears attracting the Pain Master — high emotional pain produces a signal she doesn't know she has. She explores alone to process. Sam waits. He worries he pushed too hard. He did.
+  <div class="lore-note teal">📌 LIGHTBRINGER: Madoria's fear of the Pain Master is instinctive — she doesn't know why high pain attracts something terrible toward her. It's because she is the Daughter of God. The Pain Master hunts sacred things as much as it hunts broken ones. The Lightbringer legacy paints a target on her back she cannot see.</div></td></tr>
+
+  <tr class="lightbringer"><td><span class="chapter-link">CH 59</span><span class="official-title">"Distant Echoes"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-madoria">MADORIA</span><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-lightbringer">LIGHTBRINGER</span>
+  Madoria senses parts of herself at the border of creation — afraid to seek them. She diverts the fear into usefulness: sharing Dimensionlock bomb findings with the team. She reaches out to Death for answers about her fragments. Death meets her again. This time he brings a flower — the Flower of Death, the one Cryious found. He gives it to her. He says nothing about why. She thanks him. She puts it in her hair.
+  Death leaves the meeting and sits in a corridor outside his quarters for exactly as long as it takes for the ship to complete one slow rotation around a dead star. Then he goes back inside.
+  <div class="lore-note gold">📌 LIGHTBRINGER: Death giving Metrodoria's daughter the Flower of Death — a flower connected to the Gardener of Creation — is his most intimate act of the entire arc. He doesn't know he's doing it consciously. His subconscious has been connecting the dots on Madoria's identity for chapters. His emotional architecture has no label for what he just did. He is learning to build one.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 60</span><span class="official-title">"Joker and Viv"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Madoria tries to reach the Alpha Superium through official channels — blocked. The King's control by the Tenebris via the Sentry is now airtight. Vivian and an unpredictable character — called "the Joker" — have a tense encounter in a neutral space. The Joker is someone who has clearly used Vivian's shapeshifted form before, or knows what he can do, and challenges him to prove who he really is. Vivian uses the Soul Splitter — the flash of the future shows him the Joker will stand down in 4 seconds. He waits. 4 seconds. The Joker stands down.
+  <div class="lore-note purple">📌 VIVIAN: The Joker may be someone from his past — perhaps from a reality neighboring his own that the Leviathan Tengual also touched. The confrontation is not resolved fully here. But Vivian walks away having chosen patience over combat for the first time. His arc of calming down is real now.</div></td></tr>
+
+  <tr class="sam-arc"><td><span class="chapter-link">CH 61</span><span class="official-title">"Koil and Sic Boi"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam kidnaps an operator for intelligence on the Sentry's movements. This is reckless — he does it without consulting the team. A soul fragment of Madoria merges with her during the same operation, triggering an involuntary manifestation of her purifying ability: a brief, blinding warmth that disrupts the room. Sam did not plan for this. It creates a rift — his friends don't know how to respond to the new Madoria, and Sam doesn't understand what she just became.
+  <div class="lore-note teal">📌 LIGHTBRINGER: Madoria's purifying ability surfaced involuntarily for the first time. She didn't do it consciously — a fragment of herself merged with her and the power expressed itself before she could control it. This is the beginning of her awakening as the Daughter of God.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 62</span><span class="official-title">"Losing Focus"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Dimension Light</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-sam">SAM</span><span class="arc-tag tag-madoria">MADORIA</span>
+  Sam's friends debate whether to accept the merged Madoria. Sam seeks outside help. The team fractures — each person's arc pulling in different direction. The mission is losing its center. Madoria is quiet during the debate. She does not defend herself. She is beginning to reach her limit — not of capability, but of giving without receiving. The shine she always had is dimming.
+  <div class="lore-note teal">📌 MADORIA ARC: <em>"We see her break down and reach the limit of what she can sacrifice."</em> This is the beginning of that limit. Her arc parallels Elystria's in one key way: both give everything for others. Both will have to learn that giving without reservation destroys the giver.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 63</span><span class="official-title">"Trouble in the Sphere"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-flybutt">FLYBUTT</span>
+  Elystria requests Vivian for a diplomatic mission. Flybutt goes with May on land scouting to build relay towers. Flybutt, without being asked, helps far more people during the scouting mission than the assignment required — going out of his way for every soul he encounters. He returns quieter than usual. Something about what real care looks like, repeatedly, one person at a time, has recalibrated him. He lands on May's hat that night. She lets him stay there.
+  <div class="lore-note green">📌 FLYBUTT ARC: <em>"Flybutt regrets not being her real father."</em> He is not her real father. He was a failed attempt at recreating someone. But in this scouting mission he finds out what a father does: shows up repeatedly, for everyone, without being asked. He returns knowing who he has been being all along. And he does not know how to tell May.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 64</span><span class="official-title">"Tendrils of Madness PT1"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-iza">IZA</span>
+  Vivian and Elystria's diplomatic mission: protecting a newly formed reaper in a newly formed reality. The reaper is terrified, newly appointed by Death's Card. Elystria guides them with her elemental magic — gentle, not imposing. Vivian watches. At one point Elystria puts her hand on the new reaper's shoulder and says: <em>"You don't have to feel nothing. You just have to keep going."</em> She doesn't look at Vivian when she says it. But she is saying it to him too.
+  Later: Vivian asks her directly — <em>"Do you still blame May?"</em> Elystria is quiet for a long time. Then: <em>"I think I'm running out of blame."</em>
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA ARC: "Running out of blame" is not the same as forgiveness. But it is the thing that comes right before it. This is the conversation that changed her. She didn't arrive here by being told to forgive. She arrived by exhausting the energy that kept the blame alive.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 65</span><span class="official-title">"Tendrils of Madness PT2"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-agitator">AGITATOR</span><span class="arc-tag tag-may">MAY</span>
+  A BURDEN TO THOSE WHO SEE — An uneasy alliance: the Agitator of Sin, Death's crew, for a surprise attack on the Lurker to detonate the Obsidian Bomb. The Sentry appears in the same space, pursuing the Tenebris's separate mission — it is not there for the Lurker, not there for the crew. Three-way chaos. The Agitator's body-control ability is used in the field — his Sniper's hand is briefly controlled to take a shot the Sniper would not have taken. The Sniper is aware it happened. He files it away. Elystria makes a choice in this battle that betrays one of her own beliefs — sacrificing the ideals of a diplomat to protect May in a moment of pure defensive instinct. She does not regret it. She is surprised she doesn't.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA ARC: <em>"She starts to make decisions that aren't so kind anymore to protect May."</em> This is that shift. She is no longer just kind. She is fierce. And in being fierce for May, she has found something she thought she lost: a reason to be something more than sad.</div></td></tr>
+
+  <tr class="pivot"><td><span class="chapter-link">CH 66</span><span class="official-title">"Tendrils of Madness PT3"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-lurker">LURKER</span>
+  <span class="milestone">⚡ PIVOT — ELYSTRIA INFECTED WITH THE MADNESS</span>
+  The Lurker — on its own agenda, using its Fragmented Madness and apple-distribution ability — traps Elystria and infects her. It uses its Soul Snire-adjacent capability to breach her emotional expressiveness and plant the Madness directly into her. The Lurker chose her because she is the most emotionally expressive reaper — more emotional surface area means faster infection spread. It is not personal. It is tactical. The Lurker is still 5 steps ahead.
+  Sam and Madoria retreat with their friends. The Sentry observes the battle outcome from a distance — indifferent to the Lurker's actions, focused entirely on its Tenebris-given mission. Death begins planning the most drastic next actions.
+  <div class="lore-note">📌 LURKER: He infected Elystria because of her emotional surface area — high expressiveness means the Madness spreads faster. He envies May because she carries the Madness inside her. Infecting Elystria is also a strike at May: destroy the person who is May's best friend, the person who is teaching May how to feel. The Lurker knows exactly what he's doing. He is always 5 steps ahead.</div></td></tr>
+
+</tbody></table>
+
+<div class="section-title">▶ ACT 5 — THE LONG DARK (Ch. 67–76)</div>
+
+<table><thead><tr>
+  <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+  <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+</tr></thead><tbody>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 67</span><span class="official-title">"Battle ARC"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-cryious">CRYIOUS</span><span class="arc-tag tag-flybutt">FLYBUTT</span>
+  THE WEIGHT OF WHAT WE CARRIED — Aftermath. The crew is silent. May goes cold and mission-only. Vivian tries to reach her and fails. Death gives his rare speech: not comfort, just clarity — what comes next, what it will cost, no grief yet. Cryious stands by Flybutt. Flybutt asks: <em>"Do you think she'll be okay?"</em> Cryious doesn't answer. Then, quietly: <em>"She's a reaper."</em> Flybutt thinks about the child on the bridge, and May's single tear, and all the things a reaper technically shouldn't be able to do that May keeps doing anyway. <em>"Yeah,"</em> he says. <em>"She is."</em>
+  <div class="lore-note green">📌 FLYBUTT ARC: This is the bravest thing he has said all arc. He believes in May — not despite her emotions, but because of them. This is where his arc of growing braver arrives. He is no longer cautious. He is certain.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 68</span><span class="official-title">"Battle of Devotis Realiotus"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-cryious">CRYIOUS</span>
+  THE SENTRY MOVES — The Sentry (acting on the Tenebris's orders) strikes three realities simultaneously — corrupting reaper networks, leaving them defenseless. Not the Lurker's destruction style at all: precise, strategic, targeted. Death is visibly shaken. He has Death Fraction power capable of decimating armies in seconds — but he cannot sense the Lurker or things from the Real World. The Sentry is moving at a strategic level that suggests a mind above it. Intelligence reaches Death: the Sentry has been near Sidney's last known location. He says nothing to May.
+  <div class="lore-note gold">📌 DEATH: He cannot sense the Lurker due to its Real World origin. He is also beginning to suspect he cannot fully sense the Tenebris either. He is, for the first time in his existence, operating with incomplete information. A being of total administrative certainty having to improvise is more frightening to him than any enemy.</div></td></tr>
+
+  <tr class="death-arc"><td><span class="chapter-link">CH 69</span><span class="official-title">"Scorn of Terror"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span>
+  Death finds Dante — old operator, survivor of Zero Point. Dante was there before Leviathan Protocol 14 activated. He testifies about the Sentry's first known appearance — which predates the Lurker entirely. The Sentry was the Tenebris's arm before the Lurker even arrived. Dante describes what he saw: something that felt like it came from below Creation, from a level that shouldn't have life in it. Death listens. He does not write anything down. He doesn't need to.
+  <div class="lore-note gold">📌 DEATH ARC: This is his peak information chapter. He now has the full picture — the Tenebris, the Sentry, the Lurker, and how none of them are the same thing. He has always been certain. He is now more certain than ever — and the certainty contains knowledge he doesn't want to have.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 70</span><span class="official-title">"Revelations of Fear"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-ely">ELYSTRIA</span>
+  May attempts to kill Vivian for not letting her save Elystria. She is using her Reaper Blade — daggers, Kronen (bladed tonfas) — aggressive, acrobatic, inelegant, full-speed. She is not thinking. Vivian does not draw the Soul Splitter. He does not shift. He blocks everything by hand. He absorbs the hits. He holds her when she runs out of energy. He says: <em>"You are allowed to love her. That is not weakness. That is why you are the only reaper I have ever trusted."</em> May breaks.
+  Elystria, elsewhere, visits old memories — her husband, her daughter, the day the building fell. She is not sad in the memory. She is present. She says goodbye to the version of herself that blamed everyone.
+  <div class="lore-note purple">📌 VIVIAN ARC COMPLETE: He came onto this ship impulsive, arrogant, a lone wolf with no one left. He ends this chapter as someone who can hold another person's grief without flinching, without needing to fix it, without running. That is his arc. That is 70 chapters of growth made real in one moment.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 71</span><span class="official-title">"The Win"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span>
+  PAINFUL TIMES AHEAD — Despite the Madness, Elystria secures a small mission victory — protecting someone who couldn't protect themselves. Her elemental magic is fading slightly (the Madness interferes with precision). She compensates with her scythe-whip, which she uses more readily now than she ever did before. It surprises her team. She surprises herself. She chose her scythe. She chose to stay in the fight. She chose to be a reaper.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA: <em>"She doesn't want to be a reaper and live forever."</em> But choosing her scythe here is not about wanting reaper life. It is about choosing to be useful with the life she has left. There is a difference. She knows the difference now.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 72</span><span class="official-title">"Good Gods"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-iza">IZA</span>
+  Elystria prepares her contingency — a way to preserve what she knows before she dies. She knows who the new Gardener of Creation is. She will die before she can tell anyone directly. So she does something else: she tells Iza. Not in words. She gives him the note he kept from Ch. 49 — about the warmth that felt like it came from inside Creation — and adds one line to it in her own handwriting. She folds it. She tells him to keep it.
+  <div class="lore-note green">📌 GARDENER OF CREATION THREAD: The identity of the new Gardener is passed forward through Elystria's note to Iza. He doesn't know what he's holding. He keeps it because Elystria asked him to. This is the most important thing he does all arc — and it looks like nothing.</div></td></tr>
+
+  <tr class="death-arc"><td><span class="chapter-link">CH 73</span><span class="official-title">"Bad Gods"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span>
+  Death visits the old garden of creation — the Dimension Lock fractures have reached here too. He meets a ghost of his early days: a vision or echo of the first reaper he ever appointed, standing in the original garden. The ghost says nothing. It simply points to where the garden is still growing. Death looks. In the corner of the dying garden, untouched by the fractures: the Rasker Flower. Gabriel Forge's father's unfinished legacy. Growing. Death knows what this means. He stays there for a very long time.
+  <div class="lore-note purple">📌 VIVIAN CONNECTION: The Rasker Flower his father never taught him to grow — it's been in the garden all along. The Gardener of Creation knows this. Death knows this. He will not tell Vivian. Not yet. Some things must be found, not given.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 74</span><span class="official-title">"Gods of the Beyonder"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-suggested">SUGGESTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span>
+  ALL ROADS BREAK EVENTUALLY — The Dimensionlock bomb is confirmed ready. Final briefing. The plan targets the Lurker's occupied reality. The Sentry is an independent danger to be navigated around. May is assigned to deliver the bomb to the core. She asks: <em>"What happens to whoever delivers it?"</em> Death does not answer. The silence says enough. Death pulls May aside privately — tells her something about her. Not about the mission. About who she has become. He speaks in his flat, emotionless voice. The words are not flat at all. May almost takes off her hat. She doesn't. Vivian hears it through the door. He reaches for her hand that night. She doesn't pull away.
+  <div class="lore-note gold">📌 DEATH ARC PEAK: He told May something true about her. That is the most emotionally advanced thing he has done in his entire existence. He didn't do it well. His voice didn't change. His face didn't move. But he said it — and she heard it — and that is everything.</div></td></tr>
+
+  <tr class="ely-arc"><td><span class="chapter-link">CH 75</span><span class="official-title">"Count My Deeds"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span>
+  <span class="milestone">⭐ ELYSTRIA ARC COMPLETE</span>
+  ELYSTRIA BACKSTORY — A full chapter. She counts what she has done since becoming a reaper. She thinks of her husband and daughter — not with the knife-edge of grief but with something softer. She has moved on (Theme 1). She has forgiven May and herself (Theme 2). She has found goodness in a world infinitely evil (Theme 3). She has cherished what is close to her (Theme 4 — Vivian, Kiza's memory, the crew). She does not regret her life. She does not want to die. But she is not afraid of it. She is ready to choose it if she must.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 All four themes are resolved for Elystria. Her arc is complete. Her death is near. This is the story honoring her before the ending takes her. She was a sunflower. She found another sun.</div></td></tr>
+
+  <tr class="char-arc"><td><span class="chapter-link">CH 76</span><span class="official-title">"Ghostly Interference"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-flybutt">FLYBUTT</span><span class="arc-tag tag-cryious">CRYIOUS</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-ely">ELYSTRIA</span>
+  BEFORE THE STARS GO OUT — The night before the final mission. Flybutt watches May sleep and carves something small using a soul seed connoisseur's precision — he leaves it by her side. Cryious stands at the ship's edge reciting his longest list of names yet. He doesn't know Elystria is in the corridor behind him. She places lavender — his favorite — outside his door and walks on without looking back. Vivian tries to write a letter. Can't find the words. Folds the blank page into his pocket. Elystria and Vivian sit together one final time. She tells him something. We don't hear it. He holds her hands. She smiles. May is already awake. She has been awake all night. She stares at her hat.
+  <div class="lore-note gold">📌 THEME 4: Cherish the things close to us. This entire chapter is that theme — embodied in silence, in small gestures, in the last time each of these people chooses to be present with each other before everything changes. No dialogue is needed. The actions speak.</div></td></tr>
+
+</tbody></table>
+
+<div class="section-title">▶ ACT 6 — THE FINALE (Ch. 77–85)</div>
+
+<table><thead><tr>
+  <th style="width:15%;">CHAPTER</th><th style="width:8%;">PRIORITY</th><th style="width:7%;">SOURCE</th>
+  <th style="width:10%;">FACTION</th><th style="width:8%;">STATUS</th><th>OVERVIEW &amp; ARC NOTES</th>
+</tr></thead><tbody>
+
+  <tr class="pivot"><td><span class="chapter-link">CH 77</span><span class="official-title">"The Sentry"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-death">DEATH</span><span class="arc-tag tag-sentry">SENTRY</span>
+  <span class="milestone">🔥 TENEBRIS REVEAL — SENTRY REVEALS ITS MASTER'S GOAL</span>
+  Death and Cryious search for May — time is ticking to zero point. The Sentry confronts Death directly. It acts as the Tenebris's voice — fiercely loyal, near-robotic, zero self-preservation beyond mission completion. It will sacrifice everything to deliver the message. Death is thrilled at the Sentry's threats — and utterly surprised by what it reveals about the Leviathan/Tenebris's true goal. Death faces off against the Sentry. He loses — the first time we have seen Death genuinely lose a confrontation. He flees, not in defeat, but in strategy: let May and crew succeed against the Lurker. He will deal with the Tenebris when May is safe.
+  <div class="lore-note">📌 THE REVEAL: The Lurker has been the front. The Tenebris has been the war. The Sentry has delivered its master's declaration. Death now knows the full shape of what he is fighting. It is larger than the Lurker. It is older than the Lurker. It has been planning since before either of them existed. This is Arc 2's enemy — and it has just been named.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 78</span><span class="official-title">"Wayward My Son"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-iza">IZA</span>
+  WAYWARD — In the chaos following the Tenebris reveal, Iza breaks from the group. Not lost — standing at the edge of a reality the Lurker has been destroying, watching. He has the note Elystria gave him folded in his pocket. He is reading it. May finds him. She sits beside him without speaking. After a long silence, he looks at her and says: <em>"She told me something. I don't know what it means yet."</em> May says: <em>"That's okay. Keep it."</em> They walk back together.
+  <div class="lore-note green">📌 IZA: This is his most important moment. He doesn't understand Elystria's note. He keeps it anyway. This is Theme 4 — cherish the things close to us, even when we don't understand them. The Gardener of Creation secret lives in his pocket.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 79</span><span class="official-title">"Coffee Break"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-cryious">CRYIOUS</span><span class="arc-tag tag-vivian">VIVIAN</span>
+  THE LONG WAY BACK — Death's Ship is structurally strained by the zero point fractures. Romane and the crew stabilize it. May takes over manual reaping shifts. Vivian and Cryious repair the hull together. They talk — for the first time — about what they both fear losing. Cryious: <em>"I fear outliving my purpose."</em> Vivian: <em>"I fear dying before I grow the Rasker Flower."</em> Cryious goes very still. He knows what that flower means. He has seen it in the garden. He says nothing. He picks up a tool and keeps working. The ship holds. Barely. Death says: <em>"Enough. We move now."</em>
+  <div class="lore-note green">📌 CRYIOUS: He knows Vivian's father's legacy is still alive in the garden. He will never tell him. He believes some things must be found by the person they belong to. He files it beside the names he recites and keeps going. This is Cryious — duty and tenderness folded into the same absolute loyalty.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 80</span><span class="official-title">"Happy Moments"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-ely">ELYSTRIA</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-flybutt">FLYBUTT</span>
+  WHAT HOLDS THE SHIP TOGETHER — Small, irreplaceable moments. Flybutt and May share a laugh over something absurd — the last one for a long time. Vivian and Elystria sit together one final time. She tells him what she told him. We don't hear it. He holds her hands. She smiles. Cryious leaves a small flower at each of their doors. Iza polishes his Centurion Guard armor and puts it on properly for the first time since Kiza died. He is ready.
+  <div class="lore-note" style="background:#fde0dc; border-left-color:#880e4f;">📌 ELYSTRIA: This is her last quiet moment. She does not run. She chose to stay with her people. Theme 4 — in its final, fullest form — lives in the thing she tells Vivian that we cannot hear. Whatever it is, it is enough. He holds her hands. She smiles. That is everything.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 81</span><span class="official-title">"Reaper Death Count"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-death">DEATH</span>
+  INTO THE DARK OF IT — The final approach. The Lurker's occupied reality — wrong, pulsing, wrong. The team splits into roles. Death intercepts the Sentry alone — it is here for the Tenebris's mission, not the Lurker's, and it treats the Lurker as an obstacle the same way the crew does. May grips the Obsidian device. She looks at Vivian. He looks back. They both know. She uses her Health Bracelet for the last time — precharging it for what's ahead. The Lurker is somewhere in the dark ahead. It is excited. It has been waiting for this.
+  <div class="lore-note">📌 LURKER: He has been waiting for this since Chapter 4. <em>"IT'S YOU! MAYTRIDALIS!!!"</em> He has been obsessed with her Madness, envious of it, wanting it. This final battle is also, for the Lurker, a reunion. He has been 5 steps ahead all arc. Let's find out if May is 6.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 82</span><span class="official-title">"Madness of Endurance"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-cryious">CRYIOUS</span>
+  THE STAIRS WITHOUT AN END — May, Vivian, Cryious climb the invisible reality stairs. Each step a light year. The Lurker's monstrous expansion chases them. Vivian's Soul Splitter flashes futures at him — all the same: keep going. They pass through compressed echoes of dead realities — brief flashes of color, laughter, ordinary lives, frozen. May sees something that looks like Sidney. She almost stops. She doesn't. She pulls out the flower she saved from the Blackbox. She looks at it. She puts it back. She keeps climbing.
+  <div class="lore-note gold">📌 MAY: The flower she saved from Sidney's soul in the Blackbox is in her pocket all the way to the top. She has carried it since Chapter 18. It is the only physical thing she has that connects to something she was told she should hate — and she has been carrying it anyway, all arc, without knowing why. She knows now.</div></td></tr>
+
+  <tr class="suggested"><td><span class="chapter-link">CH 83</span><span class="official-title">"True Purpose"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-cryious">CRYIOUS</span>
+  <span class="milestone">⚡ CRYIOUS DIES</span>
+  CRYIOUS — His final chapter. The Lurker gains too fast. Cryious turns and faces it. He activates Static Freeze — the bubble that drains his stamina — and holds the Lurker inside it for as long as he can. Flashback: the names he recites. Who they were. The 2nd Reality. The first souls he ever reaped. He has carried them all this time. He lets the Freeze collapse on purpose when May and Vivian are far enough ahead. The Sentry passes through the same space on its own Tenebris-directed mission — not there for Cryious, not there for the Lurker, but its passage disrupts the Freeze's collapse pattern, accelerating the outcome. Two uncoordinated forces. One consequence. Cryious is turned to ash. He is smiling. In his last second he thinks about the Rasker Flower in the garden. He thinks about Vivian. He thinks: <em>he'll find it himself.</em> May cries real tears. Vivian pulls her forward. <em>"He bought this. Don't waste it."</em>
+  <div class="lore-note green">📌 CRYIOUS ARC COMPLETE: <em>"He opens up to change with May over time."</em> He accepted that a reaper can have emotions and still be a reaper. He spent his whole arc believing May was getting in the way of what a reaper should be — and died knowing she was exactly what a reaper should become. He chose to stand. He chose the names. He chose the flowers. He chose the garden. Theme 4 — in its most absolute form.</div></td></tr>
+
+  <tr><td><span class="chapter-link">CH 84</span><span class="official-title">"The Passing of Knowledge"</span></td>
+  <td><span class="badge-low">Low</span></td><td></td><td>Death Faction</td><td><span class="badge-wip">WIP</span></td>
+  <td><span class="arc-tag tag-flybutt">FLYBUTT</span><span class="arc-tag tag-may">MAY</span>
+  <span class="milestone">⚡ FLYBUTT'S FINAL CHAPTER</span>
+  CARRY ON — THERE BE PEACE WHEN WE ARE DONE. May and Vivian are inches from the core. Flybutt wraps his wings fully around May — maximum force field, the only power he has ever had. He is her shield. Not as a tool. As a father. He uses his soul-detection ability one final time: he reads May's soul. He has always been able to sense souls. He has never told her what he saw when he read hers. He tells her now. We hear only May's reaction. Her face breaks into something we haven't seen before. Then she straightens. She makes the final move. The Obsidian device is injected into the core. Flybutt becomes stone. Not from fear. From love. For the first time, he chose the stone.
+  <div class="lore-note green">📌 FLYBUTT ARC COMPLETE: <em>"He becomes more brave as the story goes on."</em> He started as a failed attempt at recreating someone. He ends as something that cannot be replicated or replaced — the person who read May's soul and told her the truth of what he saw. His arc is bravery: not in combat, but in choosing to stay until the very last second, and turning to stone because love asked him to.</div></td></tr>
+
+  <tr class="pivot"><td><span class="chapter-link">CH 85</span><span class="official-title">"Governance of My Stone Heart"</span></td>
+  <td><span class="badge-critical">Critical</span></td><td></td><td>Death Faction</td><td><span class="badge-notstarted">NOT STARTED</span></td>
+  <td><span class="arc-tag tag-may">MAY</span><span class="arc-tag tag-vivian">VIVIAN</span><span class="arc-tag tag-death">DEATH</span>
+  <span class="milestone">🔥 ARC 1 FINALE</span>
+  <ul class="overview">
+    <li>May injects the Obsidian device into the Lurker's reality core. She jumps off the stairs as the Lurker is destroyed. The Sentry is simultaneously defeated by Death in their separate confrontation — the two threats end at different hands, at different times, for different reasons. Neither was anyone's ally to the other.</li>
+    <li>May falls. She grabs Vivian at light speed. A blinding white flash. She floats outside the shattered reality. Flybutt — stone — in her hands. <em>"Father, was that you?"</em> She passes out.</li>
+    <li>Death saves May and Vivian's soul (in a tadpole). He feels something he has never felt and cannot name. He says: <em>"You are now finally a full reaper, Maytridalis. One for which I am honored to have trained."</em> His voice is flat. The words are not.</li>
+    <li>He gives her a final mission: rebuild the reaper force. Use the Obsidian in her heart. This may be the last time they see each other. He reaps her — so she can be reborn safely.</li>
+    <li>May is reborn with her memories intact — Death's gift. Vivian is reborn beside her. They grieve together. They begin.</li>
+    <li>Death's ship is destroyed by the Laithivians. Death escapes secretly — hunting Sidney, who holds the key to defeating the Tenebris. Madoria's purification ability — the Lightbringer legacy that has been building all arc — is the weapon Death now understands he needs. He seeks Sidney because Sidney is connected to the Madness that the Tenebris wants. Find Sidney. Find the Madness. Counter the Tenebris. Save Madoria before the Pain Master finds her.</li>
+  </ul>
+  <div class="lore-note gold">📌 LIGHTBRINGER THREAD CLOSES ARC 1: Madoria AI — the Daughter of God, fragmented, slowly becoming whole — carries the ability to purify the very Madness that both the Lurker and the Tenebris competed to possess. The Lurker is gone. The Tenebris is named. Madoria is awakening. Arc 2 is the Lightbringer's story as much as May's.</div>
+  <div class="lore-note gold">📌 DEATH ARC COMPLETE: He sacrificed certainty, distance, administrative control — and learned, in the only way available to someone without a soul, what it means to love someone. Not perfectly. Not expressively. But genuinely and at great cost. His arc ends not with resolution but with a new mission — and for the first time, a reason beyond duty to pursue it.</div>
+  </td></tr>
+
+</tbody></table>
+
+<div class="arc-end">
+  <h3>ARC 1 END GOAL — COMPLETE SUMMARY</h3>
+  <p><strong>THE LURKER</strong> — stopped. By May and the Obsidian bomb. The Lurker was a former scientist who became a demented, obsessive force of corruption from outside Creation. He envied May's Madness and competed with the Tenebris for the Pure Madness. He is gone. He was 5 steps ahead his whole arc — until May was 6.</p>
+  <p><strong>THE TENEBRIS</strong> — revealed (Ch. 77, through the Sentry) as the true enemy. Ancient, patient, the thing that killed Metrodoria Lightbringer in the prologue, the puppet master controlling the King through the Sentry. The war has just been named. Arc 2 brings it fully into the open.</p>
+  <p><strong>DEATHS:</strong> Kiza (Ch. 14), Cryious (Ch. 83), Flybutt (Ch. 84), Elystria (referenced in the finale — her infection takes her between Ch. 85 and Arc 2). May and Vivian are reborn. Death's ship is destroyed.</p>
+  <p><strong>THE LIGHTBRINGER THREAD:</strong> Metrodoria Lightbringer was killed by the Tenebris. Her daughter Madoria AI has been recovering fragments of herself all arc — including her ability to purify the Madness. Death gave her the Flower of Death. He has known who she is. He has never said. He hunts Sidney now — the key to the Tenebris — with Madoria's awakening as the counter-force. Arc 2 is her story too.</p>
+  <p><strong>FOUR THEMES RESOLVED:</strong><br>
+  1. <em>Learning to move on</em> — Sam: chose not to bring Sidney back. May: reborn forward.<br>
+  2. <em>Learning to forgive oneself</em> — Elystria: ran out of blame and chose forgiveness. May: began in Ch. 38 and completes in rebirth.<br>
+  3. <em>Finding what it means to be good in a world infinitely evil</em> — May: reaping with care. Elystria: goodness under the Madness.<br>
+  4. <em>Cherish the things close to us</em> — Flybutt: turned to stone from love. Cryious: chose to stand for his people. Elystria: chose to stay. Vivian: reborn beside May.
+  </p>
+  <p><strong>END OF ARC 1</strong></p>
+</div>
+
+</body>
+</html>

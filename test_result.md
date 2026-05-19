@@ -1939,3 +1939,55 @@ agent_communication:
 
       Screenshot-verified, no JS console errors, Maytradalis renders
       correctly in every new room.
+
+  - agent: "main"
+    date: "2026-02-19 (fork — phase 3 audio + infestation)"
+    note: |
+      ── AMBIENT AUDIO ENGINE (Death's Ship) ──
+      ✓ AmbientAudio module built on shared WebAudio context
+        – Procedural footsteps: low-passed noise burst + sub-thump,
+          ~340ms cadence walking, ~200ms running. Distance-attenuated
+          for NPCs ("distant" preset). Hooked into player update() and
+          all patrolling NPCs in the room loop.
+        – Whisper-chatter ambient bed: random formant-shaped noise
+          bursts with bandpass + delay feedback, panned, every 5–14s
+          on its own scheduler.
+        – Gothic-organ drone: three sawtooth voices with detuned
+          unison + LFO chorus + slow amplitude-wobble per voice, plus
+          a delayed-in tall fifth — 6-piece organ-like pad.
+        – Door cue: short triangle-osc bell on every door transition.
+        – All audio bootstraps on first key press (same handler as
+          music start). Master volume hookable via AmbientAudio.setVolume().
+      ✓ Zero console errors after wiring (verified screenshot).
+
+      ── SOUL-INFESTATION VISUAL STATE (Astrolabe) ──
+      ✓ TERRITORY_DATA now carries `isInfested` flag — ~10% of deep-negative
+        strata, ~6% mid-negative, ~1.5% positive (weighted toward
+        Lovecraftian layers). Pre-defined POI realities are never infested.
+      ✓ Per-strata 3D overlay: bright green wound-ring + sickly halo +
+        rotating tendril cross. Animated in the render loop:
+        opacity pulse on the ring/halo, slow Y-spin on the tendrils,
+        per-strata phase offset so they breathe in counterpoint.
+      ✓ Filter row got new "INFESTED REALITIES" button (green). Filter
+        dims all non-infested discs, lights the infested ones to bright
+        green. Verified working via screenshot (third filter button now
+        active, all dead/stable discs dim to background, infested rings
+        glow).
+      ✓ Status panel reads "INFESTED" in green when an infested strata
+        is targeted. Lore-body text gets prepended with
+        "⚠ CENTURION ALERT — SOUL-INFESTATION ACTIVE." in both the main
+        lore panel and the cinematic tour body.
+
+      ── PIPELINE ──
+      ✓ Re-ran split_astrolabe.py — chunks regenerated cleanly
+        (manifest 472.6 KB).
+      ✓ Frontend restarted; no console errors on either page.
+
+      DEFERRED (next session):
+        – Astrolabe tutorial popup (style "both": auto-open + ? button)
+        – Google AdSense in-world ads (need user to provide AdSense ID
+          + publisher account)
+        – Tutorial/3D-holo Grand Hall pass
+        – May's-room cinematics + Hangar Endless-viewport (user mentioned
+          reference videos earlier — need to revisit them)
+        – Generative storytelling (blocked on Google Doc access)

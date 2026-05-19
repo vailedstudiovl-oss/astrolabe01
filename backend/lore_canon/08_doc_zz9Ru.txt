@@ -1,0 +1,157 @@
+﻿MASTER GUIDE
+(TO BE UPDATED REGULARLY)
+  
+
+DIMENSIONLOCK/STORY DESIGN
+─
+PLEASE REFER TO NEW DOC[a]
+
+
+VailedLight Entertainment LLC
+DimensionLock | English | GlobalComix
+http://www.dimensionlock.online
+OREGON, USA
+Overview (Read to Get Started and Catch Up)
+As a reaper-in-training, Maytradalis travels the space in-between realities called the Endless. She and her best buddy Flybutt, a very interesting fly and her great master, a living skeleton, Death will embark on a very challenging journey to find a way to defeat the mysterious entity called the Lurker. Find out how she slowly unveils the mysteries of Creation and the secrets that lie within! 
+________________
+
+
+Objectives
+1. To be able to create a master document for the writing team as a point of reference.
+2. To create a wiki point for the audience/community to engage with.
+3. To create a pitch deck that discusses the story’s background, characters, themes, and plot lines that will be utilized for the project proposal.
+Team Assignments
+Formatting Notes
+1. Formatting was created to standardize our writing documents, processes, story beats, and elements and avoid overlapping
+2. The objective of this DLDS Master Guide is to make sure that we have a coherent story that is organized and well-written.
+3. All Story elements will have H1 Headings, H2/H3 Headings are sub-elements hyperlinking to their respective documents.
+4. Yellow text is a description. Italicized highlighted text with underlines are staff-related notes.
+5. Line Breaks have been added for breaks and will be implemented to other documents for proper formatting.[b][c][d]
+________________
+
+
+Frequently Asked Questions
+Refer to this section on the frequently asked questions and discussions of lore.
+________________
+Mary’s DS: Re-Write Notes
+This section uses Mary’s notes on the lore and other tidbits concerning DimensionLock. 
+From 10/24 Meeting, its agreed that Arc 1 will be the focus for development.
+________________
+Story Themes
+This section emphasizes the core themes centered on DimensionLock. 
+1. Learning to move on. 
+2. Learning to forgive oneself.
+3. Finding what it means to be good in a world that's infinitely evil.
+4. Cherish the things that are close to us.
+________________
+
+
+Origin Story
+Marvin’s Origin Story Doc
+
+
+
+
+________________
+
+
+ARCs And Synopsis 
+Refer to Synop Document for Updated Info
+
+
+1. The Beginning  
+120-150 chapter Synopsis est.
+2. The Middle
+120-150 chapters Synopsis est. 
+3. The Climax
+60 chapters Synopsis est. 
+
+
+________________
+
+
+Chapter Scripts
+This section provides the completed chapters of the ongoing series. 
+
+
+________________
+
+
+Characters Section
+This section discusses character biographies, including their relationships, personalities, and roles in the story. 
+Character Charts
+Character Scripts Links
+Character Arcs
+
+
+________________
+
+
+Location Section[e][f]
+Refer to this section as a guide for the locations mentioned and are set in DimensionLock.
+Recurring Points Of Interest in DLDS
+World Building
+
+
+________________
+
+
+Hard Lore (highly detailed focus on the world, cultures, technology, etc)
+Note: The lore is fixed and cannot be altered. — 
+Magic Systems
+Time
+Reaper Lore
+[g][h][i]
+Power Scaling
+Other Faction Lore[j][k][l]
+Mary’s Story Notes
+Writer Limit Notes
+
+
+________________
+
+
+Soft Lore (Characters and Plots)
+Creator’s Note: OD means “Outdated.” Flexible for writers to change
+Mays Character Arc for Arc 1(OD)
+Sam Character Arc for Arc 1(OD)
+Deaths Character Arc for Arc 1(OD)
+Vivian Character Arc For Arc 1(OD)
+
+
+________________
+
+
+
+
+________________
+
+
+Factions/Organizations
+This section discusses organizations/groups and the lore within them. 
+Faction Details
+Faction Lore
+
+
+________________
+
+
+Production Documents
+
+
+
+
+[a]How Latest is this?
+[b]Jason, do let me know should items 3-5 would be implemented to all documents moving forward.
+[c]_Marked as resolved_
+Sure
+[d]_Re-opened_
+Noted making changes to all related documents now.
+[e]I'll add the world building stuff here, so its more organized vs shoved into the corner with arc one
+[f]Sounds good
+[g]Would these be added into the Faction/Organization category instead?
+[h]possibly but it contains sub lore like reaper rules and canon
+[i]copy that, thought the Reapers as its own faction to categorize them, will leave it here then.
+[j]Would these be added into the Faction/Organization category instead?
+[k]possibly but it contains sub lore like reaper rules and canon
+[l]copy that, thought the Reapers as its own faction to categorize them, will leave it here then.

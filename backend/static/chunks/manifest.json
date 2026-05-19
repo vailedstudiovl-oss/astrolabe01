@@ -8,13 +8,13 @@
     },
     {
       "name": "astrolabe-body.html",
-      "size": 54521,
-      "hash": "98faf6d28642"
+      "size": 54757,
+      "hash": "ba471a731f33"
     },
     {
       "name": "astrolabe-engine.js",
-      "size": 342947,
-      "hash": "9e1c64c6d3d3"
+      "size": 348267,
+      "hash": "855828727cff"
     }
   ]
 }

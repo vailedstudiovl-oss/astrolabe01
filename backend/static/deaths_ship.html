@@ -636,7 +636,13 @@ const ROOM_DEFS = {
     ],
     npcs: [
       // Master Death stands on his throne dais — see drawCommandThrone()
-      { x:13, y:5.4, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death' },
+      { x:13, y:5.4, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death',
+        idleQuips: [
+          'Strata forty-seven holds. For now.',
+          'The Drege Engine is at ninety-two. Tell the Engineer.',
+          'Quiet little reaper. Quiet ship.',
+          'Cycle correcting itself. As it must.',
+        ] },
       // Two roaming ELITE GRIM REAPERS (sprite-based). Their armoured shapes
       // patrol between the holo-consoles. Elite-1 (heavy plate) takes the
       // port side; Elite-3 (honour-guard) takes starboard.
@@ -706,7 +712,7 @@ const ROOM_DEFS = {
     doors: [
       { x:30, y:4.5, w:1.0, h:1.5, to:'control',    spawn:{x:3,y:13} },
       { x:14, y:8.6, w:1.5, h:.7, to:'mays_room',  spawn:{x:9,y:1.5} },
-      { x:1,  y:1.5, w:1.0, h:7, to:'surge_hanger', spawn:{x:24,y:11} },
+      { x:1,  y:1.5, w:1.0, h:7, to:'surge_hanger', spawn:{x:11, y:14.5} },
       // Vivian's private quarters — accessed via small port-side door
       { x:7, y:0.4, w:1.0, h:0.6, to:'vivians_room', spawn:{x:7, y:8} },
     ],
@@ -756,49 +762,57 @@ const ROOM_DEFS = {
   surge_hanger: {
     id: 'surge_hanger',
     name: 'The Surge Hanger',
-    sub: "Romaine's domain — harvest skiffs, cargo, and the open bay",
-    width: 28, height: 14,
-    // Canon palette: bronze-brown floor + cyan accent strips + dark steel ships.
-    palette: { floor:'#3a2818', wall:'#4a3520', stone:'#5a4028', accent:'#3ee0e0', candle:'#3ee0e0' },
-    spawn: { x: 23, y: 8 },
+    sub: "Romaine's domain — the bay opens directly onto the Endless",
+    width: 22, height: 16,
+    palette: { floor:'#3a2818', wall:'#180e08', stone:'#2a1c0e', accent:'#3ee0e0', candle:'#3ee0e0' },
+    // Player enters from the BACK of the bay (south wall) and walks toward the
+    // bay door at the FAR end (north) where the Endless is visible.
+    spawn: { x: 11, y: 14.5 },
     draw: drawSurgeHanger,
     walls: [
-      { x:0,y:0,w:28,h:1 }, { x:0,y:13,w:28,h:1 }, { x:0,y:0,w:1,h:14 }, { x:27,y:0,w:1,h:14 },
-      // 4 docked harvest skiffs in two rows (matches canon: rows of dark sleek ships flanking the runway)
-      { x:1.5,y:5.5,w:3.5,h:1.6 },
-      { x:1.5,y:8.5,w:3.5,h:1.6 },
-      { x:23,y:5.5,w:3.5,h:1.6 },
-      { x:23,y:8.5,w:3.5,h:1.6 },
-      // 2 cargo cage crates (center of hanger)
-      { x:7,y:6.5,w:3,h:3 },
-      { x:11.5,y:6.5,w:3,h:3 },
-      // Romaine's workbench (bottom-left)
-      { x:6,y:11,w:3.5,h:1.4 },
+      // Outer walls (rendered as bronze hangar bulkheads)
+      { x:0,y:0,w:22,h:1 }, { x:0,y:15,w:22,h:1 }, { x:0,y:0,w:1,h:16 }, { x:21,y:0,w:1,h:16 },
+      // Hover-ships parked along the runway sides (matching reference image)
+      { x:1,  y:4,  w:3.5, h:3.5 },   // port hover-ship 1
+      { x:1,  y:9,  w:3.5, h:3.5 },   // port hover-ship 2
+      { x:17.5, y:4, w:3.5, h:3.5 },  // starboard hover-ship 1
+      { x:17.5, y:9, w:3.5, h:3.5 },  // starboard hover-ship 2
+      // Cargo cage crates centered on the runway (matches the lower-deck foreground in reference)
+      { x:7,  y:8,  w:3.2, h:2.6 },
+      { x:11.8, y:8, w:3.2, h:2.6 },
+      // Romaine's workbench (back of the bay, port side)
+      { x:2, y:12.4, w:3.5, h:1.4 },
     ],
     interactables: [
-      { x:3.2, y:7.5,  kind:'plaque', title:'SKIFF · RAVENWAKE', body:'A two-seater harvest skiff. Dark hull plating still scorched from its last run into Strata -41. Cyan canopy lights cycling on standby.\n\nA strip of yellow ribbon is tied to the rear stabilizer — Romaine ties one to every skiff he repairs, "so they remember the way back."' },
-      { x:3.2, y:10.5, kind:'plaque', title:'SKIFF · LANTERN', body:'May\'s personal harvest skiff. She is rated for short-strata work only — Death has not yet authorized her for a full deployment.\n\nThe seats still smell faintly of the lavender oil she insists Romaine apply after every service.' },
-      { x:24.7,y:7.5,  kind:'plaque', title:'SKIFF · BLACKHEART', body:'A skiff that flies, but rarely. Belonged to a senior reaper who retired into a strata three cycles ago and never came back. Romaine maintains it anyway — a mechanic\'s superstition.\n\nThe canopy glass is cracked from the inside.' },
-      { x:24.7,y:10.5, kind:'plaque', title:'SKIFF · UNNAMED', body:'A new harvest skiff, just out of bonding. No paint, no name, hull still bare bronze.\n\nRomaine refuses to name a skiff before it has flown. "She tells you who she is, on the first run. Not before."' },
-      { x:8.5, y:8,    kind:'plaque', title:'CARGO · STRATA-47 SOULS', body:'A heavy steel-cage cargo crate, locked with a brass sigil-clamp.\n\nManifest: thirty-one souls retrieved from the collapse of Reality 47 — pending sorting. Death will personally walk this crate to the Cathedral when the cycle is right.' },
-      { x:13, y:8,     kind:'plaque', title:'CARGO · SHIP PARTS', body:'A second cage crate, half-empty, full of replacement panels and brass sigil-rings. Romaine signs every panel with a small carnation stamp before installing it.' },
-      { x:7.7, y:11.7, kind:'plaque', title:"ROMAINE'S WORKBENCH", body:'A long bronze workbench scattered with skiff parts, half-finished sigil-rings, a thermos of cold black coffee, and a single wilting carnation in a brass tube.\n\nRomaine is the ship\'s only mechanic. Common reaper rank, but Death keeps him on the senior roster — "because nothing flies without him."\n\nA scrap of paper reads: "May — your skiff\'s left thruster bearing is on the high side. I\'ll have it tuned by Tuesday. — R."' },
-      // Romaine NPC (placeholder) standing at his workbench, slightly left of it
-      { x:5.5, y:11.5, kind:'plaque', title:'ROMAINE', body:'The hanger\'s sole mechanic. Pink hair pulled back, green cargo pants, leather harness, sleeves rolled.\n\nHe doesn\'t look up — he never does, mid-job — but the carnation pinned to his harness twitches once when May enters the bay. Acknowledgment, mechanic-style.\n\n"Skiff Lantern\'s ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
-      { x:14, y:1.7,   kind:'plaque', title:'BAY DOORS — OPEN ONTO THE ENDLESS', body:'The great trapezoidal bay doors stand open, the cyan threshold-strip humming softly under May\'s boots. Beyond: a long bronze runway extending toward a distant pyramid spire, set against the lavender-purple sky of the Endless.\n\nThis is one of only three places aboard Death\'s Ship where the Endless can be seen with the naked eye. The others are the Astrolabe Terminal and the Creation Leveler.' },
-      { x:14, y:5.0,   kind:'plaque', title:'CYAN GUIDE LIGHTS', body:'A row of cyan LED strips runs the length of the hanger floor, marking the pre-launch path each skiff must follow.\n\nThe strips dim when the bay is sealed for the night. They are humming softly — pre-flight cycle is running for Skiff Ravenwake. Someone is taking her out within the hour.' },
-      { x:25, y:12,    kind:'plaque', title:'SKELETON-SERVANT (PATROLLING)', body:'A single skeleton-servant paces the bay\'s perimeter, polishing the brass rails as it walks. Its skull tilts toward May as she passes — recognition without speech.\n\nThe servant carries a small tin pail of carnation petals. Romaine\'s standing order: "replace the wilted one on my bench, when it wilts."' },
+      { x:11, y:3,  kind:'plaque', triggerCinematic:'endless',
+        title:'BAY DOORS — OPEN ONTO THE ENDLESS', body:'The great trapezoidal bay doors stand open, cyan threshold-strip humming under the boots. Beyond: a long bronze runway extends toward a distant pyramid-spire on the horizon, set against the slow lavender of the Endless.\n\nOne of only three places aboard Death\'s Ship where the Endless can be seen with the naked eye.\n\n[ Approach to view cinematically ]' },
+      { x:2.7, y:5.7, kind:'plaque', title:'PORT HOVER-SHIP · RAVENWAKE', body:'A two-seater harvest skiff parked port-fore. Dark hull plating still scorched from its last run into Strata -41. A strip of yellow ribbon is tied to the rear stabilizer — Romaine\'s good-luck mark.' },
+      { x:2.7, y:10.7, kind:'plaque', title:'PORT HOVER-SHIP · LANTERN', body:'May\'s personal harvest skiff. Rated for short-strata work only. The seats still smell faintly of the lavender oil she insists Romaine apply after every service.' },
+      { x:19.2, y:5.7, kind:'plaque', title:'STARBOARD HOVER-SHIP · BLACKHEART', body:'A skiff that flies, but rarely. Belonged to a senior reaper who retired into a strata three cycles ago and never came back. Romaine maintains it anyway.' },
+      { x:19.2, y:10.7, kind:'plaque', title:'STARBOARD HOVER-SHIP · UNNAMED', body:'A new harvest skiff, just out of bonding. No paint, no name, hull still bare bronze. "She tells you who she is, on the first run. Not before." — Romaine.' },
+      { x:8.5, y:9.3, kind:'plaque', title:'CARGO CAGE · STRATA-47 SOULS', body:'A heavy steel-cage cargo crate, locked with a brass sigil-clamp. Manifest: thirty-one souls from the collapse of Reality 47.' },
+      { x:13.3, y:9.3, kind:'plaque', title:'CARGO CAGE · SHIP PARTS', body:'A second cage crate, half-empty, full of replacement panels and brass sigil-rings. Romaine signs every panel with a small carnation stamp before installing it.' },
+      { x:3.7, y:13.1, kind:'plaque', title:"ROMAINE'S WORKBENCH", body:'A long bronze workbench scattered with skiff parts, half-finished sigil-rings, a thermos of cold black coffee, and a single wilting carnation in a brass tube.\n\n"Skiff Lantern\'s ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured."' },
+      { x:11, y:12, kind:'plaque', title:'CYAN GUIDE LIGHTS', body:'A row of cyan LED strips runs the length of the bronze runway, marking the pre-launch path each skiff must follow toward the open bay door. They are humming softly — pre-flight cycle is running.' },
     ],
     doors: [
-      // East wall — back to the Dorm Hall — full-height archway so it's
-      // easy to reach from any side of the runway.
-      { x:26, y:1.5, w:1.0, h:11, to:'dorm_hall', spawn:{x:3,y:5} },
+      // BACK of the hangar (south wall) — return to the Dorm Hall.
+      // This matches the reference where the player enters/exits from the
+      // wall opposite the bay door.
+      { x:10, y:15.4, w:2.5, h:0.6, to:'dorm_hall', spawn:{x:3, y:5} },
     ],
     npcs: [
-      // Romaine — standing at the workbench (waving, since his harness flower twitches as May enters)
-      { x:6.0, y:10.5, sheet:'romaine_wave', flip:false, animSpeed:6,
+      // Romaine at the workbench at the back of the bay
+      { x:4.0, y:12.0, sheet:'romaine_wave', flip:false, animSpeed:6,
         label:'Romaine', plaqueTitle:'ROMAINE',
-        plaqueBody:'The hanger\'s sole mechanic. Pink hair, green cargo pants, leather harness, sleeves rolled. He looks up just long enough to wave — mechanic-style, with the wrong hand.\n\n"Skiff Lantern is ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
+        idleQuips: [
+          'Skiff Lantern\'s ready Tuesday. Not before, hat.',
+          '...left thruster bearing is on the high side.',
+          'Where\'d I put that brass sigil-ring...',
+          'Carnation\'s wilting again. Skeleton, fetch a fresh one.',
+          'Hat. Hat. Hat. There\'s tea over there if you want it.',
+        ],
+        plaqueBody:'The hanger\'s sole mechanic. Pink hair pulled back, green cargo pants, leather harness, sleeves rolled. He looks up just long enough to wave — mechanic-style, with the wrong hand.\n\n"Skiff Lantern is ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured. And tell the hat thanks for the lavender oil."' },
     ],
   },
 
@@ -942,6 +956,12 @@ const ROOM_DEFS = {
       { x:6, y:9, sheet:'engineer_walk', idleSheet:'engineer_idle', refSheet:'engineer_idle',
         scale:0.62, animSpeed:5, label:'The Grim Engineer',
         patrol:[ {x:6,y:9},{x:6,y:6},{x:9,y:6},{x:9,y:9} ], speed:1.0,
+        idleQuips: [
+          'Wardlight at ninety-two on corridor three.',
+          'Pipe four is running cold. Strike the chime.',
+          'Silence is the actual fuel, little reaper.',
+          'Engine\'s a heartbeat off. Hear that?',
+        ],
         plaqueTitle:'THE GRIM ENGINEER',
         plaqueBody:'The reaper-mechanic charged with keeping the Drege Engine alive. He is older than Romaine, older than most of the seniors, and he speaks rarely — usually only in numbers.\n\n"Wardlight at ninety-two on corridor three, little reaper. Ninety-two. Not ninety-three. Tell Death."\n\nHe is the only being aboard who can tune the engine. If he ever falls, the Engineer\'s position passes to the next reaper who can carry the iron chime without flinching.' },
     ],
@@ -985,6 +1005,12 @@ const ROOM_DEFS = {
       // Grim Elexus — Magistrate of the Court
       { x:12, y:3.4, sheet:'elexus_walk_down', idleSheet:'elexus_walk_down', refSheet:'elexus_walk_down',
         scale:0.66, animSpeed:3, label:'Grim Elexus',
+        idleQuips: [
+          'Sentence is not punishment. Sentence is balance.',
+          'Be better, little reaper.',
+          'The cycle does not blame. It only re-balances.',
+          'The pillars are heavy with names tonight.',
+        ],
         plaqueTitle:'GRIM ELEXUS · MAGISTRATE',
         plaqueBody:'Grim Elexus, Magistrate of the Court of Judgement — the only reaper Death has ever granted absolute juridical authority. Her robes are court-black with a single red sash; her scythe hangs unused on the wall behind the dais.\n\n"Sentence is not punishment, little reaper. Sentence is the cycle correcting itself. The cycle does not blame. It only re-balances."\n\nShe is feared in the corridors. May has never feared her.' },
       // Two posted Elite Sentinels flanking the dais
@@ -2961,139 +2987,148 @@ function drawBigIronChandelier(ctx, x, y, scale, t) {
 }
 
 function drawSurgeHanger(ctx, room){
-  // Canon-style sci-fi hanger: bronze-brown floor, cyan LED ceiling/floor strips,
-  // 4 dark sleek skiffs in two rows, metal cage cargo crates, an open trapezoidal
-  // bay door at the top showing a lavender-purple sky, no candles or stone.
+  // CINEMATIC HANGAR — the reference plate (hangar_backdrop.png) is rendered
+  // as the FULL room backdrop. The player walks on the bronze runway at
+  // the bottom; the open bay door + cyan ceiling lights + the Endless sky
+  // dominate the upper 2/3 of the canvas. Collidables (hover-ships, cargo
+  // cages, workbench) are overlaid as soft semi-transparent silhouettes so
+  // the player can still read their positions against the painted backdrop.
   const W = room.width * 64, H = room.height * 64;
   const p = room.palette;
 
-  // 1) BRONZE METAL FLOOR with subtle panel seams
-  ctx.fillStyle = p.floor; ctx.fillRect(0,0,W,H);
-  // diagonal hatch (very subtle)
-  ctx.strokeStyle = 'rgba(0,0,0,0.10)'; ctx.lineWidth = 1;
-  for (let i = 0; i < W+H; i += 32) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - H, H); ctx.stroke();
-  }
-  // large panel grid (~2 tile)
-  ctx.strokeStyle = 'rgba(0,0,0,0.20)'; ctx.lineWidth = 2;
-  for (let y = 64; y < H; y += 128) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  for (let x = 64; x < W; x += 128) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  // gentle bronze sheen highlight
-  const sheen = ctx.createLinearGradient(0, 0, 0, H);
-  sheen.addColorStop(0, 'rgba(180,140,80,0.05)');
-  sheen.addColorStop(0.5, 'rgba(255,210,150,0.04)');
-  sheen.addColorStop(1, 'rgba(120,80,40,0.06)');
-  ctx.fillStyle = sheen; ctx.fillRect(0, 0, W, H);
-
-  // 2) WALLS — bronze-brown panels with darker seam beam
-  ctx.fillStyle = p.wall;
-  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
-  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
-  // Riveted seams along walls (vertical strips every 96px on the perimeter)
-  ctx.fillStyle = '#2a1d10';
-  for (let x = 32; x < W; x += 96) {
-    ctx.fillRect(x, 0, 2, 64);
-    ctx.fillRect(x, H-64, 2, 64);
-  }
-  for (let y = 32; y < H; y += 96) {
-    ctx.fillRect(0, y, 64, 2);
-    ctx.fillRect(W-64, y, 64, 2);
-  }
-  // Wall accent trim (deep brown)
-  ctx.fillStyle = '#1a0f06';
-  ctx.fillRect(0, 60, W, 4);          // top inner trim
-  ctx.fillRect(0, H-64, W, 4);        // bottom inner trim
-  ctx.fillRect(60, 0, 4, H);          // left
-  ctx.fillRect(W-64, 0, 4, H);        // right
-
-  // 3) OPEN BAY DOOR at top — cinematic Endless view rendered from the
-  // reference plate (hangar_backdrop.png). The image spans most of the
-  // top half of the room, with the bronze wall trim flanking it.
-  // Tile region: x = 2..26 (24 tiles wide), y = 0..5 (5 tiles tall).
-  const bayX = 2*64, bayW = 24*64, bayY = 0, bayH = 5*64;
+  // 1) Paint the full hangar reference plate as the backdrop. Cover-fit so
+  // the image fills the whole room with sides cropped if necessary.
   if (window.HANGAR_BACKDROP_IMG && window.HANGAR_BACKDROP_IMG.complete) {
-    // Letterbox-fit the image into the bay region (cover, not contain).
     const img = window.HANGAR_BACKDROP_IMG;
-    const dstAr = bayW / bayH;
+    const dstAr = W / H;
     const srcAr = img.width / img.height;
-    let sx = 0, sy = 0, sw = img.width, sh = img.height;
-    if (srcAr > dstAr) {
-      // image wider than bay region — crop horizontally
-      sw = img.height * dstAr;
-      sx = (img.width - sw) / 2;
-    } else {
-      // image taller than bay region — crop vertically
-      sh = img.width / dstAr;
-      sy = (img.height - sh) / 2;
-    }
-    ctx.drawImage(img, sx, sy, sw, sh, bayX, bayY, bayW, bayH);
-    // Subtle bottom-edge gradient so the image grades into the bronze floor
-    const fadeG = ctx.createLinearGradient(0, bayH - 32, 0, bayH);
-    fadeG.addColorStop(0, 'rgba(58, 40, 24, 0)');
-    fadeG.addColorStop(1, 'rgba(58, 40, 24, 0.85)');
-    ctx.fillStyle = fadeG;
-    ctx.fillRect(bayX, bayH - 32, bayW, 32);
-    // Cyan threshold strip at the bay-door floor edge (matches reference)
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = `rgba(60,240,240,${0.55 + 0.2*Math.sin(t*1.6)})`;
-    ctx.fillRect(bayX + 18, bayH - 4, bayW - 36, 3);
-    ctx.fillStyle = `rgba(120,255,255,${0.3 + 0.15*Math.sin(t*1.6 + 1)})`;
-    ctx.fillRect(bayX + 18, bayH - 12, bayW - 36, 1);
-    ctx.restore();
+    let sx=0, sy=0, sw=img.width, sh=img.height;
+    if (srcAr > dstAr) { sw = img.height * dstAr; sx = (img.width - sw)/2; }
+    else               { sh = img.width / dstAr; sy = (img.height - sh)/2; }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
   } else {
-    // Fallback procedural sky if the image hasn't loaded yet
-    drawBayDoorOpen(ctx, bayX, bayY, bayW, bayH);
+    // Fallback procedural sky-and-bronze before the image is ready
+    ctx.fillStyle = '#15101a'; ctx.fillRect(0, 0, W, H);
+    drawBayDoorOpen(ctx, 64, 64, W - 128, H * 0.55);
+    ctx.fillStyle = p.floor; ctx.fillRect(0, H*0.55, W, H*0.45);
   }
-  // Re-paint the bronze wall trim on either side of the bay opening
-  ctx.fillStyle = p.wall;
-  ctx.fillRect(0, 0, bayX, 64); ctx.fillRect(bayX + bayW, 0, W - (bayX + bayW), 64);
-  ctx.fillStyle = '#2a1d10';
-  for (let x = 32; x < bayX; x += 96) ctx.fillRect(x, 0, 2, 64);
-  for (let x = bayX + bayW + 32; x < W; x += 96) ctx.fillRect(x, 0, 2, 64);
-  ctx.fillStyle = '#1a0f06';
-  ctx.fillRect(0, 60, bayX, 4); ctx.fillRect(bayX + bayW, 60, W - (bayX + bayW), 4);
 
-  // 4) CYAN CEILING LIGHT STRIPS — disabled: the backdrop image already
-  // includes the trapezoidal cyan ceiling lights, no procedural overlay needed.
-  // for (let i = 0; i < 6; i++) drawCyanStrip(ctx, (4 + i*3.4)*64, 16, 1.6*64, 6, t, i);
-  // 5) CYAN FLOOR GUIDE STRIP — runs the length of the hanger down the middle
-  drawCyanFloorStrip(ctx, 6.5*64, H/2 - 10, 15*64, 6, t);
-  // Two side cyan strips along the inner edges of the side ship-rows
-  drawCyanFloorStrip(ctx, 5.2*64, 5.5*64, 0.6*64, 5*64, t, /*vertical*/ true);
-  drawCyanFloorStrip(ctx, 22.6*64, 5.5*64, 0.6*64, 5*64, t, true);
+  // 2) Re-emphasize the bronze runway underfoot — soft fade-in from the
+  // bottom so the painted runway grades into a more-defined walkable area
+  // around the player.
+  const runwayTop = 10 * 64;
+  ctx.save();
+  const runFade = ctx.createLinearGradient(0, runwayTop - 64, 0, H);
+  runFade.addColorStop(0, 'rgba(38, 22, 12, 0)');
+  runFade.addColorStop(0.5, 'rgba(30, 18, 10, 0.45)');
+  runFade.addColorStop(1, 'rgba(20, 12, 6, 0.75)');
+  ctx.fillStyle = runFade;
+  ctx.fillRect(0, runwayTop - 64, W, H - (runwayTop - 64));
+  // Faint bronze panel seams on the runway (so it reads as walkable floor)
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
+  for (let y = runwayTop; y < H - 32; y += 96) {
+    ctx.beginPath(); ctx.moveTo(64, y); ctx.lineTo(W - 64, y); ctx.stroke();
+  }
+  for (let x = 128; x < W - 64; x += 192) {
+    ctx.beginPath(); ctx.moveTo(x, runwayTop); ctx.lineTo(x, H - 32); ctx.stroke();
+  }
+  ctx.restore();
 
-  // 6) FOUR DARK SLEEK HARVEST SKIFFS in two rows (canon look)
-  drawSkiff(ctx, 1.5*64, 5.5*64, 3.5*64, 1.6*64, false /*facing right*/);
-  drawSkiff(ctx, 1.5*64, 8.5*64, 3.5*64, 1.6*64, false);
-  drawSkiff(ctx, 23*64,  5.5*64, 3.5*64, 1.6*64, true  /*facing left*/);
-  drawSkiff(ctx, 23*64,  8.5*64, 3.5*64, 1.6*64, true);
+  // 3) Side bulkhead darkening — the reference shows dark wall framing at
+  // the sides. We deepen the lateral edges so the bay opening reads more
+  // cinematic against the dark hull.
+  ctx.save();
+  const leftEdge = ctx.createLinearGradient(0, 0, 96, 0);
+  leftEdge.addColorStop(0, 'rgba(0,0,0,0.55)'); leftEdge.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = leftEdge; ctx.fillRect(0, 0, 96, H);
+  const rightEdge = ctx.createLinearGradient(W - 96, 0, W, 0);
+  rightEdge.addColorStop(0, 'rgba(0,0,0,0)'); rightEdge.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = rightEdge; ctx.fillRect(W - 96, 0, 96, H);
+  ctx.restore();
 
-  // 7) METAL CAGE CARGO CRATES (2 in the middle)
-  drawCageCrate(ctx, 7*64, 6.5*64, 3*64, 3*64);
-  drawCageCrate(ctx, 11.5*64, 6.5*64, 3*64, 3*64);
+  // 4) Animated cyan threshold strip where the bay-door floor meets the
+  // hangar interior. Pulses subtly in time with the ambient drone.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const thresholdY = 9.7 * 64;
+  ctx.fillStyle = `rgba(60,240,240,${0.55 + 0.22*Math.sin(t*1.6)})`;
+  ctx.fillRect(2*64 + 18, thresholdY, W - 4*64 - 36, 3);
+  ctx.fillStyle = `rgba(120,255,255,${0.3 + 0.18*Math.sin(t*1.6 + 1)})`;
+  ctx.fillRect(2*64 + 24, thresholdY - 8, W - 4*64 - 48, 1);
+  ctx.restore();
 
-  // 8) ROMAINE'S WORKBENCH (bottom-left)
-  drawWorkbench(ctx, 6*64, 11*64, 3.5*64, 1.4*64, t);
+  // 5) Collidable silhouettes — drawn semi-transparent so the painted
+  // versions in the backdrop still read through. These match the wall
+  // boxes defined in the room data so the player can navigate clearly.
+  const ships = [
+    { x:1*64,  y:4*64,  w:3.5*64, h:3.5*64, flip:false },  // port-fore
+    { x:1*64,  y:9*64,  w:3.5*64, h:3.5*64, flip:false },  // port-aft
+    { x:17.5*64, y:4*64, w:3.5*64, h:3.5*64, flip:true },  // starboard-fore
+    { x:17.5*64, y:9*64, w:3.5*64, h:3.5*64, flip:true },  // starboard-aft
+  ];
+  for (const s of ships) drawHoverShip(ctx, s.x, s.y, s.w, s.h, s.flip, t);
 
-  // 9) ROMAINE NPC — now drawn via the room's npcs[] sprite pipeline (see drawNpcs)
+  // Cargo cages — central foreground
+  drawCageCrate(ctx, 7*64, 8*64, 3.2*64, 2.6*64);
+  drawCageCrate(ctx, 11.8*64, 8*64, 3.2*64, 2.6*64);
 
-  // 10) Skeleton-servant (placeholder, patrolling along bottom)
-  const skeletX = 25*64 + Math.sin(t*0.4)*40;
-  drawSkeletonServant(ctx, skeletX, 12*64);
+  // Romaine's workbench at the back
+  drawWorkbench(ctx, 2*64, 12.4*64, 3.5*64, 1.4*64, t);
 
-  // 11) Floor signage
+  // 6) Floor signage — bay number, skiff name etchings on the runway in
+  // front of each parked hover-ship
   ctx.save();
   ctx.font = 'bold 11px Cinzel,Georgia,serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.16)';
-  ctx.textAlign = 'center'; ctx.fillText('▾  SURGE HANGER · BAY 03  ▾', W/2, H - 78);
-  // skiff name etched plaques (in front of each ship)
+  ctx.fillStyle = 'rgba(255,235,180,0.20)';
+  ctx.textAlign = 'center';
+  ctx.fillText('▾  SURGE HANGER · BAY 03  ▾', W/2, H - 64);
   ctx.font = 'bold 9px Cinzel,Georgia,serif';
   ctx.fillStyle = 'rgba(62,224,224,0.55)';
-  ctx.fillText('RAVENWAKE',  3.2*64, 5.5*64 - 6);
-  ctx.fillText('LANTERN',    3.2*64, 8.5*64 - 6);
-  ctx.fillText('BLACKHEART', 24.7*64, 5.5*64 - 6);
-  ctx.fillText('UNNAMED',    24.7*64, 8.5*64 - 6);
+  ctx.fillText('RAVENWAKE',  2.7*64, 4*64 - 6);
+  ctx.fillText('LANTERN',    2.7*64, 9*64 - 6);
+  ctx.fillText('BLACKHEART', 19.2*64, 4*64 - 6);
+  ctx.fillText('UNNAMED',    19.2*64, 9*64 - 6);
+  ctx.restore();
+
+  // 7) Subtle drifting dust motes in the bay-door beam — purely ambient
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 18; i++) {
+    const mx = ((i * 113 + t*22) % W);
+    const my = ((i * 71 + t*8) % (9*64)) + 64;
+    ctx.fillStyle = `rgba(180,210,240,${0.10 + 0.06*Math.sin(t*1.4 + i)})`;
+    ctx.fillRect(mx, my, 1.5, 1.5);
+  }
+  ctx.restore();
+}
+
+// Hover-ship silhouette overlay — semi-transparent so the painted backdrop
+// reads through. Drawn as a dark sleek wedge with cyan canopy stripe.
+function drawHoverShip(ctx, x, y, w, h, flip, t) {
+  ctx.save();
+  if (flip) { ctx.translate(x + w, y); ctx.scale(-1, 1); } else { ctx.translate(x, y); }
+  // Soft drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(w*0.5, h - 6, w*0.42, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Body — translucent dark wedge
+  ctx.fillStyle = 'rgba(8, 6, 12, 0.65)';
+  ctx.beginPath();
+  ctx.moveTo(0, h*0.4);
+  ctx.lineTo(w*0.22, h*0.2);
+  ctx.lineTo(w*0.78, h*0.18);
+  ctx.lineTo(w, h*0.42);
+  ctx.lineTo(w*0.96, h*0.78);
+  ctx.lineTo(w*0.04, h*0.78);
+  ctx.closePath();
+  ctx.fill();
+  // Canopy stripe
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(60,224,224,${0.45 + 0.22*Math.sin(t*1.3)})`;
+  ctx.fillRect(w*0.30, h*0.30, w*0.42, 6);
+  ctx.restore();
   ctx.restore();
 }
 
@@ -4487,16 +4522,21 @@ function loop(timeMs){
 function update(dt) {
   if (state.fading || !state.loaded) return;
   const k = state.keys;
+  // Lock movement during a cinematic
   let vx = 0, vy = 0;
-  if (k.up)    vy -= 1;
-  if (k.down)  vy += 1;
-  if (k.left)  vx -= 1;
-  if (k.right) vx += 1;
-  if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
-  const speed = 220;
-  state.player.vx = vx * speed;
-  state.player.vy = vy * speed;
-  state.player.moving = !!(vx || vy);
+  if (state.cinematic && state.cinematic.active) {
+    state.player.vx = 0; state.player.vy = 0; state.player.moving = false;
+  } else {
+    if (k.up)    vy -= 1;
+    if (k.down)  vy += 1;
+    if (k.left)  vx -= 1;
+    if (k.right) vx += 1;
+    if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
+    const speed = 220;
+    state.player.vx = vx * speed;
+    state.player.vy = vy * speed;
+    state.player.moving = !!(vx || vy);
+  }
 
   const room = state.rooms[state.currentRoom];
   const hbW = 32, hbH = 18, footOffsetY = 24;
@@ -4532,8 +4572,9 @@ function update(dt) {
   if (state.player.moving) {
     state.player.animTime += dt;
     state.player.animFrame = Math.floor(state.player.animTime * 16) % 25;
-    // Procedural footstep — running gives a faster cadence
-    if (window.AmbientAudio) AmbientAudio.footstep('player', { running: speed > 220 });
+    // Procedural footstep — derive running speed from velocity magnitude
+    const _spd = Math.hypot(state.player.vx, state.player.vy);
+    if (window.AmbientAudio) AmbientAudio.footstep('player', { running: _spd > 220 });
   } else {
     state.player.animTime = 0; state.player.animFrame = 0;
   }
@@ -4599,16 +4640,31 @@ function update(dt) {
     }
   }
 
-  // camera follow + clamp
-  const targetCx = state.player.x;
-  const targetCy = state.player.y;
+  // camera follow + clamp + cinematic-pan overlay
+  let targetCx = state.player.x;
+  let targetCy = state.player.y;
+  let zoomTarget = 1;
+  if (state.cinematic && state.cinematic.active) {
+    const cin = state.cinematic;
+    const elapsed = (performance.now() - cin.startedAt) / 1000;
+    const dur = cin.duration || 8.0;
+    // Ease in/out using smoothstep
+    const k = Math.max(0, Math.min(1, elapsed / dur));
+    const ease = k * k * (3 - 2 * k);
+    // Slide camera toward focal point (bay door view)
+    targetCx = cin.startCx + (cin.targetX - cin.startCx) * ease;
+    targetCy = cin.startCy + (cin.targetY - cin.startCy) * ease;
+    zoomTarget = 1 + (cin.zoom - 1) * Math.sin(Math.min(1, k * 1.4) * Math.PI);
+    if (elapsed >= dur) endCinematic();
+  }
+  state.zoom = (state.zoom || 1) + (zoomTarget - (state.zoom || 1)) * Math.min(1, dt * 2.5);
   state.camera.x += (targetCx - state.camera.x) * Math.min(1, dt*6);
   state.camera.y += (targetCy - state.camera.y) * Math.min(1, dt*6);
-  const halfW = state.width/2, halfH = state.height/2;
+  const halfW = (state.width/2) / state.zoom, halfH = (state.height/2) / state.zoom;
   const roomW = room.width*64, roomH = room.height*64;
-  if (roomW <= state.width)  state.camera.x = roomW/2;
+  if (roomW <= halfW*2)  state.camera.x = roomW/2;
   else state.camera.x = Math.max(halfW, Math.min(roomW - halfW, state.camera.x));
-  if (roomH <= state.height) state.camera.y = roomH/2;
+  if (roomH <= halfH*2) state.camera.y = roomH/2;
   else state.camera.y = Math.max(halfH, Math.min(roomH - halfH, state.camera.y));
 
   const actBtn = document.getElementById('actionBtn');
@@ -4648,9 +4704,11 @@ function render(){
   ctx.clearRect(0,0,W,H);
   if (!state.loaded || !state.currentRoom) return;
   const room = state.rooms[state.currentRoom];
-  const camX = state.camera.x - W/2;
-  const camY = state.camera.y - H/2;
+  const zoom = state.zoom || 1;
+  const camX = state.camera.x - (W/zoom)/2;
+  const camY = state.camera.y - (H/zoom)/2;
   ctx.save();
+  ctx.scale(zoom, zoom);
   ctx.translate(-camX, -camY);
   room.draw(ctx, room);
   for (const it of (room.interactables||[])) {
@@ -4668,6 +4726,79 @@ function render(){
   }
   ctx.restore();
   drawVignette();
+  // Cinematic overlay (vignette intensifies + letterbox bars + banner)
+  if (state.cinematic && state.cinematic.active) drawCinematicOverlay();
+}
+
+// ============================================================
+//   CINEMATIC CAMERA SYSTEM
+//   Pan + zoom the camera toward a focal point, with letterbox
+//   bars, vignette, and a banner. Used for the Endless-viewing
+//   trigger in the Surge Hanger; reusable for future story beats.
+// ============================================================
+function startCinematic(opts) {
+  if (state.cinematic && state.cinematic.active) return;
+  state.cinematic = Object.assign({
+    active: true,
+    startedAt: performance.now(),
+    duration: 8.5,
+    startCx: state.camera.x,
+    startCy: state.camera.y,
+    targetX: opts.targetX,   // world coords
+    targetY: opts.targetY,
+    zoom: opts.zoom || 1.45,
+    banner: opts.banner || 'VIEWING THE ENDLESS',
+    sub: opts.sub || '',
+    playerFrozen: true,
+  }, opts);
+  // Stop the player during cinematic
+  state.player.vx = 0; state.player.vy = 0; state.player.moving = false;
+}
+function endCinematic() {
+  if (state.cinematic) state.cinematic.active = false;
+  state.cinematic = null;
+}
+function drawCinematicOverlay() {
+  const cin = state.cinematic;
+  const W = state.width, H = state.height;
+  const elapsed = (performance.now() - cin.startedAt) / 1000;
+  const dur = cin.duration;
+  const k = Math.max(0, Math.min(1, elapsed / dur));
+  // letterbox bars (slide in over 0..0.8s, slide out over last 0.8s)
+  const slideIn = Math.min(1, elapsed / 0.8);
+  const slideOut = Math.min(1, (dur - elapsed) / 0.8);
+  const bar = Math.min(slideIn, slideOut);
+  const barH = H * 0.12 * bar;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.96)';
+  ctx.fillRect(0, 0, W, barH);
+  ctx.fillRect(0, H - barH, W, barH);
+  // intensified vignette
+  const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.4, W/2, H/2, Math.max(W,H)*0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, `rgba(0,0,0,${0.55 * bar})`);
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  // top-center banner
+  const bannerOp = Math.min(1, Math.min(elapsed * 1.8, (dur - elapsed) * 1.5));
+  if (bannerOp > 0) {
+    ctx.globalAlpha = bannerOp;
+    ctx.fillStyle = '#ffd28b';
+    ctx.font = 'bold 18px Cinzel, Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#ffd28b'; ctx.shadowBlur = 14;
+    ctx.fillText(cin.banner, W/2, barH + 28);
+    ctx.shadowBlur = 0;
+    if (cin.sub) {
+      ctx.font = '12px Cinzel, Georgia, serif';
+      ctx.fillStyle = 'rgba(255,230,200,0.7)';
+      ctx.fillText(cin.sub, W/2, barH + 50);
+    }
+    // skip hint at bottom
+    ctx.font = '10px monospace';
+    ctx.fillStyle = 'rgba(200,200,200,0.55)';
+    ctx.fillText('[ press SPACE to skip ]', W/2, H - barH - 18);
+  }
+  ctx.restore();
 }
 
 function drawInteractableMarker(x, y, near){
@@ -4880,6 +5011,108 @@ function drawNpc(npc) {
     ctx.fillText('✦  SPEAK · ' + (npc.label || ''), px, drawY - 4);
     ctx.restore();
   }
+  // Ambient self-talk speech bubble
+  drawNpcSpeechBubble(npc, px, drawY - 18);
+}
+
+// ============================================================
+//   AMBIENT NPC SELF-TALK
+//   NPCs with `idleQuips: [string,...]` randomly emit a short
+//   speech-bubble line every ~14–28 seconds. The bubble floats
+//   above their head for ~5 seconds, then fades.
+// ============================================================
+function drawNpcSpeechBubble(npc, anchorX, anchorY) {
+  if (!npc.idleQuips || !npc.idleQuips.length) return;
+  const now = (typeof t === 'number') ? t : 0;
+  if (npc._nextQuipAt == null) {
+    // Stagger so all NPCs don't talk at once on room load
+    npc._nextQuipAt = now + 4 + Math.random() * 10;
+  }
+  // Pick a new line when the timer is up
+  if (!npc._currentQuip && now >= npc._nextQuipAt) {
+    npc._currentQuip = npc.idleQuips[Math.floor(Math.random() * npc.idleQuips.length)];
+    npc._quipUntil = now + 5.5;
+    // Schedule the *next* quip after this one fades
+    npc._nextQuipAt = now + 5.5 + 12 + Math.random() * 16;
+  }
+  if (npc._currentQuip && now >= npc._quipUntil) {
+    npc._currentQuip = null;
+  }
+  if (!npc._currentQuip) return;
+  // Render the speech bubble
+  const text = npc._currentQuip;
+  const remaining = npc._quipUntil - now;
+  const opacity = remaining < 0.6 ? Math.max(0, remaining / 0.6)
+                 : (remaining > 4.9 ? Math.max(0, (5.5 - remaining) / 0.6) : 1);
+  ctx.save();
+  ctx.font = '12px Georgia, serif';
+  // measure & wrap (~28 chars per line)
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (test.length > 32 && line) { lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  const lineH = 16;
+  const padX = 10, padY = 8;
+  let maxW = 0;
+  for (const l of lines) {
+    const w = ctx.measureText(l).width;
+    if (w > maxW) maxW = w;
+  }
+  const bubbleW = maxW + padX * 2;
+  const bubbleH = lineH * lines.length + padY * 2;
+  const bx = anchorX - bubbleW / 2;
+  const by = anchorY - bubbleH - 12;
+  // Drop shadow
+  ctx.globalAlpha = opacity * 0.4;
+  ctx.fillStyle = '#000';
+  roundRect(ctx, bx + 2, by + 3, bubbleW, bubbleH, 6); ctx.fill();
+  // Bubble body
+  ctx.globalAlpha = opacity * 0.93;
+  ctx.fillStyle = 'rgba(20, 16, 28, 0.92)';
+  ctx.strokeStyle = 'rgba(255, 220, 160, 0.55)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, bx, by, bubbleW, bubbleH, 6); ctx.fill(); ctx.stroke();
+  // Tail pointing down at NPC
+  ctx.beginPath();
+  ctx.moveTo(anchorX - 6, by + bubbleH - 0.5);
+  ctx.lineTo(anchorX,     by + bubbleH + 8);
+  ctx.lineTo(anchorX + 6, by + bubbleH - 0.5);
+  ctx.fillStyle = 'rgba(20, 16, 28, 0.92)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 220, 160, 0.55)';
+  ctx.beginPath();
+  ctx.moveTo(anchorX - 6, by + bubbleH - 0.5);
+  ctx.lineTo(anchorX,     by + bubbleH + 8);
+  ctx.lineTo(anchorX + 6, by + bubbleH - 0.5);
+  ctx.stroke();
+  // Text
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = '#f5e3c0';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], bx + padX, by + padY + i * lineH);
+  }
+  ctx.restore();
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y);
+  c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r);
+  c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h);
+  c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r);
+  c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
 }
 
 function drawVignette(){
@@ -4976,7 +5209,21 @@ function enterDoor(door){
 // ============================================================
 function interact(){
   if (!state.nearInteract || state.fading) return;
+  if (state.cinematic && state.cinematic.active) return;
   const it = state.nearInteract;
+  if (it.triggerCinematic === 'endless') {
+    // Cinematic pan + zoom toward the bay door — pause time on the Endless
+    const room = state.rooms[state.currentRoom];
+    const tx = (room.width / 2) * 64;
+    const ty = 2.0 * 64;  // focal point near the bay door horizon
+    startCinematic({
+      targetX: tx, targetY: ty,
+      zoom: 1.55, duration: 9.0,
+      banner: 'VIEWING THE ENDLESS',
+      sub: 'The lavender field beyond Death\'s Ship · Strata -47 · DESCENDING',
+    });
+    return;
+  }
   openModal(it.title, it.body, 'LORE FRAGMENT');
 }
 function openModal(title, body, eyebrow){
@@ -5441,6 +5688,11 @@ const keyMap = {
 };
 window.addEventListener('keydown', e => {
   if (keyMap[e.code]) { state.keys[keyMap[e.code]] = true; e.preventDefault(); startGameMusic(); if (window.AmbientAudio) AmbientAudio.start(); }
+  // SPACE skips an active cinematic
+  if (e.code === 'Space' && state.cinematic && state.cinematic.active) {
+    e.preventDefault();
+    endCinematic();
+  }
   if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') {
     if (document.getElementById('modal').classList.contains('show')) closeModal();
     else interact();

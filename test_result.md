@@ -2124,3 +2124,86 @@ agent_communication:
            hangarBillboard) and paste their slot IDs into the
            `slots:{}` block of config.js.
       All ad surfaces gracefully degrade to placeholders until then.
+
+  - agent: "main"
+    date: "2026-02-19 (fork — phase 6 hangar rebuild + NPC speech bubbles)"
+    note: |
+      ── SURGE HANGAR — CINEMATIC DIORAMA REBUILD ──
+      User reported the Endless viewport wasn't matching their reference
+      (the cinematic hangar interior with cyan trapezoidal ceiling lights,
+      hover-ships, cargo cages, and the lavender Endless visible beyond
+      the bay door). Also: player was entering from the right wall
+      instead of the back, contradicting the reference's perspective.
+
+      Full rebuild of surge_hanger room:
+      ✓ Room re-sized 22w × 16h (was 28w × 14h) — narrower, taller to
+        match the portrait-aspect reference plate.
+      ✓ Re-cropped hangar_backdrop.png to a full 1080×1500 interior
+        view (cyan ceiling + sky + bay door + bronze runway).
+      ✓ Resized to 1408×1955 (matches room width exactly, preserves
+        natural aspect for vertical cropping at run-time).
+      ✓ Rewrote drawSurgeHanger() — the image is now the FULL room
+        backdrop (cover-fit), not just a 5-tile strip at the top.
+      ✓ Re-emphasised the bronze runway underfoot with a gradient
+        fade + panel-seam overlay so the walkable area reads clearly.
+      ✓ Added lateral dark-edge gradients (matches reference's dark
+        hull framing the bay opening).
+      ✓ Kept the animated cyan threshold strip at the bay-floor edge.
+      ✓ Drifting dust-mote ambient for the bay-door beam.
+      ✓ Hover-ships now rendered as 4 semi-transparent silhouettes
+        (port-fore, port-aft, starboard-fore, starboard-aft) layered
+        on top of the painted backdrop so the player can navigate
+        them clearly. New helper drawHoverShip().
+      ✓ Cargo cages relocated to the foreground centre matching
+        the lower-deck cages in the reference.
+      ✓ Romaine's workbench moved to the back/port side.
+      ✓ Skiff names ("Ravenwake", "Lantern", "Blackheart", "Unnamed")
+        etched on floor next to their ships in cyan.
+      ✓ "▾ SURGE HANGER · BAY 03 ▾" floor sign near the player's
+        entry point.
+      ✓ ENTRY POINT MOVED: player now enters from the back/south
+        wall (centre door, spawn {x:11, y:14.5}). The reference's
+        camera POV is from this position — the player physically
+        stands where the reference's viewer stands. Dorm-hall door
+        spawn updated to match.
+      ✓ Removed: 2 of the old skiff bays, the bronze panel-grid floor
+        texture (the painted backdrop replaces it), the procedural
+        cyan ceiling strip overlays (the image has them), the
+        skeleton-servant patroller.
+
+      ── AMBIENT NPC SELF-TALK ──
+      ✓ New NPC field `idleQuips: [string, string, ...]`.
+      ✓ New renderer drawNpcSpeechBubble() in the npc draw pass.
+        Picks a random quip every 14–28s, holds a speech bubble
+        with rounded-rect + tail pointer over the NPC's head for
+        ~5.5s, with fade-in / fade-out envelopes. Auto-staggered
+        on room load so NPCs don't all speak at once.
+      ✓ Added quips to Romaine, Master Death, The Engineer, Grim
+        Elexus, and (auto-applied) all NPCs that include the field.
+        Their lines reference established canon: skiff bonding,
+        Drege Engine wardlight readouts, court-of-judgement
+        verdicts, etc.
+
+      ── DEFERRED (for next session at user's request) ──
+      • Character portrait illustrations for dialogue (need 2D
+        portrait art per character — currently zero portrait
+        assets uploaded; will block on user-provided refs).
+      • Animated cinematics (transitions, intro reels, cycle-end
+        ceremonies) — big undertaking; pencilled for next session.
+      • Per-room texture pass (bronze panels, runic glyphs, dust,
+        scratch overlays) — incremental polish.
+      • 3D-view rooms / WebGL embeds — complex; defer.
+      • Grand Hall reaper-statues + holo-displays.
+      • May's-room cinematics with photo references (need refs).
+      • Reaper-banner damage system.
+
+      ── VERIFIED ──
+      ✓ Player walks from Dorm Hall west door into the hangar and
+        spawns at the back/centre runway as intended.
+      ✓ Romaine emits ambient speech bubble ("Skiff Lantern's ready
+        Tuesday. Not before, hat.") within 4–14s of room load.
+      ✓ Cyan threshold-strip animates in sync with the ambient drone.
+      ✓ Hover-ships, cages, workbench all clearly readable against
+        the painted backdrop.
+      ✓ Zero JS errors. Atmospheric audio (drone + chatter +
+        footsteps) continues to play through room transitions.

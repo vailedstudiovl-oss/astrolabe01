@@ -1889,3 +1889,53 @@ agent_communication:
           DB-backed; awaiting SMTP/Resend/SendGrid credentials).
 
       USER VERIFICATION PENDING.
+
+  - agent: "main"
+    date: "2026-02-19 (fork continuation — phase 2)"
+    note: |
+      ALL 8 PREVIOUSLY-SEALED ROOMS NOW BUILT:
+
+      ✓ Death's Office  — wood desk + paired bookshelves + reading
+        lectern with glowing tome + violet long-window. Accessed
+        via south hatch behind the Command Floor throne.
+      ✓ Vivian's Room   — burgundy palette, tea service, wardrobe,
+        steaming brass kettle, leaded south-window. Accessed via
+        north door from the Dorm Hall.
+      ✓ Memory Hall     — long blue gallery, 5 floating soul-orbs
+        per pedestal (pink=May, teal=Elystria, empty X for the
+        reserved one). Door east connects to Blackbox.
+      ✓ The Blackbox    — pure black void with the 6×6 absolute-
+        black cube + single colourless lamp + faint red edge-aura.
+      ✓ Cathedral of Reapers — 30×18 vault, vaulted arches, three
+        rows of pews per side, central aisle, vector Reaper-Statue
+        on the north dais, huge chandelier. Junior-Reaper sprite-NPC
+        kneeling at vigil. Accessed via south door from Grand Hall.
+      ✓ Obsidian Containment — 5 cells each rendering unique
+        contents: violet floating scythe, breathing letter,
+        warm bone token, "HELD FOR FUTURE" empty, sealed
+        crosshatch with violet centre.
+      ✓ Navigator's Room — twin bookshelves, holo strata-table with
+        concentric rings, drifting pips, and live "-47 / -48 / -49"
+        layer labels. Accessed via port hatch from Command Floor.
+      ✓ Lower Deck      — cage crates, gutter line, supply pillars,
+        access hatch graphic. Bridges Creation Leveler ↔ Obsidian
+        Containment.
+
+      WIRING:
+        Command Floor    → Death's Office, Engine Room, Navigator's,
+                            Dorm Hall, Grand Corridor
+        Dorm Hall        → Vivian's Room (added), Mays Room, Hanger
+        Grand Hall       → Cathedral (added), Judgement, Corridor
+        Death's Office   → Memory Hall
+        Memory Hall      → Blackbox
+        Engine Room      → Creation Leveler
+        Creation Leveler → Lower Deck (added)
+        Lower Deck       → Obsidian Containment
+
+      ALL_LOCATIONS codex: 17/17 rooms reachable. Hotkeys:
+        1–7 (existing+earlier), 8 office, 9 memory, 0 blackbox,
+        Ctrl+Q vivians, Ctrl+W cathedral, Ctrl+E obsidian,
+        Ctrl+R navigators, Ctrl+T lower_deck.
+
+      Screenshot-verified, no JS console errors, Maytradalis renders
+      correctly in every new room.

@@ -627,6 +627,10 @@ const ROOM_DEFS = {
       { x:24.4, y:1.5, w:0.6, h:12, to:'grand_corridor', spawn:{x:14,y:5} },
       // Iron lift down to the Engine Room
       { x:13, y:14.4, w:2, h:0.6, to:'engine_room', spawn:{x:3, y:6.5} },
+      // Private hatch behind the throne — Death's Office
+      { x:13, y:5.4, w:0.6, h:1.0, to:'deaths_office', spawn:{x:1.5, y:5.5} },
+      // Port-side navigator passage
+      { x:4.5, y:5.4, w:0.6, h:1, to:'navigators', spawn:{x:9, y:9.5} },
     ],
     npcs: [
       // Master Death stands on his throne dais — see drawCommandThrone()
@@ -701,6 +705,8 @@ const ROOM_DEFS = {
       { x:30, y:4.5, w:1.0, h:1.5, to:'control',    spawn:{x:3,y:13} },
       { x:14, y:8.6, w:1.5, h:.7, to:'mays_room',  spawn:{x:9,y:1.5} },
       { x:1,  y:1.5, w:1.0, h:7, to:'surge_hanger', spawn:{x:24,y:11} },
+      // Vivian's private quarters — accessed via small port-side door
+      { x:7, y:0.4, w:1.0, h:0.6, to:'vivians_room', spawn:{x:7, y:8} },
     ],
     npcs: [
       // Grim Elystria — leaning against the wall outside her dorm (slot top i=3 → x≈16.5)
@@ -874,6 +880,8 @@ const ROOM_DEFS = {
       { x:0.4, y:11, w:0.6, h:1.5, to:'grand_corridor', spawn:{x:20, y:4} },
       // Behind the high altar — door to the Court of Judgement (north)
       { x:13, y:0.4, w:2, h:0.6, to:'judgement_court', spawn:{x:12, y:11} },
+      // Side passage south — to the great Cathedral of Reapers
+      { x:13.5, y:17.4, w:1, h:0.6, to:'cathedral', spawn:{x:15, y:16} },
     ],
     npcs: [
       // Two posted ELITE GRIM REAPER 3 (Honour Guard) flanking the aisle
@@ -993,6 +1001,268 @@ const ROOM_DEFS = {
   //   descend through the strata of the Endless. Reached from
   //   the iron catwalk behind the Drege Engine.
   // ============================================================
+  // ============================================================
+  //   DEATH'S OFFICE — Private chamber behind the bridge
+  // ============================================================
+  deaths_office: {
+    id: 'deaths_office',
+    name: "Death's Office",
+    sub: 'Master Death\'s private chamber — papers, ledgers, and one long window',
+    width: 20, height: 12,
+    palette: { floor:'#251818', wall:'#0e0a0e', stone:'#2a1818', accent:'#ff7c4a', candle:'#ffd28b' },
+    spawn: { x: 10, y: 10 },
+    draw: drawDeathsOffice,
+    walls: [
+      { x:0,y:0,w:20,h:1 }, { x:0,y:11,w:20,h:1 }, { x:0,y:0,w:1,h:12 }, { x:19,y:0,w:1,h:12 },
+      { x:8, y:2, w:4, h:1.6 },  // Death's great desk
+      { x:2, y:5, w:2, h:3 },     // Tall bookshelf (port)
+      { x:16, y:5, w:2, h:3 },    // Tall bookshelf (starboard)
+      { x:9, y:8, w:2, h:1 },     // Reading lectern
+    ],
+    interactables: [
+      { x:10, y:4, kind:'plaque', title:'DEATH\'S DESK', body:'A black ironwood desk the length of three reapers. On its surface: a half-written ledger in Death\'s own hand, a single bone-letter opener, and a bowl of pale ash. The ash is always full and never spills.\n\nMay has read upside-down what he is currently writing. It is a note of apology — to whom, the letter never says.' },
+      { x:3, y:6, kind:'plaque', title:'PORT BOOKSHELF', body:'Bound in black leather: every name of every reaper who has ever served the cycle. The volume marked "MAYTRADALIS" is the second-thinnest on the shelf. The thinnest is "FLYBUTT" — which has only one entry, the day he signed.' },
+      { x:17, y:6, kind:'plaque', title:'STARBOARD BOOKSHELF', body:'Bound in red leather: every soul who has refused passage and been allowed to remain. The shelf is sparser than May expected. She does not ask why some books are bound in chain.' },
+      { x:10, y:8.6, kind:'plaque', title:'READING LECTERN', body:'A small obsidian lectern with a single open book — the Cycle Almanac, opened to the current page. Today\'s entry, in Death\'s hand: "Quiet. Maytradalis disobedient again. Romaine\'s fault. Send tea."' },
+      { x:10, y:6, kind:'plaque', title:'THE LONG WINDOW', body:'A narrow window cut high into the rear wall, looking out onto whatever strata the ship is currently passing through. Tonight: a slow violet field of static, the texture of a strata that has not yet been mapped.\n\nDeath stands here in the late hours. He does not sit at the window. He stands.' },
+    ],
+    doors: [
+      { x:0.4, y:5, w:0.6, h:2, to:'control', spawn:{x:13, y:5.4} },
+      { x:19.0, y:5, w:0.6, h:2, to:'memory_hall', spawn:{x:1, y:6} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   VIVIAN'S ROOM — small private quarters off the Dorm Hall
+  // ============================================================
+  vivians_room: {
+    id: 'vivians_room',
+    name: "Vivian's Room",
+    sub: 'A small softly-lit room of tea, lace, and quiet records',
+    width: 14, height: 10,
+    palette: { floor:'#2c1c2a', wall:'#181020', stone:'#3a1a2a', accent:'#ff90c0', candle:'#ffe0c8' },
+    spawn: { x: 7, y: 8 },
+    draw: drawViviansRoom,
+    walls: [
+      { x:0,y:0,w:14,h:1 }, { x:0,y:9,w:14,h:1 }, { x:0,y:0,w:1,h:10 }, { x:13,y:0,w:1,h:10 },
+      { x:2, y:2, w:3, h:2 },   // Tea desk
+      { x:9, y:2, w:3, h:2 },   // Wardrobe
+      { x:6, y:6, w:2, h:1.4 }, // Side-table with kettle
+    ],
+    interactables: [
+      { x:3.5, y:4.4, kind:'plaque', title:'VIVIAN\'S TEA DESK', body:'A small dark-wood desk with a porcelain tea service, a stack of unopened letters, and a single lace-trimmed handkerchief embroidered with the initials V.D.\n\nVivian keeps the desk impeccable. The letters are addressed to Death. None of them are stamped — they will never be sent.' },
+      { x:10.5, y:4.4, kind:'plaque', title:'WARDROBE', body:'A tall obsidian-fronted wardrobe. The doors are slightly open; inside hang three identical black mourning dresses and one folded grey one. The grey one is for the day after every cycle ends.\n\nVivian\'s grey dress has been worn nineteen times. She keeps the count herself.' },
+      { x:7, y:7.4, kind:'plaque', title:'KETTLE SIDE-TABLE', body:'A small side-table with a brass kettle — always hot, never bubbling. Vivian taught Romaine the trick: a single sigil on the underside that holds the water in perpetual readiness without boiling it past flavour.\n\nMay was offered tea here once. She accepted, and was told three things she has not repeated to anyone since.' },
+      { x:7, y:5, kind:'plaque', title:'VIVIAN\'S WINDOW', body:'A small leaded-glass window in the south wall. Through it, the dorms; beyond the dorms, the Command Floor; beyond the Command Floor, Death.\n\nVivian watches at this window in the small hours. Nobody, except May, has ever caught her at it.' },
+    ],
+    doors: [
+      { x:6.5, y:9.4, w:1, h:0.6, to:'dorm_hall', spawn:{x:8, y:2} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   MEMORY HALL — Long corridor of Death's preserved memories
+  // ============================================================
+  memory_hall: {
+    id: 'memory_hall',
+    name: "Death's Memory Hall",
+    sub: 'A long, silent gallery of preserved soul-memories',
+    width: 26, height: 10,
+    palette: { floor:'#101a26', wall:'#06121c', stone:'#142436', accent:'#7cd0ff', candle:'#a9e4ff' },
+    spawn: { x: 2, y: 5 },
+    draw: drawMemoryHall,
+    walls: [
+      { x:0,y:0,w:26,h:1 }, { x:0,y:9,w:26,h:1 }, { x:0,y:0,w:1,h:10 }, { x:25,y:0,w:1,h:10 },
+      // Memory pedestals down the centre — walk between them
+      { x:4, y:4.4, w:1, h:1 },
+      { x:8, y:4.4, w:1, h:1 },
+      { x:12, y:4.4, w:1, h:1 },
+      { x:16, y:4.4, w:1, h:1 },
+      { x:20, y:4.4, w:1, h:1 },
+    ],
+    interactables: [
+      { x:4.5, y:5.8, kind:'plaque', title:'PEDESTAL I · FIRST CYCLE', body:'A soul-memory orb — pale blue, slowly rotating. Touch its plaque: the memory of the first reaper Death ever bound to the cycle. A small one. A frightened one. A grateful one.\n\nNot every Pedestal holds a happy memory. This one does.' },
+      { x:8.5, y:5.8, kind:'plaque', title:'PEDESTAL II · THE COLD WALK', body:'Memory of the night Cryious Death chose his title — frozen mist seeping out from under the lab door, the air dropping forty degrees in thirty seconds, and a small reaper-child stepping out, calm, his breath visible. Death cried that night. He has not since.' },
+      { x:12.5, y:5.8, kind:'plaque', title:'PEDESTAL III · MAYTRADALIS · AGE NINE', body:'Memory of a small dark-haired girl carving a sigil into a pew in the Grand Hall during a ceremony. Death looking down, expression unreadable. The girl looking up, unrepentant. The sigil she carved was correct.' },
+      { x:16.5, y:5.8, kind:'plaque', title:'PEDESTAL IV · ELYSTRIA\'S SONG', body:'Memory of Grim Elystria singing — once, only once — in a strata where the locals had no concept of sound. The locals returned to their cycle with the concept of music permanently installed.\n\nElystria has not sung since. Some say she never will.' },
+      { x:20.5, y:5.8, kind:'plaque', title:'PEDESTAL V · EMPTY', body:'A pedestal with no orb on it. The plaque reads: RESERVED.\n\nDeath has not said for whom. May has theories. She does not share them.' },
+      { x:13, y:8, kind:'plaque', title:'HALL OF MEMORY', body:'A long quiet gallery. The ceiling is unadorned obsidian; the floor is a pale-blue stone that holds light without reflecting it. Sound dies here — not from architecture but from intent. Death built the Hall to keep certain memories from echoing.' },
+    ],
+    doors: [
+      { x:0.4, y:5, w:0.6, h:2, to:'deaths_office', spawn:{x:18, y:6} },
+      { x:25.0, y:5, w:0.6, h:2, to:'blackbox', spawn:{x:1, y:5} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   THE BLACKBOX — Sealed vault of unwritten verdicts
+  // ============================================================
+  blackbox: {
+    id: 'blackbox',
+    name: 'The Blackbox',
+    sub: 'A sealed iron vault where the un-spoken records are kept',
+    width: 16, height: 12,
+    palette: { floor:'#0a0a0e', wall:'#02030a', stone:'#0e0e16', accent:'#ff3050', candle:'#ff8060' },
+    spawn: { x: 2, y: 6 },
+    draw: drawBlackbox,
+    walls: [
+      { x:0,y:0,w:16,h:1 }, { x:0,y:11,w:16,h:1 }, { x:0,y:0,w:1,h:12 }, { x:15,y:0,w:1,h:12 },
+      // The Box itself — a 6x6 iron cube in the centre
+      { x:5, y:3, w:6, h:6 },
+    ],
+    interactables: [
+      { x:8, y:9.2, kind:'plaque', title:'THE BLACKBOX', body:'A perfectly black iron cube, six tiles to a side. There are no seams, no hinges, no inscriptions. The Box was here when the ship was built; the ship was built around it.\n\nNothing entering the Box has ever been retrieved. Death has placed three things inside it in his time. He has not said what.' },
+      { x:2, y:2.5, kind:'plaque', title:'IRON FLOOR', body:'The Blackbox vault has no stone — only black iron floor plates, oiled to a mirror. May can see her own reflection beneath her feet. The reflection is half a second slow.\n\nShe does not look down twice.' },
+      { x:13, y:2.5, kind:'plaque', title:'THE SINGLE LAMP', body:'A single iron lamp hangs above the Box, lit with a flame that is not red, not orange, not anything May has a word for. The flame does not flicker. The flame does not cast shadow on the Box.\n\nThe Box does not need the light. The light is for whoever is foolish enough to come down here.' },
+    ],
+    doors: [
+      { x:0.4, y:5, w:0.6, h:2, to:'memory_hall', spawn:{x:24, y:5} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   CATHEDRAL OF REAPERS — Vast central cathedral
+  // ============================================================
+  cathedral: {
+    id: 'cathedral',
+    name: 'The Cathedral of Reapers',
+    sub: 'The vast hall where every reaper has knelt at least once',
+    width: 30, height: 18,
+    palette: { floor:'#1a1426', wall:'#08060e', stone:'#241830', accent:'#c0a050', candle:'#ffd28b' },
+    spawn: { x: 15, y: 16 },
+    draw: drawCathedral,
+    walls: [
+      { x:0,y:0,w:30,h:1 }, { x:0,y:17,w:30,h:1 }, { x:0,y:0,w:1,h:18 }, { x:29,y:0,w:1,h:18 },
+      // The Reaper-Statue dais (north end — 8 tiles wide)
+      { x:11, y:2, w:8, h:3 },
+      // Pews flanking the central aisle
+      { x:3, y:7,  w:8, h:1.2 },
+      { x:3, y:9.5,  w:8, h:1.2 },
+      { x:3, y:12, w:8, h:1.2 },
+      { x:19, y:7,  w:8, h:1.2 },
+      { x:19, y:9.5,  w:8, h:1.2 },
+      { x:19, y:12, w:8, h:1.2 },
+    ],
+    interactables: [
+      { x:15, y:4, kind:'plaque', title:'THE REAPER-STATUE', body:'A twenty-foot obsidian statue of an unnamed reaper — hooded, scythe planted, head bowed. Every reaper in the cycle kneels before this statue exactly once: on the day they receive their Grim title.\n\nMay knelt here on her sixteenth birthday. She remembers nothing about the kneeling and everything about the silence after.' },
+      { x:15, y:8, kind:'plaque', title:'THE CENTRAL AISLE', body:'A long aisle of polished mirror-stone, twice the width of the Grand Hall\'s. The Cathedral is older than the Hall. The reapers walk this aisle in pairs at every cycle-end; tonight the aisle is empty.' },
+      { x:6, y:10, kind:'plaque', title:'PORT-SIDE PEWS', body:'Six tiers of dark-wood pews capable of seating every reaper who has ever served. They are almost never full. May has seen the cathedral at capacity once — on Cryious\'s birthday. Death sat in the centre. Nobody else did.' },
+      { x:24, y:10, kind:'plaque', title:'STARBOARD-SIDE PEWS', body:'Identical to the port pews. The starboard-side has one additional row in the back — small chairs, child-sized. The reaper-children sit here on cycle-end. May has not sat there since she was twelve.' },
+      { x:15, y:14, kind:'plaque', title:'GREAT CHANDELIER', body:'A massive iron chandelier hangs from the vaulted ceiling, twelve candles arranged as the constellation Death himself once mapped from a strata that no longer exists.\n\nThe candles are lit by the senior reapers in rotation. Tonight\'s candle-keeper is Elystria.' },
+    ],
+    doors: [
+      { x:14.5, y:17.4, w:1, h:0.6, to:'grand_hall', spawn:{x:14, y:14} },
+    ],
+    npcs: [
+      // A kneeling junior reaper (placeholder — uses elite1 walk_down idle frame)
+      { x:11, y:8, sheet:'elite1_walk_down', idleSheet:'elite1_walk_down', refSheet:'elite1_walk_down',
+        scale:0.55, animSpeed:3, label:'Junior Reaper',
+        plaqueTitle:'JUNIOR REAPER · KNEELING',
+        plaqueBody:'A junior reaper in the middle of their first solo vigil. They will kneel here for eight hours, unmoving, before being permitted to leave the cathedral.\n\nMay remembers her own vigil. The eight hours felt like four. Death said that was a good sign.' },
+    ],
+  },
+
+  // ============================================================
+  //   OBSIDIAN CONTAINMENT — Sealed cells of dangerous artefacts
+  // ============================================================
+  obsidian: {
+    id: 'obsidian',
+    name: 'Obsidian Containment',
+    sub: 'Sealed obsidian cells holding the things the cycle would not take',
+    width: 22, height: 12,
+    palette: { floor:'#0c0a14', wall:'#04030a', stone:'#181020', accent:'#a060ff', candle:'#c08bff' },
+    spawn: { x: 11, y: 10 },
+    draw: drawObsidian,
+    walls: [
+      { x:0,y:0,w:22,h:1 }, { x:0,y:11,w:22,h:1 }, { x:0,y:0,w:1,h:12 }, { x:21,y:0,w:1,h:12 },
+      // Four obsidian containment cells along the walls
+      { x:3, y:2,  w:3, h:3 },
+      { x:9, y:2,  w:3, h:3 },
+      { x:15, y:2, w:3, h:3 },
+      { x:3, y:7,  w:3, h:3 },
+      { x:15, y:7, w:3, h:3 },
+    ],
+    interactables: [
+      { x:4.5, y:5.5, kind:'plaque', title:'CELL I — THE FALLEN SCYTHE', body:'A scythe of unknown make floats inside, suspended on a thread of violet light. Its blade hums at a pitch May can only feel in her teeth. The blade belonged to a reaper who chose to break the cycle. Their name has been struck from every ledger.' },
+      { x:10.5, y:5.5, kind:'plaque', title:'CELL II — THE LIVING LETTER', body:'A single folded letter floats inside its cell, opening and closing as if breathing. The letter was confiscated from a reaper who tried to deliver it across strata against Death\'s order.\n\nIt has been here for fourteen cycles. It is still trying to be delivered.' },
+      { x:16.5, y:5.5, kind:'plaque', title:'CELL III — THE BONE TOKEN', body:'A single small bone token, identical to the ones given to the common reapers. Except this one is warm to the touch. Death sealed it himself; nobody is permitted to ask why.' },
+      { x:4.5, y:10.2, kind:'plaque', title:'CELL IV — EMPTY', body:'An empty cell. The plaque reads only: HELD FOR FUTURE.\n\nMay finds the empty cell more frightening than the occupied ones.' },
+      { x:16.5, y:10.2, kind:'plaque', title:'CELL V — SEALED', body:'A cell whose obsidian face is fully opaque — no window, no plaque, no indicator. The seal across the cell\'s door is so thoroughly bound that the sigil-lines have themselves become part of the obsidian.\n\nDeath has never opened this cell. Nobody alive remembers what is inside.' },
+    ],
+    doors: [
+      { x:0.4, y:5, w:0.6, h:2, to:'lower_deck', spawn:{x:22, y:5} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   NAVIGATOR'S ROOM — Holographic strata-map workstation
+  // ============================================================
+  navigators: {
+    id: 'navigators',
+    name: "Navigator's Room",
+    sub: 'Where the strata-routes are plotted in living rune-light',
+    width: 18, height: 11,
+    palette: { floor:'#0e1426', wall:'#04081a', stone:'#142036', accent:'#5ce0ff', candle:'#a9e4ff' },
+    spawn: { x: 9, y: 9 },
+    draw: drawNavigators,
+    walls: [
+      { x:0,y:0,w:18,h:1 }, { x:0,y:10,w:18,h:1 }, { x:0,y:0,w:1,h:11 }, { x:17,y:0,w:1,h:11 },
+      // Massive central holo-table
+      { x:6, y:3, w:6, h:4 },
+      // Side bookshelves
+      { x:2, y:2, w:2, h:6 },
+      { x:14, y:2, w:2, h:6 },
+    ],
+    interactables: [
+      { x:9, y:7.5, kind:'plaque', title:'THE STRATA-TABLE', body:'A six-by-four-tile table whose surface is a continuously updating holographic projection of the Astrolabe map. The Navigator plots every strata-jump from here. Tonight the projection shows strata -47, -48, and -49, with the ship\'s current heading drawn in slow pulsing teal.' },
+      { x:3, y:5, kind:'plaque', title:'PORT NAVIGATION SHELF', body:'Hand-bound logs of every strata the ship has ever visited. The oldest log is older than May, older than Cryious — older than the Astrolabe itself. The Navigator transcribes by hand; Death insists.' },
+      { x:15, y:5, kind:'plaque', title:'STARBOARD NAVIGATION SHELF', body:'Spare strata-charts, blank rune-scrolls, ink bottles, and a single sealed envelope addressed simply to "THE NEXT NAVIGATOR." It has been here for three cycles. Nobody has been promoted.' },
+      { x:9, y:2.5, kind:'plaque', title:'THE NAVIGATOR\'S CHAIR', body:'An iron chair behind the strata-table, currently empty. The Navigator is presently down on the Engine Floor, conferring with the Engineer. The chair-back is etched with the names of every Navigator the ship has had. There are eleven names. The twelfth slot is blank.' },
+    ],
+    doors: [
+      { x:8.5, y:10.4, w:1, h:0.6, to:'control', spawn:{x:4.5, y:5.5} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   LOWER DECK — Service deck below the Creation Leveler
+  // ============================================================
+  lower_deck: {
+    id: 'lower_deck',
+    name: 'The Lower Deck',
+    sub: 'Service tunnels and storage at the bottom of Death\'s Ship',
+    width: 26, height: 10,
+    palette: { floor:'#0a0e16', wall:'#04060c', stone:'#101620', accent:'#3aa0c0', candle:'#7ec8e0' },
+    spawn: { x: 2, y: 5 },
+    draw: drawLowerDeck,
+    walls: [
+      { x:0,y:0,w:26,h:1 }, { x:0,y:9,w:26,h:1 }, { x:0,y:0,w:1,h:10 }, { x:25,y:0,w:1,h:10 },
+      // Storage crates and supply pillars
+      { x:4, y:2, w:1, h:1 }, { x:4, y:7, w:1, h:1 },
+      { x:8, y:2, w:2, h:2 }, { x:8, y:6.5, w:2, h:2 },
+      { x:13, y:2, w:1, h:1 }, { x:13, y:7, w:1, h:1 },
+      { x:18, y:2, w:2, h:2 }, { x:18, y:6.5, w:2, h:2 },
+    ],
+    interactables: [
+      { x:9, y:4.6, kind:'plaque', title:'BONE-DUST CRATES', body:'Stacks of iron-banded crates. The labels read: BONE-DUST, GRADE A, FOR ALTAR USE ONLY. Romaine refills the cathedral\'s braziers from these. The crates are restocked once per strata.\n\nMay\'s name appears in the manifest of the seventh crate, under "SAMPLE-OWNER." She does not know why.' },
+      { x:19, y:4.6, kind:'plaque', title:'SCYTHE-SPARES RACK', body:'A long iron rack holding replacement scythe-blades for the common reapers. Each blade is wrapped in oiled black cloth and labelled with the reaper it is allocated to.\n\nMay\'s blade is not on the rack. Death keeps hers in his office.' },
+      { x:13, y:5, kind:'plaque', title:'LOWER DECK GUTTER', body:'A narrow runoff channel runs the length of the deck — for cleaning, drainage, and whatever the Engineer chooses to flush from the Drege Engine. The gutter is currently dry. May can hear something dripping farther down the line. She does not investigate.' },
+      { x:2.5, y:8, kind:'plaque', title:'ACCESS HATCH (UP)', body:'A circular iron hatch in the ceiling — the entry from the Creation Leveler. The ladder is bolted into the stone above. The bolts are old; the ladder is older.' },
+      { x:24, y:8, kind:'plaque', title:'CONTAINMENT CORRIDOR', body:'A narrow ironclad corridor leads east from the deck into the Obsidian Containment cells. The corridor is sealed by a heavy door that only opens for Death, the Engineer, and (recently) Maytradalis.\n\nMay does not yet know why the corridor opens for her. Death has not explained.' },
+    ],
+    doors: [
+      { x:0.4, y:5, w:0.6, h:2, to:'creation_leveler', spawn:{x:14, y:11.5} },
+      { x:25.0, y:5, w:0.6, h:2, to:'obsidian', spawn:{x:1, y:5} },
+    ],
+    npcs: [],
+  },
+
   creation_leveler: {
     id: 'creation_leveler',
     name: 'The Creation Leveler',
@@ -3591,6 +3861,551 @@ function drawStrataReadout(ctx, cx, cy, t) {
 }
 
 // ============================================================
+//   DEATH'S OFFICE
+// ============================================================
+function drawDeathsOffice(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 31);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#0a0510');
+  // The long window in the rear wall — a narrow violet field
+  ctx.save();
+  ctx.fillStyle = '#1a0c2a';
+  ctx.fillRect(W*0.30, 70, W*0.40, 60);
+  ctx.globalCompositeOperation = 'lighter';
+  const wg = ctx.createLinearGradient(0, 70, 0, 130);
+  wg.addColorStop(0, 'rgba(160,90,220,0.7)');
+  wg.addColorStop(1, 'rgba(60,30,90,0.3)');
+  ctx.fillStyle = wg;
+  ctx.fillRect(W*0.30, 70, W*0.40, 60);
+  ctx.restore();
+  // Death's great desk (8..12, 2..3.6)
+  drawWoodSlab(ctx, 8*64, 2*64, 4*64, 1.6*64, '#1a0e0e', '#3a1c14');
+  // Bookshelves (port and starboard)
+  drawBookshelf(ctx, 2*64+8, 5*64+8, 2*64-16, 3*64-16);
+  drawBookshelf(ctx, 16*64+8, 5*64+8, 2*64-16, 3*64-16);
+  // Reading lectern
+  drawWoodSlab(ctx, 9*64+8, 8*64+8, 2*64-16, 1*64-16, '#221416', '#42201a');
+  // Open book on lectern (glowing pages)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(255,210,140,${0.5+0.2*Math.sin(t*1.5)})`;
+  ctx.fillRect(10*64-30, 8.4*64, 60, 10);
+  ctx.restore();
+  // Sconces on both pillars
+  drawCandle(ctx, 64+8, H*0.5, t, 1);
+  drawCandle(ctx, W-64-12, H*0.5, t, 2);
+}
+
+function drawWoodSlab(ctx, x, y, w, h, dark, mid) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(x+4, y+h-4, w-8, 8);
+  const g = ctx.createLinearGradient(0, y, 0, y+h);
+  g.addColorStop(0, mid);
+  g.addColorStop(1, dark);
+  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#0a0408'; ctx.lineWidth = 2;
+  ctx.strokeRect(x+1, y+1, w-2, h-2);
+  // wood grain
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = '#1a0a04';
+  for (let i = 0; i < 5; i++) ctx.fillRect(x+8, y+8+i*((h-16)/5), w-16, 1);
+  ctx.restore();
+}
+
+function drawBookshelf(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.fillStyle = '#2a1810';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#0a0408'; ctx.lineWidth = 2;
+  ctx.strokeRect(x+0.5, y+0.5, w-1, h-1);
+  // books — vertical strips of varied colour
+  const colours = ['#5a1620','#3a1830','#1e2c4a','#4a3018','#2a2218','#5a3020','#3a1620'];
+  let cx = x + 4;
+  while (cx < x + w - 8) {
+    const bw = 6 + Math.floor((cx * 7 % 5));
+    const bh = h - 16 - ((cx % 17) % 8);
+    ctx.fillStyle = colours[(cx) % colours.length];
+    ctx.fillRect(cx, y + 8 + (h-16-bh), bw, bh);
+    cx += bw + 1;
+  }
+  ctx.restore();
+}
+
+// ============================================================
+//   VIVIAN'S ROOM
+// ============================================================
+function drawViviansRoom(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 41);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#160a18');
+  // Soft pink area-rug under the centre
+  drawCarpet(ctx, 3*64, 5*64, 8*64, 3*64, '#4a2238');
+  // Tea desk (2..5, 2..4)
+  drawWoodSlab(ctx, 2*64+4, 2*64+4, 3*64-8, 2*64-8, '#2a1418', '#4a2230');
+  // Tea service: 3 small pink dots representing porcelain
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = '#f5d8e8';
+    ctx.beginPath(); ctx.arc(3*64+20 + i*22, 3*64+10, 6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#a060a0';
+    ctx.beginPath(); ctx.arc(3*64+20 + i*22, 3*64+10, 3, 0, Math.PI*2); ctx.fill();
+  }
+  // Wardrobe (9..12, 2..4)
+  drawWoodSlab(ctx, 9*64+4, 2*64+4, 3*64-8, 2*64-8, '#161018', '#2a1a26');
+  // Wardrobe doors (slight gap)
+  ctx.save();
+  ctx.fillStyle = '#0a050a';
+  ctx.fillRect(10.5*64-1, 2*64+8, 2, 2*64-16);
+  ctx.restore();
+  // Side-table with kettle (6..8, 6..7.4)
+  drawWoodSlab(ctx, 6*64+4, 6*64+4, 2*64-8, 1.4*64-8, '#1a1018', '#3a1c30');
+  // Kettle (brass + thin steam)
+  ctx.save();
+  ctx.fillStyle = '#7c5028';
+  ctx.beginPath(); ctx.ellipse(7*64, 6.5*64, 16, 11, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#a07840';
+  ctx.fillRect(7*64-3, 6.5*64-15, 6, 6);
+  // Steam
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = `rgba(220,240,255,${0.2+0.15*Math.sin(t*2+i)})`;
+    ctx.fillRect(7*64-2 + Math.sin(t*1.5+i)*4, 6.5*64-22 - i*8, 4, 6);
+  }
+  ctx.restore();
+  // Leaded window on south wall
+  ctx.save();
+  ctx.fillStyle = '#08020c';
+  ctx.fillRect(6*64, H-100, 128, 36);
+  ctx.fillStyle = 'rgba(180,150,220,0.55)';
+  ctx.fillRect(6*64+4, H-96, 120, 28);
+  ctx.strokeStyle = '#150818'; ctx.lineWidth = 2;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(6*64 + i*30, H-96); ctx.lineTo(6*64 + i*30, H-68);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ============================================================
+//   MEMORY HALL
+// ============================================================
+function drawMemoryHall(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 47);
+  // Pale-blue glow rolling along the floor
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(80,180,240,${0.06+0.03*Math.sin(t*0.8)})`;
+  ctx.fillRect(64, H*0.4, W-128, H*0.2);
+  ctx.restore();
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#02080e');
+  // Memory pedestals — small obsidian plinths with floating soul-orbs
+  const pedestals = [
+    {x:4.5, content:'orb', color:'#8cc6ff'},
+    {x:8.5, content:'orb', color:'#c0d8ff'},
+    {x:12.5, content:'orb', color:'#ffbbe0'},  // Maytradalis — pink
+    {x:16.5, content:'orb', color:'#a8e0d0'},  // Elystria — green-teal
+    {x:20.5, content:'empty', color:null},
+  ];
+  for (const ped of pedestals) {
+    const px = ped.x*64, py = 4.4*64+32;
+    // plinth
+    ctx.fillStyle = '#0a1018';
+    ctx.fillRect(px, py-8, 64, 24);
+    ctx.fillStyle = '#1c2838';
+    ctx.fillRect(px+4, py-8, 56, 6);
+    // orb (or empty marker)
+    if (ped.content === 'orb') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const orbY = py - 30 + Math.sin(t*1.3 + ped.x)*4;
+      ctx.fillStyle = ped.color;
+      ctx.globalAlpha = 0.85 + 0.1*Math.sin(t*2 + ped.x);
+      ctx.beginPath(); ctx.arc(px+32, orbY, 14, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.arc(px+32, orbY, 22, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else {
+      // empty — pulsing dark X
+      ctx.save();
+      ctx.strokeStyle = `rgba(160,200,240,${0.3+0.2*Math.sin(t*1.5)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px+22, py-32); ctx.lineTo(px+42, py-12);
+      ctx.moveTo(px+42, py-32); ctx.lineTo(px+22, py-12);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  // Cool drifting motes
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 40; i++) {
+    const mx = (i * 73 + t*12) % W;
+    const my = ((i * 113) % (H-128)) + 64;
+    ctx.fillStyle = `rgba(140,200,240,${0.15+0.1*Math.sin(t+i)})`;
+    ctx.fillRect(mx, my, 2, 2);
+  }
+  ctx.restore();
+}
+
+// ============================================================
+//   BLACKBOX
+// ============================================================
+function drawBlackbox(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  // Mirror-iron floor
+  ctx.fillStyle = '#040408';
+  ctx.fillRect(0, 0, W, H);
+  // Slight reflection bands
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = `rgba(40,40,60,${0.06})`;
+    ctx.fillRect(0, i*(H/6) + (t*8 % (H/6)), W, 2);
+  }
+  ctx.restore();
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#01010a');
+  // THE BLACKBOX — perfectly black cube
+  const bx = 5*64, by = 3*64, bw = 6*64, bh = 6*64;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(bx, by, bw, bh);
+  // Edge "absence" — faint red haze at edges (so it doesn\'t blend with bg)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(180,30,50,${0.18 + 0.1*Math.sin(t)})`;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bx-2, by-2, bw+4, bh+4);
+  ctx.restore();
+  // The single lamp above the box — colourless flame
+  ctx.save();
+  ctx.fillStyle = '#1a1014';
+  ctx.fillRect(W/2-4, 80, 8, 28);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(240,240,240,${0.55+0.15*Math.sin(t*3)})`;
+  ctx.beginPath(); ctx.arc(W/2, 70, 8, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = `rgba(200,200,220,${0.25})`;
+  ctx.beginPath(); ctx.arc(W/2, 70, 22, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ============================================================
+//   CATHEDRAL OF REAPERS
+// ============================================================
+function drawCathedral(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 53);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#03020a');
+  // Vaulted arches on back wall — taller than corridor
+  for (let i = 0; i < 7; i++) {
+    const ax = 64 + i*((W-128)/7);
+    const aw = (W-128)/7 - 4;
+    drawArchPath(ctx, ax+2, 16, aw-4, 140);
+    ctx.fillStyle = '#08060e'; ctx.fill();
+    ctx.strokeStyle = '#1a1428'; ctx.lineWidth = 2; ctx.stroke();
+  }
+  // The Reaper-Statue dais (11..19, 2..5)
+  ctx.fillStyle = '#0e0a18';
+  ctx.fillRect(11*64, 2*64, 8*64, 3*64);
+  ctx.strokeStyle = '#1a1428'; ctx.lineWidth = 2;
+  ctx.strokeRect(11*64+1, 2*64+1, 8*64-2, 3*64-2);
+  // The statue itself — silhouette
+  drawReaperStatue(ctx, 15*64, 2.2*64, t);
+  // Central aisle (mirror-stone)
+  drawCarpet(ctx, 12*64, 5*64, 6*64, H-7*64, '#2a1828');
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(120,90,40,${0.04+0.02*Math.sin(t)})`;
+  ctx.fillRect(12*64, 5*64, 6*64, H-7*64);
+  ctx.restore();
+  // Pews (already collidable — render as wood blocks)
+  for (const px of [3,19]) {
+    for (const py of [7, 9.5, 12]) {
+      drawPew(ctx, px*64, py*64, 8*64, 1.2*64);
+    }
+  }
+  // Great chandelier
+  drawChandelier(ctx, W/2, 5.5*64, 1.4, '#ffd28b', t);
+  // Sparse motes
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 30; i++) {
+    const mx = (i*97 + t*8) % W;
+    const my = (i*131) % (H-160) + 80;
+    ctx.fillStyle = `rgba(255,210,140,${0.12+0.08*Math.sin(t+i*0.3)})`;
+    ctx.fillRect(mx, my, 2, 2);
+  }
+  ctx.restore();
+}
+
+function drawReaperStatue(ctx, cx, top, t) {
+  ctx.save();
+  ctx.fillStyle = '#06040c';
+  // Body (long robe)
+  ctx.beginPath();
+  ctx.moveTo(cx-32, top+30);
+  ctx.lineTo(cx-44, top+170);
+  ctx.lineTo(cx+44, top+170);
+  ctx.lineTo(cx+32, top+30);
+  ctx.closePath(); ctx.fill();
+  // Hood
+  ctx.beginPath();
+  ctx.moveTo(cx-22, top+30);
+  ctx.bezierCurveTo(cx-30, top, cx+30, top, cx+22, top+30);
+  ctx.closePath(); ctx.fill();
+  // Inside hood — pure black with faint glint
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(cx, top+18, 12, 14, 0, 0, Math.PI*2); ctx.fill();
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(255,220,140,${0.18 + 0.1*Math.sin(t*0.6)})`;
+  ctx.fillRect(cx-3, top+14, 6, 2);
+  ctx.restore();
+  // Scythe planted on the right
+  ctx.fillStyle = '#1c1410';
+  ctx.fillRect(cx+30, top+30, 4, 150);
+  ctx.fillStyle = '#3a2a1c';
+  ctx.beginPath();
+  ctx.moveTo(cx+34, top+30);
+  ctx.lineTo(cx+74, top+10);
+  ctx.lineTo(cx+34, top+50);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// ============================================================
+//   OBSIDIAN CONTAINMENT
+// ============================================================
+function drawObsidian(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 59);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#03020a');
+  // Render 5 cells with their distinct contents
+  const cells = [
+    {x:3,  y:2, content:'scythe'},
+    {x:9,  y:2, content:'letter'},
+    {x:15, y:2, content:'token'},
+    {x:3,  y:7, content:'empty'},
+    {x:15, y:7, content:'sealed'},
+  ];
+  for (const c of cells) drawObsidianCell(ctx, c.x*64, c.y*64, 3*64, 3*64, c.content, t);
+  // Floor cyan glow lines connecting the cells
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(160,90,255,${0.15+0.1*Math.sin(t)})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 1; i < W/96; i++) {
+    ctx.moveTo(i*96, H*0.55); ctx.lineTo(i*96+30, H*0.55);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawObsidianCell(ctx, x, y, w, h, kind, t) {
+  ctx.save();
+  // Outer obsidian frame
+  ctx.fillStyle = '#0a0612';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#1a1028'; ctx.lineWidth = 3;
+  ctx.strokeRect(x+1.5, y+1.5, w-3, h-3);
+  // Inner window
+  const ix = x+18, iy = y+18, iw = w-36, ih = h-36;
+  ctx.fillStyle = '#020108';
+  ctx.fillRect(ix, iy, iw, ih);
+  // Content
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const cx = x + w/2, cy = y + h/2;
+  if (kind === 'scythe') {
+    // Floating scythe with violet thread
+    ctx.strokeStyle = `rgba(180,120,255,${0.6+0.2*Math.sin(t*1.5)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx-20, cy+20); ctx.lineTo(cx+15, cy-15);
+    ctx.stroke();
+    ctx.fillStyle = '#a070d8';
+    ctx.beginPath();
+    ctx.moveTo(cx+15, cy-15); ctx.lineTo(cx+35, cy-25); ctx.lineTo(cx+18, cy-2);
+    ctx.closePath(); ctx.fill();
+  } else if (kind === 'letter') {
+    // Folded letter "breathing"
+    const breath = 1 + 0.12*Math.sin(t*1.8);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(breath, 1);
+    ctx.fillStyle = `rgba(220,220,200,0.85)`;
+    ctx.fillRect(-18, -12, 36, 24);
+    ctx.fillStyle = `rgba(160,160,140,0.7)`;
+    ctx.fillRect(-18, -2, 36, 2);
+    ctx.restore();
+  } else if (kind === 'token') {
+    // Warm bone token
+    ctx.fillStyle = `rgba(255,220,160,${0.7+0.2*Math.sin(t*2)})`;
+    ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(255,180,100,0.5)`;
+    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI*2); ctx.fill();
+  } else if (kind === 'empty') {
+    // Empty — show subtle text
+    ctx.fillStyle = `rgba(120,80,180,${0.3+0.2*Math.sin(t)})`;
+    ctx.font = 'bold 11px Cinzel,Georgia,serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('HELD FOR', cx, cy-2);
+    ctx.fillText('FUTURE', cx, cy+10);
+  } else if (kind === 'sealed') {
+    // Fully sealed — dense crosshatch + violet centre dot
+    ctx.strokeStyle = `rgba(180,120,255,0.45)`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.moveTo(ix+4, iy+4+i*((ih-8)/5));
+      ctx.lineTo(ix+iw-4, iy+4+i*((ih-8)/5));
+      ctx.stroke();
+    }
+    ctx.fillStyle = `rgba(120,40,255,${0.7})`;
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+// ============================================================
+//   NAVIGATOR'S ROOM
+// ============================================================
+function drawNavigators(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 61);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#02060e');
+  // Two bookshelves
+  drawBookshelf(ctx, 2*64+8, 2*64+8, 2*64-16, 6*64-16);
+  drawBookshelf(ctx, 14*64+8, 2*64+8, 2*64-16, 6*64-16);
+  // Strata-Table — large holo projector
+  drawStrataTable(ctx, 6*64, 3*64, 6*64, 4*64, t);
+  // Navigator's chair (empty for now)
+  ctx.save();
+  ctx.fillStyle = '#1a0e1c';
+  ctx.fillRect(9*64-12, 2*64+8, 24, 32);
+  ctx.fillStyle = '#08020a';
+  ctx.fillRect(9*64-12, 2*64+4, 24, 6);
+  ctx.restore();
+}
+
+function drawStrataTable(ctx, x, y, w, h, t) {
+  ctx.save();
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#1a2436'; ctx.lineWidth = 3;
+  ctx.strokeRect(x+1.5, y+1.5, w-3, h-3);
+  // Holo projection — concentric rings + drifting pips
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const cx = x + w/2, cy = y + h/2;
+  ctx.strokeStyle = `rgba(90,220,255,${0.55+0.2*Math.sin(t*1.5)})`;
+  ctx.lineWidth = 1.5;
+  for (let r = 30; r < Math.min(w,h)*0.5; r += 24) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+  }
+  // Strata layer markers
+  ctx.font = 'bold 10px monospace';
+  ctx.fillStyle = `rgba(90,220,255,0.85)`;
+  ctx.textAlign = 'center';
+  ctx.fillText('-47', cx, cy+4);
+  ctx.fillText('-48', cx + 60, cy+4);
+  ctx.fillText('-49', cx + 110, cy+4);
+  // Ship heading line
+  ctx.strokeStyle = `rgba(140,255,220,${0.65+0.2*Math.sin(t*2)})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx-50, cy); ctx.lineTo(cx+120, cy);
+  ctx.stroke();
+  // pips
+  for (let i = 0; i < 8; i++) {
+    const a = (t*0.5 + i * Math.PI/4) % (Math.PI*2);
+    const rr = 50 + 30*((i+t)%2);
+    ctx.fillStyle = `rgba(160,255,255,${0.6})`;
+    ctx.fillRect(cx + Math.cos(a)*rr - 1, cy + Math.sin(a)*rr - 1, 2, 2);
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
+// ============================================================
+//   LOWER DECK
+// ============================================================
+function drawLowerDeck(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 67);
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
+  ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
+  drawWallTrim(ctx, W, H, '#02050a');
+  // Storage crates + supply pillars (matching walls placements)
+  drawCageCrate(ctx, 8*64, 2*64, 2*64, 2*64);
+  drawCageCrate(ctx, 8*64, 6.5*64, 2*64, 2*64);
+  drawCageCrate(ctx, 18*64, 2*64, 2*64, 2*64);
+  drawCageCrate(ctx, 18*64, 6.5*64, 2*64, 2*64);
+  // Supply pillars (single tile)
+  for (const [px,py] of [[4,2],[4,7],[13,2],[13,7]]) {
+    ctx.fillStyle = '#1a2028';
+    ctx.fillRect(px*64+8, py*64+8, 48, 48);
+    ctx.strokeStyle = '#020608'; ctx.lineWidth = 2;
+    ctx.strokeRect(px*64+8.5, py*64+8.5, 47, 47);
+    ctx.fillStyle = '#3a4250';
+    ctx.fillRect(px*64+12, py*64+12, 40, 6);
+  }
+  // Gutter line down the middle
+  ctx.save();
+  ctx.fillStyle = '#020608';
+  ctx.fillRect(64, 5*64, W-128, 4);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(60,160,200,${0.18+0.1*Math.sin(t*1.5)})`;
+  ctx.fillRect(64, 5*64, W-128, 2);
+  ctx.restore();
+  // Access hatch graphic (top-left)
+  ctx.save();
+  ctx.fillStyle = '#0a1018';
+  ctx.beginPath(); ctx.arc(2.5*64, 8*64, 26, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#3a4258'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(2.5*64, 8*64, 26, 0, Math.PI*2); ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI/2;
+    ctx.fillStyle = '#5a6878';
+    ctx.beginPath(); ctx.arc(2.5*64 + Math.cos(a)*18, 8*64 + Math.sin(a)*18, 3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ============================================================
 //   ASSET LOADING
 // ============================================================
 function loadSprite(name) {
@@ -4142,14 +4957,14 @@ const ALL_LOCATIONS = [
   ['engine_room','The Engine Room (Drege Engine)', true],
   ['judgement_court','The Court of Judgement', true],
   ['creation_leveler','The Creation Leveler Engine', true],
-  ['deaths_office',"Death's Office", false],
-  ['vivians_room',"Vivian's Room", false],
-  ['memory_hall',"Death's Memory Hall", false],
-  ['blackbox','The Blackbox', false],
-  ['cathedral','The Cathedral Of Reapers', false],
-  ['obsidian','Obsidian Containment Room', false],
-  ['navigators',"Navigator's Room", false],
-  ['lower_deck','The Lower Deck', false],
+  ['deaths_office',"Death's Office", true],
+  ['vivians_room',"Vivian's Room", true],
+  ['memory_hall',"Death's Memory Hall", true],
+  ['blackbox','The Blackbox', true],
+  ['cathedral','The Cathedral Of Reapers', true],
+  ['obsidian','Obsidian Containment Room', true],
+  ['navigators',"Navigator's Room", true],
+  ['lower_deck','The Lower Deck', true],
 ];
 document.getElementById('mapBtn').onclick = () => {
   const html = ALL_LOCATIONS.map(([id,n,avail]) => {
@@ -4403,6 +5218,14 @@ window.addEventListener('keydown', e => {
   else if (e.code === 'Digit5') loadRoom('engine_room');
   else if (e.code === 'Digit6') loadRoom('judgement_court');
   else if (e.code === 'Digit7') loadRoom('creation_leveler');
+  else if (e.code === 'Digit8') loadRoom('deaths_office');
+  else if (e.code === 'Digit9') loadRoom('memory_hall');
+  else if (e.code === 'Digit0') loadRoom('blackbox');
+  else if (e.code === 'KeyQ' && (e.ctrlKey || e.metaKey)) loadRoom('vivians_room');
+  else if (e.code === 'KeyW' && (e.ctrlKey || e.metaKey)) loadRoom('cathedral');
+  else if (e.code === 'KeyE' && (e.ctrlKey || e.metaKey)) loadRoom('obsidian');
+  else if (e.code === 'KeyR' && (e.ctrlKey || e.metaKey)) loadRoom('navigators');
+  else if (e.code === 'KeyT' && (e.ctrlKey || e.metaKey)) loadRoom('lower_deck');
 });
 
 const dpadEl = document.getElementById('dpad');

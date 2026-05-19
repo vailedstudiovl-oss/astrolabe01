@@ -109,6 +109,105 @@ user_problem_statement: |
   + community-saved universes backed by MongoDB.
 
 backend:
+  - task: "Phase E — Real email notifications via Resend (admin notifications also dispatch HTML email to LORE_NOTIFY_EMAIL)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            [2026-05-19 — Re-test after Resend email integration]
+            Re-ran /app/backend_test.py against external preview URL.
+            RESULTS: 125 PASSED / 0 FAILED — identical to prior baseline.
+            No regressions from the email side-effect.
+
+            ✅ Latency check (5 samples each, post-warmup):
+              • POST /api/lore/characters  avg=109ms  min=97ms  max=122ms
+              • POST /api/lore/factions    avg=111ms  min=101ms max=132ms
+              Both well under the 500ms threshold — confirms email send is
+              truly fire-and-forget (asyncio.create_task) and does NOT
+              block the HTTP response.
+
+            ✅ GET /api/lore/admin/notifications → 200, response shape
+              {notifications, unread_count, total_count}. Sample row
+              fields: id, kind, entry_id, entry_kind, entry_name, summary,
+              author_ambassador_id, author_email, author_name, author_wid,
+              snapshot, read, created_at — all populated as before.
+              snapshot has _id stripped (no ObjectId leak regression).
+
+            ✅ [lore-email] log lines confirmed in backend.err.log — 21
+              "Resend OK status=200" lines observed during the test run,
+              zero FAIL/EXCEPTION lines. Subjects span all 6 kinds:
+                • "New character submitted: …"  (character_create)
+                • "Character edited: …"          (character_edit)
+                • "Character deleted: …"         (character_delete)
+                • "New faction submitted: …"     (faction_create)
+                • "Faction edited: …"            (faction_edit)
+                • "Faction deleted: …"           (faction_delete)
+              All routed to=jasondixon1994@gmail.com.
+
+            ✅ character_edit / character_delete / faction_edit /
+              faction_delete notifications still write to DB correctly —
+              the email side-effect does not interfere with the DB row.
+
+            Phase E email integration officially WORKING.
+            Marking needs_retesting=false, stuck_count=0.
+
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-19] Wired up Resend REST API in _log_admin_notification.
+            • Added _send_resend_email(subject, html_body) helper using httpx
+              AsyncClient with 10s timeout. Returns a result dict; never raises.
+              Logs success ([lore-email] Resend OK status=200 id=…) and
+              failures ([lore-email] Resend FAIL/EXCEPTION) via logger.
+            • Added _build_email_html(kind, entry, author, summary) — dark-themed
+              HTML email with header, entry kind/name, optional rows (role,
+              strata, color swatch, sigil, territory, tags), description
+              (truncated to 800 chars + HTML-escaped), and author block
+              (name + WID + email). All values HTML-escaped via _h() helper.
+            • _log_admin_notification now (a) writes the DB row exactly as
+              before, then (b) schedules an asyncio.create_task() for
+              _send_resend_email — fire-and-forget, never blocks the
+              create/edit/delete response. Email failures are logged but
+              never propagate.
+            • Env vars consumed from /app/backend/.env:
+                RESEND_API_KEY      = re_fzF1MT39_… (already configured)
+                RESEND_FROM_EMAIL   = onboarding@resend.dev
+                LORE_NOTIFY_EMAIL   = jasondixon1994@gmail.com
+              If RESEND_API_KEY or LORE_NOTIFY_EMAIL is missing, the helper
+              short-circuits with skipped_reason and logs nothing.
+            • Subject line pattern: "[Dimensionlock · Lore] {Action}: {Entry name}"
+              Examples sent during smoke test:
+                ✓ "[Dimensionlock · Lore] New character submitted: Email Test Character"
+                ✓ "[Dimensionlock · Lore] New faction submitted: Email Test Faction"
+              Both returned Resend 200 OK with delivery IDs.
+            • Verified via curl smoke test against external preview URL:
+                - POST /api/lore/ambassadors/register → 200
+                - POST /api/lore/characters → 200, character_create email sent (200 OK, id=596cc530-…)
+                - POST /api/lore/factions → 200, faction_create email sent (200 OK, id=fe06d7e5-…)
+              [lore-email] Resend OK lines confirmed in backend log.
+            • All 6 admin notification kinds will trigger an email:
+                character_create, character_edit, character_delete,
+                faction_create, faction_edit, faction_delete
+
+            REQUEST FOR TESTING AGENT:
+            Please re-run /app/backend_test.py to confirm the full Phase E
+            suite still passes (125/125 expected) since _log_admin_notification
+            signature is unchanged and the email send is async fire-and-forget.
+            Specifically verify:
+              • Email send doesn't block POST/PATCH/DELETE responses (latency
+                should not noticeably increase)
+              • Admin notifications DB row still includes correct snapshot
+                without ObjectId leaks
+              • Notification structure unchanged (snapshot, kind, summary,
+                author_email, read, created_at)
+            No new endpoints — just background side effect change.
+
   - task: "Phase E — Lore Ambassador auth + Lore Characters + Lore Factions + Admin Notifications"
     implemented: true
     working: true
@@ -1042,14 +1141,51 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Phase E — Lore Archive UI (lore.html — Ambassador auth, Characters & Factions tabs, CRUD, voting/flagging)"
-    - "Phase E — Astrolabe cinematic overhaul (no Codex/topbar, fog-of-war discovery, FAB cluster)"
-    - "Phase E — Main menu integration (CHARACTER ROSTER → /api/lore link, Lore Archive entry)"
+    - "Phase E — Real email notifications via Resend (admin notifications also dispatch HTML email to LORE_NOTIFY_EMAIL)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "main"
+    message: |
+      [2026-05-19 — Resend email integration wired up]
+      _log_admin_notification now also dispatches an HTML email via the
+      Resend REST API (https://api.resend.com/emails) to LORE_NOTIFY_EMAIL.
+      Implementation details:
+        • Async fire-and-forget via asyncio.create_task — never blocks
+          the create/edit/delete response, never raises.
+        • httpx.AsyncClient(timeout=10s) — caps the send to 10 seconds.
+        • Dark-themed HTML email with entry kind/name, optional rows
+          (role, strata, color swatch, sigil, territory, tags), description
+          (truncated 800 chars, HTML-escaped) and author block.
+        • If RESEND_API_KEY or LORE_NOTIFY_EMAIL is missing, the helper
+          short-circuits with skipped_reason — DB row still written.
+        • Logs success: "[lore-email] Resend OK status=200 id=…"
+          Logs failure: "[lore-email] Resend FAIL/EXCEPTION …"
+
+      Verified via curl smoke test against EXPO_PUBLIC_BACKEND_URL:
+        ✓ POST /api/lore/characters → 200, email 200 OK id=596cc530-…
+        ✓ POST /api/lore/factions   → 200, email 200 OK id=fe06d7e5-…
+      Both [lore-email] Resend OK lines visible in backend.err.log.
+
+      Please re-run /app/backend_test.py — expect 125/125 again.
+      The only behavioral change is a background email side-effect.
+      Verify:
+        1. Full Phase E suite still passes (125/125)
+        2. Latency on POST /lore/characters and POST /lore/factions
+           is not noticeably increased (email is fire-and-forget)
+        3. Admin notification DB row is unchanged in shape (snapshot
+           still strips _id correctly; kind/summary/author_email
+           remain populated)
+        4. GET /api/lore/admin/notifications still returns 200 with
+           well-formed JSON
+        5. (Optional) Check backend.err.log for [lore-email] Resend OK
+           lines after a character/faction create — they should appear
+           shortly (~50-200ms) after the POST response.
+      No need to verify the email arrives in the inbox — main agent
+      already verified delivery IDs were issued by Resend (200 OK).
+
   - agent: "testing"
     message: |
       [2026-05-19 — Deep Frontend QC Pass — COMPLETE]

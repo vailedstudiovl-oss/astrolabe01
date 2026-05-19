@@ -7,11 +7,14 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import re
+import asyncio
+import html as _html
 from pathlib import Path
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Any, Dict, Literal
 import uuid
 from datetime import datetime
+import httpx
 
 
 ROOT_DIR = Path(__file__).parent
@@ -758,8 +761,133 @@ class AdminNotification(BaseModel):
     created_at: datetime = Field(default_factory=_now)
 
 
+# ---------- Resend email transport ----------
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev").strip()
+LORE_NOTIFY_EMAIL = os.environ.get("LORE_NOTIFY_EMAIL", "").strip()
+RESEND_API_URL = "https://api.resend.com/emails"
+
+_KIND_LABEL = {
+    "character_create": "New character submitted",
+    "character_edit":   "Character edited",
+    "character_delete": "Character deleted",
+    "faction_create":   "New faction submitted",
+    "faction_edit":     "Faction edited",
+    "faction_delete":   "Faction deleted",
+}
+
+def _h(v: Any) -> str:
+    """HTML-escape a value safely (None → empty string)."""
+    if v is None:
+        return ""
+    return _html.escape(str(v))
+
+
+def _build_email_html(kind: str, entry: Dict[str, Any], author: Dict[str, Any], summary: str) -> str:
+    """Construct a small dark-themed HTML email payload for admin notifications."""
+    label = _KIND_LABEL.get(kind, kind.replace("_", " ").title())
+    name = entry.get("name", "(unnamed)")
+    entry_kind = entry.get("kind", "?")
+    author_name = author.get("display_name") or entry.get("author_name") or "Anonymous Wanderer"
+    author_wid = author.get("wanderer_id", entry.get("author_wid", "--------"))
+    author_email = author.get("email") or "(no email)"
+    # Optional fields we'll show if present
+    role = entry.get("role")
+    strata = entry.get("strata")
+    color = entry.get("color")
+    sigil = entry.get("sigil")
+    territory = entry.get("territory")
+    tags = entry.get("tags") or []
+    description = entry.get("description") or ""
+    if len(description) > 800:
+        description = description[:800] + "…"
+
+    detail_rows = []
+    if role:      detail_rows.append(("Role", _h(role)))
+    if strata is not None: detail_rows.append(("Strata", _h(strata)))
+    if color:     detail_rows.append(("Color", f'<span style="display:inline-block;width:12px;height:12px;background:{_h(color)};border:1px solid #555;vertical-align:middle;margin-right:6px;"></span>{_h(color)}'))
+    if sigil:     detail_rows.append(("Sigil", _h(sigil)))
+    if territory: detail_rows.append(("Territory", _h(territory)))
+    if tags:      detail_rows.append(("Tags", _h(", ".join(tags))))
+    detail_html = "".join(
+        f'<tr><td style="padding:4px 10px;color:#9aa3b2;font-size:12px;text-transform:uppercase;letter-spacing:1px;">{k}</td>'
+        f'<td style="padding:4px 10px;color:#e7eaf0;font-size:13px;">{v}</td></tr>'
+        for k, v in detail_rows
+    )
+
+    return f"""<!doctype html>
+<html><body style="margin:0;background:#0a0c12;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e7eaf0;">
+<div style="max-width:560px;margin:0 auto;padding:24px;">
+  <div style="border-left:3px solid #66ff88;padding:8px 14px;margin-bottom:18px;">
+    <div style="color:#66ff88;font-size:11px;letter-spacing:3px;text-transform:uppercase;">DIMENSIONLOCK · LORE</div>
+    <div style="color:#e7eaf0;font-size:18px;margin-top:4px;font-weight:600;">{_h(label)}</div>
+  </div>
+  <div style="background:#13161f;border:1px solid #1f2533;border-radius:6px;padding:18px;margin-bottom:14px;">
+    <div style="color:#9aa3b2;font-size:11px;letter-spacing:2px;text-transform:uppercase;">{_h(entry_kind)}</div>
+    <div style="color:#fff;font-size:22px;font-weight:700;margin:6px 0 14px 0;">{_h(name)}</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">{detail_html}</table>
+    <div style="border-top:1px solid #1f2533;padding-top:12px;color:#cdd3df;font-size:13px;line-height:1.55;white-space:pre-wrap;">{_h(description) or "<em style='color:#666;'>(no description)</em>"}</div>
+  </div>
+  <div style="background:#13161f;border:1px solid #1f2533;border-radius:6px;padding:14px 18px;margin-bottom:14px;font-size:13px;">
+    <div style="color:#9aa3b2;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Submitted by</div>
+    <div style="color:#e7eaf0;"><strong>{_h(author_name)}</strong>
+      &nbsp;<span style="color:#66ff88;font-family:monospace;">[{_h(author_wid)}]</span></div>
+    <div style="color:#9aa3b2;font-size:12px;margin-top:4px;">{_h(author_email)}</div>
+  </div>
+  <div style="color:#9aa3b2;font-size:12px;line-height:1.5;padding:0 4px;">
+    <div style="margin-bottom:6px;">{_h(summary)}</div>
+    <div style="color:#5b6478;font-size:11px;margin-top:14px;">
+      View admin notifications at <code style="color:#66ff88;">/api/lore/admin/notifications</code>.<br>
+      You can rotate the recipient via the <code style="color:#66ff88;">LORE_NOTIFY_EMAIL</code> env var.
+    </div>
+  </div>
+</div>
+</body></html>"""
+
+
+async def _send_resend_email(subject: str, html_body: str) -> Dict[str, Any]:
+    """Send an email via the Resend REST API. Returns a result dict; never raises."""
+    result: Dict[str, Any] = {"sent": False, "skipped_reason": None, "status": None, "id": None, "error": None}
+    if not RESEND_API_KEY:
+        result["skipped_reason"] = "RESEND_API_KEY not configured"
+        return result
+    if not LORE_NOTIFY_EMAIL:
+        result["skipped_reason"] = "LORE_NOTIFY_EMAIL not configured"
+        return result
+    payload = {
+        "from": RESEND_FROM_EMAIL,
+        "to": [LORE_NOTIFY_EMAIL],
+        "subject": subject[:200],
+        "html": html_body,
+    }
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client_http:
+            r = await client_http.post(RESEND_API_URL, json=payload, headers=headers)
+            result["status"] = r.status_code
+            if r.status_code in (200, 201, 202):
+                try:
+                    data = r.json()
+                    result["id"] = data.get("id")
+                except Exception:
+                    pass
+                result["sent"] = True
+                logger.info(f"[lore-email] Resend OK status={r.status_code} id={result['id']} to={LORE_NOTIFY_EMAIL} subj={subject[:80]!r}")
+            else:
+                result["error"] = r.text[:400]
+                logger.warning(f"[lore-email] Resend FAIL status={r.status_code} body={result['error']}")
+    except Exception as exc:
+        result["error"] = str(exc)[:400]
+        logger.warning(f"[lore-email] Resend EXCEPTION: {result['error']}")
+    return result
+
+
 async def _log_admin_notification(kind: str, entry: Dict[str, Any], author: Dict[str, Any], summary: str):
-    """Write a notification row. Admin can poll /api/lore/admin/notifications."""
+    """Write a notification row. Admin can poll /api/lore/admin/notifications.
+       Also sends a Resend email to LORE_NOTIFY_EMAIL (fire-and-forget, never blocks)."""
     # Strip Mongo's _id from the snapshot so it can be JSON-serialised later.
     # We make a shallow copy so we don't mutate the caller's dict.
     snapshot = {k: v for k, v in entry.items() if k != "_id"}
@@ -773,9 +901,19 @@ async def _log_admin_notification(kind: str, entry: Dict[str, Any], author: Dict
         author_name=author.get("display_name") or entry.get("author_name") or "Anonymous Wanderer",
         author_email=author.get("email"),
         summary=summary[:240],
-        snapshot=entry,
+        snapshot=snapshot,
     )
     await db.lore_admin_notifications.insert_one(note.dict())
+
+    # Fire-and-forget email — never raises, never blocks the create/edit/delete
+    # response. If Resend is misconfigured we just log and move on.
+    try:
+        label = _KIND_LABEL.get(kind, kind.replace("_", " ").title())
+        subject = f"[Dimensionlock · Lore] {label}: {entry.get('name', '(unnamed)')}"
+        html_body = _build_email_html(kind, snapshot, author, summary)
+        asyncio.create_task(_send_resend_email(subject, html_body))
+    except Exception as exc:
+        logger.warning(f"[lore-email] failed to schedule send: {exc}")
 
 
 # ---------- Ambassador endpoints ----------

@@ -14,7 +14,7 @@ import random
 import requests
 
 BASE_URL = os.environ.get(
-    "BACKEND_URL", "https://strata-nexus.preview.emergentagent.com"
+    "BACKEND_URL", "https://lore-archive-2.preview.emergentagent.com"
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 ADMIN_EMAIL = "dimensionlockdeath@gmail.com"

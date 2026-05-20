@@ -583,6 +583,11 @@
 
             generateProjectorBase();
             generateDiscs();
+            // Build per-layer dead/stable regions now that TERRITORY_DATA and
+            // discMeshes are fully populated. These feed the region-based
+            // filter pass when the legacy DEAD / STABLE buttons are clicked.
+            RegionFilters._buildDeadRegions();
+            RegionFilters._buildStableRegions();
             generateEndless();
             generateSoulSeedLanes();
             generateDeadZoneVolumes();
@@ -1028,14 +1033,313 @@
         }
 
         // --- Interaction & State Management ---
+        // ============================================================
+        //  REGION-BASED FILTER SYSTEM
+        //  ----------------------------------------------------------
+        //  Replaces the old "toggle the whole layer's visibility" logic.
+        //  A region is a 3D spatial boundary (circle/cylinder OR polygon
+        //  on the x/z plane, plus an optional y-range that bounds it
+        //  vertically). When a filter is applied, every disc, POI marker
+        //  and faction-volume is tested with point-in-region. ONLY the
+        //  elements that fall INSIDE at least one active region are
+        //  rendered/highlighted — everything else is dimmed.
+        //
+        //  Each disk layer supports MULTIPLE active region filters at
+        //  once (the test is a UNION — element passes if it lies in ANY
+        //  active region).
+        //
+        //  Region shapes:
+        //    { kind:'cylinder', center:{x,z}, radius, yRange:[yMin,yMax] }
+        //    { kind:'polygon',  vertices:[{x,z},...], yRange:[yMin,yMax] }
+        //
+        //  yRange uses LAYER COORDS (-99..+99). World y = level * ySpacing
+        //  is multiplied by the global ySpacing (0.6) when comparing.
+        // ============================================================
+        const REGION_Y_SPACING = 0.6;   // matches the disc ySpacing
+        const RegionFilters = {
+            // id -> region definition
+            regions: Object.create(null),
+
+            // Set<regionId> — multiple regions may be active simultaneously.
+            active: new Set(),
+
+            // Color used to highlight matching elements (per-region override possible)
+            register(id, def) {
+                this.regions[id] = Object.assign({ id, color: 0x00ffcc }, def);
+            },
+
+            // Replace the active set; pass an array of region ids.
+            setActive(ids) {
+                this.active = new Set(ids || []);
+            },
+
+            // Toggle one region on/off (other active regions are preserved).
+            toggle(id) {
+                if (this.active.has(id)) this.active.delete(id);
+                else                     this.active.add(id);
+            },
+
+            clear() { this.active.clear(); },
+
+            getActiveDefs() {
+                const out = [];
+                for (const id of this.active) {
+                    if (this.regions[id]) out.push(this.regions[id]);
+                }
+                return out;
+            },
+
+            // ---- Geometric tests ----------------------------------------
+            // pos may be a THREE.Vector3 OR a plain {x,y,z}. The y value
+            // is in WORLD coords (after ySpacing scaling). LayerLevel is
+            // optional but speeds up the y-range test for disks.
+            pointInRegion(pos, region, layerLevel) {
+                // y-range check first (cheap)
+                if (region.yRange) {
+                    const lvl = (layerLevel != null) ? layerLevel : (pos.y / REGION_Y_SPACING);
+                    if (lvl < region.yRange[0] || lvl > region.yRange[1]) return false;
+                }
+                const px = pos.x, pz = pos.z;
+                if (region.kind === 'cylinder') {
+                    const dx = px - (region.center ? region.center.x : 0);
+                    const dz = pz - (region.center ? region.center.z : 0);
+                    const r2 = region.radius * region.radius;
+                    return (dx*dx + dz*dz) <= r2;
+                }
+                if (region.kind === 'polygon') {
+                    return RegionFilters._pointInPolygon2D(px, pz, region.vertices);
+                }
+                return false;
+            },
+
+            // Returns array of matching region defs (empty if none).
+            // If layerLevel is provided and no regions are active, returns
+            // the special sentinel ALL (meaning "no filter active → keep
+            // everything visible").
+            pointInAnyActive(pos, layerLevel) {
+                if (this.active.size === 0) return null;   // no filter → caller treats as 'all visible'
+                const hits = [];
+                for (const region of this.getActiveDefs()) {
+                    if (this.pointInRegion(pos, region, layerLevel)) hits.push(region);
+                }
+                return hits;
+            },
+
+            // For DISK layer membership: a disk passes if its y level is
+            // inside the y-range of ANY active region (we don't need an
+            // x/z check because disks are infinite annuli centered at 0).
+            diskLayerMatches(level) {
+                if (this.active.size === 0) return null;   // no filter → all match
+                const hits = [];
+                for (const region of this.getActiveDefs()) {
+                    if (!region.yRange) { hits.push(region); continue; }
+                    if (level >= region.yRange[0] && level <= region.yRange[1]) hits.push(region);
+                }
+                return hits;
+            },
+
+            // Ray-casting point-in-polygon on the x/z plane.
+            _pointInPolygon2D(px, pz, verts) {
+                let inside = false;
+                for (let i = 0, j = verts.length - 1; i < verts.length; j = i++) {
+                    const xi = verts[i].x, zi = verts[i].z;
+                    const xj = verts[j].x, zj = verts[j].z;
+                    const intersect = ((zi > pz) !== (zj > pz)) &&
+                        (px < (xj - xi) * (pz - zi) / ((zj - zi) || 1e-9) + xi);
+                    if (intersect) inside = !inside;
+                }
+                return inside;
+            },
+        };
+
+        // ============================================================
+        //  CANONICAL REGIONS  — each legacy filter is now expressed as
+        //  one or more SPATIAL regions. New region filters can be added
+        //  freely; the disk + POI + faction-volume passes will pick
+        //  them up automatically.
+        // ============================================================
+        // Bounding cylinder for the entire astrolabe (used as a default
+        // x/z bound for vertical strata filters).
+        const ASTROLABE_RADIUS = 30;
+
+        // Y-range cylinders covering canonical strata bands
+        RegionFilters.register('peak-divinity-band',     { kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS, yRange:[ 50,  99], color:0x00ffcc });
+        RegionFilters.register('upper-divine-band',      { kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS, yRange:[ 16,  49], color:0x66ffe6 });
+        RegionFilters.register('stable-realities-band',  { kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS, yRange:[-15,  15], color:0x00aaff });
+        RegionFilters.register('lower-shadow-band',      { kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS, yRange:[-49, -16], color:0xff7755 });
+        RegionFilters.register('lovecraftian-abyss-band',{ kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS, yRange:[-99, -50], color:0xff0044 });
+
+        // Faction TERRITORY regions — true x/z polygons on the disc plane,
+        // bounded vertically by the strata each faction inhabits.
+        // (Polygon vertices are in world units; the disks have radius ~24,
+        //  so values are within [-24, +24].)
+        RegionFilters.register('faction-centurion',  { kind:'polygon', yRange:[20, 99],
+            vertices:[{x:-18,z:-18},{x:18,z:-18},{x:22,z:0},{x:18,z:18},{x:-18,z:18},{x:-22,z:0}],
+            color:0x00ffcc });
+        RegionFilters.register('faction-reapers',    { kind:'polygon', yRange:[-10, 30],
+            vertices:[{x:-20,z:-20},{x:20,z:-20},{x:24,z:0},{x:20,z:20},{x:-20,z:20},{x:-24,z:0}],
+            color:0xffaa66 });
+        RegionFilters.register('faction-vamperica',  { kind:'polygon', yRange:[-50, -10],
+            vertices:[{x:-22,z:-22},{x:22,z:-22},{x:24,z:8},{x:8,z:24},{x:-22,z:22}],
+            color:0x9966cc });
+        RegionFilters.register('faction-cult',       { kind:'polygon', yRange:[-90, -40],
+            vertices:[{x:-12,z:-22},{x:12,z:-22},{x:22,z:0},{x:12,z:22},{x:-12,z:22},{x:-22,z:0}],
+            color:0x800040 });
+        RegionFilters.register('faction-unclaimed',  { kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS, yRange:[-99, 99], color:0x666666 });
+
+        // SOUL-INFESTED hotspot zones — a handful of canonical infestation
+        // pockets defined as small cylindrical "bubbles" inside the
+        // negative strata where the soul-rot first broke through.
+        RegionFilters.register('infestation-mid-negative',  { kind:'cylinder', center:{x:8, z:-4},   radius:8,  yRange:[-40, -20], color:0x4cff77 });
+        RegionFilters.register('infestation-deep-negative', { kind:'cylinder', center:{x:-6, z:6},   radius:6,  yRange:[-80, -55], color:0x4cff77 });
+        RegionFilters.register('infestation-fringe',        { kind:'cylinder', center:{x:0,  z:0},   radius:5,  yRange:[-10,  -2], color:0x4cff77 });
+
+        // DEAD-realities region — every layer flagged isDead in
+        // TERRITORY_DATA contributes one cylinder spanning JUST that
+        // single layer. Built lazily after TERRITORY_DATA is finalized.
+        RegionFilters._buildDeadRegions = function() {
+            for (const k in TERRITORY_DATA) {
+                const lvl = parseInt(k);
+                if (TERRITORY_DATA[lvl] && TERRITORY_DATA[lvl].isDead) {
+                    this.register(`dead-layer-${lvl}`, {
+                        kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS,
+                        yRange:[lvl, lvl], color:0xff3333
+                    });
+                }
+            }
+        };
+
+        // STABLE-realities region — same idea but per stable layer.
+        RegionFilters._buildStableRegions = function() {
+            for (const k in TERRITORY_DATA) {
+                const lvl = parseInt(k);
+                if (TERRITORY_DATA[lvl] && TERRITORY_DATA[lvl].isStable) {
+                    this.register(`stable-layer-${lvl}`, {
+                        kind:'cylinder', center:{x:0,z:0}, radius:ASTROLABE_RADIUS,
+                        yRange:[lvl, lvl], color:0x00aaff
+                    });
+                }
+            }
+        };
+
+        // Translates a legacy filter button id into the SET of region ids
+        // that should become active. Called by applyFilter().
+        function legacyFilterToRegions(type) {
+            if (type === 'base') return [];     // no filter → all visible
+            if (type === 'stable') {
+                const ids = [];
+                for (const id in RegionFilters.regions) if (id.startsWith('stable-layer-')) ids.push(id);
+                return ids;
+            }
+            if (type === 'dead') {
+                const ids = [];
+                for (const id in RegionFilters.regions) if (id.startsWith('dead-layer-')) ids.push(id);
+                return ids;
+            }
+            if (type === 'infested') {
+                return ['infestation-mid-negative', 'infestation-deep-negative', 'infestation-fringe'];
+            }
+            if (type === 'factions') {
+                return ['faction-centurion', 'faction-reapers', 'faction-vamperica', 'faction-cult'];
+            }
+            if (type.startsWith('factions-')) {
+                const sf = type.replace('factions-', '');
+                // Map FACTIONS.id values to region ids (id may already be 'centurion', 'reapers' etc.)
+                const idMap = {
+                    'centurion':'faction-centurion', 'reapers':'faction-reapers',
+                    'vamperica':'faction-vamperica', 'cult':'faction-cult', 'unclaimed':'faction-unclaimed',
+                };
+                return idMap[sf] ? [idMap[sf]] : [];
+            }
+            return [];
+        }
+
+        // Public API — programmatic region toggling for callers that
+        // want spatial control independent of the legacy filter buttons.
+        // additive=true keeps already-active regions and adds new ones.
+        function applyRegionFilters(regionIds, additive) {
+            if (!additive) RegionFilters.clear();
+            for (const id of (regionIds || [])) RegionFilters.active.add(id);
+            // Re-run the filter pass to update visibility
+            _applyRegionPassToScene();
+        }
+        window.applyRegionFilters = applyRegionFilters;
+        window.RegionFilters = RegionFilters;
+
+        // The actual region-membership pass over all disks / POIs /
+        // faction volumes. Called from applyFilter() AND from
+        // applyRegionFilters() so both APIs produce identical output.
+        function _applyRegionPassToScene() {
+            const activeRegions = RegionFilters.getActiveDefs();
+            const hasFilter = activeRegions.length > 0;
+
+            // ---- DISC LAYERS ----
+            Object.values(discMeshes).forEach(disc => {
+                const lvl = disc.userData.level;
+                let tc, to, two;
+                if (!hasFilter) {
+                    // No filter → restore originals
+                    tc = disc.userData.originalColor;
+                    to = disc.userData.originalOpacity;
+                    two = disc.userData.originalWireOpacity;
+                } else {
+                    const hits = RegionFilters.diskLayerMatches(lvl);
+                    if (hits && hits.length > 0) {
+                        // Use the FIRST matching region's highlight color.
+                        // (Multiple-region union: any match → highlight.)
+                        tc = hits[0].color;
+                        to = 0.85;
+                        two = 0.65;
+                    } else {
+                        // Out-of-region → dim, almost-invisible
+                        tc = 0x111111;
+                        to = 0.03;
+                        two = 0.01;
+                    }
+                }
+                disc.material.color.setHex(tc);
+                disc.material.opacity = to;
+                if (disc.children.length > 0) {
+                    disc.children[0].material.color.setHex(tc);
+                    disc.children[0].material.opacity = two;
+                }
+            });
+
+            // ---- FACTION VOLUMES ----
+            factionVolumeMeshes.forEach(vol => {
+                if (!hasFilter) { vol.material.opacity = 0.0; return; }
+                // Each faction volume has its centre at world position vol.position.
+                const hits = RegionFilters.pointInAnyActive(vol.position);
+                vol.material.opacity = (hits && hits.length > 0) ? 0.8 : 0.0;
+            });
+
+            // ---- POI MARKERS ----
+            poiMeshes.forEach(marker => {
+                if (!hasFilter) { marker.material.opacity = 0.8; return; }
+                const hits = RegionFilters.pointInAnyActive(marker.position, marker.userData.level);
+                marker.material.opacity = (hits && hits.length > 0) ? 0.9 : 0.05;
+            });
+
+            // ---- ATMOSPHERIC CLOUDS (legacy dead-band tint preserved) ----
+            const anyDeadActive = activeRegions.some(r => (r.yRange && r.yRange[0] === r.yRange[1])
+                                                          && TERRITORY_DATA[r.yRange[0]]
+                                                          && TERRITORY_DATA[r.yRange[0]].isDead);
+            astrolabeGroup.children.forEach(child => {
+                if (child.userData && child.userData.isCloud) {
+                    child.material.color.setHex(anyDeadActive ? 0x330000 : 0x020202);
+                    child.material.opacity = anyDeadActive ? 1.0 : 0.9;
+                }
+            });
+        }
+
         function applyFilter(type) {
             GAME_STATE.currentFilter = type;
             const isFactionFilter = type.startsWith('factions');
             const subFilterContainer = document.getElementById('sub-filter-factions');
-            
-            if (isFactionFilter) { subFilterContainer.classList.remove('hidden'); subFilterContainer.classList.add('flex'); } 
+
+            if (isFactionFilter) { subFilterContainer.classList.remove('hidden'); subFilterContainer.classList.add('flex'); }
             else { subFilterContainer.classList.add('hidden'); subFilterContainer.classList.remove('flex'); }
-            
+
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active', 'text-black', 'bg-[#00ffcc]', 'bg-red-500', 'bg-[#00aaff]');
                 let m = isFactionFilter ? 'filter-factions' : `filter-${type}`;
@@ -1050,49 +1354,18 @@
             document.querySelectorAll('.sub-filter-btn').forEach(btn => btn.classList.remove('font-bold', 'text-white', 'bg-white', 'bg-opacity-10'));
             if (isFactionFilter) { const activeSub = document.getElementById(`sub-${type}`); if (activeSub) activeSub.classList.add('font-bold', 'text-white', 'bg-white', 'bg-opacity-10'); }
 
-            Object.values(discMeshes).forEach(disc => {
-                const data = TERRITORY_DATA[disc.userData.level];
-                let tc = disc.userData.originalColor, to = disc.userData.originalOpacity, two = disc.userData.originalWireOpacity;
-                if (isFactionFilter) { tc = 0x111111; to = 0.03; two = 0.01; } 
-                else if (type === 'stable') { if (data.isStable) { tc = 0x00aaff; to = 0.8; two = 0.6; } else { tc = 0x222222; to = 0.05; two = 0.02; } } 
-                else if (type === 'dead') { if (!data.isDead) { tc = 0x222222; to = 0.05; two = 0.02; } }
-                else if (type === 'infested') { if (data.isInfested) { tc = 0x4cff77; to = 0.9; two = 0.7; } else { tc = 0x222222; to = 0.04; two = 0.02; } }
-                disc.material.color.setHex(tc); disc.material.opacity = to;
-                if(disc.children.length > 0) { disc.children[0].material.color.setHex(tc); disc.children[0].material.opacity = two; }
-            });
-
-            factionVolumeMeshes.forEach(vol => {
-                if (isFactionFilter) {
-                    let isMatch = type === 'factions' || vol.userData.factionKey === type.replace('factions-', '');
-                    vol.material.opacity = isMatch ? 0.8 : 0.0;
-                } else {
-                    vol.material.opacity = 0.0;
-                }
-            });
-
-            poiMeshes.forEach(marker => {
-                const lvl = marker.userData.level;
-                const data = TERRITORY_DATA[lvl];
-                const poi = (POIS[lvl] || [])[marker.userData.poiIndex];
-                const poiFaction = (poi && poi.faction) ? poi.faction : data.faction;
-                let isMatch = true;
-                if (type === 'dead' && !data.isDead) isMatch = false;
-                else if (type === 'stable' && !data.isStable) isMatch = false;
-                else if (type === 'infested' && !data.isInfested) isMatch = false;
-                else if (isFactionFilter) {
-                    const sf = type.replace('factions-', '');
-                    if (type === 'factions' && poiFaction === FACTIONS.UNCLAIMED) isMatch = false;
-                    else if (type !== 'factions' && poiFaction.id !== sf) isMatch = false;
-                }
-                marker.material.opacity = isMatch ? 0.8 : 0.05;
-            });
-
-            astrolabeGroup.children.forEach(child => {
-                if (child.userData && child.userData.isCloud) {
-                    child.material.color.setHex(type === 'dead' ? 0x330000 : 0x020202);
-                    child.material.opacity = type === 'dead' ? 1.0 : 0.9;
-                }
-            });
+            // ====================================================
+            //  Region-based filter pass (replaces legacy toggle logic)
+            //  ----------------------------------------------------
+            //  Translate the requested legacy filter into the SET of
+            //  spatial region ids that should be active simultaneously,
+            //  then let _applyRegionPassToScene() perform the actual
+            //  point-in-polygon / distance check on every disc, POI,
+            //  and faction volume.
+            // ====================================================
+            const regionIds = legacyFilterToRegions(type);
+            RegionFilters.setActive(regionIds);
+            _applyRegionPassToScene();
         }
 
         function onWindowResize() {

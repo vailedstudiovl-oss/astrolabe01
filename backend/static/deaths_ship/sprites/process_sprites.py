@@ -24,7 +24,7 @@ TILE = 256  # 1280 / 5
 LUMA_LOW  = 26
 LUMA_HIGH = 86
 SAMPLE_PAD = 4
-ALPHA_CUTOFF = 10   # after soft-key, anything below this alpha → 0 (cleans stray ghosts)
+ALPHA_CUTOFF = 20   # after soft-key, anything below this alpha → 0 (cleans stray ghosts + white halo fringe)
 
 def keyed(im: Image.Image) -> Image.Image:
     """ULTRA-TIGHT border-connected chroma key.
@@ -160,7 +160,7 @@ def process(filename: str, out_name: str):
         scale = target_h / max_h
         new_w = int(strip.size[0] * scale)
         new_h = int(strip.size[1] * scale)
-        strip = strip.resize((new_w, new_h), Image.LANCZOS)
+        strip = strip.resize((new_w, new_h), Image.NEAREST)
         cell_w = int(cell_w * scale)
         max_h = int(max_h * scale)
 

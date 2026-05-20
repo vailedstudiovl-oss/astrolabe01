@@ -3,9 +3,9 @@
     "src": "run_down_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 192,
+    "frame_h": 190,
     "strip_w": 6400,
-    "strip_h": 192
+    "strip_h": 190
   },
   "may_run_right": {
     "src": "run_right_raw.png",
@@ -27,17 +27,17 @@
     "src": "idle_right_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 182,
+    "frame_h": 180,
     "strip_w": 6400,
-    "strip_h": 182
+    "strip_h": 180
   },
   "may_idle_up": {
     "src": "may_idle_up_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 178,
+    "frame_h": 177,
     "strip_w": 6400,
-    "strip_h": 178
+    "strip_h": 177
   },
   "may_idle_down": {
     "src": "may_idle_down_raw.png",
@@ -106,9 +106,9 @@
   "romaine_walk": {
     "src": "romaine_walk_raw.png",
     "frames": 25,
-    "frame_w": 254,
+    "frame_w": 256,
     "frame_h": 192,
-    "strip_w": 6366,
+    "strip_w": 6400,
     "strip_h": 192
   },
   "romaine_run": {
@@ -195,9 +195,9 @@
     "src": "elite1_walk_right_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 189,
+    "frame_h": 188,
     "strip_w": 6400,
-    "strip_h": 189
+    "strip_h": 188
   },
   "elite1_run_down": {
     "src": "elite1_run_down_raw.png",
@@ -251,9 +251,9 @@
     "src": "elite3_idle_down_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 172,
+    "frame_h": 171,
     "strip_w": 6400,
-    "strip_h": 172
+    "strip_h": 171
   },
   "elite3_idle_up": {
     "src": "elite3_idle_up_raw.png",
@@ -291,9 +291,9 @@
     "src": "elexus_walk_down_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 176,
+    "frame_h": 175,
     "strip_w": 6400,
-    "strip_h": 176
+    "strip_h": 175
   },
   "elexus_walk_up": {
     "src": "elexus_walk_up_raw.png",
@@ -331,17 +331,17 @@
     "src": "engineer_idle_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 164,
+    "frame_h": 163,
     "strip_w": 6400,
-    "strip_h": 164
+    "strip_h": 163
   },
   "engineer_walk": {
     "src": "engineer_walk_raw.png",
     "frames": 25,
     "frame_w": 256,
-    "frame_h": 165,
+    "frame_h": 164,
     "strip_w": 6400,
-    "strip_h": 165
+    "strip_h": 164
   },
   "engineer_run": {
     "src": "engineer_run_raw.png",

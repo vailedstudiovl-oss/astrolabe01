@@ -763,47 +763,70 @@ const ROOM_DEFS = {
     id: 'surge_hanger',
     name: 'The Surge Hanger',
     sub: "Romaine's domain — the bay opens directly onto the Endless",
-    width: 22, height: 16,
+    width: 24, height: 18,
     palette: { floor:'#3a2818', wall:'#180e08', stone:'#2a1c0e', accent:'#3ee0e0', candle:'#3ee0e0' },
-    // Player enters from the BACK of the bay (south wall) and walks toward the
-    // bay door at the FAR end (north) where the Endless is visible.
-    spawn: { x: 11, y: 14.5 },
+    // Player enters from the BACK of the bay (south wall) through a wide
+    // dorm-hall portal and walks NORTH down the central runway toward the
+    // open bay door where the Endless is visible.
+    spawn: { x: 12, y: 16.6 },
     draw: drawSurgeHanger,
     walls: [
-      // Outer walls (rendered as bronze hangar bulkheads)
-      { x:0,y:0,w:22,h:1 }, { x:0,y:15,w:22,h:1 }, { x:0,y:0,w:1,h:16 }, { x:21,y:0,w:1,h:16 },
-      // Hover-ships parked along the runway sides (matching reference image)
-      { x:1,  y:4,  w:3.5, h:3.5 },   // port hover-ship 1
-      { x:1,  y:9,  w:3.5, h:3.5 },   // port hover-ship 2
-      { x:17.5, y:4, w:3.5, h:3.5 },  // starboard hover-ship 1
-      { x:17.5, y:9, w:3.5, h:3.5 },  // starboard hover-ship 2
-      // Cargo cage crates centered on the runway (matches the lower-deck foreground in reference)
-      { x:7,  y:8,  w:3.2, h:2.6 },
-      { x:11.8, y:8, w:3.2, h:2.6 },
-      // Romaine's workbench (back of the bay, port side)
-      { x:2, y:12.4, w:3.5, h:1.4 },
+      // Outer hangar bulkheads (north / south / east / west)
+      { x:0,y:0,w:24,h:1 }, { x:0,y:17,w:24,h:1 }, { x:0,y:0,w:1,h:18 }, { x:23,y:0,w:1,h:18 },
+
+      // PORT (west) hover-ship pads — parked nose-in to the wall, 2 ships
+      { x:1.2, y:3.5,  w:4.2, h:3.2 },   // RAVENWAKE — port fore
+      { x:1.2, y:9.5,  w:4.2, h:3.2 },   // LANTERN   — port aft
+
+      // STARBOARD (east) hover-ship pads — 2 ships
+      { x:18.6, y:3.5, w:4.2, h:3.2 },   // BLACKHEART — starboard fore
+      { x:18.6, y:9.5, w:4.2, h:3.2 },   // UNNAMED    — starboard aft
+
+      // RUNWAY CARGO — cages sit on the central runway as obstacles the
+      // player must navigate around (matches the reference image where
+      // crates are stacked in the middle of the runway). Staggered so the
+      // player can weave between them rather than being blocked.
+      { x:7.8,  y:7.5,  w:3.0, h:2.4 },   // forward port cage
+      { x:13.2, y:9.6,  w:3.0, h:2.4 },   // mid starboard cage
+
+      // BACK-LINE PROPS (against the south wall, off the runway)
+      // Romaine's workbench (back-port)
+      { x:1.6, y:13.6, w:4.5, h:1.4 },
+      // Fuel tank cluster (back-starboard)
+      { x:17.6, y:13.6, w:4.6, h:1.4 },
     ],
     interactables: [
-      { x:11, y:3,  kind:'plaque', triggerCinematic:'endless',
+      // Bay-door trigger plaque — invisible plaque on the runway near the
+      // north wall. Walking up to it and pressing E starts the cinematic.
+      { x:12, y:2.4, kind:'plaque', triggerCinematic:'endless',
         title:'BAY DOORS — OPEN ONTO THE ENDLESS', body:'The great trapezoidal bay doors stand open, cyan threshold-strip humming under the boots. Beyond: a long bronze runway extends toward a distant pyramid-spire on the horizon, set against the slow lavender of the Endless.\n\nOne of only three places aboard Death\'s Ship where the Endless can be seen with the naked eye.\n\n[ Approach to view cinematically ]' },
-      { x:2.7, y:5.7, kind:'plaque', title:'PORT HOVER-SHIP · RAVENWAKE', body:'A two-seater harvest skiff parked port-fore. Dark hull plating still scorched from its last run into Strata -41. A strip of yellow ribbon is tied to the rear stabilizer — Romaine\'s good-luck mark.' },
-      { x:2.7, y:10.7, kind:'plaque', title:'PORT HOVER-SHIP · LANTERN', body:'May\'s personal harvest skiff. Rated for short-strata work only. The seats still smell faintly of the lavender oil she insists Romaine apply after every service.' },
-      { x:19.2, y:5.7, kind:'plaque', title:'STARBOARD HOVER-SHIP · BLACKHEART', body:'A skiff that flies, but rarely. Belonged to a senior reaper who retired into a strata three cycles ago and never came back. Romaine maintains it anyway.' },
-      { x:19.2, y:10.7, kind:'plaque', title:'STARBOARD HOVER-SHIP · UNNAMED', body:'A new harvest skiff, just out of bonding. No paint, no name, hull still bare bronze. "She tells you who she is, on the first run. Not before." — Romaine.' },
-      { x:8.5, y:9.3, kind:'plaque', title:'CARGO CAGE · STRATA-47 SOULS', body:'A heavy steel-cage cargo crate, locked with a brass sigil-clamp. Manifest: thirty-one souls from the collapse of Reality 47.' },
-      { x:13.3, y:9.3, kind:'plaque', title:'CARGO CAGE · SHIP PARTS', body:'A second cage crate, half-empty, full of replacement panels and brass sigil-rings. Romaine signs every panel with a small carnation stamp before installing it.' },
-      { x:3.7, y:13.1, kind:'plaque', title:"ROMAINE'S WORKBENCH", body:'A long bronze workbench scattered with skiff parts, half-finished sigil-rings, a thermos of cold black coffee, and a single wilting carnation in a brass tube.\n\n"Skiff Lantern\'s ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured."' },
-      { x:11, y:12, kind:'plaque', title:'CYAN GUIDE LIGHTS', body:'A row of cyan LED strips runs the length of the bronze runway, marking the pre-launch path each skiff must follow toward the open bay door. They are humming softly — pre-flight cycle is running.' },
+
+      // Ship plaques — placed in front of each parked ship so the player can
+      // examine the skiffs from the central runway.
+      { x:5.6, y:5.0,  kind:'plaque', title:'PORT HOVER-SHIP · RAVENWAKE', body:'A two-seater harvest skiff parked port-fore. Dark hull plating still scorched from its last run into Strata -41. A strip of yellow ribbon is tied to the rear stabilizer — Romaine\'s good-luck mark.' },
+      { x:5.6, y:11.0, kind:'plaque', title:'PORT HOVER-SHIP · LANTERN', body:'May\'s personal harvest skiff. Rated for short-strata work only. The seats still smell faintly of the lavender oil she insists Romaine apply after every service.' },
+      { x:18.4, y:5.0, kind:'plaque', title:'STARBOARD HOVER-SHIP · BLACKHEART', body:'A skiff that flies, but rarely. Belonged to a senior reaper who retired into a strata three cycles ago and never came back. Romaine maintains it anyway.' },
+      { x:18.4, y:11.0, kind:'plaque', title:'STARBOARD HOVER-SHIP · UNNAMED', body:'A new harvest skiff, just out of bonding. No paint, no name, hull still bare bronze. "She tells you who she is, on the first run. Not before." — Romaine.' },
+
+      // Runway cargo plaques (sit just south of each cage so they're examinable from the runway)
+      { x:9.3,  y:10.2, kind:'plaque', title:'CARGO CAGE · STRATA-47 SOULS', body:'A heavy steel-cage cargo crate, locked with a brass sigil-clamp. Manifest: thirty-one souls from the collapse of Reality 47.' },
+      { x:14.7, y:12.3, kind:'plaque', title:'CARGO CAGE · SHIP PARTS', body:'A second cage crate, half-empty, full of replacement panels and brass sigil-rings. Romaine signs every panel with a small carnation stamp before installing it.' },
+
+      // Back-line plaques
+      { x:3.8, y:14.9, kind:'plaque', title:"ROMAINE'S WORKBENCH", body:'A long bronze workbench scattered with skiff parts, half-finished sigil-rings, a thermos of cold black coffee, and a single wilting carnation in a brass tube.\n\n"Skiff Lantern\'s ready Tuesday. Don\'t come earlier — the bonding hasn\'t cured."' },
+      { x:19.9, y:14.9, kind:'plaque', title:'FUEL CELL · SIGIL-OIL CLUSTER', body:'Two stacked brass-banded cells of distilled sigil-oil — the propellant the hover-skiffs burn on long strata runs. The lower cell is fitted with a battered ledger where Romaine logs every refill in his small, crooked hand.' },
+      { x:12, y:4.5, kind:'plaque', title:'CYAN GUIDE LIGHTS', body:'A row of cyan LED strips runs the length of the bronze runway, marking the pre-launch path each skiff must follow toward the open bay door. They are humming softly — pre-flight cycle is running.' },
     ],
     doors: [
-      // BACK of the hangar (south wall) — return to the Dorm Hall.
-      // This matches the reference where the player enters/exits from the
-      // wall opposite the bay door.
-      { x:10, y:15.4, w:2.5, h:0.6, to:'dorm_hall', spawn:{x:3, y:5} },
+      // BACK of the hangar (south wall) — return to the Dorm Hall. The
+      // doorway is a wide bronze portal in the south bulkhead, just east
+      // of centre, so the player exits onto the runway behind them.
+      { x:10.5, y:17.4, w:3.0, h:0.6, to:'dorm_hall', spawn:{x:3, y:5} },
     ],
     npcs: [
-      // Romaine at the workbench at the back of the bay
-      { x:4.0, y:12.0, sheet:'romaine_wave', flip:false, animSpeed:6,
+      // Romaine works at his bench at the back-port corner. He's clear of
+      // the runway so the player can walk past him cleanly.
+      { x:3.6, y:13.2, sheet:'romaine_wave', flip:false, animSpeed:6,
         label:'Romaine', plaqueTitle:'ROMAINE',
         idleQuips: [
           'Skiff Lantern\'s ready Tuesday. Not before, hat.',
@@ -2987,148 +3010,586 @@ function drawBigIronChandelier(ctx, x, y, scale, t) {
 }
 
 function drawSurgeHanger(ctx, room){
-  // CINEMATIC HANGAR — the reference plate (hangar_backdrop.png) is rendered
-  // as the FULL room backdrop. The player walks on the bronze runway at
-  // the bottom; the open bay door + cyan ceiling lights + the Endless sky
-  // dominate the upper 2/3 of the canvas. Collidables (hover-ships, cargo
-  // cages, workbench) are overlaid as soft semi-transparent silhouettes so
-  // the player can still read their positions against the painted backdrop.
+  // CINEMATIC PROCEDURAL HANGAR (v2 — full rebuild)
+  //
+  // The hangar is rendered procedurally as a bronze-walled interior with a
+  // central runway running south→north. The hangar_backdrop.png reference
+  // plate is NOT used as a flat full-screen background (which was making
+  // overlay sprites look "floating"). Instead it is clipped to the
+  // TRAPEZOIDAL BAY DOOR opening at the north wall so that ONLY the
+  // visible slice of the Endless reads through the doorway. Everything
+  // else — runway, side bulkheads, ceiling beams, cargo, ships — is drawn
+  // procedurally so the props sit properly on the floor.
+  //
+  // Coordinate system: 1 tile = 64px. Room is 24w × 18h (1536 × 1152 px).
+  // North/top = bay door (y = 0). South/bottom = back wall (y = 17).
   const W = room.width * 64, H = room.height * 64;
   const p = room.palette;
 
-  // 1) Paint the full hangar reference plate as the backdrop. Cover-fit so
-  // the image fills the whole room with sides cropped if necessary.
+  // ============================================================
+  // 1. SKY THROUGH THE BAY DOOR  — clipped trapezoid using the
+  //    user-supplied hangar_backdrop.png. This is the ONLY place
+  //    that reference plate is used.
+  // ============================================================
+  // Trapezoid coordinates (in pixels). The bay door is centred at the top.
+  const bayInnerTop_x1 = 8.5 * 64;   // 544
+  const bayInnerTop_x2 = 15.5 * 64;  // 992
+  const bayInnerBot_y  = 4.5 * 64;   // 288  (threshold-strip line)
+  const bayOuterBot_x1 = 6.0 * 64;   // 384
+  const bayOuterBot_x2 = 18.0 * 64;  // 1152
+  const bayTop_y       = 0.5 * 64;   // 32   (just below the wall trim)
+
+  ctx.save();
+  // Clip to the trapezoid so the Endless image only fills the doorway.
+  ctx.beginPath();
+  ctx.moveTo(bayInnerTop_x1, bayTop_y);
+  ctx.lineTo(bayInnerTop_x2, bayTop_y);
+  ctx.lineTo(bayOuterBot_x2, bayInnerBot_y);
+  ctx.lineTo(bayOuterBot_x1, bayInnerBot_y);
+  ctx.closePath();
+  ctx.clip();
+
   if (window.HANGAR_BACKDROP_IMG && window.HANGAR_BACKDROP_IMG.complete) {
+    // Use the LOWER-MIDDLE portion of the reference plate (the lavender
+    // Endless sky framed between the pyramid spires) and scale-fit it
+    // across the trapezoid. Slice is roughly y=30%..80% of the source.
     const img = window.HANGAR_BACKDROP_IMG;
-    const dstAr = W / H;
-    const srcAr = img.width / img.height;
-    let sx=0, sy=0, sw=img.width, sh=img.height;
-    if (srcAr > dstAr) { sw = img.height * dstAr; sx = (img.width - sw)/2; }
-    else               { sh = img.width / dstAr; sy = (img.height - sh)/2; }
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    const trapW = bayOuterBot_x2 - bayOuterBot_x1;
+    const trapH = bayInnerBot_y - bayTop_y;
+    const srcY0 = img.height * 0.50;
+    const srcY1 = img.height * 0.98;
+    const srcSliceH = srcY1 - srcY0;
+    const srcSliceW = img.width * 0.92;
+    const sx = (img.width - srcSliceW) / 2;
+    const sy = srcY0;
+    // Tiny parallax drift (very slow)
+    const drift = Math.sin(t * 0.18) * 18;
+    ctx.drawImage(img,
+      sx, sy, srcSliceW, srcSliceH,
+      bayOuterBot_x1 - 6, bayTop_y - 8 + drift, trapW + 12, trapH + 16);
   } else {
-    // Fallback procedural sky-and-bronze before the image is ready
-    ctx.fillStyle = '#15101a'; ctx.fillRect(0, 0, W, H);
-    drawBayDoorOpen(ctx, 64, 64, W - 128, H * 0.55);
-    ctx.fillStyle = p.floor; ctx.fillRect(0, H*0.55, W, H*0.45);
+    // Fallback: procedural lavender sky if the image hasn't loaded yet.
+    const sky = ctx.createLinearGradient(0, bayTop_y, 0, bayInnerBot_y);
+    sky.addColorStop(0,    '#cfb0e8');
+    sky.addColorStop(0.55, '#9c84c4');
+    sky.addColorStop(1,    '#5d4a82');
+    ctx.fillStyle = sky;
+    ctx.fillRect(bayOuterBot_x1 - 8, bayTop_y - 8, bayOuterBot_x2 - bayOuterBot_x1 + 16, bayInnerBot_y - bayTop_y + 16);
+    // distant pyramid spire silhouette
+    ctx.fillStyle = 'rgba(36, 24, 56, 0.7)';
+    ctx.beginPath();
+    ctx.moveTo((bayOuterBot_x1 + bayOuterBot_x2)/2 - 36, bayInnerBot_y - 4);
+    ctx.lineTo((bayOuterBot_x1 + bayOuterBot_x2)/2,      bayInnerBot_y - 70);
+    ctx.lineTo((bayOuterBot_x1 + bayOuterBot_x2)/2 + 36, bayInnerBot_y - 4);
+    ctx.closePath(); ctx.fill();
   }
 
-  // 2) Re-emphasize the bronze runway underfoot — soft fade-in from the
-  // bottom so the painted runway grades into a more-defined walkable area
-  // around the player.
-  const runwayTop = 10 * 64;
-  ctx.save();
-  const runFade = ctx.createLinearGradient(0, runwayTop - 64, 0, H);
-  runFade.addColorStop(0, 'rgba(38, 22, 12, 0)');
-  runFade.addColorStop(0.5, 'rgba(30, 18, 10, 0.45)');
-  runFade.addColorStop(1, 'rgba(20, 12, 6, 0.75)');
-  ctx.fillStyle = runFade;
-  ctx.fillRect(0, runwayTop - 64, W, H - (runwayTop - 64));
-  // Faint bronze panel seams on the runway (so it reads as walkable floor)
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
-  for (let y = runwayTop; y < H - 32; y += 96) {
-    ctx.beginPath(); ctx.moveTo(64, y); ctx.lineTo(W - 64, y); ctx.stroke();
-  }
-  for (let x = 128; x < W - 64; x += 192) {
-    ctx.beginPath(); ctx.moveTo(x, runwayTop); ctx.lineTo(x, H - 32); ctx.stroke();
-  }
+  // Subtle vignette inside the trapezoid (darker at edges so the sky
+  // reads as cinematic and recedes).
+  const tg = ctx.createRadialGradient(
+    (bayOuterBot_x1 + bayOuterBot_x2)/2, bayInnerBot_y - 60, 30,
+    (bayOuterBot_x1 + bayOuterBot_x2)/2, bayInnerBot_y - 30, 360);
+  tg.addColorStop(0, 'rgba(0,0,0,0)');
+  tg.addColorStop(1, 'rgba(8,4,12,0.6)');
+  ctx.fillStyle = tg;
+  ctx.fillRect(bayOuterBot_x1 - 8, bayTop_y - 8,
+               bayOuterBot_x2 - bayOuterBot_x1 + 16,
+               bayInnerBot_y - bayTop_y + 16);
   ctx.restore();
 
-  // 3) Side bulkhead darkening — the reference shows dark wall framing at
-  // the sides. We deepen the lateral edges so the bay opening reads more
-  // cinematic against the dark hull.
+  // ============================================================
+  // 2. HANGAR INTERIOR — north wall around the bay door (bronze
+  //    bulkhead with rivets) + the trapezoidal door frame.
+  // ============================================================
   ctx.save();
-  const leftEdge = ctx.createLinearGradient(0, 0, 96, 0);
-  leftEdge.addColorStop(0, 'rgba(0,0,0,0.55)'); leftEdge.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = leftEdge; ctx.fillRect(0, 0, 96, H);
-  const rightEdge = ctx.createLinearGradient(W - 96, 0, W, 0);
-  rightEdge.addColorStop(0, 'rgba(0,0,0,0)'); rightEdge.addColorStop(1, 'rgba(0,0,0,0.55)');
-  ctx.fillStyle = rightEdge; ctx.fillRect(W - 96, 0, 96, H);
+  // Solid bronze bulkhead spans the north wall, with a trapezoidal CUTOUT
+  // that exposes the sky we just painted. We paint the bulkhead as two
+  // panels — left of the doorway and right of the doorway — plus a
+  // narrow header band above the door.
+  const wallTop = 0;
+  const wallBaseY = bayInnerBot_y; // wall extends from y=0 to threshold
+
+  // Left bulkhead panel
+  ctx.fillStyle = '#1a0e08';
+  ctx.beginPath();
+  ctx.moveTo(0, wallTop);
+  ctx.lineTo(bayInnerTop_x1, wallTop);
+  ctx.lineTo(bayOuterBot_x1, wallBaseY);
+  ctx.lineTo(0, wallBaseY);
+  ctx.closePath();
+  ctx.fill();
+  // Right bulkhead panel
+  ctx.beginPath();
+  ctx.moveTo(bayInnerTop_x2, wallTop);
+  ctx.lineTo(W, wallTop);
+  ctx.lineTo(W, wallBaseY);
+  ctx.lineTo(bayOuterBot_x2, wallBaseY);
+  ctx.closePath();
+  ctx.fill();
+  // Header band above the bay door (tight, only between the inner top corners)
+  ctx.fillStyle = '#150a06';
+  ctx.fillRect(bayInnerTop_x1, 0, bayInnerTop_x2 - bayInnerTop_x1, 28);
+
+  // Panel seams + rivets on the bulkheads to break up the flat black.
+  ctx.strokeStyle = 'rgba(160,110,60,0.18)'; ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    // Left side vertical seams
+    const fx = (i / 8) * bayInnerTop_x1;
+    ctx.beginPath(); ctx.moveTo(fx, 0); ctx.lineTo(fx * 1.05, wallBaseY); ctx.stroke();
+    // Right side vertical seams
+    const rx = bayInnerTop_x2 + (i / 8) * (W - bayInnerTop_x2);
+    ctx.beginPath(); ctx.moveTo(rx, 0); ctx.lineTo(rx * 0.99, wallBaseY); ctx.stroke();
+  }
+  // Rivet dots
+  ctx.fillStyle = 'rgba(180,130,70,0.35)';
+  for (let i = 0; i < 12; i++) {
+    const lx = 12 + (i / 12) * (bayInnerTop_x1 - 12);
+    const rx = bayInnerTop_x2 + 8 + (i / 12) * (W - bayInnerTop_x2 - 8);
+    ctx.fillRect(lx, 14, 2, 2);
+    ctx.fillRect(rx, 14, 2, 2);
+    ctx.fillRect(lx, 70, 2, 2);
+    ctx.fillRect(rx, 70, 2, 2);
+  }
+
+  // Heavy bronze trapezoidal door frame
+  ctx.strokeStyle = '#6a4a22';
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(bayInnerTop_x1, bayTop_y);
+  ctx.lineTo(bayInnerTop_x2, bayTop_y);
+  ctx.lineTo(bayOuterBot_x2, bayInnerBot_y);
+  ctx.lineTo(bayOuterBot_x1, bayInnerBot_y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.strokeStyle = '#3a2510';
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+  // Inner highlight on the door frame (top edge catches the Endless light)
+  ctx.strokeStyle = 'rgba(220,200,180,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bayInnerTop_x1 + 2, bayTop_y + 2);
+  ctx.lineTo(bayInnerTop_x2 - 2, bayTop_y + 2);
+  ctx.stroke();
+
+  // Two warning lamps mounted on either side of the bay-door header,
+  // pulsing in the cyan threshold strip's rhythm.
+  const lampPulse = 0.65 + 0.35 * Math.sin(t * 2.1);
+  ctx.fillStyle = `rgba(255,120,40,${0.55 * lampPulse})`;
+  ctx.beginPath(); ctx.arc(bayInnerTop_x1 - 18, 22, 5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bayInnerTop_x2 + 18, 22, 5, 0, Math.PI*2); ctx.fill();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(255,180,60,${0.35 * lampPulse})`;
+  ctx.beginPath(); ctx.arc(bayInnerTop_x1 - 18, 22, 12, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bayInnerTop_x2 + 18, 22, 12, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // 4) Animated cyan threshold strip where the bay-door floor meets the
-  // hangar interior. Pulses subtly in time with the ambient drone.
+  // ============================================================
+  // 3. SIDE BULKHEADS (east + west walls) — bronze panels with
+  //    rivet rows, conduit pipes, and warning hazard stripes.
+  // ============================================================
+  function drawSideBulkhead(side) {
+    // side: 'left' or 'right'
+    const isLeft = side === 'left';
+    const wx = isLeft ? 0 : (W - 64);
+    const ww = 64;
+    ctx.save();
+    // Base wall colour
+    ctx.fillStyle = '#1d130a'; ctx.fillRect(wx, bayInnerBot_y, ww, H - bayInnerBot_y);
+    // Bronze gradient highlight (catches light from the runway)
+    const g = ctx.createLinearGradient(wx, 0, wx + ww, 0);
+    if (isLeft) {
+      g.addColorStop(0, 'rgba(120,80,40,0.0)');
+      g.addColorStop(1, 'rgba(120,80,40,0.45)');
+    } else {
+      g.addColorStop(0, 'rgba(120,80,40,0.45)');
+      g.addColorStop(1, 'rgba(120,80,40,0.0)');
+    }
+    ctx.fillStyle = g; ctx.fillRect(wx, bayInnerBot_y, ww, H - bayInnerBot_y);
+    // Hazard stripe band running floor-to-mid
+    ctx.fillStyle = '#2a1c0a';
+    ctx.fillRect(wx + (isLeft ? 50 : 6), bayInnerBot_y + 40, 8, H - bayInnerBot_y - 80);
+    // Diagonal yellow hazard chevrons
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(wx + (isLeft ? 50 : 6), bayInnerBot_y + 40, 8, H - bayInnerBot_y - 80);
+    ctx.clip();
+    for (let yy = bayInnerBot_y - 20; yy < H; yy += 14) {
+      ctx.fillStyle = '#d4a85a';
+      ctx.beginPath();
+      ctx.moveTo(wx + (isLeft ? 50 : 6), yy);
+      ctx.lineTo(wx + (isLeft ? 58 : 14), yy + 6);
+      ctx.lineTo(wx + (isLeft ? 58 : 14), yy + 12);
+      ctx.lineTo(wx + (isLeft ? 50 : 6), yy + 6);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    // Conduit pipe running along the inner edge
+    ctx.fillStyle = '#3a2510';
+    ctx.fillRect(wx + (isLeft ? 56 : 0), bayInnerBot_y + 8, 8, H - bayInnerBot_y - 16);
+    ctx.fillStyle = 'rgba(220,180,120,0.25)';
+    ctx.fillRect(wx + (isLeft ? 58 : 2), bayInnerBot_y + 8, 2, H - bayInnerBot_y - 16);
+    // Rivets along the conduit
+    ctx.fillStyle = 'rgba(180,130,70,0.55)';
+    for (let yy = bayInnerBot_y + 24; yy < H - 16; yy += 28) {
+      ctx.fillRect(wx + (isLeft ? 60 : 2), yy, 2, 2);
+    }
+    ctx.restore();
+  }
+  drawSideBulkhead('left');
+  drawSideBulkhead('right');
+
+  // ============================================================
+  // 4. HANGAR FLOOR — bronze plating with vanishing-point seams
+  //    that converge toward the bay door (sells the depth).
+  // ============================================================
+  ctx.save();
+  const floorTopY = bayInnerBot_y;        // 288
+  const floorBotY = H;
+  // Base bronze plating
+  ctx.fillStyle = p.floor; ctx.fillRect(64, floorTopY, W - 128, floorBotY - floorTopY);
+  // Floor gradient (darker at the back/north, brighter near the camera)
+  const fg = ctx.createLinearGradient(0, floorTopY, 0, floorBotY);
+  fg.addColorStop(0, 'rgba(28,18,10,0.55)');
+  fg.addColorStop(1, 'rgba(58,40,24,0.10)');
+  ctx.fillStyle = fg; ctx.fillRect(64, floorTopY, W - 128, floorBotY - floorTopY);
+
+  // Vanishing-point perspective lines on the floor.
+  // All lines radiate from the centre of the bay door threshold and fan
+  // outward to the foreground floor edges, creating the runway perspective.
+  const vpX = (bayInnerTop_x1 + bayInnerTop_x2) / 2;
+  const vpY = bayInnerBot_y - 20;
+  // Lateral (left-right) panel seams — perspective fan
+  ctx.strokeStyle = 'rgba(0,0,0,0.32)'; ctx.lineWidth = 1;
+  for (let i = -7; i <= 7; i++) {
+    const fx = W/2 + i * 90;
+    ctx.beginPath();
+    ctx.moveTo(vpX + i * 24, vpY);
+    ctx.lineTo(fx, floorBotY);
+    ctx.stroke();
+  }
+  // Horizontal cross-seams (closer together at the back, wider near camera)
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1;
+  const crossSteps = 8;
+  for (let i = 1; i <= crossSteps; i++) {
+    const u = i / crossSteps;
+    // Convex spacing — easeOutQuad so seams get more spaced near the camera
+    const k = Math.pow(u, 0.55);
+    const yy = floorTopY + k * (floorBotY - floorTopY);
+    const inset = 64 + (1 - k) * (W/2 - 64) * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(inset, yy);
+    ctx.lineTo(W - inset, yy);
+    ctx.stroke();
+  }
+
+  // Runway centre stripe — two wide cyan guide lights running from the
+  // back wall north toward the bay door. Animated chase chunks.
+  const runwayCenterX = W / 2;
+  const stripWidth = 4;
+  const stripeLeftX  = runwayCenterX - 96;
+  const stripeRightX = runwayCenterX + 96 - stripWidth;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const thresholdY = 9.7 * 64;
-  ctx.fillStyle = `rgba(60,240,240,${0.55 + 0.22*Math.sin(t*1.6)})`;
-  ctx.fillRect(2*64 + 18, thresholdY, W - 4*64 - 36, 3);
-  ctx.fillStyle = `rgba(120,255,255,${0.3 + 0.18*Math.sin(t*1.6 + 1)})`;
-  ctx.fillRect(2*64 + 24, thresholdY - 8, W - 4*64 - 48, 1);
+  const chunk = 28, gap = 14, period = chunk + gap;
+  const offset = (t * 64) % period;
+  for (let yy = floorTopY + 16; yy < floorBotY - 32; yy += period) {
+    const py = yy + offset;
+    const distFromTop = (py - floorTopY) / (floorBotY - floorTopY);
+    const alpha = 0.55 + 0.35 * Math.sin(t * 1.8 + yy * 0.01);
+    // Strips taper near the vanishing point — thinner at the back
+    const taper = 0.45 + 0.55 * distFromTop;
+    ctx.fillStyle = `rgba(60,224,224,${alpha * 0.85})`;
+    ctx.fillRect(stripeLeftX,  py, stripWidth * taper, chunk);
+    ctx.fillRect(stripeRightX, py, stripWidth * taper, chunk);
+    // Outer halo
+    ctx.fillStyle = `rgba(60,224,224,${alpha * 0.25})`;
+    ctx.fillRect(stripeLeftX  - 4, py, (stripWidth + 8) * taper, chunk);
+    ctx.fillRect(stripeRightX - 4, py, (stripWidth + 8) * taper, chunk);
+  }
   ctx.restore();
 
-  // 5) Collidable silhouettes — drawn semi-transparent so the painted
-  // versions in the backdrop still read through. These match the wall
-  // boxes defined in the room data so the player can navigate clearly.
-  const ships = [
-    { x:1*64,  y:4*64,  w:3.5*64, h:3.5*64, flip:false },  // port-fore
-    { x:1*64,  y:9*64,  w:3.5*64, h:3.5*64, flip:false },  // port-aft
-    { x:17.5*64, y:4*64, w:3.5*64, h:3.5*64, flip:true },  // starboard-fore
-    { x:17.5*64, y:9*64, w:3.5*64, h:3.5*64, flip:true },  // starboard-aft
-  ];
-  for (const s of ships) drawHoverShip(ctx, s.x, s.y, s.w, s.h, s.flip, t);
-
-  // Cargo cages — central foreground
-  drawCageCrate(ctx, 7*64, 8*64, 3.2*64, 2.6*64);
-  drawCageCrate(ctx, 11.8*64, 8*64, 3.2*64, 2.6*64);
-
-  // Romaine's workbench at the back
-  drawWorkbench(ctx, 2*64, 12.4*64, 3.5*64, 1.4*64, t);
-
-  // 6) Floor signage — bay number, skiff name etchings on the runway in
-  // front of each parked hover-ship
+  // Cyan threshold strip across the bay-door floor line (pulsing).
   ctx.save();
-  ctx.font = 'bold 11px Cinzel,Georgia,serif';
-  ctx.fillStyle = 'rgba(255,235,180,0.20)';
+  ctx.globalCompositeOperation = 'lighter';
+  const thresholdY = bayInnerBot_y - 4;
+  ctx.fillStyle = `rgba(60,240,240,${0.7 + 0.22 * Math.sin(t * 1.6)})`;
+  ctx.fillRect(bayOuterBot_x1 + 8, thresholdY, bayOuterBot_x2 - bayOuterBot_x1 - 16, 4);
+  ctx.fillStyle = `rgba(120,255,255,${0.4 + 0.22 * Math.sin(t * 1.6 + 1)})`;
+  ctx.fillRect(bayOuterBot_x1 + 16, thresholdY - 8, bayOuterBot_x2 - bayOuterBot_x1 - 32, 2);
+  ctx.restore();
+
+  // Floor sigil etched at the back of the runway (bay number)
+  ctx.font = 'bold 16px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(255,220,160,0.22)';
   ctx.textAlign = 'center';
-  ctx.fillText('▾  SURGE HANGER · BAY 03  ▾', W/2, H - 64);
-  ctx.font = 'bold 9px Cinzel,Georgia,serif';
-  ctx.fillStyle = 'rgba(62,224,224,0.55)';
-  ctx.fillText('RAVENWAKE',  2.7*64, 4*64 - 6);
-  ctx.fillText('LANTERN',    2.7*64, 9*64 - 6);
-  ctx.fillText('BLACKHEART', 19.2*64, 4*64 - 6);
-  ctx.fillText('UNNAMED',    19.2*64, 9*64 - 6);
+  ctx.fillText('▾  BAY 03 · SURGE HANGER  ▾', W/2, floorBotY - 28);
+
   ctx.restore();
 
-  // 7) Subtle drifting dust motes in the bay-door beam — purely ambient
+  // ============================================================
+  // 5. CEILING — narrow band at the top edge with hanging cyan
+  //    strip lights that frame the bay door.
+  // ============================================================
+  ctx.save();
+  // Ceiling band (the strip above the wall trim, only visible because the
+  // camera tilt suggests we look slightly down)
+  ctx.fillStyle = 'rgba(8,4,4,0.85)';
+  ctx.fillRect(0, 0, W, 10);
+  ctx.fillStyle = 'rgba(40,28,18,0.6)';
+  ctx.fillRect(0, 10, W, 4);
+  // Two strip lights flanking the bay door
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 18; i++) {
-    const mx = ((i * 113 + t*22) % W);
-    const my = ((i * 71 + t*8) % (9*64)) + 64;
-    ctx.fillStyle = `rgba(180,210,240,${0.10 + 0.06*Math.sin(t*1.4 + i)})`;
+  const stripPulse = 0.7 + 0.25 * Math.sin(t * 2);
+  ctx.fillStyle = `rgba(60,224,224,${0.7 * stripPulse})`;
+  ctx.fillRect(64, 16, bayInnerTop_x1 - 80, 3);
+  ctx.fillRect(bayInnerTop_x2 + 16, 16, W - 80 - bayInnerTop_x2, 3);
+  ctx.fillStyle = `rgba(120,255,255,${0.28 * stripPulse})`;
+  ctx.fillRect(56, 14, bayInnerTop_x1 - 72, 6);
+  ctx.fillRect(bayInnerTop_x2 + 8, 14, W - 64 - bayInnerTop_x2, 6);
+  ctx.restore();
+  ctx.restore();
+
+  // ============================================================
+  // 6. PROPS — hover-ships, cargo cages, fuel cells, workbench.
+  //    Drawn SOLIDLY now (no transparent silhouettes) so they sit
+  //    properly on the bronze floor.
+  // ============================================================
+  // Port hover-ships (parked nose-east, facing the runway)
+  drawHoverShip(ctx, 1.2*64,  3.5*64, 4.2*64, 3.2*64, false, t);
+  drawHoverShip(ctx, 1.2*64,  9.5*64, 4.2*64, 3.2*64, false, t);
+  // Starboard hover-ships (parked nose-west, mirrored)
+  drawHoverShip(ctx, 18.6*64, 3.5*64, 4.2*64, 3.2*64, true,  t);
+  drawHoverShip(ctx, 18.6*64, 9.5*64, 4.2*64, 3.2*64, true,  t);
+
+  // Back-line props (workbench + fuel cells against the south wall)
+  drawWorkbench(ctx, 1.6*64,  13.6*64, 4.5*64, 1.4*64, t);
+  drawFuelCells(ctx, 17.6*64, 13.6*64, 4.6*64, 1.4*64, t);
+  // RUNWAY cargo — cages sit ON the central runway as obstacles the
+  // player must navigate around (matches the reference image).
+  drawCageCrate(ctx, 7.8*64,  7.5*64, 3.0*64, 2.4*64);
+  drawCageCrate(ctx, 13.2*64, 9.6*64, 3.0*64, 2.4*64);
+
+  // ============================================================
+  // 7. ATMOSPHERIC LAYERS — beam of light from the bay door,
+  //    drifting dust motes, vignette on the lateral edges.
+  // ============================================================
+  // Beam of Endless-light spilling down onto the runway
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const beam = ctx.createLinearGradient(0, bayInnerBot_y, 0, floorBotY);
+  beam.addColorStop(0, 'rgba(220,180,255,0.12)');
+  beam.addColorStop(0.6, 'rgba(180,140,220,0.04)');
+  beam.addColorStop(1, 'rgba(120,80,160,0)');
+  ctx.fillStyle = beam;
+  ctx.beginPath();
+  ctx.moveTo(bayOuterBot_x1, bayInnerBot_y);
+  ctx.lineTo(bayOuterBot_x2, bayInnerBot_y);
+  ctx.lineTo(bayOuterBot_x2 + 40, floorBotY);
+  ctx.lineTo(bayOuterBot_x1 - 40, floorBotY);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Drifting dust motes within the beam
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 22; i++) {
+    const u = ((i * 113 + t * 26) % (bayOuterBot_x2 - bayOuterBot_x1));
+    const v = ((i * 71  + t * 11) % (floorBotY - bayInnerBot_y));
+    const mx = bayOuterBot_x1 + u;
+    const my = bayInnerBot_y + v;
+    ctx.fillStyle = `rgba(200,180,230,${0.10 + 0.06 * Math.sin(t * 1.4 + i)})`;
     ctx.fillRect(mx, my, 1.5, 1.5);
   }
   ctx.restore();
+
+  // Lateral edge darkening (frames the runway, cinematic feel)
+  ctx.save();
+  const leftEdge = ctx.createLinearGradient(0, 0, 110, 0);
+  leftEdge.addColorStop(0, 'rgba(0,0,0,0.55)'); leftEdge.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = leftEdge; ctx.fillRect(0, 0, 110, H);
+  const rightEdge = ctx.createLinearGradient(W - 110, 0, W, 0);
+  rightEdge.addColorStop(0, 'rgba(0,0,0,0)'); rightEdge.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = rightEdge; ctx.fillRect(W - 110, 0, 110, H);
+  ctx.restore();
+
+  // ============================================================
+  // 8. FLOOR SIGNAGE — skiff name etchings on the runway in front
+  //    of each parked hover-ship + the row of cyan guide lights.
+  // ============================================================
+  ctx.save();
+  ctx.font = 'bold 9px Cinzel,Georgia,serif';
+  ctx.fillStyle = 'rgba(62,224,224,0.55)';
+  ctx.textAlign = 'center';
+  ctx.fillText('RAVENWAKE',  3.3 * 64, 7.0 * 64 - 4);
+  ctx.fillText('LANTERN',    3.3 * 64, 13.0 * 64 - 4);
+  ctx.fillText('BLACKHEART', 20.7 * 64, 7.0 * 64 - 4);
+  ctx.fillText('UNNAMED',    20.7 * 64, 13.0 * 64 - 4);
+  ctx.restore();
 }
 
-// Hover-ship silhouette overlay — semi-transparent so the painted backdrop
-// reads through. Drawn as a dark sleek wedge with cyan canopy stripe.
+// ====== Fuel Cell Cluster (new prop for back-starboard corner) ======
+function drawFuelCells(ctx, x, y, w, h, t) {
+  ctx.save();
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(x + 6, y + h - 4, w - 12, 8);
+  // base platform
+  ctx.fillStyle = '#1a120a';
+  roundRect(ctx, x, y + h * 0.5, w, h * 0.5, 4); ctx.fill();
+  // three cylindrical cells side by side
+  const cellW = (w - 24) / 3;
+  for (let i = 0; i < 3; i++) {
+    const cx = x + 12 + i * cellW;
+    // body
+    ctx.fillStyle = '#3a2510';
+    roundRect(ctx, cx, y - 8, cellW - 6, h + 4, 6); ctx.fill();
+    // brass band top
+    ctx.fillStyle = '#9d6f48';
+    ctx.fillRect(cx, y - 4, cellW - 6, 4);
+    // brass band middle
+    ctx.fillStyle = '#7a5028';
+    ctx.fillRect(cx, y + h * 0.3, cellW - 6, 3);
+    // pulsing cyan readout
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 2 + i * 1.7);
+    ctx.fillStyle = '#3ee0e0';
+    ctx.fillRect(cx + cellW * 0.3 - 3, y + h * 0.55, cellW * 0.4, 4);
+    ctx.restore();
+    // sigil-oil amber liquid hint at top
+    ctx.fillStyle = 'rgba(212,168,90,0.35)';
+    ctx.fillRect(cx + 3, y - 2, cellW - 12, 2);
+  }
+  // ledger book leaning on the side
+  ctx.fillStyle = '#5a3a20';
+  ctx.fillRect(x + w - 18, y + h - 18, 14, 16);
+  ctx.fillStyle = '#d4a85a';
+  ctx.fillRect(x + w - 18, y + h - 18, 14, 2);
+  ctx.restore();
+}
+
+// Hover-ship — solid bronze-and-purple harvest skiff with cyan canopy.
+// Drawn as a top-down silhouette properly grounded on its hover-pad so it
+// reads as a real prop on the runway (no more semi-transparent silhouette).
 function drawHoverShip(ctx, x, y, w, h, flip, t) {
   ctx.save();
   if (flip) { ctx.translate(x + w, y); ctx.scale(-1, 1); } else { ctx.translate(x, y); }
-  // Soft drop shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.beginPath();
-  ctx.ellipse(w*0.5, h - 6, w*0.42, 10, 0, 0, Math.PI*2);
-  ctx.fill();
-  // Body — translucent dark wedge
-  ctx.fillStyle = 'rgba(8, 6, 12, 0.65)';
-  ctx.beginPath();
-  ctx.moveTo(0, h*0.4);
-  ctx.lineTo(w*0.22, h*0.2);
-  ctx.lineTo(w*0.78, h*0.18);
-  ctx.lineTo(w, h*0.42);
-  ctx.lineTo(w*0.96, h*0.78);
-  ctx.lineTo(w*0.04, h*0.78);
-  ctx.closePath();
-  ctx.fill();
-  // Canopy stripe
+
+  // 1) Hover-pad on the floor under the ship — dark steel plate with
+  //    glowing cyan landing rings.
+  ctx.save();
+  ctx.fillStyle = '#0e0a06';
+  roundRect(ctx, 6, h - 18, w - 12, 16, 6); ctx.fill();
+  ctx.strokeStyle = '#3a2510'; ctx.lineWidth = 2;
+  roundRect(ctx, 6, h - 18, w - 12, 16, 6); ctx.stroke();
+  // Cyan landing rings (pulse)
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = `rgba(60,224,224,${0.45 + 0.22*Math.sin(t*1.3)})`;
-  ctx.fillRect(w*0.30, h*0.30, w*0.42, 6);
+  const ringPulse = 0.6 + 0.35 * Math.sin(t * 1.7);
+  ctx.strokeStyle = `rgba(60,224,224,${0.7 * ringPulse})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.5, h - 10, w * 0.34, 6, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = `rgba(120,255,255,${0.45 * ringPulse})`;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.5, h - 10, w * 0.28, 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
+  ctx.restore();
+
+  // 2) Hover glow underneath (fades into the floor)
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const hoverPulse = 0.55 + 0.25 * Math.sin(t * 1.3);
+  const hovGrad = ctx.createRadialGradient(w * 0.5, h - 4, 4, w * 0.5, h - 4, w * 0.45);
+  hovGrad.addColorStop(0, `rgba(80,200,220,${0.30 * hoverPulse})`);
+  hovGrad.addColorStop(1, 'rgba(60,140,200,0)');
+  ctx.fillStyle = hovGrad;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.5, h - 4, w * 0.5, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 3) Ship shadow (sharper, just under the hull)
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath();
+  ctx.ellipse(w * 0.5, h * 0.82, w * 0.42, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 4) Main hull — SOLID dark hex wedge with bronze panel highlights.
+  // Hull base (bronze undertone)
+  ctx.fillStyle = '#3a2510';
+  ctx.beginPath();
+  ctx.moveTo(0,          h * 0.45);
+  ctx.lineTo(w * 0.20,   h * 0.20);
+  ctx.lineTo(w * 0.80,   h * 0.18);
+  ctx.lineTo(w,          h * 0.45);
+  ctx.lineTo(w * 0.96,   h * 0.78);
+  ctx.lineTo(w * 0.04,   h * 0.78);
+  ctx.closePath(); ctx.fill();
+  // Hull dark top plating
+  ctx.fillStyle = '#1a0e08';
+  ctx.beginPath();
+  ctx.moveTo(w * 0.06,  h * 0.42);
+  ctx.lineTo(w * 0.24,  h * 0.24);
+  ctx.lineTo(w * 0.76,  h * 0.22);
+  ctx.lineTo(w * 0.94,  h * 0.42);
+  ctx.lineTo(w * 0.90,  h * 0.62);
+  ctx.lineTo(w * 0.10,  h * 0.62);
+  ctx.closePath(); ctx.fill();
+  // Bronze trim line along the hull edge
+  ctx.strokeStyle = '#7a5028'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(0,          h * 0.45);
+  ctx.lineTo(w * 0.20,   h * 0.20);
+  ctx.lineTo(w * 0.80,   h * 0.18);
+  ctx.lineTo(w,          h * 0.45);
+  ctx.stroke();
+  // Panel seams
+  ctx.strokeStyle = 'rgba(120,80,40,0.45)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(w * 0.5, h * 0.20); ctx.lineTo(w * 0.5, h * 0.78); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w * 0.30, h * 0.40); ctx.lineTo(w * 0.30, h * 0.78); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w * 0.70, h * 0.40); ctx.lineTo(w * 0.70, h * 0.78); ctx.stroke();
+
+  // 5) Cyan canopy — solid glass strip with bright inner glow
+  ctx.save();
+  ctx.fillStyle = '#0e2a30';
+  roundRect(ctx, w * 0.30, h * 0.30, w * 0.40, 10, 3); ctx.fill();
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const canopyPulse = 0.65 + 0.30 * Math.sin(t * 1.3);
+  ctx.fillStyle = `rgba(60,224,224,${0.55 * canopyPulse})`;
+  ctx.fillRect(w * 0.32, h * 0.32, w * 0.36, 5);
+  ctx.fillStyle = `rgba(180,255,255,${0.35 * canopyPulse})`;
+  ctx.fillRect(w * 0.34, h * 0.33, w * 0.32, 2);
+  ctx.restore();
+  ctx.restore();
+
+  // 6) Forward (right-facing) sigil + tail fins
+  // Tail-fin port
+  ctx.fillStyle = '#2a1c0e';
+  ctx.beginPath();
+  ctx.moveTo(w * 0.04, h * 0.55);
+  ctx.lineTo(w * 0.18, h * 0.45);
+  ctx.lineTo(w * 0.18, h * 0.78);
+  ctx.lineTo(w * 0.04, h * 0.78);
+  ctx.closePath(); ctx.fill();
+  // Tail-fin starboard
+  ctx.beginPath();
+  ctx.moveTo(w * 0.96, h * 0.55);
+  ctx.lineTo(w * 0.82, h * 0.45);
+  ctx.lineTo(w * 0.82, h * 0.78);
+  ctx.lineTo(w * 0.96, h * 0.78);
+  ctx.closePath(); ctx.fill();
+  // Sigil on the prow (small carnation-mark stamp Romaine paints on each skiff)
+  ctx.fillStyle = '#d4a85a';
+  ctx.beginPath(); ctx.arc(w * 0.5, h * 0.50, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e8b9d8';
+  ctx.beginPath(); ctx.arc(w * 0.5, h * 0.50, 1.6, 0, Math.PI * 2); ctx.fill();
+
   ctx.restore();
 }
 
@@ -4708,6 +5169,9 @@ function render(){
   const camX = state.camera.x - (W/zoom)/2;
   const camY = state.camera.y - (H/zoom)/2;
   ctx.save();
+  // Apply cinematic screen shake (if any)
+  const _sx = state.shakeX || 0, _sy = state.shakeY || 0;
+  if (_sx || _sy) ctx.translate(_sx, _sy);
   ctx.scale(zoom, zoom);
   ctx.translate(-camX, -camY);
   room.draw(ctx, room);
@@ -4741,7 +5205,7 @@ function startCinematic(opts) {
   state.cinematic = Object.assign({
     active: true,
     startedAt: performance.now(),
-    duration: 8.5,
+    duration: 9.5,
     startCx: state.camera.x,
     startCy: state.camera.y,
     targetX: opts.targetX,   // world coords
@@ -4750,13 +5214,79 @@ function startCinematic(opts) {
     banner: opts.banner || 'VIEWING THE ENDLESS',
     sub: opts.sub || '',
     playerFrozen: true,
+    // Cinematic kind drives reveal effects ('endless' uses backdrop overlay)
+    kind: opts.kind || 'default',
+    // Used by drawCinematicOverlay for screen shake + audio swell + first-reveal banner
+    shakeIntensity: opts.shakeIntensity != null ? opts.shakeIntensity : 8,
   }, opts);
   // Stop the player during cinematic
   state.player.vx = 0; state.player.vy = 0; state.player.moving = false;
+  // Audio swell — low brass-like sustain that rises with the camera pan
+  startCinematicSwell(state.cinematic);
+  // Persist that the Endless has been seen at least once
+  if (state.cinematic.kind === 'endless') {
+    try {
+      const seen = !!localStorage.getItem('ds_endless_seen');
+      state.cinematic.firstReveal = !seen;
+      if (!seen) localStorage.setItem('ds_endless_seen', '1');
+    } catch (e) { state.cinematic.firstReveal = false; }
+  }
 }
 function endCinematic() {
-  if (state.cinematic) state.cinematic.active = false;
+  if (state.cinematic) {
+    state.cinematic.active = false;
+    stopCinematicSwell(state.cinematic);
+  }
   state.cinematic = null;
+  state.shakeX = 0; state.shakeY = 0;
+}
+
+// ============================================================
+//   Cinematic audio swell — uses the AmbientAudio WebAudio ctx.
+//   Layered low pad + slow rising sine, faded in/out with the
+//   cinematic timeline so the reveal feels weighted.
+// ============================================================
+function startCinematicSwell(cin) {
+  if (!window.AmbientAudio || !AmbientAudio.isStarted()) return;
+  try {
+    const c = AmbientAudio.getCtx();
+    const now = c.currentTime;
+    const dur = cin.duration || 9;
+    const master = c.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.22, now + 1.2);
+    master.gain.setValueAtTime(0.22, now + dur - 1.4);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    master.connect(c.destination);
+    // Low sustain (A1 + E2 fifth)
+    const o1 = c.createOscillator(); o1.type = 'sawtooth';   o1.frequency.value = 55;
+    const o2 = c.createOscillator(); o2.type = 'triangle';   o2.frequency.value = 82.4;
+    // Rising shimmer (sine sweep from C4 up to C5 over the duration)
+    const o3 = c.createOscillator(); o3.type = 'sine';       o3.frequency.value = 261.6;
+    o3.frequency.exponentialRampToValueAtTime(523.3, now + dur * 0.65);
+    o3.frequency.exponentialRampToValueAtTime(261.6, now + dur);
+    const g1 = c.createGain(); g1.gain.value = 0.32;
+    const g2 = c.createGain(); g2.gain.value = 0.22;
+    const g3 = c.createGain(); g3.gain.value = 0.10;
+    o1.connect(g1); o2.connect(g2); o3.connect(g3);
+    g1.connect(master); g2.connect(master); g3.connect(master);
+    o1.start(now); o2.start(now); o3.start(now);
+    o1.stop(now + dur + 0.2);
+    o2.stop(now + dur + 0.2);
+    o3.stop(now + dur + 0.2);
+    cin._audio = { master, o1, o2, o3 };
+  } catch (e) { /* audio not ready, silent fail */ }
+}
+function stopCinematicSwell(cin) {
+  if (!cin || !cin._audio) return;
+  try {
+    const c = AmbientAudio.getCtx();
+    const now = c.currentTime;
+    cin._audio.master.gain.cancelScheduledValues(now);
+    cin._audio.master.gain.setValueAtTime(cin._audio.master.gain.value || 0.0001, now);
+    cin._audio.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+  } catch (e) {}
+  cin._audio = null;
 }
 function drawCinematicOverlay() {
   const cin = state.cinematic;
@@ -4764,6 +5294,72 @@ function drawCinematicOverlay() {
   const elapsed = (performance.now() - cin.startedAt) / 1000;
   const dur = cin.duration;
   const k = Math.max(0, Math.min(1, elapsed / dur));
+
+  // ============================================================
+  // Screen shake — pulses sharply near the "reveal peak" (~50%
+  // through the cinematic). Mostly subtle, becomes a real jolt
+  // for the FIRST viewing of the Endless.
+  // ============================================================
+  // Bell-curve around k=0.45..0.65 (the moment the bay door fills the view)
+  const peak = 0.55;
+  const peakWindow = Math.exp(-((k - peak) * (k - peak)) / 0.012);  // narrow bell
+  const intensity = (cin.shakeIntensity || 6) * peakWindow * (cin.firstReveal ? 1.8 : 0.55);
+  state.shakeX = (Math.random() - 0.5) * intensity;
+  state.shakeY = (Math.random() - 0.5) * intensity * 0.6;
+
+  // ============================================================
+  // Endless full-frame reveal — at the peak, fade in a large copy
+  // of the hangar_backdrop sky behind a soft vignette, so the
+  // player sees the Endless dominate the canvas before the camera
+  // pulls back.
+  // ============================================================
+  if (cin.kind === 'endless' && window.HANGAR_BACKDROP_IMG && window.HANGAR_BACKDROP_IMG.complete) {
+    // Reveal envelope: ramps up 0.30..0.55, holds, drops 0.78..0.95
+    let revealAlpha = 0;
+    if (k < 0.30) revealAlpha = 0;
+    else if (k < 0.55) revealAlpha = (k - 0.30) / 0.25;
+    else if (k < 0.78) revealAlpha = 1;
+    else if (k < 0.95) revealAlpha = 1 - (k - 0.78) / 0.17;
+    else revealAlpha = 0;
+    revealAlpha = Math.max(0, Math.min(1, revealAlpha));
+
+    if (revealAlpha > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = revealAlpha;
+      // The reference plate's BOTTOM half is the Endless sky + horizon
+      // spires. Slice y=50%..98% so the fullscreen reveal is dominated
+      // by lavender sky with the spires framing the lower edge.
+      const img = window.HANGAR_BACKDROP_IMG;
+      const sx = 0;
+      const sy = img.height * 0.50;
+      const sw = img.width;
+      const sh = img.height * 0.48;
+      // Slow Ken-Burns drift on the source
+      const driftY = -Math.sin(k * Math.PI) * 18;
+      // Fit cover the entire screen
+      const dstAr = W / H;
+      const srcAr = sw / sh;
+      let dx = 0, dy = 0, dw = W, dh = H;
+      if (srcAr > dstAr) {
+        dh = H * 1.1;
+        dw = dh * srcAr;
+        dx = (W - dw) / 2;
+        dy = (H - dh) / 2 + driftY;
+      } else {
+        dw = W * 1.1;
+        dh = dw / srcAr;
+        dx = (W - dw) / 2;
+        dy = (H - dh) / 2 + driftY;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+      // Lavender colour cast for atmosphere
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = `rgba(180,140,210,${0.18 * revealAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+
   // letterbox bars (slide in over 0..0.8s, slide out over last 0.8s)
   const slideIn = Math.min(1, elapsed / 0.8);
   const slideOut = Math.min(1, (dur - elapsed) / 0.8);
@@ -4783,19 +5379,27 @@ function drawCinematicOverlay() {
   if (bannerOp > 0) {
     ctx.globalAlpha = bannerOp;
     ctx.fillStyle = '#ffd28b';
-    ctx.font = 'bold 18px Cinzel, Georgia, serif';
+    ctx.font = 'bold 20px Cinzel, Georgia, serif';
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#ffd28b'; ctx.shadowBlur = 14;
-    ctx.fillText(cin.banner, W/2, barH + 28);
+    ctx.shadowColor = '#ffd28b'; ctx.shadowBlur = 16;
+    ctx.fillText(cin.banner, W/2, barH + 32);
     ctx.shadowBlur = 0;
     if (cin.sub) {
-      ctx.font = '12px Cinzel, Georgia, serif';
-      ctx.fillStyle = 'rgba(255,230,200,0.7)';
-      ctx.fillText(cin.sub, W/2, barH + 50);
+      ctx.font = '13px Cinzel, Georgia, serif';
+      ctx.fillStyle = 'rgba(255,230,200,0.75)';
+      ctx.fillText(cin.sub, W/2, barH + 56);
+    }
+    // First-reveal callout
+    if (cin.firstReveal && k > 0.4 && k < 0.85) {
+      ctx.globalAlpha = bannerOp * Math.min(1, (k - 0.4) / 0.1) * Math.min(1, (0.85 - k) / 0.1);
+      ctx.font = 'italic 14px Cinzel, Georgia, serif';
+      ctx.fillStyle = 'rgba(220,200,255,0.85)';
+      ctx.fillText('— first sight of the Endless —', W/2, H - barH - 44);
     }
     // skip hint at bottom
+    ctx.globalAlpha = bannerOp * 0.55;
     ctx.font = '10px monospace';
-    ctx.fillStyle = 'rgba(200,200,200,0.55)';
+    ctx.fillStyle = 'rgba(200,200,200,0.85)';
     ctx.fillText('[ press SPACE to skip ]', W/2, H - barH - 18);
   }
   ctx.restore();
@@ -5215,10 +5819,12 @@ function interact(){
     // Cinematic pan + zoom toward the bay door — pause time on the Endless
     const room = state.rooms[state.currentRoom];
     const tx = (room.width / 2) * 64;
-    const ty = 2.0 * 64;  // focal point near the bay door horizon
+    const ty = 1.6 * 64;  // focal point right at the bay door horizon
     startCinematic({
+      kind: 'endless',
       targetX: tx, targetY: ty,
-      zoom: 1.55, duration: 9.0,
+      zoom: 1.65, duration: 9.5,
+      shakeIntensity: 9,
       banner: 'VIEWING THE ENDLESS',
       sub: 'The lavender field beyond Death\'s Ship · Strata -47 · DESCENDING',
     });

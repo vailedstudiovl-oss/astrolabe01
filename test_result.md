@@ -2207,3 +2207,135 @@ agent_communication:
         the painted backdrop.
       ✓ Zero JS errors. Atmospheric audio (drone + chatter +
         footsteps) continues to play through room transitions.
+
+  - task: "Surge Hangar — Complete redesign + cinematic Endless reveal (v2)"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Complete rebuild of the Surge Hangar following the
+            user's "redesign hangar completely" mandate and "do not move
+            cargo off runway" correction.
+
+            ── ROOM LAYOUT ──
+            • Expanded 22×16 → 24×18 tiles for breathing room.
+            • Player enters from the BACK (south wall, y=17.4) — wide bronze
+              portal centred at x=10.5–13.5, leads to dorm_hall.
+            • Spawn (12, 16.6) faces NORTH directly down the runway.
+            • 4 hover-ships (Ravenwake/Lantern port, Blackheart/Unnamed
+              starboard) on dedicated pads with cyan landing rings.
+            • 2 cargo cages STAY ON THE RUNWAY (per user) as navigable
+              obstacles at (7.8, 7.5) and (13.2, 9.6) — staggered so the
+              player can weave between them.
+            • Workbench (back-port) + Fuel-cell cluster (back-starboard) +
+              Romaine NPC at (3.6, 13.2).
+
+            ── PROCEDURAL DRAW (drawSurgeHanger v2) ──
+            Backdrop image is NO LONGER used as a flat full-screen
+            background. Everything is drawn procedurally so props sit
+            properly on the floor (no more floating-art problem):
+              1. Trapezoidal bay-door cutout at the north wall, clipped via
+                 ctx.beginPath()/ctx.clip(). Inside the clip, hangar_backdrop.png
+                 is rendered showing ONLY the lower half (y=50%..98% of
+                 source) — the lavender Endless sky + pyramid spires + sun.
+              2. Bronze bulkhead panels left + right of the doorway with
+                 rivet rows and panel seams.
+              3. Heavy bronze trapezoidal door frame (double-stroke).
+              4. Warning lamps pulsing at each upper door corner.
+              5. Side bulkheads (east + west) with hazard chevrons,
+                 conduit pipes, and inset highlight gradient.
+              6. Hangar floor with vanishing-point perspective seams +
+                 horizontal cross-seams convex-easing toward the camera.
+              7. Twin cyan runway centre stripes with animated chase
+                 chunks that taper near the vanishing point.
+              8. Cyan threshold strip + halo pulsing at the bay-door
+                 floor line (in sync with the ambient drone).
+              9. Ceiling band + cyan strip-lights flanking the door.
+             10. Beam of Endless-light spilling down onto the runway +
+                 drifting dust motes (additive blend).
+             11. Lateral edge darkening for cinematic framing.
+
+            ── PROPS (now SOLID, not transparent silhouettes) ──
+            • drawHoverShip rebuilt: solid bronze + dark wedge hull with
+              panel seams, cyan canopy strip with inner glow, tail-fins,
+              carnation prow sigil, hover-pad on the floor with pulsing
+              cyan landing rings + radial hover-glow underneath.
+            • New drawFuelCells: trio of brass-banded sigil-oil cylinders
+              + Romaine's refill ledger.
+            • Cage crate + workbench (existing helpers) reused unchanged.
+
+            ── CINEMATIC SYSTEM ENHANCEMENT ──
+            startCinematic() now accepts kind:'endless' + shakeIntensity.
+            drawCinematicOverlay() now layers, in order, when 'endless':
+              • Screen-shake bell-curved around k=0.55 of the timeline;
+                first-reveal jolt is ~1.8× stronger than subsequent views.
+                Shake offsets applied as ctx.translate(shakeX, shakeY) in
+                render() before the room transform.
+              • Fullscreen Endless reveal — fades in 0.30→0.55, holds to
+                0.78, fades out 0.78→0.95. Uses cover-fit on the
+                bottom-half slice (y=50%..98%) of hangar_backdrop.png
+                with a slow Ken-Burns drift. Multiplied by a lavender
+                colour cast for atmosphere.
+              • Letterbox bars (existing) — 12% of height, sliding in/out
+                over 0.8s margins.
+              • Intensified vignette + "VIEWING THE ENDLESS" banner +
+                "The lavender field beyond Death's Ship · Strata -47 ·
+                DESCENDING" subtitle + "[ press SPACE to skip ]" hint.
+              • On FIRST viewing only, an italic callout appears under
+                the sky: "— first sight of the Endless —"
+                Persisted in localStorage as ds_endless_seen.
+
+            ── AUDIO SWELL ──
+            startCinematicSwell() — uses the existing AmbientAudio
+            WebAudio context. Layers (a) low saw at A1 (b) low triangle
+            at E2 (fifth) (c) rising sine from C4 → C5 over 65% of the
+            timeline. Master gain ramps 0→0.22 over 1.2s, holds, then
+            tails to 0 over the last 1.4s. Fire-and-forget; never
+            blocks. Auto-stops on cinematic end / skip.
+
+            ── VERIFIED (screenshot tool, desktop 1280×800 + mobile 390×844) ──
+              ✓ Player spawns at the back of the runway facing north.
+              ✓ Walking north shows the cyan-lit runway, hover-ships
+                with landing rings on both sides, runway cages as
+                obstacles, Romaine at his bench.
+              ✓ Bay door at the top of the room reveals the lavender
+                Endless sky with pyramid-spire silhouettes + sun.
+              ✓ Pressing E on the BAY DOORS plaque triggers the
+                cinematic — letterbox bars + camera pan + zoom +
+                "VIEWING THE ENDLESS" banner + fullscreen Endless
+                sky overlay + audio swell + screen-shake jolt at
+                the peak.
+              ✓ "— first sight of the Endless —" callout appears on
+                the first triggering only.
+              ✓ Mobile (390×844) layout — banner wraps cleanly, sky
+                fills the screen, controls reachable.
+
+  - task: "Hover-ship renderer — solid sprites with hover-pads (replaces transparent silhouettes)"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Replaced drawHoverShip's translucent dark-wedge
+            with a fully opaque hex-wedge hull (bronze undertone + dark
+            top plating + bronze trim line + 3 panel seams), a glass
+            canopy strip with inner pulse, tail-fins, a carnation prow
+            sigil, and — sitting beneath the ship — a steel hover-pad
+            with pulsing cyan landing rings + radial hover-glow on the
+            floor. Eliminates the "floating art" problem in the hangar.
+
+metadata_addendum:
+  session_2026_05_20:
+    - "Redesigned Surge Hangar from scratch — procedural rendering, cinematic Endless reveal, full-cinematic treatment (pan + zoom + shake + audio swell + letterbox + vignette + first-reveal callout)"
+    - "Player enters from the back (south wall) per user spec; cargo cages remain on the runway as obstacles (per user correction)"

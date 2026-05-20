@@ -24,7 +24,7 @@ TILE = 256  # 1280 / 5
 LUMA_LOW  = 26
 LUMA_HIGH = 86
 SAMPLE_PAD = 4
-ALPHA_CUTOFF = 20   # after soft-key, anything below this alpha → 0 (cleans stray ghosts + white halo fringe)
+ALPHA_CUTOFF = 35   # after soft-key, anything below this alpha → 0 (cleans stray ghosts + white halo fringe)
 
 def keyed(im: Image.Image) -> Image.Image:
     """ULTRA-TIGHT border-connected chroma key.
@@ -87,7 +87,7 @@ def keyed(im: Image.Image) -> Image.Image:
     new_a[bg] = 0
 
     # Halo ramp: for near_bg pixels, fade alpha by RGB-sum (~10..45).
-    HALO_LOW, HALO_HIGH = 10, 45
+    HALO_LOW, HALO_HIGH = 5, 30
     ramp = ((rgb_sum - HALO_LOW).astype(np.float32) / float(HALO_HIGH - HALO_LOW)) * 255.0
     ramp = np.clip(ramp, 0, 255).astype(np.int32)
     new_a = np.where(near_bg, np.minimum(new_a, ramp), new_a)

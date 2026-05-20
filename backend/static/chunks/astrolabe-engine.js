@@ -858,7 +858,14 @@
                     const txt = `${prefix}: ${TERRITORY_DATA[i].title}`;
                     lCtx.fillText(txt, 10, 32);
 
-                    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(labelCanvas), transparent: true, opacity: isPOILevel ? 1.0 : 0.6 }));
+                    // NEAREST filtering on the character/label sprite texture so the
+                    // transparent↔opaque edge stays crisp (no interpolation softening
+                    // the keyed alpha fringe).
+                    const labelTex = new THREE.CanvasTexture(labelCanvas);
+                    labelTex.magFilter = THREE.NearestFilter;
+                    labelTex.minFilter = THREE.NearestFilter;
+                    labelTex.generateMipmaps = false;
+                    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true, opacity: isPOILevel ? 1.0 : 0.6 }));
                     const angle = i * 0.2; 
                     sprite.position.set(Math.cos(angle) * (outerRadius + 2), i * ySpacing, Math.sin(angle) * (outerRadius + 2));
                     sprite.scale.set(30, 1.875, 1);
@@ -1893,6 +1900,11 @@
             grad.addColorStop(1, 'rgba(255,200,0,0)');
             ctx.fillStyle = grad; ctx.fillRect(0, 0, 128, 128);
             const haloTex = new THREE.CanvasTexture(c);
+            // NEAREST filtering keeps the halo edge crisp instead of blurring
+            // the transparent/opaque boundary on retina/zoomed views.
+            haloTex.magFilter = THREE.NearestFilter;
+            haloTex.minFilter = THREE.NearestFilter;
+            haloTex.generateMipmaps = false;
 
             poiMeshes.forEach(marker => {
                 const sprite = new THREE.Sprite(new THREE.SpriteMaterial({

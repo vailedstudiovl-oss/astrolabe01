@@ -37,9 +37,20 @@
   /* Mobile D-pad */
   .dpad{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));z-index:7;width:170px;height:170px;display:none;}
   .dpad .btn{position:absolute;width:54px;height:54px;
-             background:rgba(22,12,40,.72);border:1px solid rgba(180,140,220,.32);
-             border-radius:6px;color:#c8a8e8;display:flex;align-items:center;justify-content:center;
-             font-size:22px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+    background:rgba(20,12,40,.78);border:1.5px solid rgba(140,100,180,.55);
+    color:#e8d4f4;font-size:22px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    /* Pointer-event responsiveness: stop the browser from interpreting
+       touches as gestures (scroll / zoom / context-menu) so the dpad
+       gets every touch immediately with no 300ms tap-delay. */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color .08s ease-out, border-color .08s ease-out;
+  }
   .dpad .btn.active{background:rgba(82,42,132,.85);color:#fff;border-color:rgba(220,180,255,.7);}
   .dpad .btn.up{top:0;left:58px;} .dpad .btn.left{top:58px;left:0;}
   .dpad .btn.right{top:58px;right:0;} .dpad .btn.down{bottom:0;left:58px;}
@@ -5641,6 +5652,194 @@ function collidesAt(px, py, hbW, hbH, footY, room) {
   return false;
 }
 
+// ============================================================
+//   LIGHTING PROFILES — per-room volumetric overlay
+//   Applied AFTER each room's draw() so the ambient + key lights
+//   tint the floor + walls + props (sprites already have their
+//   own shadows/rim-light). Coordinates are in WORLD pixels.
+//   Light entries: {x,y,radius,color, intensity, _amp?, _freq?, _phase?}
+//     intensity     — base opacity (0..1)
+//     _amp / _freq  — sin(t * _freq + _phase) modulates intensity
+//   Beams: {x, y, dx, dy, length, halfW, color}
+// ============================================================
+const LIGHTING_PROFILES = {
+  // CONTROL ROOM — cathedral skylight overhead + red sigil rings on the floor
+  control: {
+    ambient: 'rgba(20,4,12,0.42)',
+    lights: [
+      // Overhead skylight sigil — the source of the room's red dome
+      { x: 6.5 * 64, y: 2 * 64, radius: 380, color: 'rgba(255,84,72,0.85)', intensity: 0.55, _amp: 0.08, _freq: 0.9, _phase: 0 },
+      // Pulsing sigil ring on the floor at centre
+      { x: 6.5 * 64, y: 6 * 64, radius: 280, color: 'rgba(255,84,72,0.85)', intensity: 0.40, _amp: 0.18, _freq: 1.4, _phase: 0.5 },
+      // Side terminal lights
+      { x: 1.5 * 64, y: 7 * 64, radius: 140, color: 'rgba(60,224,224,0.85)', intensity: 0.40, _amp: 0.10, _freq: 1.8 },
+      { x: 11.5 * 64, y: 7 * 64, radius: 140, color: 'rgba(60,224,224,0.85)', intensity: 0.40, _amp: 0.10, _freq: 1.8, _phase: 1.4 },
+    ],
+  },
+
+  // DORM HALL — candle-lit corridor with door lamps
+  dorm_hall: {
+    ambient: 'rgba(6,4,18,0.48)',
+    lights: [
+      { x: 2 * 64,  y: 3 * 64, radius: 120, color: 'rgba(255,180,80,0.80)', intensity: 0.45, _amp: 0.14, _freq: 2.1, _phase: 0.1 },
+      { x: 7 * 64,  y: 3 * 64, radius: 120, color: 'rgba(255,180,80,0.80)', intensity: 0.45, _amp: 0.14, _freq: 2.1, _phase: 0.9 },
+      { x: 12 * 64, y: 3 * 64, radius: 120, color: 'rgba(255,180,80,0.80)', intensity: 0.45, _amp: 0.14, _freq: 2.1, _phase: 1.6 },
+      { x: 7 * 64,  y: 9 * 64, radius: 220, color: 'rgba(220,180,255,0.70)', intensity: 0.35, _amp: 0.06, _freq: 1.2, _phase: 0.3 },
+    ],
+  },
+
+  // ENGINE ROOM — green soul-core pulse + side machinery lamps
+  engine_room: {
+    ambient: 'rgba(4,18,8,0.50)',
+    lights: [
+      { x: 8 * 64,  y: 6 * 64, radius: 320, color: 'rgba(98,255,140,0.85)', intensity: 0.60, _amp: 0.20, _freq: 1.4 },
+      { x: 8 * 64,  y: 6 * 64, radius: 120, color: 'rgba(220,255,200,0.85)', intensity: 0.55, _amp: 0.25, _freq: 2.8 },
+      { x: 2 * 64,  y: 4 * 64, radius: 130, color: 'rgba(255,140,80,0.70)', intensity: 0.35, _amp: 0.10, _freq: 1.6, _phase: 0.5 },
+      { x: 14 * 64, y: 4 * 64, radius: 130, color: 'rgba(255,140,80,0.70)', intensity: 0.35, _amp: 0.10, _freq: 1.6, _phase: 2.1 },
+      { x: 2 * 64,  y: 11 * 64, radius: 130, color: 'rgba(255,140,80,0.70)', intensity: 0.35, _amp: 0.10, _freq: 1.6, _phase: 1.0 },
+      { x: 14 * 64, y: 11 * 64, radius: 130, color: 'rgba(255,140,80,0.70)', intensity: 0.35, _amp: 0.10, _freq: 1.6, _phase: 2.5 },
+    ],
+  },
+
+  // COURT OF JUDGEMENT — magistrate dais spotlight + side sentinel braziers
+  judgement_court: {
+    ambient: 'rgba(8,4,20,0.55)',
+    lights: [
+      // Magistrate's dais spotlight — dominant
+      { x: 8 * 64,  y: 3 * 64, radius: 280, color: 'rgba(255,210,140,0.90)', intensity: 0.60, _amp: 0.05, _freq: 0.6 },
+      // Sentinel braziers
+      { x: 2 * 64,  y: 6 * 64, radius: 130, color: 'rgba(255,120,60,0.75)', intensity: 0.40, _amp: 0.15, _freq: 2.4, _phase: 0.2 },
+      { x: 14 * 64, y: 6 * 64, radius: 130, color: 'rgba(255,120,60,0.75)', intensity: 0.40, _amp: 0.15, _freq: 2.4, _phase: 1.2 },
+      // Courtroom skylight cone
+      { x: 8 * 64,  y: 10 * 64, radius: 220, color: 'rgba(220,180,255,0.65)', intensity: 0.30, _amp: 0.04, _freq: 0.7 },
+    ],
+  },
+
+  // CREATION LEVELER — cold cyan workshop with sigil-forge core
+  creation_leveler: {
+    ambient: 'rgba(4,12,20,0.55)',
+    lights: [
+      // Central sigil-forge — bright cyan beating heart
+      { x: 8 * 64,  y: 6 * 64, radius: 300, color: 'rgba(60,224,224,0.90)', intensity: 0.55, _amp: 0.22, _freq: 2.0 },
+      // Workbench lamps
+      { x: 3 * 64,  y: 9 * 64, radius: 110, color: 'rgba(255,200,120,0.65)', intensity: 0.30, _amp: 0.08, _freq: 2.6, _phase: 0.4 },
+      { x: 13 * 64, y: 9 * 64, radius: 110, color: 'rgba(255,200,120,0.65)', intensity: 0.30, _amp: 0.08, _freq: 2.6, _phase: 1.7 },
+    ],
+  },
+
+  // DEATH'S OFFICE — single hearth + desk lamp, intimate and warm
+  deaths_office: {
+    ambient: 'rgba(6,2,12,0.55)',
+    lights: [
+      // Hearth fire
+      { x: 11 * 64, y: 3.2 * 64, radius: 240, color: 'rgba(255,140,60,0.85)', intensity: 0.55, _amp: 0.20, _freq: 2.4 },
+      // Desk lamp
+      { x: 5 * 64,  y: 5.5 * 64, radius: 180, color: 'rgba(255,200,120,0.85)', intensity: 0.50, _amp: 0.10, _freq: 1.6 },
+      // Window slit
+      { x: 1 * 64,  y: 7 * 64,   radius: 160, color: 'rgba(180,140,220,0.65)', intensity: 0.30, _amp: 0.03, _freq: 0.5 },
+    ],
+  },
+
+  // VIVIAN'S ROOM — twin-sister chamber, lavender + soft candlelight
+  vivians_room: {
+    ambient: 'rgba(8,4,18,0.45)',
+    lights: [
+      { x: 4 * 64,  y: 3 * 64, radius: 180, color: 'rgba(200,160,220,0.75)', intensity: 0.40, _amp: 0.06, _freq: 1.3 },
+      { x: 9 * 64,  y: 5 * 64, radius: 220, color: 'rgba(255,200,140,0.80)', intensity: 0.50, _amp: 0.12, _freq: 1.8 },
+      { x: 13 * 64, y: 9 * 64, radius: 150, color: 'rgba(220,180,255,0.70)', intensity: 0.35, _amp: 0.10, _freq: 2.0, _phase: 1.1 },
+    ],
+  },
+
+  // MEMORY HALL — long gallery with shafts of cool sigil-light through windows
+  memory_hall: {
+    ambient: 'rgba(4,4,16,0.55)',
+    lights: [
+      // Skylight pools dropping every few tiles
+      { x: 4 * 64,  y: 4 * 64, radius: 200, color: 'rgba(180,140,220,0.80)', intensity: 0.45, _amp: 0.04, _freq: 0.6 },
+      { x: 9 * 64,  y: 4 * 64, radius: 200, color: 'rgba(180,140,220,0.80)', intensity: 0.45, _amp: 0.04, _freq: 0.6, _phase: 0.7 },
+      { x: 14 * 64, y: 4 * 64, radius: 200, color: 'rgba(180,140,220,0.80)', intensity: 0.45, _amp: 0.04, _freq: 0.6, _phase: 1.4 },
+      { x: 19 * 64, y: 4 * 64, radius: 200, color: 'rgba(180,140,220,0.80)', intensity: 0.45, _amp: 0.04, _freq: 0.6, _phase: 2.1 },
+      // Warm pedestal lamps along the floor
+      { x: 4 * 64,  y: 9 * 64, radius: 110, color: 'rgba(255,200,120,0.70)', intensity: 0.30, _amp: 0.12, _freq: 2.2, _phase: 0.3 },
+      { x: 9 * 64,  y: 9 * 64, radius: 110, color: 'rgba(255,200,120,0.70)', intensity: 0.30, _amp: 0.12, _freq: 2.2, _phase: 1.1 },
+      { x: 14 * 64, y: 9 * 64, radius: 110, color: 'rgba(255,200,120,0.70)', intensity: 0.30, _amp: 0.12, _freq: 2.2, _phase: 1.9 },
+      { x: 19 * 64, y: 9 * 64, radius: 110, color: 'rgba(255,200,120,0.70)', intensity: 0.30, _amp: 0.12, _freq: 2.2, _phase: 2.7 },
+    ],
+    beams: [
+      // Cool window-light shafts angling east across the floor
+      { x: 4 * 64,  y: 2 * 64, dx: 0.5, dy: 1.0, length: 280, halfW: 28, color: 'rgba(180,140,220,0.18)' },
+      { x: 9 * 64,  y: 2 * 64, dx: 0.5, dy: 1.0, length: 280, halfW: 28, color: 'rgba(180,140,220,0.18)' },
+      { x: 14 * 64, y: 2 * 64, dx: 0.5, dy: 1.0, length: 280, halfW: 28, color: 'rgba(180,140,220,0.18)' },
+      { x: 19 * 64, y: 2 * 64, dx: 0.5, dy: 1.0, length: 280, halfW: 28, color: 'rgba(180,140,220,0.18)' },
+    ],
+  },
+
+  // BLACKBOX — sigil archive vault, cold blue with central terminal
+  blackbox: {
+    ambient: 'rgba(4,8,18,0.62)',
+    lights: [
+      { x: 8 * 64,  y: 6 * 64, radius: 240, color: 'rgba(80,180,255,0.85)', intensity: 0.50, _amp: 0.20, _freq: 2.6 },
+      { x: 3 * 64,  y: 8 * 64, radius: 100, color: 'rgba(60,224,224,0.70)', intensity: 0.30, _amp: 0.10, _freq: 3.0, _phase: 0.5 },
+      { x: 13 * 64, y: 8 * 64, radius: 100, color: 'rgba(60,224,224,0.70)', intensity: 0.30, _amp: 0.10, _freq: 3.0, _phase: 1.9 },
+    ],
+  },
+
+  // CATHEDRAL OF REAPERS — vaulted halls, single skylight pillar
+  cathedral: {
+    ambient: 'rgba(8,2,16,0.55)',
+    lights: [
+      { x: 9 * 64,  y: 3 * 64, radius: 320, color: 'rgba(255,210,140,0.85)', intensity: 0.55, _amp: 0.06, _freq: 0.8 },
+      { x: 4 * 64,  y: 8 * 64, radius: 140, color: 'rgba(255,180,80,0.70)', intensity: 0.35, _amp: 0.15, _freq: 2.2, _phase: 0.4 },
+      { x: 14 * 64, y: 8 * 64, radius: 140, color: 'rgba(255,180,80,0.70)', intensity: 0.35, _amp: 0.15, _freq: 2.2, _phase: 1.6 },
+      { x: 9 * 64,  y: 13 * 64, radius: 220, color: 'rgba(220,180,255,0.60)', intensity: 0.30, _amp: 0.05, _freq: 0.7 },
+    ],
+  },
+
+  // NAVIGATOR'S ROOM — chart desk lamps + holo globe
+  navigators: {
+    ambient: 'rgba(4,8,20,0.50)',
+    lights: [
+      { x: 8 * 64,  y: 5 * 64, radius: 240, color: 'rgba(80,180,255,0.85)', intensity: 0.55, _amp: 0.18, _freq: 1.6 },
+      { x: 3 * 64,  y: 8 * 64, radius: 130, color: 'rgba(255,200,120,0.75)', intensity: 0.40, _amp: 0.10, _freq: 2.0, _phase: 0.3 },
+      { x: 13 * 64, y: 8 * 64, radius: 130, color: 'rgba(255,200,120,0.75)', intensity: 0.40, _amp: 0.10, _freq: 2.0, _phase: 1.5 },
+    ],
+  },
+
+  // OBSIDIAN CONTAINMENT — high-security vault, sparse red sigil pulses
+  obsidian: {
+    ambient: 'rgba(4,2,8,0.65)',
+    lights: [
+      { x: 8 * 64,  y: 6 * 64, radius: 280, color: 'rgba(255,60,40,0.85)', intensity: 0.45, _amp: 0.25, _freq: 1.2 },
+      { x: 2 * 64,  y: 3 * 64, radius: 90,  color: 'rgba(255,84,72,0.70)', intensity: 0.30, _amp: 0.20, _freq: 3.0, _phase: 0.5 },
+      { x: 14 * 64, y: 3 * 64, radius: 90,  color: 'rgba(255,84,72,0.70)', intensity: 0.30, _amp: 0.20, _freq: 3.0, _phase: 1.7 },
+      { x: 2 * 64,  y: 10 * 64, radius: 90, color: 'rgba(255,84,72,0.70)', intensity: 0.30, _amp: 0.20, _freq: 3.0, _phase: 2.3 },
+      { x: 14 * 64, y: 10 * 64, radius: 90, color: 'rgba(255,84,72,0.70)', intensity: 0.30, _amp: 0.20, _freq: 3.0, _phase: 0.9 },
+    ],
+  },
+
+  // LOWER DECK — bilge / engine-skirt with bronze pipes and embers
+  lower_deck: {
+    ambient: 'rgba(8,4,4,0.55)',
+    lights: [
+      { x: 5 * 64,  y: 5 * 64, radius: 160, color: 'rgba(255,140,60,0.80)', intensity: 0.45, _amp: 0.18, _freq: 2.4, _phase: 0.2 },
+      { x: 11 * 64, y: 5 * 64, radius: 160, color: 'rgba(255,140,60,0.80)', intensity: 0.45, _amp: 0.18, _freq: 2.4, _phase: 1.3 },
+      { x: 5 * 64,  y: 10 * 64, radius: 160, color: 'rgba(255,140,60,0.80)', intensity: 0.45, _amp: 0.18, _freq: 2.4, _phase: 2.0 },
+      { x: 11 * 64, y: 10 * 64, radius: 160, color: 'rgba(255,140,60,0.80)', intensity: 0.45, _amp: 0.18, _freq: 2.4, _phase: 0.7 },
+    ],
+  },
+
+  // GRAND HALL — the great cathedral aisle, already has chandelier-y feel
+  grand_hall: {
+    ambient: 'rgba(8,4,16,0.48)',
+    lights: [
+      { x: 14 * 64, y: 3 * 64,  radius: 260, color: 'rgba(255,210,140,0.85)', intensity: 0.55, _amp: 0.05, _freq: 0.6 },
+      { x: 14 * 64, y: 6.5 * 64, radius: 220, color: 'rgba(255,180,80,0.80)', intensity: 0.45, _amp: 0.12, _freq: 1.4, _phase: 0.3 },
+      { x: 14 * 64, y: 11.5 * 64, radius: 220, color: 'rgba(255,180,80,0.80)', intensity: 0.45, _amp: 0.12, _freq: 1.4, _phase: 1.2 },
+      { x: 14 * 64, y: 15.5 * 64, radius: 220, color: 'rgba(255,180,80,0.80)', intensity: 0.45, _amp: 0.12, _freq: 1.4, _phase: 2.1 },
+    ],
+  },
+};
+
 function render(){
   const W = state.width, H = state.height, dpr = state.dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -5657,6 +5856,26 @@ function render(){
   ctx.scale(zoom, zoom);
   ctx.translate(-camX, -camY);
   room.draw(ctx, room);
+  // Volumetric lighting pass — applied AFTER the room draw but BEFORE
+  // interactable / door / sprite layers so the lights tint the floor +
+  // walls + props but not the sprites (which already have their own
+  // shading + shadows). Profile is looked up per-room.
+  const lp = LIGHTING_PROFILES[room.id];
+  if (lp) {
+    // Animate any time-varying intensity values: profile light entries
+    // can declare {x,y,radius,color,intensity, _phase, _amp} — we lift
+    // intensity by _amp*sin(t + _phase) per frame.
+    const liveLights = lp.lights.map(L => {
+      let intensity = L.intensity;
+      if (L._amp != null) intensity = (intensity || 0.5) + L._amp * Math.sin(t * (L._freq || 1.6) + (L._phase || 0));
+      return { x: L.x, y: L.y, radius: L.radius, color: L.color, intensity };
+    });
+    applyRoomLighting(ctx, room.width * 64, room.height * 64, lp.ambient, liveLights);
+    // Optional directional beams (windows / sigil shafts)
+    if (lp.beams) {
+      for (const b of lp.beams) drawLightBeam(ctx, b.x, b.y, b.dx, b.dy, b.length, b.halfW, b.color);
+    }
+  }
   for (const it of (room.interactables||[])) {
     drawInteractableMarker(it.x*64, it.y*64, it === state.nearInteract);
   }
@@ -6263,6 +6482,40 @@ function loadRoom(id, spawn) {
   document.getElementById('roomName').textContent = def.name;
   document.getElementById('roomSub').textContent  = def.sub;
   News.onRoomEnter();
+  // FIRST-ENTRY CINEMATICS — fires once per browser, persisted in
+  // localStorage. Each room's cinematic uses the existing
+  // startCinematic() pipeline so it gets letterbox + audio swell + screen
+  // shake bell-curve + the "first sight" callout treatment.
+  triggerFirstEntryCinematic(id);
+}
+
+function triggerFirstEntryCinematic(roomId) {
+  const FIRST_ENTRY_CINEMATICS = {
+    mays_room: {
+      // Camera pans from the room entrance DOWN to the bed, then back to
+      // the rug where May normally stands. Audio swells with a sustained
+      // pad. Banner reads "MAY'S ROOM · HOME".
+      // The bed is at world coords (1.2..5.2, 2..5) → centre ≈ (3.2*64, 3.5*64)
+      targetX: 3.2 * 64,
+      targetY: 3.5 * 64,
+      zoom: 1.45,
+      duration: 7.5,
+      shakeIntensity: 2,   // very gentle — this isn't an action moment
+      banner: "MAY'S ROOM",
+      sub: 'her bedroom · the only place on the ship that smells of lavender',
+      kind: 'home',
+    },
+  };
+  const cfg = FIRST_ENTRY_CINEMATICS[roomId];
+  if (!cfg) return;
+  const seenKey = `ds_first_entry_${roomId}`;
+  try {
+    if (localStorage.getItem(seenKey)) return;   // already seen
+    localStorage.setItem(seenKey, '1');
+  } catch (e) { /* ignore */ }
+  // Defer one frame so the room is rendered first, then start the
+  // cinematic — produces a clean fade-in into the camera pan.
+  setTimeout(() => startCinematic(cfg), 250);
 }
 function enterDoor(door){
   // Guard against re-entry from a still-in-progress fade
@@ -6911,19 +7164,52 @@ window.loadRoom = loadRoom;
 window.gameState = state;
 
 const dpadEl = document.getElementById('dpad');
+// Pointer-event handlers — unified touch+mouse, no 300ms tap delay, and
+// setPointerCapture so dragging the finger across buttons keeps the
+// original press registered until lift. This fixes the "dpad sometimes
+// drops a direction mid-walk" stutter the user reported.
 dpadEl.querySelectorAll('.btn').forEach(b => {
   const dir = b.dataset.dir;
-  const press   = ev => { ev.preventDefault(); state.keys[dir] = true;  b.classList.add('active'); startGameMusic(); };
-  const release = ev => { ev.preventDefault(); state.keys[dir] = false; b.classList.remove('active'); };
-  b.addEventListener('touchstart', press,  { passive:false });
-  b.addEventListener('touchend',   release,{ passive:false });
-  b.addEventListener('touchcancel',release,{ passive:false });
-  b.addEventListener('mousedown',  press);
-  b.addEventListener('mouseup',    release);
-  b.addEventListener('mouseleave', release);
+  // Track every pointer id currently held on THIS button so multi-touch
+  // (e.g. holding two dpad buttons at once for diagonal movement) works
+  // correctly without one button erroneously releasing the other.
+  const heldPointers = new Set();
+  const press = ev => {
+    ev.preventDefault();
+    heldPointers.add(ev.pointerId);
+    state.keys[dir] = true;
+    b.classList.add('active');
+    startGameMusic();
+    if (window.AmbientAudio) AmbientAudio.start();
+    try { b.setPointerCapture(ev.pointerId); } catch (e) {}
+  };
+  const release = ev => {
+    if (ev) {
+      heldPointers.delete(ev.pointerId);
+      try { b.releasePointerCapture(ev.pointerId); } catch (e) {}
+    } else {
+      heldPointers.clear();
+    }
+    // Only release the dpad direction if NO pointers are still down on us
+    if (heldPointers.size === 0) {
+      state.keys[dir] = false;
+      b.classList.remove('active');
+    }
+  };
+  b.addEventListener('pointerdown',   press,   { passive: false });
+  b.addEventListener('pointerup',     release, { passive: false });
+  b.addEventListener('pointercancel', release, { passive: false });
+  b.addEventListener('lostpointercapture', release);
+  // Legacy fallback for very old browsers (won't normally fire alongside pointer events)
+  b.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
 });
 document.getElementById('actionBtn').addEventListener('click', interact);
-document.getElementById('actionBtn').addEventListener('touchstart', e => { e.preventDefault(); interact(); }, { passive:false });
+document.getElementById('actionBtn').addEventListener('pointerdown', e => { e.preventDefault(); interact(); }, { passive: false });
+// Global safety net: if the user lifts the finger anywhere on the page,
+// release any stuck dpad keys so the player can never "keep walking" after
+// the touch ended outside a button.
+window.addEventListener('pointerup',     () => dpadEl.querySelectorAll('.btn.active').forEach(el => { state.keys[el.dataset.dir] = false; el.classList.remove('active'); }));
+window.addEventListener('pointercancel', () => dpadEl.querySelectorAll('.btn.active').forEach(el => { state.keys[el.dataset.dir] = false; el.classList.remove('active'); }));
 
 // ============================================================
 //   RESIZE + BOOT

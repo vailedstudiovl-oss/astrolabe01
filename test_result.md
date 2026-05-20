@@ -2476,3 +2476,105 @@ metadata_addendum:
             so hover-ships cast longer parallelograms than the
             shorter back-line props. Eliminates the residual
             "floating art" feel.
+
+  - task: "Mobile dpad pointer-event responsiveness fix"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Replaced the legacy touchstart/touchend/mousedown
+            handlers on the dpad with PointerEvents:
+              • pointerdown / pointerup / pointercancel / lostpointercapture
+              • setPointerCapture() so dragging a finger across the dpad
+                buttons keeps the original direction pressed until release
+              • Per-button heldPointers Set tracks every pointer ID
+                currently down — multi-touch (e.g. holding two directional
+                buttons at once for diagonal movement) now works correctly
+                without one button erroneously releasing the other.
+              • Global window-level pointerup/pointercancel safety net
+                releases any stuck dpad keys if the user lifts the finger
+                off-screen.
+              • CSS: added touch-action:none, user-select:none,
+                -webkit-tap-highlight-color:transparent, and an 80ms
+                press-state transition to the .dpad .btn rule. Eliminates
+                the iOS 300ms tap-delay and stops the browser from
+                interpreting touches as scroll/zoom gestures.
+              • Cleaned up an orphan CSS rule that was leftover from the
+                old definition.
+            Fixes the "dpad sometimes drops a direction mid-walk" stutter.
+
+  - task: "First-Entry Cinematic — May's Bedroom"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] On the first time a player enters mays_room, a
+            7.5-second cinematic fires: camera pans from the entrance
+            point to the bed (focal coords 3.2,3.5 tiles), zoom to 1.45,
+            audio swell from the existing startCinematicSwell pipeline
+            (low pad + rising sine), gentle screen-shake (intensity 2,
+            not action-violent), and the banner "MAY'S ROOM · her
+            bedroom · the only place on the ship that smells of
+            lavender". Persisted in localStorage as
+            ds_first_entry_mays_room so it only plays once. Generic
+            triggerFirstEntryCinematic() registry pattern so we can
+            wire additional first-entry cinematics for other rooms
+            (Engine Room, Grand Hall, etc.) by adding entries to the
+            FIRST_ENTRY_CINEMATICS table.
+
+  - task: "Volumetric Lighting Profiles — applied to 14 rooms"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Added a LIGHTING_PROFILES map keyed by room id
+            with full multi-source lighting setups for every major room.
+            Applied automatically from render() AFTER room.draw() and
+            BEFORE the interactable/door/sprite layer so the ambient
+            darken + key lights tint the floor/walls/props without
+            washing out the sprites.
+
+            Profiled rooms:
+              • control          — overhead red sigil dome + floor ring + cyan terminals
+              • dorm_hall        — 3 candle sconces + cool purple haze
+              • engine_room      — green soul-core pulse + 4 machinery braziers
+              • judgement_court  — magistrate's golden spotlight + 2 sentinel braziers + skylight cone
+              • creation_leveler — cyan sigil-forge core + workbench lamps
+              • deaths_office    — warm hearth fire + desk lamp + cool window slit
+              • vivians_room     — lavender candlelight pools
+              • memory_hall      — 4 cool purple skylight pools + 4 warm pedestal lamps + 4 directional light beams from the windows
+              • blackbox         — cold blue central terminal + cyan side terminals
+              • cathedral        — central skylight + side braziers + chancel pool
+              • navigators       — holo-globe blue glow + chart-desk lamps
+              • obsidian         — sparse pulsing red sigil pulses (high-sec vault)
+              • lower_deck       — bronze pipe brazier embers (4 corners)
+              • grand_hall       — chandelier + 3 holographic display pools
+
+            Light entries support animated intensity via:
+              {x, y, radius, color, intensity, _amp, _freq, _phase}
+            where intensity is offset by _amp * sin(t * _freq + _phase)
+            each frame for natural-feeling flicker/pulse.
+
+            Profile entries also support `beams[]` for directional
+            window-light cones (currently used in memory_hall).
+
+            Verified live: 6 rooms screenshotted on desktop, all render
+            with their volumetric lighting overlay. No JS errors.

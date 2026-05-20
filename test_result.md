@@ -2339,3 +2339,140 @@ metadata_addendum:
   session_2026_05_20:
     - "Redesigned Surge Hangar from scratch — procedural rendering, cinematic Endless reveal, full-cinematic treatment (pan + zoom + shake + audio swell + letterbox + vignette + first-reveal callout)"
     - "Player enters from the back (south wall) per user spec; cargo cages remain on the runway as obstacles (per user correction)"
+
+  - task: "Volume/Depth Rendering Pipeline — shared lighting + shadow helpers"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Added a shared volume/depth/lighting pipeline used
+            across all rooms so the existing 2D top-down scenes read as 3D:
+              • castFloorShadow(x,y,w,h,dir,opts) — skewed parallelogram
+                drop shadow with optional blur filter, anchored at the
+                foot of the prop and stretched in the light-direction.
+              • castEllipseShadow(cx, footY, rx, ry, dir, op) — sprite shadow.
+              • drawBoxVolume(x,y,w,h,depth, base, opts) — faux-iso crate
+                with top + side faces shaded for volume.
+              • applyRoomLighting(W,H,ambientHex, lights[]) — multi-pass:
+                ambient multiply darken + additive radial key-lights of
+                warm (#ffb88a) and cool (#a8c4e8) colours.
+              • drawLightBeam(fromX,fromY,dx,dy,length,halfW,color) —
+                directional beam from a window/door spilling onto floor.
+              • lightenColor / darkenColor utilities.
+
+  - task: "Grand Hall — 6 Reaper Statues + 3D Holographic Displays"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Added 6 stone Reaper statues on stepped pedestals
+            lining the aisle (3 port at x=2.7, 3 starboard at x=24.6, at
+            y=4.3/8.3/12.3). Each statue: layered robe shading + visible
+            pleats + rim-light on the right edge + hooded face with
+            pulsing amber EYE GLOW + scythe with brass collar +
+            curved blade. Pedestals are 3-tier stepped stone blocks
+            with proper top + side-face shading and a soft drop-shadow.
+            All statues have walls registered so the player can't
+            walk through them. Visible in screenshot test (statues
+            visible on either side of the altar with their scythes
+            and hooded silhouettes).
+
+            Also added 3 floating 3D holographic displays down the
+            centre aisle at y=6.5, 11.5, 15.5:
+              • Brass projector base disc on the floor (with shadow).
+              • Vertical light beam rising into the holographic core.
+              • Three rotating sigil rings stacked at different y
+                offsets, scaled to 0.32-vertical to simulate 3D rotation.
+              • Six glyph-node dots distributed around each ring.
+              • Central glyph (☩ / ⚔ / ✦) glowing in amber with
+                shadowBlur halo, pulsing at 2Hz.
+              • Soft amber light pool cast onto the carpet below.
+
+  - task: "May's Room — Volumetric Lighting Pass"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Added an end-of-room volumetric lighting pass:
+              • 3 cool blue (#a8c4e8) light-pools projected from each
+                alcove on the left wall.
+              • 3 cool blue directional LIGHT BEAMS sweeping east
+                across the floor from each alcove (cinematic window
+                light pouring in).
+              • Warm chandelier candle-pool (#ffd28b) above the rug.
+              • Warm vanity candelabra pool (#ffc474) on the right.
+              • Warm rug-candle halo (#ffa850).
+              • Two top-sconce pools.
+              • Long bed-post shadows cast south.
+              • Mannequin ellipse shadow.
+              • Vanity east-cast shadow from window-light direction.
+            Ambient multiply darken at 35% lifts the warm/cool key
+            lights so the room reads in proper 3D depth.
+            Verified on desktop and mobile (390×844).
+
+  - task: "Character Portrait System (sprite-cropped portraits in modals)"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Per user spec ("use cropped versions of the
+            existing sprite sheets as portraits"):
+              • Added <canvas id="modalPortrait"> to the lore modal.
+              • renderCharacterPortrait(canvas, sheetName) — crops the
+                first frame of the named sprite-sheet (sheet's head+
+                torso region, ~upper 58% of frame_h) and scales it
+                into the portrait canvas with aspect preserved.
+              • Painterly dark-bronze gradient backdrop + warm
+                top-right key-light overlay + bottom-left vignette
+                + brass cornerpiece L-marks for a gothic frame feel.
+              • imageSmoothingEnabled = false so the pixel art
+                preserves its crisp edges.
+              • Triggered automatically from interact() when the
+                near-interactable is an NPC (eyebrow becomes
+                "AMBIENT QUIP" instead of "LORE FRAGMENT").
+              • Verified live: Romaine portrait renders correctly
+                with her pink hair + green outfit + waving hand
+                on both desktop and mobile.
+
+  - task: "Surge Hangar — drop shadows on every prop"
+    implemented: true
+    working: true
+    file: "backend/static/deaths_ship.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            [2026-05-20] Added castFloorShadow calls for: workbench,
+            fuel-cell cluster, both cargo cages on the runway, all
+            four parked hover-ships. Shadows fall south (away from
+            the bay-door light), with length scaled by prop height
+            so hover-ships cast longer parallelograms than the
+            shorter back-line props. Eliminates the residual
+            "floating art" feel.

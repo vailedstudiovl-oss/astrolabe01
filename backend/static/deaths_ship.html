@@ -79,6 +79,17 @@
   .modal-content::before{top:6px;left:6px;border-right:none;border-bottom:none;}
   .modal-content::after{bottom:6px;right:6px;border-left:none;border-top:none;}
   .modal-eyebrow{font-size:10px;letter-spacing:5px;color:#d4a85a;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+  /* PORTRAIT (sprite-cropped, shown for NPC/character interactions) */
+  .modal-portrait{display:none;float:right;margin:0 0 12px 16px;width:120px;height:150px;
+    background:linear-gradient(180deg, #1a0e08 0%, #06030a 100%);
+    border:1.5px solid #6a4a22;
+    box-shadow:inset 0 0 0 1px rgba(212,168,90,0.15), 0 6px 22px rgba(0,0,0,0.6);
+    image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;}
+  .modal-portrait.show{display:block;}
+  @media (max-width:480px){
+    .modal-portrait{float:none;display:none;margin:0 auto 12px;width:96px;height:120px;}
+    .modal-portrait.show{display:block;}
+  }
   .modal-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:16px;
                font-family:'Cinzel',Georgia,serif;letter-spacing:1px;
                text-shadow:0 1px 12px rgba(0,0,0,.6);}
@@ -187,6 +198,7 @@
 
   <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
     <div class="modal-content">
+      <canvas id="modalPortrait" class="modal-portrait" width="160" height="200"></canvas>
       <div class="modal-eyebrow" id="modalEye">LORE FRAGMENT</div>
       <div class="modal-title" id="modalTitle"></div>
       <div class="modal-body" id="modalBody"></div>
@@ -904,6 +916,14 @@ const ROOM_DEFS = {
       { x:18, y:12, w:7, h:1.2 },
       // High altar / sigil-stage at the north end
       { x:11, y:2,  w:6, h:2 },
+      // 6 REAPER STATUES on stepped pedestals lining the aisle (port + starboard)
+      // (slim collidable boxes so the player can't walk through them)
+      { x:2.0,  y:4.0,  w:1.4, h:1.0 },
+      { x:2.0,  y:8.0,  w:1.4, h:1.0 },
+      { x:2.0,  y:12.0, w:1.4, h:1.0 },
+      { x:24.6, y:4.0,  w:1.4, h:1.0 },
+      { x:24.6, y:8.0,  w:1.4, h:1.0 },
+      { x:24.6, y:12.0, w:1.4, h:1.0 },
     ],
     interactables: [
       { x:14, y:3.5, kind:'plaque', title:'THE HIGH ALTAR', body:'A great obsidian altar at the north end of the hall, etched with one single enormous sigil that pulses red in time with the ship\'s heart.\n\nDeath performs the Cycle-End rites here, with all reapers in attendance. The altar is cold to the touch even when its sigil is burning.' },
@@ -1546,6 +1566,30 @@ function drawGrandHall(ctx, room) {
     ctx.beginPath(); ctx.arc(W/2, H*0.55, 70, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
+  // === REAPER STATUES — 6 lining the aisle (3 port, 3 starboard) ===
+  // Each statue sits on a small stepped pedestal, casts a long shadow down
+  // the floor away from the great skylight (so shadows fan OUTWARD from
+  // centre line). The statues breathe with the chandelier flicker.
+  const statueYs = [4.3, 8.3, 12.3];
+  for (let i = 0; i < statueYs.length; i++) {
+    const sy = statueYs[i] * 64;
+    // Port (west) — light comes from centre aisle, shadow goes WEST
+    drawStatuePedestal(ctx, 2*64, sy - 12, 1.4*64, 0.7*64);
+    castFloorShadow(ctx, 2.2*64, sy - 6, 1.0*64, 1.4*64, { x: -0.6, y: 0.2 }, { opacity: 0.55, length: 1.4, blur: 6 });
+    drawReaperStatue3D(ctx, 2.7*64, sy - 4, t, i * 0.7);
+    // Starboard (east) — shadow goes EAST
+    drawStatuePedestal(ctx, (room.width - 3.4)*64, sy - 12, 1.4*64, 0.7*64);
+    castFloorShadow(ctx, (room.width - 3.2)*64, sy - 6, 1.0*64, 1.4*64, { x: 0.6, y: 0.2 }, { opacity: 0.55, length: 1.4, blur: 6 });
+    drawReaperStatue3D(ctx, (room.width - 2.7)*64, sy - 4, t, i * 0.7 + 0.4);
+  }
+
+  // === 3D HOLOGRAPHIC DISPLAYS — three rotating sigil rings floating
+  //     above the central aisle. They project soft amber light down onto
+  //     the carpet runner. Lower-Z than statues so statues read in front.
+  drawHologramDisplay(ctx, W/2, 6.5*64,  t,        0.9, '☩', '#ff8050');
+  drawHologramDisplay(ctx, W/2, 11.5*64, t + 1.2,  0.9, '⚔', '#ffba66');
+  drawHologramDisplay(ctx, W/2, 15.5*64, t + 2.4,  0.75, '✦', '#ffd28b');
+
   // floor stencil
   ctx.save();
   ctx.font = 'bold 14px Cinzel,Georgia,serif';
@@ -1756,6 +1800,181 @@ function roundRect(ctx, x, y, w, h, r){
   ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
   ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
   ctx.closePath();
+}
+
+// ============================================================
+//   DEPTH / VOLUME / LIGHTING HELPERS  (used room-wide)
+//   Casts long blurred shadows away from a defined room
+//   light direction so objects feel 3D and grounded. Light
+//   directions are per-room (bay door = north, candles =
+//   ambient, sigil = central, etc.)
+// ============================================================
+// `dir` is a unit-ish vector pointing FROM the light source.
+// A box at (x,y) with size (w,h) will cast a shadow in the
+// opposite direction at footY (the floor under the box).
+function castFloorShadow(ctx, x, y, w, h, dir, opts) {
+  opts = opts || {};
+  const opacity = opts.opacity != null ? opts.opacity : 0.45;
+  const length  = opts.length  != null ? opts.length  : 1.2;   // shadow length multiplier
+  const blur    = opts.blur    != null ? opts.blur    : 8;
+  const skewX   = (dir.x || 0) * length;
+  const skewY   = (dir.y || 0) * length;
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = '#000';
+  if (ctx.filter !== undefined) {
+    ctx.filter = `blur(${blur}px)`;
+  }
+  // Skewed parallelogram on the floor (anchored at the foot)
+  const footY = y + h - 4;
+  const sLen = h * length;
+  ctx.beginPath();
+  ctx.moveTo(x + 2,             footY);
+  ctx.lineTo(x + w - 2,          footY);
+  ctx.lineTo(x + w - 2 + skewX*w,footY + skewY*sLen);
+  ctx.lineTo(x + 2 + skewX*w,    footY + skewY*sLen);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  if (ctx.filter !== undefined) ctx.filter = 'none';
+}
+
+// Simpler ellipse-shadow under a sprite-sized object (used for NPCs / player).
+function castEllipseShadow(ctx, cx, footY, rx, ry, dir, opacity) {
+  const o = opacity != null ? opacity : 0.5;
+  const skewX = (dir && dir.x) || 0;
+  ctx.save();
+  ctx.globalAlpha = o;
+  ctx.fillStyle = '#000';
+  if (ctx.filter !== undefined) ctx.filter = 'blur(3px)';
+  ctx.beginPath();
+  ctx.ellipse(cx + skewX * 10, footY, rx, ry, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+  if (ctx.filter !== undefined) ctx.filter = 'none';
+}
+
+// Volumetric box — draws a faux-isometric crate-shape with TOP face,
+// LEFT side, and FRONT face shaded according to the light direction.
+// Used by hover-ships, cargo cages, statues, vanities. Returns the
+// shaded layer for further detailing.
+function drawBoxVolume(ctx, x, y, w, h, depth, baseColor, opts) {
+  opts = opts || {};
+  const topShade  = opts.topShade  || lightenColor(baseColor, 0.20);
+  const leftShade = opts.leftShade || darkenColor(baseColor, 0.30);
+  const lightSide = opts.lightSide || 'right';   // 'left' or 'right' edge gets the rim light
+  const rim       = opts.rim       || lightenColor(baseColor, 0.45);
+  ctx.save();
+  // Front face
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(x, y + depth, w, h);
+  // Top face — parallelogram receding away from the camera
+  ctx.fillStyle = topShade;
+  ctx.beginPath();
+  ctx.moveTo(x,         y + depth);
+  ctx.lineTo(x + depth, y);
+  ctx.lineTo(x + w + depth, y);
+  ctx.lineTo(x + w,     y + depth);
+  ctx.closePath(); ctx.fill();
+  // Side face (right side recedes)
+  ctx.fillStyle = leftShade;
+  ctx.beginPath();
+  ctx.moveTo(x + w,         y + depth);
+  ctx.lineTo(x + w + depth, y);
+  ctx.lineTo(x + w + depth, y + h);
+  ctx.lineTo(x + w,         y + h + depth);
+  ctx.closePath(); ctx.fill();
+  // Rim light along the lit edge
+  ctx.strokeStyle = rim;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  if (lightSide === 'right') {
+    ctx.moveTo(x + w + depth, y); ctx.lineTo(x + w + depth, y + h);
+  } else {
+    ctx.moveTo(x, y + depth); ctx.lineTo(x, y + depth + h);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Colour utilities for the volume helpers.
+function _hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+function _rgbToHex(r,g,b) {
+  const h = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2,'0');
+  return '#' + h(r) + h(g) + h(b);
+}
+function lightenColor(hex, amt) {
+  const [r,g,b] = _hexToRgb(hex);
+  return _rgbToHex(r + (255-r)*amt, g + (255-g)*amt, b + (255-b)*amt);
+}
+function darkenColor(hex, amt) {
+  const [r,g,b] = _hexToRgb(hex);
+  return _rgbToHex(r * (1-amt), g * (1-amt), b * (1-amt));
+}
+
+// Apply a room-wide LIGHTING PASS over the canvas. Call AFTER drawing
+// the floor + walls but BEFORE props, so light + shadow read on top
+// of the base layer but underneath the props. Multiplies a darkening
+// overlay then ADDS warm/cool key lights at specified positions.
+//
+// lights: [{x, y, radius, color, intensity}]
+function applyRoomLighting(ctx, W, H, ambientHex, lights) {
+  ctx.save();
+  // Ambient darken (multiply) — pushes the room into shadow so the
+  // key lights have something to lift OUT of.
+  ctx.fillStyle = ambientHex || 'rgba(0,0,0,0.42)';
+  ctx.fillRect(0, 0, W, H);
+  // Additive warm/cool key lights
+  ctx.globalCompositeOperation = 'lighter';
+  for (const lt of (lights || [])) {
+    const g = ctx.createRadialGradient(lt.x, lt.y, 4, lt.x, lt.y, lt.radius);
+    g.addColorStop(0, lt.color);
+    g.addColorStop(0.55, _fadeColor(lt.color, 0.35));
+    g.addColorStop(1, _fadeColor(lt.color, 0));
+    ctx.globalAlpha = lt.intensity != null ? lt.intensity : 1.0;
+    ctx.fillStyle = g;
+    ctx.fillRect(lt.x - lt.radius, lt.y - lt.radius, lt.radius*2, lt.radius*2);
+  }
+  ctx.restore();
+}
+function _fadeColor(rgba, mult) {
+  // rgba string like 'rgba(60,224,224,0.85)' — multiply the alpha.
+  const m = rgba.match(/rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*(?:,\s*([0-9.]+))?\s*\)/);
+  if (!m) return rgba;
+  const r = m[1], g = m[2], b = m[3];
+  const a = (m[4] != null ? parseFloat(m[4]) : 1) * mult;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// Cast a long beam of light from a directional source (e.g. bay door
+// or window). `from` = world coords of the light source, `dir` = unit
+// vector of beam direction, `width` = beam half-width at the source.
+function drawLightBeam(ctx, fromX, fromY, dx, dy, length, halfW, color) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  // Perpendicular vector for the beam edges
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx/len, uy = dy/len;
+  const px = -uy, py = ux;     // perpendicular
+  const farX = fromX + ux * length;
+  const farY = fromY + uy * length;
+  const farHalf = halfW * 3;   // beam fans out
+  const grad = ctx.createLinearGradient(fromX, fromY, farX, farY);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, _fadeColor(color, 0));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(fromX + px*halfW, fromY + py*halfW);
+  ctx.lineTo(fromX - px*halfW, fromY - py*halfW);
+  ctx.lineTo(farX  - px*farHalf, farY  - py*farHalf);
+  ctx.lineTo(farX  + px*farHalf, farY  + py*farHalf);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 // ============================================================
@@ -2699,6 +2918,45 @@ function drawMaysRoom(ctx, room){
   drawSconce(ctx, 4*64, 64, p.candle, t, 31);
   drawSconce(ctx, 13*64, 64, p.candle, t, 17);
 
+  // ===== 11) VOLUMETRIC LIGHTING PASS =====
+  // Multi-source candle/window lighting overlay so the room reads as 3D:
+  //  - Cool blue window-light cones from each left-wall alcove (cast east)
+  //  - Warm candle pool under the iron chandelier (centre-overhead)
+  //  - Warm candle pool under the vanity candelabra
+  //  - Warm halo around the rug iron-candle
+  //  - Long bed-post shadows falling SOUTH (cast by the chandelier light)
+  // Long bed-post shadows
+  const bedShadowDir = { x: 0, y: 1 };
+  castFloorShadow(ctx, 1.2*64, 4.6*64,     0.5*64, 0.5*64, bedShadowDir, { opacity: 0.45, length: 1.6, blur: 5 });
+  castFloorShadow(ctx, 5.2*64 - 0.4*64, 4.6*64, 0.5*64, 0.5*64, bedShadowDir, { opacity: 0.45, length: 1.6, blur: 5 });
+  // Dress mannequin shadow
+  castEllipseShadow(ctx, 2.7*64, 11.4*64, 26, 8, { x: 0.3 }, 0.55);
+  // Vanity shadow (cast east from window-light)
+  castFloorShadow(ctx, 13.5*64, 6.0*64, 4.0*64, 3.0*64, { x: 0.4, y: 0.6 }, { opacity: 0.4, length: 0.8, blur: 6 });
+
+  // Cool window-light pools from the 3 alcoves on the left wall
+  const lights = [];
+  for (let i = 0; i < 3; i++) {
+    const ay = 2*64 + i * 2.6*64 + 1.1*64;
+    lights.push({ x: 1.2*64, y: ay, radius: 200, color: 'rgba(168,196,232,0.85)', intensity: 0.35 + 0.05*Math.sin(t*0.8 + i) });
+  }
+  // Warm chandelier pool (centre)
+  lights.push({ x: 9*64, y: 7*64, radius: 320, color: 'rgba(255,210,140,0.85)', intensity: 0.55 + 0.10*Math.sin(t*1.1) });
+  // Warm vanity candelabra pool
+  lights.push({ x: 15.0*64, y: 5.7*64, radius: 160, color: 'rgba(255,196,116,0.85)', intensity: 0.55 + 0.12*Math.sin(t*1.6 + 1.3) });
+  // Rug iron-candle small halo
+  lights.push({ x: 6.7*64, y: 11.2*64, radius: 110, color: 'rgba(255,168,80,0.85)', intensity: 0.45 + 0.18*Math.sin(t*2.4 + 0.7) });
+  // Two top sconces
+  lights.push({ x: 4*64, y: 1*64, radius: 130, color: 'rgba(255,180,80,0.7)', intensity: 0.40 + 0.10*Math.sin(t*1.8 + 0.4) });
+  lights.push({ x: 13*64, y: 1*64, radius: 130, color: 'rgba(255,180,80,0.7)', intensity: 0.40 + 0.10*Math.sin(t*1.8 + 1.7) });
+  applyRoomLighting(ctx, W, H, 'rgba(6,3,18,0.35)', lights);
+
+  // Cinematic blue light beams from each alcove (sweep east across the floor)
+  for (let i = 0; i < 3; i++) {
+    const ay = 2*64 + i * 2.6*64 + 1.1*64;
+    drawLightBeam(ctx, 1.2*64, ay, 1.0, 0.4, 320, 18, 'rgba(168,196,232,0.18)');
+  }
+
   // Faint floor stencil
   ctx.save();
   ctx.font = 'bold 11px Cinzel,Georgia,serif';
@@ -3364,6 +3622,19 @@ function drawSurgeHanger(ctx, room){
   drawHoverShip(ctx, 18.6*64, 9.5*64, 4.2*64, 3.2*64, true,  t);
 
   // Back-line props (workbench + fuel cells against the south wall)
+  // Add proper drop-shadows behind each prop (light comes from the bay door
+  // at the NORTH, so shadows fall SOUTH/down-screen).
+  const lightDir = { x: 0, y: 1 };
+  castFloorShadow(ctx, 1.6*64,  13.6*64, 4.5*64, 1.4*64, lightDir, { opacity: 0.55, length: 0.6 });
+  castFloorShadow(ctx, 17.6*64, 13.6*64, 4.6*64, 1.4*64, lightDir, { opacity: 0.55, length: 0.6 });
+  castFloorShadow(ctx, 7.8*64,  7.5*64,  3.0*64, 2.4*64, lightDir, { opacity: 0.6, length: 1.0 });
+  castFloorShadow(ctx, 13.2*64, 9.6*64,  3.0*64, 2.4*64, lightDir, { opacity: 0.6, length: 1.0 });
+  // Hover-ship shadows — longer because they're parked at the north end
+  castFloorShadow(ctx, 1.2*64,  3.5*64,  4.2*64, 3.2*64, lightDir, { opacity: 0.55, length: 1.4 });
+  castFloorShadow(ctx, 1.2*64,  9.5*64,  4.2*64, 3.2*64, lightDir, { opacity: 0.5,  length: 1.2 });
+  castFloorShadow(ctx, 18.6*64, 3.5*64,  4.2*64, 3.2*64, lightDir, { opacity: 0.55, length: 1.4 });
+  castFloorShadow(ctx, 18.6*64, 9.5*64,  4.2*64, 3.2*64, lightDir, { opacity: 0.5,  length: 1.2 });
+
   drawWorkbench(ctx, 1.6*64,  13.6*64, 4.5*64, 1.4*64, t);
   drawFuelCells(ctx, 17.6*64, 13.6*64, 4.6*64, 1.4*64, t);
   // RUNWAY cargo — cages sit ON the central runway as obstacles the
@@ -4690,6 +4961,217 @@ function drawCathedral(ctx, room) {
   ctx.restore();
 }
 
+// ====== STATUE PEDESTAL (3D stone) ======
+function drawStatuePedestal(ctx, x, y, w, h) {
+  ctx.save();
+  // Drop shadow under the pedestal (long, soft)
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#000';
+  if (ctx.filter !== undefined) ctx.filter = 'blur(4px)';
+  ctx.beginPath();
+  ctx.ellipse(x + w/2, y + h + 8, w*0.6, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+  if (ctx.filter !== undefined) ctx.filter = 'none';
+  ctx.restore();
+  // Three stepped tiers — each smaller than the last
+  const tiers = [
+    { x: x,        y: y + h*0.55, w: w,        h: h*0.45, c: '#2a1828', top:'#3a2438' },
+    { x: x + w*0.08, y: y + h*0.30, w: w*0.84, h: h*0.30, c: '#3a2438', top:'#4a304a' },
+    { x: x + w*0.18, y: y + h*0.10, w: w*0.64, h: h*0.25, c: '#4a304a', top:'#5a3a5a' },
+  ];
+  for (const ti of tiers) {
+    ctx.fillStyle = ti.c;
+    ctx.fillRect(ti.x, ti.y, ti.w, ti.h);
+    ctx.fillStyle = ti.top;
+    ctx.beginPath();
+    ctx.moveTo(ti.x,         ti.y);
+    ctx.lineTo(ti.x + 8,     ti.y - 6);
+    ctx.lineTo(ti.x + ti.w + 8, ti.y - 6);
+    ctx.lineTo(ti.x + ti.w,  ti.y);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = darkenColor(ti.c, 0.30);
+    ctx.beginPath();
+    ctx.moveTo(ti.x + ti.w,     ti.y);
+    ctx.lineTo(ti.x + ti.w + 8, ti.y - 6);
+    ctx.lineTo(ti.x + ti.w + 8, ti.y + ti.h - 6);
+    ctx.lineTo(ti.x + ti.w,     ti.y + ti.h);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+    ctx.strokeRect(ti.x + 0.5, ti.y + 0.5, ti.w - 1, ti.h - 1);
+  }
+  ctx.restore();
+}
+
+// ====== REAPER STATUE 3D (volumetric, layered shading + scythe + eye glow) ======
+function drawReaperStatue3D(ctx, cx, top, t, seedOffset) {
+  ctx.save();
+  // Subtle drop shadow under the statue itself
+  ctx.save();
+  ctx.globalAlpha = 0.40;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(cx, top + 92, 22, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // Body backshadow + front face
+  ctx.fillStyle = '#020108';
+  ctx.beginPath();
+  ctx.moveTo(cx-22, top+18); ctx.lineTo(cx-32, top+92);
+  ctx.lineTo(cx+32, top+92); ctx.lineTo(cx+22, top+18);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1a1024';
+  ctx.beginPath();
+  ctx.moveTo(cx-18, top+22); ctx.lineTo(cx-26, top+90);
+  ctx.lineTo(cx+26, top+90); ctx.lineTo(cx+18, top+22);
+  ctx.closePath(); ctx.fill();
+  // Robe pleats
+  ctx.strokeStyle = 'rgba(80,60,110,0.45)'; ctx.lineWidth = 1.2;
+  for (let i = -2; i <= 2; i++) {
+    const px = cx + i * 8;
+    ctx.beginPath();
+    ctx.moveTo(px, top + 24); ctx.lineTo(px + i*1.2, top + 88);
+    ctx.stroke();
+  }
+  // Rim light along right edge
+  ctx.strokeStyle = 'rgba(255,210,140,0.45)'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(cx+18, top+22); ctx.lineTo(cx+26, top+90);
+  ctx.stroke();
+
+  // Hood
+  ctx.fillStyle = '#06040c';
+  ctx.beginPath();
+  ctx.moveTo(cx-16, top+22);
+  ctx.bezierCurveTo(cx-22, top-2, cx+22, top-2, cx+16, top+22);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(cx, top+12, 9, 11, 0, 0, Math.PI*2); ctx.fill();
+  // Eye glints
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const eyeGlow = 0.5 + 0.5 * Math.sin(t * 0.7 + (seedOffset || 0));
+  ctx.fillStyle = `rgba(255,210,140,${0.30 * eyeGlow})`;
+  ctx.fillRect(cx-4, top+9, 3, 2);
+  ctx.fillRect(cx+1, top+9, 3, 2);
+  ctx.restore();
+  // Hood rim
+  ctx.strokeStyle = 'rgba(120,90,140,0.4)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx-16, top+22);
+  ctx.bezierCurveTo(cx-22, top-2, cx+22, top-2, cx+16, top+22);
+  ctx.stroke();
+
+  // Scythe
+  ctx.fillStyle = '#1c1410';
+  ctx.fillRect(cx+22, top+22, 4, 70);
+  ctx.fillStyle = '#3a2a1c';
+  ctx.fillRect(cx+22, top+22, 1.5, 70);
+  ctx.fillStyle = '#7a6a52';
+  ctx.beginPath();
+  ctx.moveTo(cx+26, top+22);
+  ctx.quadraticCurveTo(cx+58, top+12, cx+50, top+44);
+  ctx.lineTo(cx+26, top+34);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#c0a878'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx+26, top+22);
+  ctx.quadraticCurveTo(cx+58, top+12, cx+50, top+44);
+  ctx.stroke();
+  ctx.fillStyle = '#9d6f48';
+  ctx.fillRect(cx+20, top+20, 8, 4);
+  ctx.restore();
+}
+
+// ====== 3D HOLOGRAPHIC DISPLAY ======
+function drawHologramDisplay(ctx, cx, cy, t, scale, glyph, color) {
+  ctx.save();
+  // Shadow under base
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = '#000';
+  if (ctx.filter !== undefined) ctx.filter = 'blur(3px)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 36*scale, 22*scale, 5*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+  if (ctx.filter !== undefined) ctx.filter = 'none';
+  ctx.restore();
+  // Projector base
+  ctx.fillStyle = '#0a0612';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 32*scale, 18*scale, 5*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#3a2510';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 31*scale, 14*scale, 3.5*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#9d6f48';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 30*scale, 10*scale, 2.5*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Beam up to the holographic core
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const beam = ctx.createLinearGradient(cx, cy + 28*scale, cx, cy - 30*scale);
+  beam.addColorStop(0, 'rgba(255,186,102,0.55)');
+  beam.addColorStop(1, 'rgba(255,186,102,0)');
+  ctx.fillStyle = beam;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10*scale, cy + 28*scale);
+  ctx.lineTo(cx + 10*scale, cy + 28*scale);
+  ctx.lineTo(cx + 4*scale,  cy - 30*scale);
+  ctx.lineTo(cx - 4*scale,  cy - 30*scale);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // Rotating 3D sigil rings
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 0.7 + 0.3 * Math.sin(t * 2);
+  for (let r = 0; r < 3; r++) {
+    const angle = t * (0.6 + r * 0.3) + r * 1.1;
+    const tilt = Math.sin(t * 0.7 + r) * 0.4;
+    const rr   = (16 + r * 6) * scale;
+    const yy   = cy + (r - 1) * 4 * scale;
+    ctx.save();
+    ctx.translate(cx, yy);
+    ctx.rotate(angle);
+    ctx.scale(1, 0.32 + tilt * 0.3);
+    ctx.strokeStyle = `rgba(255,186,102,${0.7 * pulse})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI*2); ctx.stroke();
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI*2;
+      ctx.fillStyle = `rgba(255,210,140,${0.85 * pulse})`;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr, 1.6, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // Central glyph
+  ctx.font = `bold ${26*scale}px Cinzel,Georgia,serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = color; ctx.shadowBlur = 18 * scale;
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.85 * pulse;
+  ctx.fillText(glyph, cx, cy);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Floor light cast
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.25 * pulse;
+  const floorGrad = ctx.createRadialGradient(cx, cy + 30*scale, 4, cx, cy + 30*scale, 50*scale);
+  floorGrad.addColorStop(0, color);
+  floorGrad.addColorStop(1, 'rgba(255,186,102,0)');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(cx - 50*scale, cy + 8*scale, 100*scale, 60*scale);
+  ctx.restore();
+  ctx.restore();
+}
+
+
 function drawReaperStatue(ctx, cx, top, t) {
   ctx.save();
   ctx.fillStyle = '#06040c';
@@ -5830,17 +6312,110 @@ function interact(){
     });
     return;
   }
+  // NPC interactions get a sprite-cropped portrait shown in the modal
+  if (it.__npc) {
+    openModal(it.title, it.body, 'AMBIENT QUIP', { npc: it.__npc });
+    return;
+  }
   openModal(it.title, it.body, 'LORE FRAGMENT');
 }
-function openModal(title, body, eyebrow){
+function openModal(title, body, eyebrow, opts){
+  opts = opts || {};
   document.getElementById('modalEye').textContent = eyebrow || 'LORE FRAGMENT';
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').textContent = body;
+  // Render the character portrait (cropped from sprite-sheet) if an NPC
+  // or explicit sheet name was supplied. Hides otherwise.
+  const portrait = document.getElementById('modalPortrait');
+  const sheetName = (opts.npc && opts.npc.sheet) || opts.sheet;
+  if (sheetName && renderCharacterPortrait(portrait, sheetName)) {
+    portrait.classList.add('show');
+  } else {
+    portrait.classList.remove('show');
+  }
   document.getElementById('modal').classList.add('show');
 }
 window.closeModal = function(){
   document.getElementById('modal').classList.remove('show');
 };
+
+// Render a 120×150 character portrait by cropping the HEAD + TORSO region
+// of a loaded sprite-sheet's first idle frame. Per user spec: "use cropped
+// versions of the existing sprite sheets as portraits".
+// Returns true on success, false if the sprite isn't loaded yet.
+function renderCharacterPortrait(canvas, sheetName) {
+  if (!canvas) return false;
+  // Pick an idle-down frame if the sheet itself isn't one (e.g. romaine_wave
+  // is the wave-anim — use the first frame of the cleanest pose).
+  let sheet = sprites[sheetName];
+  if (!sheet) {
+    // Try alternates: <name>_idle, <name>_idle_down, idle_down
+    const altNames = [sheetName + '_idle', sheetName + '_idle_down', 'idle_down', sheetName];
+    for (const a of altNames) {
+      if (sprites[a]) { sheet = sprites[a]; sheetName = a; break; }
+    }
+  }
+  const meta = SPRITE_META[sheetName];
+  if (!sheet || !meta) return false;
+  const c = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  c.clearRect(0, 0, W, H);
+  // Painterly background (dark bronze gradient) so the portrait stands out
+  const bg = c.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#1a0e08');
+  bg.addColorStop(1, '#06030a');
+  c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  // Source crop: first frame of the sheet, upper 60% (head + torso).
+  // Frame layout: meta.frame_w wide, meta.frame_h tall, first frame at (0,0).
+  const fw = meta.frame_w, fh = meta.frame_h;
+  // The sprite-sheets are 256 wide but the actual character body occupies
+  // roughly the central 60% horizontally. Crop tighter to focus on the body.
+  const sx = fw * 0.20;
+  const sy = 0;
+  const sw = fw * 0.60;
+  const sh = fh * 0.58;   // head + torso (idle frames)
+  // Destination: leave a small border, preserve aspect ratio
+  const pad = 6;
+  const dstW = W - pad*2;
+  const dstH = H - pad*2;
+  const srcAr = sw / sh;
+  const dstAr = dstW / dstH;
+  let dx, dy, dw, dh;
+  if (srcAr > dstAr) {
+    // wider than dest → fit width
+    dw = dstW; dh = dw / srcAr;
+    dx = pad; dy = pad + (dstH - dh) / 2;
+  } else {
+    dh = dstH; dw = dh * srcAr;
+    dy = pad; dx = pad + (dstW - dw) / 2;
+  }
+  c.imageSmoothingEnabled = false;
+  c.drawImage(sheet, sx, sy, sw, sh, dx, dy, dw, dh);
+  // Warm key-light gradient overlay (top-right) — gives the portrait depth
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  const key = c.createRadialGradient(W*0.75, H*0.20, 4, W*0.75, H*0.20, W*0.9);
+  key.addColorStop(0, 'rgba(255,210,140,0.22)');
+  key.addColorStop(1, 'rgba(255,210,140,0)');
+  c.fillStyle = key; c.fillRect(0, 0, W, H);
+  c.restore();
+  // Inner vignette (bottom-left shadow)
+  c.save();
+  const sh2 = c.createRadialGradient(W*0.30, H*0.85, 4, W*0.30, H*0.85, W);
+  sh2.addColorStop(0, 'rgba(0,0,0,0)');
+  sh2.addColorStop(1, 'rgba(0,0,0,0.55)');
+  c.fillStyle = sh2; c.fillRect(0, 0, W, H);
+  c.restore();
+  // Brass cornerpiece accents
+  c.strokeStyle = '#9d6f48'; c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(2, 14); c.lineTo(2, 2); c.lineTo(14, 2);
+  c.moveTo(W-14, 2); c.lineTo(W-2, 2); c.lineTo(W-2, 14);
+  c.moveTo(2, H-14); c.lineTo(2, H-2); c.lineTo(14, H-2);
+  c.moveTo(W-14, H-2); c.lineTo(W-2, H-2); c.lineTo(W-2, H-14);
+  c.stroke();
+  return true;
+}
 
 let hintCurrent = '';
 function showHint(text){
@@ -6329,7 +6904,11 @@ window.addEventListener('keydown', e => {
   else if (e.code === 'KeyE' && (e.ctrlKey || e.metaKey)) loadRoom('obsidian');
   else if (e.code === 'KeyR' && (e.ctrlKey || e.metaKey)) loadRoom('navigators');
   else if (e.code === 'KeyT' && (e.ctrlKey || e.metaKey)) loadRoom('lower_deck');
+  else if (e.code === 'KeyG' && (e.ctrlKey || e.metaKey)) loadRoom('grand_hall');
 });
+// Expose loadRoom on window for testing harnesses + dev console
+window.loadRoom = loadRoom;
+window.gameState = state;
 
 const dpadEl = document.getElementById('dpad');
 dpadEl.querySelectorAll('.btn').forEach(b => {

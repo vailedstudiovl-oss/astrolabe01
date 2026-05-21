@@ -70,6 +70,20 @@ async def astrolabe_game():
     return FileResponse(html_path, media_type="text/html")
 
 
+@api_router.get("/astrolabe-game-v2")
+async def astrolabe_game_v2():
+    """Serves the v2 launcher — boots Astrolabe v2 (merged lore + live intel + canon codex)."""
+    html_path = ROOT_DIR / "static" / "launcher_v2.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
+@api_router.get("/astrolabe-v2")
+async def astrolabe_v2_direct():
+    """Direct-serve the monolithic Astrolabe v2 HTML (bypasses chunked launcher)."""
+    html_path = ROOT_DIR / "static" / "astrolabe_v2.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
 @api_router.get("/astrolabe-legacy")
 async def astrolabe_legacy():
     """Serves the original monolithic Astrolabe HTML (fallback / debugging)."""
@@ -257,6 +271,94 @@ async def list_recent_lore(limit: int = Query(20, ge=1, le=100)):
     """Recent community lore across all targets — used for an Activity feed."""
     cursor = db.lore_contributions.find({"hidden": False}).sort("created_at", -1).limit(limit)
     return [LoreContribution(**d) async for d in cursor]
+
+
+# ---------- Canon Lore Ticker ----------
+# Lightweight endpoint that returns short canon-flavored "intel" snippets
+# extracted from the consolidated lore corpus. Used by the Astrolabe Intel
+# Ticker to mix ambient canon truth between dynamic community contributions
+# and the static fallback templates.
+
+_CANON_TICKER_CACHE: Optional[List[Dict[str, str]]] = None
+
+_CANON_TAG_MAP = [
+    # (substring matcher, tag, type)
+    ("centurion",  "CENTURION",  "normal"),
+    ("centura",    "CENTURA",    "normal"),
+    ("reaper",     "REAPER",     "normal"),
+    ("vampe",      "VAMPERICA",  "alert"),
+    ("vamper",     "VAMPERICA",  "alert"),
+    ("strata",     "STRATA",     "normal"),
+    ("drege",      "ENGINE",     "shadow"),
+    ("endless",    "ENDLESS",    "shadow"),
+    ("abyss",      "ABYSS",      "shadow"),
+    ("god",        "OMEN",       "shadow"),
+    ("cult",       "CULT",       "alert"),
+    ("watcher",    "OMEN",       "shadow"),
+    ("muggai",     "BAZAAR",     "trade"),
+    ("trade",      "BAZAAR",     "trade"),
+    ("market",     "MARKET",     "trade"),
+    ("auction",    "MARKET",     "trade"),
+    ("death",      "MASTER",     "shadow"),
+    ("maytrad",    "MAYTRADALIS","normal"),
+    ("elystria",   "ELYSTRIA",   "normal"),
+    ("cryious",    "CRYIOUS",    "normal"),
+    ("breach",     "BREACH",     "alert"),
+    ("anomaly",    "ANOMALY",    "shadow"),
+]
+
+
+def _classify_canon_sentence(s: str) -> Dict[str, str]:
+    """Tag + classify a single canon sentence for the ticker."""
+    lower = s.lower()
+    for needle, tag, kind in _CANON_TAG_MAP:
+        if needle in lower:
+            return {"type": kind, "tag": tag, "text": s.strip()}
+    return {"type": "normal", "tag": "CANON", "text": s.strip()}
+
+
+def _build_canon_ticker(max_items: int = 60) -> List[Dict[str, str]]:
+    """Slice the lore corpus into short ticker sentences."""
+    global _CANON_TICKER_CACHE
+    if _CANON_TICKER_CACHE is not None:
+        return _CANON_TICKER_CACHE
+    corpus = _load_lore_corpus()
+    if not corpus:
+        _CANON_TICKER_CACHE = []
+        return _CANON_TICKER_CACHE
+    # Split on sentence boundaries; keep only mid-length, informative lines.
+    raw_sentences = re.split(r"(?<=[.!?])\s+", corpus)
+    candidates: List[Dict[str, str]] = []
+    for s in raw_sentences:
+        s = re.sub(r"\s+", " ", s).strip()
+        # Drop too-short or too-long lines, headings, bullet markers,
+        # and obvious code-style strings.
+        if len(s) < 40 or len(s) > 220:
+            continue
+        if s.startswith(("#", "*", "-", ">")):
+            continue
+        # Strip leading list markers if present.
+        s = re.sub(r"^[\*\-•·]\s*", "", s)
+        candidates.append(_classify_canon_sentence(s))
+        if len(candidates) >= max_items:
+            break
+    _CANON_TICKER_CACHE = candidates
+    return _CANON_TICKER_CACHE
+
+
+@api_router.get("/lore/canon")
+async def list_canon_ticker(limit: int = Query(20, ge=1, le=80)):
+    """Returns canon-derived ticker items for the Astrolabe Intel Feed.
+
+    Each item is `{ type, tag, text }` matching the existing INTEL_TEMPLATES
+    shape in the Astrolabe HTML so they can be merged into the ticker
+    transparently without client-side reshaping.
+    """
+    items = _build_canon_ticker()
+    # Shuffle each call so the ticker doesn't always show the same snippets
+    import random
+    sample = random.sample(items, min(limit, len(items)))
+    return sample
 
 
 # ============================================================

@@ -1,20 +1,3 @@
-{
-  "version": 1,
-  "chunks": [
-    {
-      "name": "astrolabe.css",
-      "size": 86976,
-      "hash": "6b7d625098c0"
-    },
-    {
-      "name": "astrolabe-body.html",
-      "size": 56275,
-      "hash": "131523350c26"
-    },
-    {
-      "name": "astrolabe-engine.js",
-      "size": 373846,
-      "hash": "f18bfd0d9b22"
-    }
-  ]
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:328ec498b3b0a532941922a62cdf0ad8adc816f7c501691eaab93f54248ddc4c
+size 331

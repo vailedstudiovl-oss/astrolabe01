@@ -2578,3 +2578,72 @@ metadata_addendum:
 
             Verified live: 6 rooms screenshotted on desktop, all render
             with their volumetric lighting overlay. No JS errors.
+
+# ============================================================================
+# 2026-02-21 — RESTORATION + V2 MERGE SESSION
+# ============================================================================
+#
+# CRITICAL FIX: Git LFS pointer stubs detected
+# --------------------------------------------
+#   Every PNG/JPG/GIF/MP4 in /app/backend/static was a 131-byte LFS pointer
+#   (not the actual binary). Git LFS was not installed in this fork's
+#   environment, which is why:
+#     - Maytradalis sprites failed to render in Death's Ship
+#     - All character portraits, sheets, splash images were broken
+#     - aa_2.mp4 / fun_1.mp4 / reality_*.gif / hangar_backdrop.png ALL broken
+#
+#   Fix applied:
+#     1. apt-get install -y git-lfs
+#     2. git lfs install
+#     3. git lfs pull
+#   Result: 144 LFS-tracked files restored to full binary content.
+#
+#   Verified post-fix:
+#     - /api/static/deaths_ship/sprites/may_run_down.png → 435 KB (real PNG)
+#     - /api/static/dlds_splash.png → 1.19 MB (matches manifest)
+#     - Screenshot of /api/deaths-ship shows Maytradalis + 2 Elite Reapers
+#       rendering correctly in the Command Floor scene.
+#
+# ============================================================================
+# V2 MERGE — completed
+# ============================================================================
+# - /app/backend/static/astrolabe_v2.html created (copy of merged astrolabe.html)
+# - /app/backend/static/launcher_v2.html created (v2-branded boot loader,
+#   points at /api/static/chunks_v2/)
+# - /app/backend/static/chunks_v2/* generated (css + body + engine + manifest)
+# - /app/backend/scripts/split_astrolabe_v2.py added (v2 chunker)
+# - server.py routes added:
+#     /api/astrolabe-game-v2  → serves launcher_v2.html
+#     /api/astrolabe-v2       → serves monolithic astrolabe_v2.html
+# - main_menu.html: primary "ASTROLABE TERMINAL" tile now points at v2
+# - service-worker.js: VERSION bumped to v6, shell assets include v2 routes,
+#   deaths-ship + lore use networkFirst too (prevents future stale-cache traps)
+#
+# Intel Ticker LIVE upgrade (in both v1 + v2 chunks):
+#   - astrolabe.html buildIntelTicker() now merges:
+#       /api/lore/recent  → community contributions
+#       /api/lore/canon   → canon-derived ticker snippets (NEW endpoint)
+#       INTEL_TEMPLATES   → static fallback flavor
+#
+# New /api/lore/canon endpoint (server.py):
+#   - Slices the consolidated lore corpus into ticker-shaped items
+#     ({type, tag, text}) so the Astrolabe Intel Feed has fresh canon
+#     material without manual curation.
+#   - Tag classifier maps keywords → CENTURION/REAPER/VAMPERICA/STRATA/etc.
+#   - Cached in-memory; random sample per call.
+#
+# Verified routes (curl):
+#   /api/astrolabe          → 200 (81765 bytes, main menu)
+#   /api/astrolabe-game     → 200 (31183 bytes, v1 launcher)
+#   /api/astrolabe-game-v2  → 200 (31210 bytes, v2 launcher)
+#   /api/astrolabe-v2       → 200 (522816 bytes, v2 direct)
+#   /api/deaths-ship        → 200 (329670 bytes)
+#   /api/lore/canon?limit=5 → 200 (5 valid items returned)
+#   /api/static/deaths_ship/sprites/may_run_down.png → 200 (435649 bytes ✓)
+#
+# Screenshot evidence:
+#   /tmp/main_menu.png       — main menu loads, primary link → v2
+#   /tmp/deaths_ship.png     — Maytradalis + 2 Elite Reapers rendering in
+#                              the Command Floor with sigil overlay + HUD
+#   /tmp/launcher_v2.png     — v2 launcher boot intro / Astrolabe Terminal
+#                              calibration animation playing successfully

@@ -1,3 +1,8 @@
+# Track common large binary assets (use `git lfs install` on developer machines)
+backend/static/** filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text
 backend/static/**/*.png filter=lfs diff=lfs merge=lfs -text
 backend/static/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 backend/static/**/*.jpeg filter=lfs diff=lfs merge=lfs -text

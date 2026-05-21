@@ -1,4 +1,833 @@
 {
   "version": 1,
-  "assets": {}
+  "assets": {
+    "holo_projector.jpg": {
+      "path": "/api/static/holo_projector.jpg",
+      "size": 13115
+    },
+    "deaths_ship.html": {
+      "path": "/api/static/deaths_ship.html",
+      "size": 329509
+    },
+    "icon-192.png": {
+      "path": "/api/static/icon-192.png",
+      "size": 42594
+    },
+    "dlds_splash.png": {
+      "path": "/api/static/dlds_splash.png",
+      "size": 1193211
+    },
+    "_inspect_idle.png": {
+      "path": "/api/static/_inspect_idle.png",
+      "size": 65125
+    },
+    "astrolabe.html": {
+      "path": "/api/static/astrolabe.html",
+      "size": 521004
+    },
+    "dimensionlock_theme.mp3": {
+      "path": "/api/static/dimensionlock_theme.mp3",
+      "size": 5665689
+    },
+    "service-worker.js": {
+      "path": "/api/static/service-worker.js",
+      "size": 4974
+    },
+    "icon-maskable-512.png": {
+      "path": "/api/static/icon-maskable-512.png",
+      "size": 122325
+    },
+    "icon-apple.png": {
+      "path": "/api/static/icon-apple.png",
+      "size": 38764
+    },
+    "fun_1.mp4": {
+      "path": "/api/static/fun_1.mp4",
+      "size": 2580084
+    },
+    "reality_red.gif": {
+      "path": "/api/static/reality_red.gif",
+      "size": 938878
+    },
+    "_inspect_run.png": {
+      "path": "/api/static/_inspect_run.png",
+      "size": 83122
+    },
+    "launcher.html": {
+      "path": "/api/static/launcher.html",
+      "size": 31183
+    },
+    "hangar_backdrop.png": {
+      "path": "/api/static/hangar_backdrop.png",
+      "size": 1401352
+    },
+    "icon-512.png": {
+      "path": "/api/static/icon-512.png",
+      "size": 148962
+    },
+    "reality_violet.gif": {
+      "path": "/api/static/reality_violet.gif",
+      "size": 2810029
+    },
+    "config.js": {
+      "path": "/api/static/config.js",
+      "size": 3262
+    },
+    "manifest.json": {
+      "path": "/api/static/manifest.json",
+      "size": 739
+    },
+    "dl_opening_theme.mp3": {
+      "path": "/api/static/dl_opening_theme.mp3",
+      "size": 2408535
+    },
+    "lore.html": {
+      "path": "/api/static/lore.html",
+      "size": 56540
+    },
+    "main_menu.html": {
+      "path": "/api/static/main_menu.html",
+      "size": 81225
+    },
+    "aa_2.mp4": {
+      "path": "/api/static/aa_2.mp4",
+      "size": 4114562
+    },
+    "_inspect_all.png": {
+      "path": "/api/static/_inspect_all.png",
+      "size": 344829
+    },
+    "adsense_loader.js": {
+      "path": "/api/static/adsense_loader.js",
+      "size": 3692
+    },
+    "chunks/astrolabe-body.html": {
+      "path": "/api/static/chunks/astrolabe-body.html",
+      "size": 56275
+    },
+    "chunks/manifest.json": {
+      "path": "/api/static/chunks/manifest.json",
+      "size": 331
+    },
+    "chunks/astrolabe-engine.js": {
+      "path": "/api/static/chunks/astrolabe-engine.js",
+      "size": 373846
+    },
+    "chunks/astrolabe.css": {
+      "path": "/api/static/chunks/astrolabe.css",
+      "size": 86976
+    },
+    "characters/flybutt_portrait.png": {
+      "path": "/api/static/characters/flybutt_portrait.png",
+      "size": 71547
+    },
+    "characters/madoria_portrait.jpg": {
+      "path": "/api/static/characters/madoria_portrait.jpg",
+      "size": 37488
+    },
+    "characters/maytradalis_portrait.jpg": {
+      "path": "/api/static/characters/maytradalis_portrait.jpg",
+      "size": 40652
+    },
+    "characters/maytradalis_sheet.jpg": {
+      "path": "/api/static/characters/maytradalis_sheet.jpg",
+      "size": 115395
+    },
+    "characters/tenebris_sheet.png": {
+      "path": "/api/static/characters/tenebris_sheet.png",
+      "size": 943648
+    },
+    "characters/lurker_husks_portrait.png": {
+      "path": "/api/static/characters/lurker_husks_portrait.png",
+      "size": 249309
+    },
+    "characters/lurker_sheet.png": {
+      "path": "/api/static/characters/lurker_sheet.png",
+      "size": 246553
+    },
+    "characters/elystria_sheet.png": {
+      "path": "/api/static/characters/elystria_sheet.png",
+      "size": 560520
+    },
+    "characters/death_portrait.png": {
+      "path": "/api/static/characters/death_portrait.png",
+      "size": 168800
+    },
+    "characters/cryious_sheet.jpg": {
+      "path": "/api/static/characters/cryious_sheet.jpg",
+      "size": 130969
+    },
+    "characters/flybutt_sheet.png": {
+      "path": "/api/static/characters/flybutt_sheet.png",
+      "size": 245978
+    },
+    "characters/elystria_portrait.png": {
+      "path": "/api/static/characters/elystria_portrait.png",
+      "size": 98027
+    },
+    "characters/cryious_portrait.jpg": {
+      "path": "/api/static/characters/cryious_portrait.jpg",
+      "size": 40379
+    },
+    "characters/centurion_sheet.png": {
+      "path": "/api/static/characters/centurion_sheet.png",
+      "size": 1175342
+    },
+    "characters/centurion_sheet_v2.png": {
+      "path": "/api/static/characters/centurion_sheet_v2.png",
+      "size": 3735824
+    },
+    "characters/lurker_portrait.png": {
+      "path": "/api/static/characters/lurker_portrait.png",
+      "size": 151816
+    },
+    "characters/tenebris_portrait.png": {
+      "path": "/api/static/characters/tenebris_portrait.png",
+      "size": 360778
+    },
+    "characters/madoria_sheet.jpg": {
+      "path": "/api/static/characters/madoria_sheet.jpg",
+      "size": 174869
+    },
+    "characters/death_sheet.png": {
+      "path": "/api/static/characters/death_sheet.png",
+      "size": 718651
+    },
+    "characters/lurker_husks_sheet.png": {
+      "path": "/api/static/characters/lurker_husks_sheet.png",
+      "size": 1125197
+    },
+    "characters/centurion_portrait.png": {
+      "path": "/api/static/characters/centurion_portrait.png",
+      "size": 655743
+    },
+    "deaths_ship/refs/hangar_with_may.jpg": {
+      "path": "/api/static/deaths_ship/refs/hangar_with_may.jpg",
+      "size": 1179784
+    },
+    "deaths_ship/refs/creation_leveler_engine.png": {
+      "path": "/api/static/deaths_ship/refs/creation_leveler_engine.png",
+      "size": 4986927
+    },
+    "deaths_ship/refs/court_of_judgement.png": {
+      "path": "/api/static/deaths_ship/refs/court_of_judgement.png",
+      "size": 3608939
+    },
+    "deaths_ship/refs/hangar_backdrop.png": {
+      "path": "/api/static/deaths_ship/refs/hangar_backdrop.png",
+      "size": 1226920
+    },
+    "deaths_ship/refs/hangar_endless_view.jpg": {
+      "path": "/api/static/deaths_ship/refs/hangar_endless_view.jpg",
+      "size": 896077
+    },
+    "deaths_ship/refs/engine_room.png": {
+      "path": "/api/static/deaths_ship/refs/engine_room.png",
+      "size": 3845958
+    },
+    "deaths_ship/refs/reaper_market.png": {
+      "path": "/api/static/deaths_ship/refs/reaper_market.png",
+      "size": 5113760
+    },
+    "deaths_ship/refs/soul_infestation_centurion.png": {
+      "path": "/api/static/deaths_ship/refs/soul_infestation_centurion.png",
+      "size": 5082948
+    },
+    "deaths_ship/sprites/may_idle_up.png": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_up.png",
+      "size": 300894
+    },
+    "deaths_ship/sprites/romaine_idle.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_idle.png",
+      "size": 476115
+    },
+    "deaths_ship/sprites/cryious_idle_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_raw.png",
+      "size": 304586
+    },
+    "deaths_ship/sprites/elystria_idle.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_idle.png",
+      "size": 326904
+    },
+    "deaths_ship/sprites/run_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/run_up_raw.png",
+      "size": 431525
+    },
+    "deaths_ship/sprites/romaine_wave.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_wave.png",
+      "size": 552337
+    },
+    "deaths_ship/sprites/death_idle_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/death_idle_raw.png",
+      "size": 394136
+    },
+    "deaths_ship/sprites/cryious_run_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_run_raw.png",
+      "size": 291054
+    },
+    "deaths_ship/sprites/engineer_idle.png": {
+      "path": "/api/static/deaths_ship/sprites/engineer_idle.png",
+      "size": 282697
+    },
+    "deaths_ship/sprites/elystria_walk_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_walk_raw.png",
+      "size": 379235
+    },
+    "deaths_ship/sprites/elite1_walk_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_down.png",
+      "size": 680487
+    },
+    "deaths_ship/sprites/elystria_run.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_run.png",
+      "size": 380060
+    },
+    "deaths_ship/sprites/engineer_run.png": {
+      "path": "/api/static/deaths_ship/sprites/engineer_run.png",
+      "size": 409052
+    },
+    "deaths_ship/sprites/may_run_right.json": {
+      "path": "/api/static/deaths_ship/sprites/may_run_right.json",
+      "size": 121
+    },
+    "deaths_ship/sprites/elite3_idle_right.json": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_right.json",
+      "size": 129
+    },
+    "deaths_ship/sprites/elite1_walk_right.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_right.png",
+      "size": 468518
+    },
+    "deaths_ship/sprites/engineer_run_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/engineer_run_raw.png",
+      "size": 507016
+    },
+    "deaths_ship/sprites/elexus_walk_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_right_raw.png",
+      "size": 580279
+    },
+    "deaths_ship/sprites/elexus_walk_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_up_raw.png",
+      "size": 505520
+    },
+    "deaths_ship/sprites/elite2_idle_right.json": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_right.json",
+      "size": 129
+    },
+    "deaths_ship/sprites/cryious_idle.json": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/may_run_up.json": {
+      "path": "/api/static/deaths_ship/sprites/may_run_up.json",
+      "size": 118
+    },
+    "deaths_ship/sprites/run_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/run_right_raw.png",
+      "size": 494624
+    },
+    "deaths_ship/sprites/elystria_walk.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_walk.png",
+      "size": 309034
+    },
+    "deaths_ship/sprites/romaine_idle.json": {
+      "path": "/api/static/deaths_ship/sprites/romaine_idle.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/cryious_idle_down.json": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_down.json",
+      "size": 129
+    },
+    "deaths_ship/sprites/romaine_run.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_run.png",
+      "size": 615237
+    },
+    "deaths_ship/sprites/idle_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/idle_right_raw.png",
+      "size": 337751
+    },
+    "deaths_ship/sprites/elexus_walk_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_down.json",
+      "size": 128
+    },
+    "deaths_ship/sprites/elexus_walk_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_up.json",
+      "size": 126
+    },
+    "deaths_ship/sprites/romaine_run_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_run_raw.png",
+      "size": 739294
+    },
+    "deaths_ship/sprites/cryious_run.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_run.png",
+      "size": 230078
+    },
+    "deaths_ship/sprites/elexus_run_right.json": {
+      "path": "/api/static/deaths_ship/sprites/elexus_run_right.json",
+      "size": 128
+    },
+    "deaths_ship/sprites/elite2_walk_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_walk_up_raw.png",
+      "size": 473777
+    },
+    "deaths_ship/sprites/elite3_idle_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_right_raw.png",
+      "size": 864579
+    },
+    "deaths_ship/sprites/may_idle_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_up_raw.png",
+      "size": 364789
+    },
+    "deaths_ship/sprites/romaine_walk_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_walk_raw.png",
+      "size": 604756
+    },
+    "deaths_ship/sprites/elexus_walk_right.json": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_right.json",
+      "size": 129
+    },
+    "deaths_ship/sprites/may_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_down_raw.png",
+      "size": 416096
+    },
+    "deaths_ship/sprites/may_idle_up.json": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_up.json",
+      "size": 123
+    },
+    "deaths_ship/sprites/elite3_run_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_run_up_raw.png",
+      "size": 539812
+    },
+    "deaths_ship/sprites/elystria_run_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_run_raw.png",
+      "size": 465289
+    },
+    "deaths_ship/sprites/cryious_idle_down.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_down.png",
+      "size": 314688
+    },
+    "deaths_ship/sprites/cryious_idle_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_up_raw.png",
+      "size": 296822
+    },
+    "deaths_ship/sprites/elite2_idle_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_down.png",
+      "size": 455085
+    },
+    "deaths_ship/sprites/elystria_walk.json": {
+      "path": "/api/static/deaths_ship/sprites/elystria_walk.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/elite3_idle_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_up.json",
+      "size": 126
+    },
+    "deaths_ship/sprites/engineer_walk.png": {
+      "path": "/api/static/deaths_ship/sprites/engineer_walk.png",
+      "size": 307119
+    },
+    "deaths_ship/sprites/death_walk.json": {
+      "path": "/api/static/deaths_ship/sprites/death_walk.json",
+      "size": 122
+    },
+    "deaths_ship/sprites/elite2_idle_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_down.json",
+      "size": 128
+    },
+    "deaths_ship/sprites/elite2_idle_right.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_right.png",
+      "size": 513125
+    },
+    "deaths_ship/sprites/romaine_walk.json": {
+      "path": "/api/static/deaths_ship/sprites/romaine_walk.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/may_idle_right.png": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_right.png",
+      "size": 270045
+    },
+    "deaths_ship/sprites/elystria_idle.json": {
+      "path": "/api/static/deaths_ship/sprites/elystria_idle.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/elexus_walk_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_up.png",
+      "size": 409810
+    },
+    "deaths_ship/sprites/may_idle_down.json": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_down.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/romaine_sleep_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_sleep_raw.png",
+      "size": 541406
+    },
+    "deaths_ship/sprites/elite3_idle_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_down.png",
+      "size": 564036
+    },
+    "deaths_ship/sprites/cryious_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_down_raw.png",
+      "size": 389104
+    },
+    "deaths_ship/sprites/cryious_walk.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_walk.png",
+      "size": 249937
+    },
+    "deaths_ship/sprites/elite1_walk_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_up.png",
+      "size": 306266
+    },
+    "deaths_ship/sprites/elite1_walk_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_up_raw.png",
+      "size": 365660
+    },
+    "deaths_ship/sprites/may_run_up.png": {
+      "path": "/api/static/deaths_ship/sprites/may_run_up.png",
+      "size": 344482
+    },
+    "deaths_ship/sprites/cryious_walk.json": {
+      "path": "/api/static/deaths_ship/sprites/cryious_walk.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/elexus_run_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_run_down.png",
+      "size": 411130
+    },
+    "deaths_ship/sprites/elite3_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_down_raw.png",
+      "size": 630714
+    },
+    "deaths_ship/sprites/elite1_run_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elite1_run_down.json",
+      "size": 127
+    },
+    "deaths_ship/sprites/elite1_walk_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_up.json",
+      "size": 126
+    },
+    "deaths_ship/sprites/elexus_walk_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_down.png",
+      "size": 527938
+    },
+    "deaths_ship/sprites/romaine_wave_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_wave_raw.png",
+      "size": 769833
+    },
+    "deaths_ship/sprites/elystria_idle_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elystria_idle_down.json",
+      "size": 130
+    },
+    "deaths_ship/sprites/cryious_idle.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle.png",
+      "size": 245063
+    },
+    "deaths_ship/sprites/engineer_run.json": {
+      "path": "/api/static/deaths_ship/sprites/engineer_run.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/may_run_down.json": {
+      "path": "/api/static/deaths_ship/sprites/may_run_down.json",
+      "size": 120
+    },
+    "deaths_ship/sprites/elite2_idle_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_up.json",
+      "size": 126
+    },
+    "deaths_ship/sprites/elite3_idle_right.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_right.png",
+      "size": 648172
+    },
+    "deaths_ship/sprites/elystria_run.json": {
+      "path": "/api/static/deaths_ship/sprites/elystria_run.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/elite1_walk_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_down_raw.png",
+      "size": 810782
+    },
+    "deaths_ship/sprites/death_walk.png": {
+      "path": "/api/static/deaths_ship/sprites/death_walk.png",
+      "size": 183153
+    },
+    "deaths_ship/sprites/elite1_run_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_run_down_raw.png",
+      "size": 546932
+    },
+    "deaths_ship/sprites/elexus_walk_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_down_raw.png",
+      "size": 614260
+    },
+    "deaths_ship/sprites/elite2_walk_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_walk_up.png",
+      "size": 394046
+    },
+    "deaths_ship/sprites/death_walk_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/death_walk_raw.png",
+      "size": 234290
+    },
+    "deaths_ship/sprites/engineer_walk.json": {
+      "path": "/api/static/deaths_ship/sprites/engineer_walk.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/may_reference.jpg": {
+      "path": "/api/static/deaths_ship/sprites/may_reference.jpg",
+      "size": 127717
+    },
+    "deaths_ship/sprites/cryious_run.json": {
+      "path": "/api/static/deaths_ship/sprites/cryious_run.json",
+      "size": 123
+    },
+    "deaths_ship/sprites/elite3_idle_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_down.json",
+      "size": 128
+    },
+    "deaths_ship/sprites/may_idle_right.json": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_right.json",
+      "size": 122
+    },
+    "deaths_ship/sprites/elite1_run_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_run_up.png",
+      "size": 275192
+    },
+    "deaths_ship/sprites/may_run_down.png": {
+      "path": "/api/static/deaths_ship/sprites/may_run_down.png",
+      "size": 435649
+    },
+    "deaths_ship/sprites/elite3_walk_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_walk_right_raw.png",
+      "size": 801272
+    },
+    "deaths_ship/sprites/elite2_idle_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_right_raw.png",
+      "size": 697822
+    },
+    "deaths_ship/sprites/elexus_run_right.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_run_right.png",
+      "size": 326553
+    },
+    "deaths_ship/sprites/elite3_walk_right.json": {
+      "path": "/api/static/deaths_ship/sprites/elite3_walk_right.json",
+      "size": 129
+    },
+    "deaths_ship/sprites/elystria_idle_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_idle_down.png",
+      "size": 416854
+    },
+    "deaths_ship/sprites/elite1_run_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_run_up_raw.png",
+      "size": 333427
+    },
+    "deaths_ship/sprites/death_idle.png": {
+      "path": "/api/static/deaths_ship/sprites/death_idle.png",
+      "size": 324661
+    },
+    "deaths_ship/sprites/sprites_manifest.json": {
+      "path": "/api/static/deaths_ship/sprites/sprites_manifest.json",
+      "size": 7090
+    },
+    "deaths_ship/sprites/romaine_wave.json": {
+      "path": "/api/static/deaths_ship/sprites/romaine_wave.json",
+      "size": 124
+    },
+    "deaths_ship/sprites/engineer_idle.json": {
+      "path": "/api/static/deaths_ship/sprites/engineer_idle.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/process_sprites.py": {
+      "path": "/api/static/deaths_ship/sprites/process_sprites.py",
+      "size": 10620
+    },
+    "deaths_ship/sprites/engineer_walk_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/engineer_walk_raw.png",
+      "size": 380159
+    },
+    "deaths_ship/sprites/elite2_idle_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_up_raw.png",
+      "size": 312260
+    },
+    "deaths_ship/sprites/elexus_run_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_run_down_raw.png",
+      "size": 485314
+    },
+    "deaths_ship/sprites/romaine_run.json": {
+      "path": "/api/static/deaths_ship/sprites/romaine_run.json",
+      "size": 123
+    },
+    "deaths_ship/sprites/elexus_run_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_run_right_raw.png",
+      "size": 402791
+    },
+    "deaths_ship/sprites/elite3_idle_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_up_raw.png",
+      "size": 559888
+    },
+    "deaths_ship/sprites/run_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/run_down_raw.png",
+      "size": 522932
+    },
+    "deaths_ship/sprites/death_idle.json": {
+      "path": "/api/static/deaths_ship/sprites/death_idle.json",
+      "size": 122
+    },
+    "deaths_ship/sprites/elystria_idle_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_idle_raw.png",
+      "size": 392914
+    },
+    "deaths_ship/sprites/elite1_run_down.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_run_down.png",
+      "size": 466289
+    },
+    "deaths_ship/sprites/elite3_run_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_run_up.png",
+      "size": 446476
+    },
+    "deaths_ship/sprites/elite1_walk_right.json": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_right.json",
+      "size": 129
+    },
+    "deaths_ship/sprites/may_idle_down.png": {
+      "path": "/api/static/deaths_ship/sprites/may_idle_down.png",
+      "size": 336725
+    },
+    "deaths_ship/sprites/cryious_idle_up.json": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_up.json",
+      "size": 127
+    },
+    "deaths_ship/sprites/romaine_sleep.json": {
+      "path": "/api/static/deaths_ship/sprites/romaine_sleep.json",
+      "size": 123
+    },
+    "deaths_ship/sprites/romaine_idle_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_idle_raw.png",
+      "size": 642909
+    },
+    "deaths_ship/sprites/elite1_walk_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_right_raw.png",
+      "size": 541088
+    },
+    "deaths_ship/sprites/elite2_idle_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_up.png",
+      "size": 252609
+    },
+    "deaths_ship/sprites/cryious_walk_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_walk_raw.png",
+      "size": 312413
+    },
+    "deaths_ship/sprites/elite1_walk_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elite1_walk_down.json",
+      "size": 128
+    },
+    "deaths_ship/sprites/elite3_run_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elite3_run_up.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/elystria_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elystria_idle_down_raw.png",
+      "size": 487956
+    },
+    "deaths_ship/sprites/may_run_right.png": {
+      "path": "/api/static/deaths_ship/sprites/may_run_right.png",
+      "size": 394196
+    },
+    "deaths_ship/sprites/engineer_idle_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/engineer_idle_raw.png",
+      "size": 348226
+    },
+    "deaths_ship/sprites/elite3_idle_up.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_idle_up.png",
+      "size": 476905
+    },
+    "deaths_ship/sprites/elite1_run_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elite1_run_up.json",
+      "size": 125
+    },
+    "deaths_ship/sprites/elite2_walk_up.json": {
+      "path": "/api/static/deaths_ship/sprites/elite2_walk_up.json",
+      "size": 126
+    },
+    "deaths_ship/sprites/elite3_walk_right.png": {
+      "path": "/api/static/deaths_ship/sprites/elite3_walk_right.png",
+      "size": 631221
+    },
+    "deaths_ship/sprites/elexus_run_down.json": {
+      "path": "/api/static/deaths_ship/sprites/elexus_run_down.json",
+      "size": 127
+    },
+    "deaths_ship/sprites/elite2_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite2_idle_down_raw.png",
+      "size": 530248
+    },
+    "deaths_ship/sprites/cryious_idle_up.png": {
+      "path": "/api/static/deaths_ship/sprites/cryious_idle_up.png",
+      "size": 237019
+    },
+    "deaths_ship/sprites/romaine_sleep.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_sleep.png",
+      "size": 457662
+    },
+    "deaths_ship/sprites/elexus_walk_right.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_walk_right.png",
+      "size": 494575
+    },
+    "deaths_ship/sprites/romaine_walk.png": {
+      "path": "/api/static/deaths_ship/sprites/romaine_walk.png",
+      "size": 498381
+    },
+    "deaths_ship/sprites/elite_raw/elite2_walk_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_walk_up_raw.png",
+      "size": 473777
+    },
+    "deaths_ship/sprites/elite_raw/elite3_idle_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_idle_right_raw.png",
+      "size": 864579
+    },
+    "deaths_ship/sprites/elite_raw/elite3_run_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_run_up_raw.png",
+      "size": 539812
+    },
+    "deaths_ship/sprites/elite_raw/elite3_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_idle_down_raw.png",
+      "size": 630714
+    },
+    "deaths_ship/sprites/elite_raw/elite3_walk_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_walk_right_raw.png",
+      "size": 801272
+    },
+    "deaths_ship/sprites/elite_raw/elite2_idle_right_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_idle_right_raw.png",
+      "size": 697822
+    },
+    "deaths_ship/sprites/elite_raw/elite2_idle_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_idle_up_raw.png",
+      "size": 312260
+    },
+    "deaths_ship/sprites/elite_raw/elite3_idle_up_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_idle_up_raw.png",
+      "size": 559888
+    },
+    "deaths_ship/sprites/elite_raw/elite2_idle_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_idle_down_raw.png",
+      "size": 530248
+    },
+    "deaths_ship/sprites/elexus_raw/elexus_run_down_raw.png": {
+      "path": "/api/static/deaths_ship/sprites/elexus_raw/elexus_run_down_raw.png",
+      "size": 485314
+    },
+    "models/centurion/centurion.mtl": {
+      "path": "/api/static/models/centurion/centurion.mtl",
+      "size": 263
+    },
+    "models/centurion/centurion_orig.png": {
+      "path": "/api/static/models/centurion/centurion_orig.png",
+      "size": 7556164
+    },
+    "models/centurion/centurion.obj": {
+      "path": "/api/static/models/centurion/centurion.obj",
+      "size": 981485
+    },
+    "models/centurion/centurion.jpg": {
+      "path": "/api/static/models/centurion/centurion.jpg",
+      "size": 388226
+    }
+  }
 }

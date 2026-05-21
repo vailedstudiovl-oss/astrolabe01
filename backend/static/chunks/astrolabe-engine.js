@@ -598,7 +598,7 @@
             generatePOIHalos();
             generatePOIHolograms();
             generatePolarCaps();        // chromatic shells + gravity-bend warp arcs at +99 / -99 axes
-            generateProjectorDais();    // persistent holographic projector at the base of the map
+            // generateProjectorDais();  // DELETED per user request — the central 3D dais object was removed from the scene
             generateSoulSeedWeb();      // spider-web network of soul-seed connections across creation
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);

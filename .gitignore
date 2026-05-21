@@ -89,6 +89,16 @@ credentials.json
 *.key
 .credentials
 -e 
+# Local frontend caches and build artifacts
+/frontend/node_modules/
+/frontend/.metro-cache/
+/frontend/.expo/
+/frontend/.ruff_cache/
+/frontend/.cache/
+
+# Sprite raw duplicates (cleaned by tools)
+/backend/static/deaths_ship/sprites/*_raw.png
+
 # Environment and credential files
 .env
 .env.*

@@ -7,7 +7,7 @@
     },
     "deaths_ship.html": {
       "path": "/api/static/deaths_ship.html",
-      "size": 329509
+      "size": 329670
     },
     "icon-192.png": {
       "path": "/api/static/icon-192.png",
@@ -87,7 +87,7 @@
     },
     "main_menu.html": {
       "path": "/api/static/main_menu.html",
-      "size": 81225
+      "size": 81751
     },
     "aa_2.mp4": {
       "path": "/api/static/aa_2.mp4",
@@ -100,6 +100,94 @@
     "adsense_loader.js": {
       "path": "/api/static/adsense_loader.js",
       "size": 3692
+    },
+    "assets_repo/characters/centurion_sheet_v2.png": {
+      "path": "/api/static/assets_repo/characters/centurion_sheet_v2.png",
+      "size": 3735824
+    },
+    "assets_repo/deaths_ship/refs/hangar_with_may.jpg": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/hangar_with_may.jpg",
+      "size": 1179784
+    },
+    "assets_repo/deaths_ship/refs/creation_leveler_engine.png": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/creation_leveler_engine.png",
+      "size": 4986927
+    },
+    "assets_repo/deaths_ship/refs/court_of_judgement.png": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/court_of_judgement.png",
+      "size": 3608939
+    },
+    "assets_repo/deaths_ship/refs/hangar_backdrop.png": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/hangar_backdrop.png",
+      "size": 1226920
+    },
+    "assets_repo/deaths_ship/refs/hangar_endless_view.jpg": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/hangar_endless_view.jpg",
+      "size": 896077
+    },
+    "assets_repo/deaths_ship/refs/engine_room.png": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/engine_room.png",
+      "size": 3845958
+    },
+    "assets_repo/deaths_ship/refs/reaper_market.png": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/reaper_market.png",
+      "size": 5113760
+    },
+    "assets_repo/deaths_ship/refs/soul_infestation_centurion.png": {
+      "path": "/api/static/assets_repo/deaths_ship/refs/soul_infestation_centurion.png",
+      "size": 5082948
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite2_walk_up_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite2_walk_up_raw.png",
+      "size": 473777
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite3_idle_right_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite3_idle_right_raw.png",
+      "size": 864579
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite3_run_up_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite3_run_up_raw.png",
+      "size": 539812
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite3_idle_down_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite3_idle_down_raw.png",
+      "size": 630714
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite3_walk_right_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite3_walk_right_raw.png",
+      "size": 801272
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite2_idle_right_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite2_idle_right_raw.png",
+      "size": 697822
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite2_idle_up_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite2_idle_up_raw.png",
+      "size": 312260
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite3_idle_up_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite3_idle_up_raw.png",
+      "size": 559888
+    },
+    "assets_repo/deaths_ship/sprites/elite_raw/elite2_idle_down_raw.png": {
+      "path": "/api/static/assets_repo/deaths_ship/sprites/elite_raw/elite2_idle_down_raw.png",
+      "size": 530248
+    },
+    "assets_repo/models/centurion/centurion.mtl": {
+      "path": "/api/static/assets_repo/models/centurion/centurion.mtl",
+      "size": 263
+    },
+    "assets_repo/models/centurion/centurion_orig.png": {
+      "path": "/api/static/assets_repo/models/centurion/centurion_orig.png",
+      "size": 7556164
+    },
+    "assets_repo/models/centurion/centurion.obj": {
+      "path": "/api/static/assets_repo/models/centurion/centurion.obj",
+      "size": 981485
+    },
+    "assets_repo/models/centurion/centurion.jpg": {
+      "path": "/api/static/assets_repo/models/centurion/centurion.jpg",
+      "size": 388226
     },
     "chunks/astrolabe-body.html": {
       "path": "/api/static/chunks/astrolabe-body.html",
@@ -173,10 +261,6 @@
       "path": "/api/static/characters/centurion_sheet.png",
       "size": 1175342
     },
-    "characters/centurion_sheet_v2.png": {
-      "path": "/api/static/characters/centurion_sheet_v2.png",
-      "size": 3735824
-    },
     "characters/lurker_portrait.png": {
       "path": "/api/static/characters/lurker_portrait.png",
       "size": 151816
@@ -201,37 +285,9 @@
       "path": "/api/static/characters/centurion_portrait.png",
       "size": 655743
     },
-    "deaths_ship/refs/hangar_with_may.jpg": {
-      "path": "/api/static/deaths_ship/refs/hangar_with_may.jpg",
-      "size": 1179784
-    },
-    "deaths_ship/refs/creation_leveler_engine.png": {
-      "path": "/api/static/deaths_ship/refs/creation_leveler_engine.png",
-      "size": 4986927
-    },
-    "deaths_ship/refs/court_of_judgement.png": {
-      "path": "/api/static/deaths_ship/refs/court_of_judgement.png",
-      "size": 3608939
-    },
-    "deaths_ship/refs/hangar_backdrop.png": {
-      "path": "/api/static/deaths_ship/refs/hangar_backdrop.png",
-      "size": 1226920
-    },
-    "deaths_ship/refs/hangar_endless_view.jpg": {
-      "path": "/api/static/deaths_ship/refs/hangar_endless_view.jpg",
-      "size": 896077
-    },
-    "deaths_ship/refs/engine_room.png": {
-      "path": "/api/static/deaths_ship/refs/engine_room.png",
-      "size": 3845958
-    },
-    "deaths_ship/refs/reaper_market.png": {
-      "path": "/api/static/deaths_ship/refs/reaper_market.png",
-      "size": 5113760
-    },
-    "deaths_ship/refs/soul_infestation_centurion.png": {
-      "path": "/api/static/deaths_ship/refs/soul_infestation_centurion.png",
-      "size": 5082948
+    "assets/index.json": {
+      "path": "/api/static/assets/index.json",
+      "size": 2464
     },
     "deaths_ship/sprites/may_idle_up.png": {
       "path": "/api/static/deaths_ship/sprites/may_idle_up.png",
@@ -773,61 +829,13 @@
       "path": "/api/static/deaths_ship/sprites/romaine_walk.png",
       "size": 498381
     },
-    "deaths_ship/sprites/elite_raw/elite2_walk_up_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_walk_up_raw.png",
-      "size": 473777
-    },
-    "deaths_ship/sprites/elite_raw/elite3_idle_right_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_idle_right_raw.png",
-      "size": 864579
-    },
-    "deaths_ship/sprites/elite_raw/elite3_run_up_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_run_up_raw.png",
-      "size": 539812
-    },
-    "deaths_ship/sprites/elite_raw/elite3_idle_down_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_idle_down_raw.png",
-      "size": 630714
-    },
-    "deaths_ship/sprites/elite_raw/elite3_walk_right_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_walk_right_raw.png",
-      "size": 801272
-    },
-    "deaths_ship/sprites/elite_raw/elite2_idle_right_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_idle_right_raw.png",
-      "size": 697822
-    },
-    "deaths_ship/sprites/elite_raw/elite2_idle_up_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_idle_up_raw.png",
-      "size": 312260
-    },
-    "deaths_ship/sprites/elite_raw/elite3_idle_up_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite3_idle_up_raw.png",
-      "size": 559888
-    },
-    "deaths_ship/sprites/elite_raw/elite2_idle_down_raw.png": {
-      "path": "/api/static/deaths_ship/sprites/elite_raw/elite2_idle_down_raw.png",
-      "size": 530248
-    },
     "deaths_ship/sprites/elexus_raw/elexus_run_down_raw.png": {
       "path": "/api/static/deaths_ship/sprites/elexus_raw/elexus_run_down_raw.png",
       "size": 485314
     },
-    "models/centurion/centurion.mtl": {
-      "path": "/api/static/models/centurion/centurion.mtl",
-      "size": 263
-    },
-    "models/centurion/centurion_orig.png": {
-      "path": "/api/static/models/centurion/centurion_orig.png",
-      "size": 7556164
-    },
-    "models/centurion/centurion.obj": {
-      "path": "/api/static/models/centurion/centurion.obj",
-      "size": 981485
-    },
-    "models/centurion/centurion.jpg": {
-      "path": "/api/static/models/centurion/centurion.jpg",
-      "size": 388226
+    "js/asset-loader.js": {
+      "path": "/api/static/js/asset-loader.js",
+      "size": 1600
     }
   }
 }

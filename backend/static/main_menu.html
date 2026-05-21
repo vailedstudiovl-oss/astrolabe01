@@ -26,6 +26,7 @@
     </script>
 
     <script src="/api/static/config.js"></script>
+    <script src="/api/static/js/asset-loader.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -1378,7 +1379,8 @@
 
         function setArchiveVideo(filename) {
             archivesVideo.pause();
-            archivesVideo.src = '/api/static/' + filename;
+            if (window.resolveAssetUrl) archivesVideo.src = window.resolveAssetUrl('/api/static/' + filename);
+            else archivesVideo.src = '/api/static/' + filename;
             archivesVideo.load();
             archivesCaption.textContent = FRAGMENT_INFO[filename] || '';
             // Mark active tab
@@ -1564,6 +1566,14 @@
                 bio: "All data on the Lurker is redacted, withheld, or — in seven recorded instances — actively erased from the wanderer's own memory between observations. What can be confirmed: a tall, beaked figure cloaked in dark green hide, chest-bound with shifting jeweled cells. It is patient. It is watching. It is the reason May trains. The Endless does not name it."
             }
         ];
+
+        // Remap portraits and sheets at runtime using the asset manifest resolver
+        if (window && window.resolveAssetUrl) {
+            ROSTER.forEach(r => {
+                if (r.portrait) r.portrait = window.resolveAssetUrl(r.portrait);
+                if (r.sheet)    r.sheet    = window.resolveAssetUrl(r.sheet);
+            });
+        }
 
         const rosterModal  = document.getElementById('roster-modal');
         const rosterClose  = document.getElementById('roster-close');

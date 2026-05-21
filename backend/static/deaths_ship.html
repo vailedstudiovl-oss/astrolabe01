@@ -180,6 +180,7 @@
 </style>
 <script src="/api/static/config.js"></script>
 <script src="/api/static/adsense_loader.js" defer></script>
+<script src="/api/static/js/asset-loader.js"></script>
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -5457,7 +5458,8 @@ async function loadAllSprites() {
     const img = new Image();
     img.onload = () => { window.HANGAR_BACKDROP_IMG = img; resolve(); };
     img.onerror = () => { console.warn('hangar backdrop failed to load'); resolve(); };
-    img.src = '/api/static/hangar_backdrop.png';
+    if (window.resolveAssetUrl) img.src = window.resolveAssetUrl('/api/static/hangar_backdrop.png');
+    else img.src = '/api/static/hangar_backdrop.png';
   });
 }
 

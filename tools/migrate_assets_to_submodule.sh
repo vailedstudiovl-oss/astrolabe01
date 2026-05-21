@@ -32,6 +32,7 @@ for p in "${MOVE_PATHS[@]}"; do echo " - $p"; done
 
 cd "$ROOT_DIR/backend/static"
 
+export ROOT_DIR
 for p in "${MOVE_PATHS[@]}"; do
   if [ -e "$p" ]; then
     dest="$ASSETS_DIR/$(dirname "$p")"
@@ -44,19 +45,20 @@ for p in "${MOVE_PATHS[@]}"; do
 done
 
 echo "Updating backend/static/assets/index.json to point to assets_repo where applicable..."
-python3 - <<'PY'
-import json, sys, pathlib
-root = pathlib.Path('$ROOT_DIR')
+python3 - <<PY
+import json
+from pathlib import Path
+import os
+root = Path(os.environ['ROOT_DIR'])
 manifest = root / 'backend' / 'static' / 'assets' / 'index.json'
 if not manifest.exists():
     print('No manifest at', manifest)
-    sys.exit(0)
+    raise SystemExit(0)
 data = json.loads(manifest.read_text())
 assets = data.get('assets', {})
 updated = False
-for k,v in list(assets.items()):
+for k, v in list(assets.items()):
     if k.startswith('deaths_ship/') or k.startswith('characters/') or k.startswith('models/'):
-        # point to assets_repo path under static
         assets[k]['path'] = '/api/static/assets_repo/' + k
         updated = True
 if updated:

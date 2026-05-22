@@ -397,6 +397,9 @@
     </footer>
 
     <!-- Three.js Visual logic & Application states -->
+    <!-- Lore merge module: enriches layerProfiles, wires live intel ticker,
+         adds STRATA LORE CODEX modal, enhances entity-peek with canon data. -->
+    <script src="/api/static/js/astrolabe_lore_module.js" defer></script>
     <script>
         // Setup initial state & state controllers
         const STATE = {
@@ -449,6 +452,11 @@
             }
         }
         generateLayerProfiles();
+
+        // ── PUBLIC HOOKS for the LORE MERGE MODULE ───────────────────
+        window.STATE         = STATE;
+        window.layerProfiles = layerProfiles;
+        window.dispatchEvent(new Event('astrolabe-engine-ready'));
 
         // Audio System
         function initAudio() {
@@ -1121,11 +1129,36 @@
 
         // Viewport 02 (DEDICATED OBSERVER MAP) Procedural Strata Cylinder Puck Generator
         // RE-ENGINEERED: Matches the exact volumetric aspect ratio and layout of the reference image (BCO.dcd7fd49-c841-422a-a1de-8d0535927c96.png)
+        // P0 FIX: Properly dispose Three.js resources to prevent memory leaks
+        // when the user scrubs the strata slider quickly (each scrub previously
+        // dropped a Group full of geometries/materials/textures on the floor
+        // for the GC to maybe-someday clean up, which would spike VRAM).
+        function disposeThreeNode(node) {
+            if (!node) return;
+            node.traverse(child => {
+                if (child.geometry && typeof child.geometry.dispose === 'function') {
+                    child.geometry.dispose();
+                }
+                if (child.material) {
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                    for (const mat of materials) {
+                        // Dispose any textures attached to the material
+                        for (const k of ['map','normalMap','specularMap','envMap','alphaMap','emissiveMap','aoMap','metalnessMap','roughnessMap']) {
+                            if (mat && mat[k] && typeof mat[k].dispose === 'function') mat[k].dispose();
+                        }
+                        if (mat && typeof mat.dispose === 'function') mat.dispose();
+                    }
+                }
+            });
+        }
+
         // REMOVED: All glowing blue center core light sources and top cap fuzzy cyan singularity structures to strictly respect your design request.
         // FIXED: Re-engineered density function to fully fill the central void with nebulae and realities (black holes), extending seamlessly across the entire disk space.
         function rebuildLocalObserverScene(layerIndex) {
             if (activeLayerGroup) {
                 sceneLocal.remove(activeLayerGroup);
+                disposeThreeNode(activeLayerGroup); // P0 FIX
+                activeLayerGroup = null;
             }
 
             activeLayerGroup = new THREE.Group();
@@ -1482,7 +1515,26 @@
                 starObj.parent.scale.set(1.4, 1.4, 1.4);
                 setTimeout(() => { if (starObj.parent) starObj.parent.scale.set(1, 1, 1); }, 400);
             }
+
+            // Lore-merge hook
+            window.dispatchEvent(new CustomEvent('astrolabe-star-selected', { detail: { star: starObj } }));
+
+            // BUG FIX: force-open the DLDS ASTROLABE DATABANK popup directly
+            // here too. Previously the listener-based path could miss firing
+            // on mobile (touch event dispatch order) — the user reported
+            // clicking a black hole did nothing. Calling openStrataCodex
+            // synchronously guarantees the popup appears.
+            try {
+                const lvl = (typeof starObj.userData.layer === 'number')
+                    ? starObj.userData.layer
+                    : (STATE && STATE.currentLayer) || 0;
+                if (typeof window.openStrataCodex === 'function') {
+                    window.openStrataCodex(lvl);
+                }
+            } catch (e) { /* lore module not loaded yet — silent */ }
         }
+
+        window.selectStarSystem = selectStarSystem;
 
         // Strata selection updates - FULLY DEFINED globally
         function updateLayer(newLvl, forceNoSound = false) {
@@ -1613,56 +1665,73 @@
         }
 
         // Active Anomaly filters scanner sweep (Highlights specific Black Hole Realities)
+        // BUG FIX: Now ACTUALLY filters realities by toggling visibility,
+        // not just flashing them. Toggling a filter twice clears it
+        // (returns to showing everything).
+        if (!STATE.activeFilters) STATE.activeFilters = new Set();
         function triggerAnomalyScanner(realityType) {
             playBeep(520, 'triangle', 0.25, 0.08);
 
-            // Flash buttons matching visual states
+            // Toggle this filter in the active set
+            if (STATE.activeFilters.has(realityType)) {
+                STATE.activeFilters.delete(realityType);
+            } else {
+                STATE.activeFilters.add(realityType);
+            }
+
+            // Visual buttons reflect active filters
             const buttons = {
                 'STABLE': 'filter-stable',
                 'DEAD': 'filter-dead',
                 'INFESTED': 'filter-infested'
             };
-
             Object.keys(buttons).forEach(key => {
                 const btn = document.getElementById(buttons[key]);
-                if (btn) {
-                    if (key === realityType) {
-                        btn.classList.add('btn-active-neon');
-                    } else {
-                        btn.classList.remove('btn-active-neon');
-                    }
-                }
+                if (!btn) return;
+                btn.classList.toggle('btn-active-neon', STATE.activeFilters.has(key));
             });
 
-            // Target matching black hole realities inside the 3D flat cylinder puck
-            let matchCount = 0;
+            // Apply visibility AND a highlight flash to matching realities.
+            let matchCount = 0, hiddenCount = 0;
+            const showAll = STATE.activeFilters.size === 0;
             if (activeLayerGroup) {
                 activeLayerGroup.traverse(child => {
                     if (child.userData && child.userData.isBlackHole) {
-                        const isMatch = child.userData.realityType === realityType;
-                        
-                        // Visual locator lock animation
-                        const diskMesh = child.children[1];
-                        if (diskMesh) {
-                            if (isMatch) {
-                                diskMesh.scale.set(3.0, 3.0, 1); // Extra massive scan flash for the giant viewport
-                                setTimeout(() => {
-                                    if (diskMesh) diskMesh.scale.set(1, 1, 1);
-                                }, 1500);
+                        const matchesActive = STATE.activeFilters.has(child.userData.realityType);
+                        const visible = showAll || matchesActive;
+                        // Toggle the WHOLE star group so children all hide
+                        const starGroup = child;
+                        starGroup.visible = visible;
+                        if (visible) {
+                            const diskMesh = child.children[1];
+                            if (diskMesh && matchesActive) {
+                                diskMesh.scale.set(2.2, 2.2, 1);
+                                setTimeout(() => { if (diskMesh) diskMesh.scale.set(1, 1, 1); }, 1100);
                                 matchCount++;
                             }
+                        } else {
+                            hiddenCount++;
                         }
                     }
                 });
+            }
+            // Also apply to global ring spindles
+            if (typeof globalRings !== 'undefined' && Array.isArray(globalRings)) {
+                for (const r of globalRings) {
+                    const rt = r.userData && r.userData.realityType;
+                    if (rt) r.visible = (showAll || STATE.activeFilters.has(rt));
+                }
             }
 
             // Update logs with scan telemetry results
             const terminal = document.getElementById('terminal-scroll');
             const liveOut = document.getElementById('live-console-output');
-            
             const scanLog = document.createElement('div');
             scanLog.className = "text-[#00ffcc] font-bold";
-            scanLog.innerHTML = `&gt; TACTICAL SWEEP: Scanned massive cylinder puck. Found ${matchCount} active ${realityType} realities out of ${STATE.starsOnLayer.length} mapped sources.`;
+            const filterSummary = STATE.activeFilters.size === 0
+                ? 'CLEARED · showing all realities'
+                : 'Active: ' + Array.from(STATE.activeFilters).join(', ');
+            scanLog.innerHTML = `&gt; FILTER UPDATE :: ${filterSummary} · matched ${matchCount} · hidden ${hiddenCount}`;
             terminal.insertBefore(scanLog, liveOut);
             terminal.scrollTop = terminal.scrollHeight;
         }
@@ -1877,6 +1946,11 @@
         });
         addListenerSafe('act-btn', 'click', () => {
             playBeep(880, 'square', 0.25, 0.15);
+            // Wire up to the Lore Codex from the merge module so [ACT] does
+            // something meaningful — opens the canon lore for the current strata.
+            if (typeof window.openStrataCodex === 'function') {
+                window.openStrataCodex(STATE.currentLayer);
+            }
         });
 
         // Mobile Friendly D-Pad Handlers

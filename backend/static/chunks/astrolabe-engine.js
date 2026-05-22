@@ -1,3 +1,1743 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3d19e7cc74563b7cff2e89a3556c061aaaf176c09edc3d7d5efe541f54e210e5
-size 375658
+// Setup initial state & state controllers
+        const STATE = {
+            currentLayer: 0,
+            viewMode: 'standard', // 'standard', 'factions'
+            projectionMode: 'volumetric', // 'volumetric', 'flat'
+            soundEnabled: false,
+            hudHidden: false,
+            localViewportActive: false, // Tracks if Viewport 02 is open/expanded
+            audioContext: null,
+            synthHum: null,
+            selectedStar: null,
+            starsOnLayer: [],
+            cameraTargetPos: new THREE.Vector3(0, 0, 0),
+            cameraLocalTarget: new THREE.Vector3(0, 0, 0),
+            activeMobileTab: null, // Tracks focused mobile overlay panel
+            soulSeeds: [], // Declared globally inside STATE to hold animating seed references
+            cinematicActive: false // Track active cinematic autopilot
+        };
+
+        // Strata Lore Database
+        const layerProfiles = {};
+        function generateLayerProfiles() {
+            const factions = [
+                "Vyrn Compact", "Drevix Assembly", "Tzarnic Coalition", "Followers of the One Who Watches",
+                "Ornari Regime", "Khelari Dominion", "Elysian Hegemony", "Nether Forge Alliance"
+            ];
+            for (let i = -99; i <= 99; i++) {
+                const seed = Math.sin(i) * 10000;
+                const rInt = (val) => Math.floor(Math.abs(seed * val) % val);
+                let title = `Strata ${i > 0 ? '+' : ''}${i}`;
+                let desc = `Coordinates registered at ${i > 0 ? '+' : ''}${i}. Anomalous density reading detected.`;
+
+                if (i === 0) {
+                    title = "The Origin Hearth (Strata Zero)";
+                    desc = "The centralmost horizon of creation where raw Aether fuels the engine of the galaxies.";
+                } else if (i === 99) {
+                    title = "Celestial Zenith Singularity";
+                    desc = "The highest coordinates registered. Pure dimensional structure of light.";
+                } else if (i === -99) {
+                    title = "The Nether Void Sump";
+                    desc = "The baseline structure of the Seventh Spindle. High entropy decaying vacuum.";
+                }
+
+                layerProfiles[i] = {
+                    title: title,
+                    desc: desc,
+                    faction: factions[rInt(factions.length)]
+                };
+            }
+        }
+        generateLayerProfiles();
+
+        // ── PUBLIC HOOKS for the LORE MERGE MODULE ───────────────────
+        window.STATE         = STATE;
+        window.layerProfiles = layerProfiles;
+        window.dispatchEvent(new Event('astrolabe-engine-ready'));
+
+        // Audio System
+        function initAudio() {
+            if (STATE.audioContext) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                STATE.audioContext = new AudioContext();
+                
+                const osc1 = STATE.audioContext.createOscillator();
+                const osc2 = STATE.audioContext.createOscillator();
+                const filter = STATE.audioContext.createBiquadFilter();
+                const gain = STATE.audioContext.createGain();
+
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(55, STATE.audioContext.currentTime);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(110, STATE.audioContext.currentTime);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(120, STATE.audioContext.currentTime);
+
+                gain.gain.setValueAtTime(0.04, STATE.audioContext.currentTime);
+
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
+                gain.connect(STATE.audioContext.destination);
+
+                osc1.start();
+                osc2.start();
+
+                STATE.synthHum = { osc1, osc2, gain, filter };
+                STATE.soundEnabled = true;
+                updateSoundButtonUI();
+            } catch (err) {}
+        }
+
+        // Helper to draw clean procedural glowing, solid-state spectrogram disks
+        // Generates rich, highly saturated, and beautifully blended radial glow gradients
+        function createGlowPlateTexture(colorHex, innerOpacity = "11", outerOpacity = "dd") {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(size/2, size/2, size*0.1, size/2, size/2, size/2);
+            grad.addColorStop(0, colorHex + innerOpacity);
+            grad.addColorStop(0.55, colorHex + "33");
+            grad.addColorStop(0.85, colorHex + outerOpacity); // bright glowing edge
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function playBeep(freq, type = 'sine', duration = 0.15, vol = 0.1) {
+            if (!STATE.audioContext || !STATE.soundEnabled) return;
+            try {
+                const osc = STATE.audioContext.createOscillator();
+                if (!osc) return;
+                const gainNode = STATE.audioContext.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, STATE.audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(vol, STATE.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, STATE.audioContext.currentTime + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(STATE.audioContext.destination);
+                
+                osc.start();
+                osc.stop(STATE.audioContext.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function playPingSound() {
+            if (!STATE.audioContext || !STATE.soundEnabled) return;
+            playBeep(220, 'sine', 0.8, 0.15);
+            setTimeout(() => playBeep(440, 'triangle', 0.5, 0.1), 100);
+            setTimeout(() => playPingSound880(), 200);
+        }
+        
+        function playPingSound880() {
+            playBeep(880, 'sine', 0.3, 0.05);
+        }
+
+        function updateSoundButtonUI() {
+            const btn = document.getElementById('sound-toggle');
+            if (STATE.soundEnabled) {
+                btn.classList.add('border-purple-400');
+                if (STATE.synthHum) STATE.synthHum.gain.gain.setValueAtTime(0.04, STATE.audioContext.currentTime);
+            } else {
+                btn.classList.remove('border-purple-400');
+                if (STATE.synthHum) STATE.synthHum.gain.gain.setValueAtTime(0, STATE.audioContext.currentTime);
+            }
+        }
+
+        // Defensive event helper to ensure null elements never crash compilation
+        function addListenerSafe(id, event, callback) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener(event, callback);
+            }
+        }
+
+        addListenerSafe('sound-toggle', 'click', () => {
+            if (!STATE.audioContext) {
+                initAudio();
+            } else {
+                STATE.soundEnabled = !STATE.soundEnabled;
+                updateSoundButtonUI();
+            }
+        });
+
+        // procedural fuzzy canvas texture generator (enables fully self-contained gorgeous nebulae look)
+        function createFuzzyTexture(colorHex, innerRadiusFactor = 0.0) {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const grad = ctx.createRadialGradient(size/2, size/2, size/2 * innerRadiusFactor, size/2, size/2, size/2);
+            grad.addColorStop(0, colorHex);
+            grad.addColorStop(0.25, colorHex + 'dd');
+            grad.addColorStop(0.55, colorHex + '33');
+            grad.addColorStop(1.0, 'transparent');
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Helper to draw clean retro terminal-style label cards in 3D Space (matches Screenshot reference)
+        function createStrataLabel(text, yPos, xOffset, isCyan = true) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 384;
+            canvas.height = 48;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw dark background block
+            ctx.fillStyle = 'rgba(5, 5, 12, 0.88)';
+            ctx.fillRect(0, 0, 384, 48);
+            
+            // Draw glowing border
+            ctx.strokeStyle = isCyan ? 'rgba(0, 240, 255, 0.55)' : 'rgba(217, 70, 239, 0.55)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1, 1, 382, 46);
+            
+            // Left indicator notch
+            ctx.fillStyle = isCyan ? '#00f0ff' : '#d946ef';
+            ctx.fillRect(4, 4, 8, 40);
+            
+            // Monospaced text drawing
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px "Share Tech Mono", monospace';
+            ctx.fillText(text, 22, 28);
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.set(xOffset, yPos, 0);
+            sprite.scale.set(6.5, 0.9, 1);
+            return sprite;
+        }
+
+        // Dedicated viewport render loops and elements
+        let sceneGlobal, cameraGlobal, rendererGlobal, controlsGlobal;
+        let sceneLocal, cameraLocal, rendererLocal, controlsLocal;
+        let globalRings = []; 
+        let globalActiveMarker;
+        let activeLayerGroup = null; // Globally declared
+        let raycasterGlobal, raycasterLocal, mouseGlobal, mouseLocal;
+
+        // Custom particle state tracking vectors for active waveform modulation (Cleaned up from dynamic web lanes)
+        const maxSpindles = 199; 
+        const ySpacing = 0.35;    
+
+        // Shared geometries for memory-efficient instancing of hundreds of realities
+        let sharedCoreGeom, sharedDiskGeom, sharedHaloGeom;
+
+        function initThree() {
+            // Setup Viewport 01 (Global Navigation Spindle)
+            const containerGlobal = document.getElementById('canvas-global');
+            const wG = containerGlobal.clientWidth || window.innerWidth;
+            const hG = containerGlobal.clientHeight || window.innerHeight;
+
+            sceneGlobal = new THREE.Scene();
+            sceneGlobal.fog = new THREE.FogExp2(0x010103, 0.015);
+
+            cameraGlobal = new THREE.PerspectiveCamera(50, wG / hG, 0.1, 1000);
+            cameraGlobal.position.set(38, 18, 38);
+
+            rendererGlobal = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            rendererGlobal.setSize(wG, hG);
+            rendererGlobal.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            containerGlobal.appendChild(rendererGlobal.domElement);
+
+            controlsGlobal = new THREE.OrbitControls(cameraGlobal, rendererGlobal.domElement);
+            controlsGlobal.enableDamping = true;
+            controlsGlobal.dampingFactor = 0.05;
+            controlsGlobal.maxPolarAngle = Math.PI - 0.05;
+
+            // Setup Viewport 02 (Dedicated Local Strata Observer)
+            const containerLocal = document.getElementById('canvas-local');
+            const wL = containerLocal.clientWidth || window.innerWidth;
+            const hL = containerLocal.clientHeight || window.innerHeight;
+
+            sceneLocal = new THREE.Scene();
+            
+            // FIXED: Set Viewport 02 background and fog to a premium glowing pearl aqua environment (0x082525)
+            // Replaces the default black space with the high-fidelity deep ocean-lagoon mist seen in reference images
+            sceneLocal.background = new THREE.Color(0x082525); 
+            sceneLocal.fog = new THREE.FogExp2(0x082525, 0.015); 
+
+            cameraLocal = new THREE.PerspectiveCamera(60, wL / hL, 0.1, 1000);
+            cameraLocal.position.set(0, 32, 45); // Tilted down slightly to match the perspective angle of the upload image
+
+            rendererLocal = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            rendererLocal.setSize(wL, hL);
+            rendererLocal.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            containerLocal.appendChild(rendererLocal.domElement);
+
+            controlsLocal = new THREE.OrbitControls(cameraLocal, rendererLocal.domElement);
+            controlsLocal.enableDamping = true;
+            controlsLocal.dampingFactor = 0.05;
+            controlsLocal.enablePan = true;
+            controlsLocal.panSpeed = 1.0;
+            controlsLocal.maxDistance = 250;
+
+            raycasterGlobal = new THREE.Raycaster();
+            mouseGlobal = new THREE.Vector2();
+
+            raycasterLocal = new THREE.Raycaster();
+            mouseLocal = new THREE.Vector2();
+
+            // Setup shared geometries for fast instancing in the massive viewport
+            sharedCoreGeom = new THREE.SphereGeometry(1, 12, 12);
+            sharedDiskGeom = new THREE.PlaneGeometry(1, 1);
+            sharedHaloGeom = new THREE.RingGeometry(1.4, 1.6, 24);
+            sharedHaloGeom.rotateX(Math.PI / 2);
+
+            // FIXED: RESTORED DISTANT AMBIENT ENVIRONMENTAL LIGHTING ONLY FOR GLOBAL SPINDLE
+            const globalAmb = new THREE.AmbientLight(0x0a1435, 1.8);
+            sceneGlobal.add(globalAmb);
+            
+            const distantLight = new THREE.DirectionalLight(0x082545, 0.8);
+            distantLight.position.set(50, 100, 50);
+            sceneGlobal.add(distantLight);
+
+            // FIXED: Lights Local Viewport 02
+            // Bathes all flat pancake disc realities and canyon clouds in a glowing pearl aqua (0x88d8c0) environmental ambient fill
+            const localAmb = new THREE.AmbientLight(0x88d8c0, 3.5);
+            sceneLocal.add(localAmb);
+            
+            const localPoint = new THREE.PointLight(0xd946ef, 4.0, 100);
+            localPoint.position.set(0, 10, 0);
+            sceneLocal.add(localPoint);
+
+            // Build Scene elements
+            buildGlobalSpindle(); // FIXED: Handled renaming correctly
+            buildGlobalActiveIndicator();
+            
+            // Build the local dedicated observer scene safely
+            updateLayer(0, true);
+
+            // Bind triggers
+            window.addEventListener('resize', onWindowResize);
+            containerGlobal.addEventListener('pointerdown', onGlobalPointerDown);
+            containerGlobal.addEventListener('dblclick', onGlobalDoubleClick);
+            containerLocal.addEventListener('pointerdown', onLocalPointerDown);
+            containerLocal.addEventListener('dblclick', onLocalDoubleClick);
+
+            // Initial Layout Adjustment for Viewports
+            onWindowResize();
+
+            animate();
+        }
+
+        // Generate ambient starry background
+        function buildStarrySky() {
+            const count = 1000;
+            const geom = new THREE.BufferGeometry();
+            const positions = [];
+            for (let i = 0; i < count; i++) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 180 + Math.random() * 50;
+
+                positions.push(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.sin(phi) * Math.sin(theta),
+                    r * Math.cos(phi)
+                );
+            }
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.28,
+                transparent: true,
+                opacity: 0.5
+            });
+            sceneGlobal.add(new THREE.Points(geom, mat));
+        }
+
+        // Radius calculation matching tapered stable spindle geometry
+        // OPTIMIZED: Uses a concave power function to make the equator (middlemost) massively flared and concave, matching the reference spindle
+        function calculateRadiusForLayer(layerIndex) {
+            const maxRadius = 24.0; // Increased Equatorial size significantly to show massive prominence
+            const minRadius = 1.5;
+            const t = Math.abs(layerIndex) / 100.0; // Normalized absolute vertical distance from equator
+            // Curved concave power-scale (1.6) creates the razor-sharp equatorial flare tapering elegantly down to the poles
+            return (maxRadius - minRadius) * Math.pow(1.0 - t, 1.6) + minRadius;
+        }
+
+        // Builds Viewport 01 Core Spindle Rings
+        // RE-ENGINEERED: Renders beautiful, fully graphic glowing strata saucers instead of wireframe outlines,
+        // directly duplicating the volumetric, highly saturated light spools in Screenshot 2026-05-20 184353.jpg.
+        function buildGlobalSpindle() {
+            buildStarrySky();
+
+            // Procedural gradient saucer textures
+            const texCyan = createGlowPlateTexture("#00f0ff", "08", "aa");
+            const texMagenta = createGlowPlateTexture("#d946ef", "08", "aa");
+            const texWhite = createGlowPlateTexture("#ffffff", "22", "ff");
+
+            // Stack shared materials for optimal 60fps render calls
+            const matCyan = new THREE.MeshBasicMaterial({
+                map: texCyan,
+                transparent: true,
+                opacity: 0.75,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const matMagenta = new THREE.MeshBasicMaterial({
+                map: texMagenta,
+                transparent: true,
+                opacity: 0.75,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const matWhite = new THREE.MeshBasicMaterial({
+                map: texWhite,
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            // Share one flat plane geometry rotated flatly on the Z-X plane
+            const planeGeom = new THREE.PlaneGeometry(2, 2);
+            planeGeom.rotateX(-Math.PI / 2);
+
+            // 1. Core Spindle Strata Stack
+            for (let i = -99; i <= 99; i++) {
+                const radius = calculateRadiusForLayer(i);
+                const yPos = i * ySpacing;
+                
+                let selectedMat = matCyan;
+                if (i === 0) selectedMat = matWhite;
+                else if (i < 0) selectedMat = matMagenta;
+
+                const saucerMesh = new THREE.Mesh(planeGeom, selectedMat);
+                saucerMesh.position.y = yPos;
+                saucerMesh.scale.set(radius, 1, radius);
+                
+                // Track mesh inside active raycast selector list
+                saucerMesh.userData = { isStrataRing: true, layerIndex: i };
+                sceneGlobal.add(saucerMesh);
+                globalRings.push(saucerMesh);
+
+                // Overlay a sharp geometric scan wireframe at discrete intervals (cyber spectrogram aesthetic)
+                if (i % 10 === 0) {
+                    const lineGeom = new THREE.BufferGeometry();
+                    const vertices = [];
+                    const segments = 48;
+                    for (let s = 0; s <= segments; s++) {
+                        const theta = (s / segments) * Math.PI * 2;
+                        vertices.push(Math.cos(theta) * radius, 0, Math.sin(theta) * radius);
+                    }
+                    lineGeom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                    const edgeLine = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({
+                        color: i === 0 ? 0xffffff : (i > 0 ? 0x00f0ff : 0xd946ef),
+                        transparent: true,
+                        opacity: 0.28
+                    }));
+                    edgeLine.position.y = yPos;
+                    sceneGlobal.add(edgeLine);
+                }
+            }
+
+            // 2. Volumetric misty core nebulae aligned along the Spindle core axis
+            const coreGlowTex = createFuzzyTexture("#00f0ff", 0.08);
+            const coreGlowPurpleTex = createFuzzyTexture("#d946ef", 0.08);
+            
+            for (let j = -12; j <= 12; j++) {
+                const y = j * 2.8;
+                const progress = (y + 35) / 70; // 0 to 1
+                const tex = progress > 0.5 ? coreGlowTex : coreGlowPurpleTex;
+                const coreSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: tex,
+                    transparent: true,
+                    opacity: 0.22,
+                    blending: THREE.AdditiveBlending
+                }));
+                coreSprite.position.set(0, y, 0);
+                const scaleVal = calculateRadiusForLayer(y / ySpacing) * 1.6;
+                coreSprite.scale.set(scaleVal, 5.0, 1.0);
+                sceneGlobal.add(coreSprite);
+            }
+
+            // 3. Prominent Equator Laser plate - reacting physically to dynamic moving lane lights
+            const equatorGeom = new THREE.RingGeometry(1.0, 29.0, 64);
+            equatorGeom.rotateX(Math.PI / 2);
+            const equatorPlate = new THREE.Mesh(equatorGeom, new THREE.MeshPhongMaterial({
+                color: 0x003344, 
+                emissive: 0x001122,
+                specular: 0x00f0ff,
+                shininess: 90,
+                transparent: true,
+                opacity: 0.25,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            }));
+            sceneGlobal.add(equatorPlate);
+
+            // Solid bright horizontal equator line ring
+            const equatorBorder = new THREE.RingGeometry(28.8, 29.2, 64);
+            equatorBorder.rotateX(Math.PI / 2);
+            const equatorBorderMesh = new THREE.Mesh(equatorBorder, new THREE.MeshBasicMaterial({
+                color: 0x00f0ff,
+                transparent: true,
+                opacity: 0.75,
+                side: THREE.DoubleSide
+            }));
+            sceneGlobal.add(equatorBorderMesh);
+
+            // 4. Floating Conical scanning plates at Top (Teal) and Bottom (Magenta) Strata - reacting physically to moving lane lights
+            const topConicalDisk = new THREE.Mesh(new THREE.CylinderGeometry(15.0, 2.0, 0.05, 32), new THREE.MeshPhongMaterial({
+                color: 0x051a30,
+                emissive: 0x011122,
+                specular: 0x0ea5e9,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.25,
+                blending: THREE.AdditiveBlending
+            }));
+            topConicalDisk.position.y = 52 * ySpacing;
+            sceneGlobal.add(topConicalDisk);
+
+            const bottomConicalDisk = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 15.0, 0.05, 32), new THREE.MeshPhongMaterial({
+                color: 0x1f0326,
+                emissive: 0x11021c,
+                specular: 0xd946ef,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.25,
+                blending: THREE.AdditiveBlending
+            }));
+            bottomConicalDisk.position.y = -52 * ySpacing;
+            sceneGlobal.add(bottomConicalDisk);
+
+            // 5. Create the non-linear, organic soul seed lanes winding around the Spindle
+            createSoulSeedLanes();
+
+            // 6. Deploy exact horizontal 3D Strata label cards (As shown in Screenshot 2026-05-20 174218.jpg)
+            sceneGlobal.add(createStrataLabel('+60: WATZARI REBEL ENCAMPMENT', 60 * ySpacing, 25.0, true));
+            sceneGlobal.add(createStrataLabel('+33: TRINITY REALITY', 33 * ySpacing, -25.0, true));
+            sceneGlobal.add(createStrataLabel('0: CONFLUX ORIGIN', 0, 30.5, true));
+            sceneGlobal.add(createStrataLabel('-12: REAPER TRAINING PLANET', -12 * ySpacing, -26.0, false));
+            sceneGlobal.add(createStrataLabel('-38: ASTRA REALITY', -38 * ySpacing, 23.0, false));
+            sceneGlobal.add(createStrataLabel('-66: THE DAMNATION FORGE PLANE', -66 * ySpacing, -25.0, false));
+        }
+
+        // Viewport 01 selected active layer marker
+        // Created as a beautiful glowing 3D Cylinder Puck with double boundary rings
+        function buildGlobalActiveIndicator() {
+            const geom = new THREE.CylinderGeometry(1.0, 1.0, 0.1, 48, 1, false);
+            const mat = new THREE.MeshPhongMaterial({
+                color: 0x004433,
+                emissive: 0x00221a,
+                specular: 0x00ffcc,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.45,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            globalActiveMarker = new THREE.Mesh(geom, mat);
+
+            const ringGeom = new THREE.RingGeometry(0.98, 1.02, 48);
+            ringGeom.rotateX(Math.PI / 2);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x00ffcc,
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const topRing = new THREE.Mesh(ringGeom, ringMat);
+            topRing.position.y = 0.05;
+            globalActiveMarker.add(topRing);
+
+            const bottomRing = new THREE.Mesh(ringGeom, ringMat);
+            bottomRing.position.y = -0.05;
+            globalActiveMarker.add(bottomRing);
+
+            sceneGlobal.add(globalActiveMarker);
+        }
+
+        // Generates organic, extremely thin spiderweb-like non-linear soul seed lanes curving around the global Spindle.
+        // FIXED: The non-linear spiderweb lanes themselves emit high-intensity emissive properties, and their active 
+        // traveling Soul Seeds house traveling PointLights that dynamically illuminate layers as they move.
+        function createSoulSeedLanes() {
+            const laneGroup = new THREE.Group();
+            const H = 99 * ySpacing;
+
+            // 1. Longitudinal spokes (Vertical-ish threads tracking the outer Spindle shape with non-linear tension ripples)
+            const numSpokes = 12;
+            const spokePointsCount = 40;
+
+            for (let s = 0; s < numSpokes; s++) {
+                const points = [];
+                const angleBase = (s / numSpokes) * Math.PI * 2;
+
+                for (let i = 0; i <= spokePointsCount; i++) {
+                    const t = i / spokePointsCount;
+                    const y = (t - 0.5) * 2 * H;
+
+                    // Strata Radius
+                    const rMax = calculateRadiusForLayer(y / ySpacing);
+
+                    // Structured vertical spoke with high-tension ripple deviations
+                    const theta = angleBase + 0.12 * Math.sin(t * Math.PI * 5);
+                    const r = rMax * 0.95;
+
+                    points.push(new THREE.Vector3(
+                        Math.cos(theta) * r,
+                        y,
+                        Math.sin(theta) * r
+                    ));
+                }
+
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeom = new THREE.TubeGeometry(curve, 80, 0.022, 6, false); // Extremely thin silk spoke diameter
+                const tubeMat = new THREE.MeshPhongMaterial({
+                    color: 0x010103,
+                    emissive: 0x00f0ff,
+                    emissiveIntensity: 1.8, // Raised emissive intensity to establish lanes as principal illumination channels
+                    transparent: true,
+                    opacity: 0.9,
+                    shininess: 100
+                });
+                const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
+                laneGroup.add(tubeMesh);
+
+                // Attach moving soul seeds housing active point light sources on vertical spokelike lanes
+                for (let k = 0; k < 2; k++) {
+                    const seedGeom = new THREE.SphereGeometry(0.13, 12, 12);
+                    const seedMat = new THREE.MeshBasicMaterial({
+                        color: 0x00f0ff,
+                        transparent: true,
+                        opacity: 0.95,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const seedMesh = new THREE.Mesh(seedGeom, seedMat);
+                    seedMesh.userData = {
+                        curve: curve,
+                        offset: k * 0.5 + Math.random() * 0.08,
+                        speed: 0.0016 + Math.random() * 0.0008
+                    };
+
+                    // FIXED: Dynamic light source physically attached to the travelling soul seed mesh
+                    const seedLight = new THREE.PointLight(0x00f0ff, 2.5, 12.0); // cyan light radiating outwards
+                    seedMesh.add(seedLight);
+
+                    laneGroup.add(seedMesh);
+                    STATE.soulSeeds.push(seedMesh);
+                }
+            }
+
+            // 2. Transverse concentric spiderweb ring lanes matching the geometric polygonal steps
+            const ringHeights = [-25, -15, -5, 5, 15, 25];
+            const ringSegments = 40;
+
+            ringHeights.forEach(strataIdx => {
+                const y = strataIdx * ySpacing;
+                const rMax = calculateRadiusForLayer(strataIdx) * 0.95;
+                const points = [];
+
+                for (let i = 0; i <= ringSegments; i++) {
+                    const theta = (i / ringSegments) * Math.PI * 2;
+                    // Apply inward concentric pinches exactly where they cross the 12 spoke nodes, delivering a true woven spiderweb polygonal look
+                    const polygonalPinch = 0.95 + 0.05 * Math.abs(Math.cos(theta * 12 / 2));
+                    const r = rMax * polygonalPinch;
+
+                    points.push(new THREE.Vector3(
+                        Math.cos(theta) * r,
+                        y,
+                        Math.sin(theta) * r
+                    ));
+                }
+
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeom = new THREE.TubeGeometry(curve, 80, 0.018, 6, true); // Thinned down concentric web threads
+                const tubeMat = new THREE.MeshPhongMaterial({
+                    color: 0x010103,
+                    emissive: 0xd946ef,
+                    emissiveIntensity: 1.8, // Raised emissive intensity representing cosmic web lines
+                    transparent: true,
+                    opacity: 0.8,
+                    shininess: 100
+                });
+                const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
+                laneGroup.add(tubeMesh);
+
+                // Attach moving soul seeds housing active point light sources on concentric web rings
+                for (let k = 0; k < 2; k++) {
+                    const seedGeom = new THREE.SphereGeometry(0.13, 12, 12);
+                    const seedMat = new THREE.MeshBasicMaterial({
+                        color: 0xd946ef,
+                        transparent: true,
+                        opacity: 0.95,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const seedMesh = new THREE.Mesh(seedGeom, seedMat);
+                    seedMesh.userData = {
+                        curve: curve,
+                        offset: k * 0.5 + Math.random() * 0.08,
+                        speed: 0.0022 + Math.random() * 0.0006
+                    };
+
+                    // FIXED: Dynamic light source physically attached to the travelling soul seed mesh
+                    const seedLight = new THREE.PointLight(0xd946ef, 2.5, 12.0); // magenta light radiating outwards
+                    seedMesh.add(seedLight);
+
+                    laneGroup.add(seedMesh);
+                    STATE.soulSeeds.push(seedMesh);
+                }
+            });
+
+            sceneGlobal.add(laneGroup);
+        }
+
+        // Helper to generate custom styled volumetric cloud textures of various colors
+        function createCloudTexture(colorHex, opacityHex = '55') {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            grad.addColorStop(0, colorHex + opacityHex);
+            grad.addColorStop(0.35, colorHex + '22');
+            grad.addColorStop(0.65, colorHex + '08');
+            grad.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Viewport 02 (DEDICATED OBSERVER MAP) Procedural Strata Cylinder Puck Generator
+        // RE-ENGINEERED: Matches the exact volumetric aspect ratio and layout of the reference image (BCO.dcd7fd49-c841-422a-a1de-8d0535927c96.png)
+        // P0 FIX: Properly dispose Three.js resources to prevent memory leaks
+        // when the user scrubs the strata slider quickly (each scrub previously
+        // dropped a Group full of geometries/materials/textures on the floor
+        // for the GC to maybe-someday clean up, which would spike VRAM).
+        function disposeThreeNode(node) {
+            if (!node) return;
+            node.traverse(child => {
+                if (child.geometry && typeof child.geometry.dispose === 'function') {
+                    child.geometry.dispose();
+                }
+                if (child.material) {
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                    for (const mat of materials) {
+                        // Dispose any textures attached to the material
+                        for (const k of ['map','normalMap','specularMap','envMap','alphaMap','emissiveMap','aoMap','metalnessMap','roughnessMap']) {
+                            if (mat && mat[k] && typeof mat[k].dispose === 'function') mat[k].dispose();
+                        }
+                        if (mat && typeof mat.dispose === 'function') mat.dispose();
+                    }
+                }
+            });
+        }
+
+        // REMOVED: All glowing blue center core light sources and top cap fuzzy cyan singularity structures to strictly respect your design request.
+        // FIXED: Re-engineered density function to fully fill the central void with nebulae and realities (black holes), extending seamlessly across the entire disk space.
+        function rebuildLocalObserverScene(layerIndex) {
+            if (activeLayerGroup) {
+                sceneLocal.remove(activeLayerGroup);
+                disposeThreeNode(activeLayerGroup); // P0 FIX
+                activeLayerGroup = null;
+            }
+
+            activeLayerGroup = new THREE.Group();
+            STATE.starsOnLayer = [];
+
+            // FIXED: Define the pseudo-random generator function inside rebuildLocalObserverScene 
+            // scope first to completely resolve the "ReferenceError: prng is not defined" crash!
+            const seed = Math.sin(layerIndex) * 1000;
+            const prng = () => {
+                const x = Math.sin(seed + Math.random()) * 10000;
+                return x - Math.floor(x);
+            };
+
+            // NEW RESHAPE VALUES: Extensively flat profile matching the BCO reference image
+            const cylinderRadius = 32.0;
+            const cylinderHeight = 6.0;
+
+            // 1. Build Physical 3D Translucent Glass Cylinder Shell (Thin & wide flat pancake shape)
+            const cylGeom = new THREE.CylinderGeometry(cylinderRadius, cylinderRadius, cylinderHeight, 64, 1, true); // open-ended cylinder
+            const cylMat = new THREE.MeshPhongMaterial({
+                color: 0x160324, // Switched to deeper, non-blue purple core
+                transparent: true,
+                opacity: 0.18,
+                shininess: 95,
+                specular: 0xd946ef, // Switched specular to hot pink/magenta
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            const strataPuck = new THREE.Mesh(cylGeom, cylMat);
+            activeLayerGroup.add(strataPuck);
+
+            // Translucent horizontal cylinder outer rings (top and bottom highlighting, with a subtle middle grid-support)
+            const ringYCoordinates = [-cylinderHeight / 2, 0, cylinderHeight / 2];
+            ringYCoordinates.forEach((ringY, idx) => {
+                const shellRingGeom = new THREE.RingGeometry(cylinderRadius - 0.05, cylinderRadius + 0.05, 96);
+                shellRingGeom.rotateX(Math.PI / 2);
+                
+                // Color mapping: Re-themed entirely with magenta/purple hues (No glowing blue elements)
+                let ringColor = 0xd946ef;
+                if (idx === 1) ringColor = 0x86198f;
+                if (idx === 2) ringColor = 0xff007f;
+
+                const shellRingMesh = new THREE.Mesh(shellRingGeom, new THREE.MeshBasicMaterial({
+                    color: ringColor,
+                    transparent: true,
+                    opacity: 0.28,
+                    side: THREE.DoubleSide
+                }));
+                shellRingMesh.position.y = ringY;
+                activeLayerGroup.add(shellRingMesh);
+            });
+
+            // Top circular deck cap face
+            const topCapGeom = new THREE.RingGeometry(0, cylinderRadius, 64);
+            topCapGeom.rotateX(-Math.PI / 2);
+            const topCapMat = new THREE.MeshBasicMaterial({
+                color: 0x220536,
+                transparent: true,
+                opacity: 0.25,
+                side: THREE.DoubleSide
+            });
+            const topCap = new THREE.Mesh(topCapGeom, topCapMat);
+            topCap.position.y = cylinderHeight / 2;
+            activeLayerGroup.add(topCap);
+
+            // Bottom circular cap disk face
+            const bottomCap = topCap.clone();
+            bottomCap.position.y = -cylinderHeight / 2;
+            activeLayerGroup.add(bottomCap);
+
+            // 2. Generate flat-deck volumetric pink/magenta clouds inside the cylinder
+            // FIXED: Redesigned the distribution to span continuously from center to outer rim, completely filling the void space.
+            const cloudCount = 650; // Increased count to beautifully fill up the core space with rich gaseous nebulae
+            const cloudColors = ["#ff2e93", "#d946ef", "#86198f"];
+            const cloudTextures = cloudColors.map(c => createCloudTexture(c, '66'));
+
+            for (let i = 0; i < cloudCount; i++) {
+                const y = (prng() - 0.5) * cylinderHeight;
+                const theta = prng() * Math.PI * 2;
+                
+                // Distribute uniformly across the entire radius to fill up the dark lagoon center
+                const r = prng() * (cylinderRadius * 1.02);
+                
+                const x = Math.cos(theta) * r;
+                const z = Math.sin(theta) * r;
+
+                const tex = cloudTextures[Math.floor(prng() * cloudTextures.length)];
+                const cloudMaterial = new THREE.SpriteMaterial({
+                    map: tex,
+                    transparent: true,
+                    opacity: 0.28 + prng() * 0.38,
+                    blending: THREE.AdditiveBlending
+                });
+
+                const sprite = new THREE.Sprite(cloudMaterial);
+                sprite.position.set(x, y, z);
+                
+                const cloudScale = 6.0 + prng() * 12.0;
+                sprite.scale.set(cloudScale, cloudScale, 1.0);
+
+                activeLayerGroup.add(sprite);
+            }
+
+            // 3. Generate small, intense realities (black holes) embedded along the cloud deck
+            // FIXED: Distributes realities across the entire strata radius (filling the center) instead of pushing them exclusively to the outer rim
+            const bhCount = 36; // Increased reality count to populate the entire filled-in strata canvas
+            for (let i = 0; i < bhCount; i++) {
+                const bhGroup = new THREE.Group();
+
+                const y = (prng() - 0.5) * (cylinderHeight * 0.7); // Keep tightly within the flat deck height limit
+                const theta = prng() * Math.PI * 2;
+                
+                // Distribute black holes continuously from center to rim
+                const r = prng() * (cylinderRadius * 0.95);
+                const bhX = Math.cos(theta) * r;
+                const bhZ = Math.sin(theta) * r;
+                
+                const bhSize = 0.22 + prng() * 0.45; // Clean distinct core nodes
+
+                // Event Horizon Core Sphere (Pitch black void)
+                const coreMesh = new THREE.Mesh(sharedCoreGeom, new THREE.MeshBasicMaterial({
+                    color: 0x000000,
+                    transparent: false
+                }));
+                coreMesh.scale.set(bhSize, bhSize, bhSize);
+                bhGroup.add(coreMesh);
+
+                // Accretion Disk (glowing hot pink/magenta)
+                const diskTex = createFuzzyTexture("#ff007f", 0.3);
+                const diskMat = new THREE.MeshBasicMaterial({
+                    map: diskTex,
+                    transparent: true,
+                    opacity: 0.95,
+                    side: THREE.DoubleSide,
+                    blending: THREE.AdditiveBlending
+                });
+                const diskMesh = new THREE.Mesh(sharedDiskGeom, diskMat);
+                diskMesh.scale.set(bhSize * 4.5, bhSize * 4.5, 1);
+                diskMesh.rotateX(Math.PI / 2);
+                bhGroup.add(diskMesh);
+
+                // Accretion Halo Ring
+                const haloMesh = new THREE.Mesh(sharedHaloGeom, new THREE.MeshBasicMaterial({
+                    color: 0xff00aa,
+                    transparent: true,
+                    opacity: 0.35,
+                    side: THREE.DoubleSide
+                }));
+                haloMesh.scale.set(bhSize * 1.2, bhSize * 1.2, 1);
+                bhGroup.add(haloMesh);
+
+                bhGroup.position.set(bhX, y, bhZ);
+                bhGroup.userData = {
+                    isStar: true,
+                    isBlackHole: true,
+                    realityType: prng() < 0.5 ? 'STABLE' : (prng() < 0.5 ? 'DEAD' : 'INFESTED'),
+                    name: `ACC-WELL L-${layerIndex}-${i}`,
+                    coordinate: `[X: ${bhX.toFixed(1)}, Y: ${y.toFixed(1)}, Z: ${bhZ.toFixed(1)}]`,
+                    status: 'Gravitational core lock stable.',
+                    layer: layerIndex,
+                    spinSpeed: 0.01 + prng() * 0.02
+                };
+
+                activeLayerGroup.add(bhGroup);
+                STATE.starsOnLayer.push(bhGroup);
+            }
+
+            // 4. Ambient Starpool lights (Pearl Aqua/Cyan Core glows filling the volume)
+            // Added back to introduce high-fidelity atmospheric highlights throughout the full disk
+            const innerGlowCount = 100;
+            const coreLightTex = createCloudTexture("#00f0ff", '44');
+            for (let i = 0; i < innerGlowCount; i++) {
+                const y = (prng() - 0.5) * (cylinderHeight * 0.8);
+                const theta = prng() * Math.PI * 2;
+                const r = prng() * (cylinderRadius * 0.95); // Spans all across the disk radius
+                const x = Math.cos(theta) * r;
+                const z = Math.sin(theta) * r;
+
+                const glowMaterial = new THREE.SpriteMaterial({
+                    map: coreLightTex,
+                    transparent: true,
+                    opacity: 0.15 + prng() * 0.2,
+                    blending: THREE.AdditiveBlending
+                });
+
+                const sprite = new THREE.Sprite(glowMaterial);
+                sprite.position.set(x, y, z);
+                const glowScale = 12.0 + prng() * 14.0;
+                sprite.scale.set(glowScale, glowScale, 1.0);
+
+                activeLayerGroup.add(sprite);
+            }
+
+            // 5. Sparse background stars within the observer puck
+            const bgStarGeom = new THREE.SphereGeometry(0.1, 4, 4);
+            const bgStarMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+            for (let s = 0; s < 100; s++) {
+                const mesh = new THREE.Mesh(bgStarGeom, bgStarMat);
+                const r = prng() * (cylinderRadius - 2.0);
+                const theta = prng() * Math.PI * 2;
+                mesh.position.set(Math.cos(theta) * r, (prng() - 0.5) * cylinderHeight, Math.sin(theta) * r);
+                activeLayerGroup.add(mesh);
+            }
+
+            // 6. Connective neon line networks
+            const linkGeom = new THREE.BufferGeometry();
+            const linkVerts = [];
+            for (let i = 0; i < STATE.starsOnLayer.length - 1; i += 4) {
+                const p1 = STATE.starsOnLayer[i].position;
+                const p2 = STATE.starsOnLayer[i+1].position;
+                linkVerts.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+            }
+            linkGeom.setAttribute('position', new THREE.Float32BufferAttribute(linkVerts, 3));
+            const linkMat = new THREE.LineBasicMaterial({
+                color: 0x00ffcc,
+                transparent: true,
+                opacity: 0.08,
+                blending: THREE.AdditiveBlending
+            });
+            const linkLine = new THREE.LineSegments(linkGeom, linkMat);
+            activeLayerGroup.add(linkLine);
+
+            sceneLocal.add(activeLayerGroup);
+        }
+
+        // Raycast selection handler on Viewport 01 (Global)
+        function onGlobalPointerDown(event) {
+            const rect = rendererGlobal.domElement.getBoundingClientRect();
+            mouseGlobal.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseGlobal.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycasterGlobal.setFromCamera(mouseGlobal, cameraGlobal);
+            const intersects = raycasterGlobal.intersectObjects(globalRings);
+
+            if (intersects.length > 0) {
+                const selectedRing = intersects[0].object;
+                if (selectedRing.userData && selectedRing.userData.isStrataRing) {
+                    updateLayer(selectedRing.userData.layerIndex);
+                }
+            }
+        }
+
+        // Double-click on global spindle ring instantly triggers the split-screen Observer View
+        function onGlobalDoubleClick(event) {
+            const rect = rendererGlobal.domElement.getBoundingClientRect();
+            mouseGlobal.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseGlobal.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycasterGlobal.setFromCamera(mouseGlobal, cameraGlobal);
+            const intersects = raycasterGlobal.intersectObjects(globalRings);
+
+            if (intersects.length > 0) {
+                const selectedRing = intersects[0].object;
+                if (selectedRing.userData && selectedRing.userData.isStrataRing) {
+                    updateLayer(selectedRing.userData.layerIndex);
+                    setLocalObserverViewVisibility(true);
+                }
+            }
+        }
+
+        // Raycast selection handler on Right Side Observer
+        function onLocalPointerDown(event) {
+            if (!STATE.localViewportActive) return;
+
+            const rect = rendererLocal.domElement.getBoundingClientRect();
+            mouseLocal.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseLocal.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycasterLocal.setFromCamera(mouseLocal, cameraLocal);
+            
+            const clickableTargets = [];
+            if (activeLayerGroup) {
+                activeLayerGroup.traverse(child => {
+                    if (child.userData && child.userData.isStar) {
+                        const core = child.children[0]; 
+                        if (core) {
+                            core.userData = child.userData; 
+                            clickableTargets.push(core);
+                        }
+                    }
+                });
+            }
+
+            const intersects = raycasterLocal.intersectObjects(clickableTargets);
+            if (intersects.length > 0) {
+                const clickedCore = intersects[0].object;
+                selectStarSystem(clickedCore);
+            }
+        }
+
+        function onLocalDoubleClick(event) {
+            if (!STATE.localViewportActive) return;
+
+            const rect = rendererLocal.domElement.getBoundingClientRect();
+            mouseLocal.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseLocal.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycasterLocal.setFromCamera(mouseLocal, cameraLocal);
+            
+            const clickableTargets = [];
+            if (activeLayerGroup) {
+                activeLayerGroup.traverse(child => {
+                    if (child.userData && child.userData.isStar) {
+                        const core = child.children[0];
+                        if (core) {
+                            core.userData = child.userData;
+                            clickableTargets.push(core);
+                        }
+                    }
+                });
+            }
+
+            const intersects = raycasterLocal.intersectObjects(clickableTargets);
+            if (intersects.length > 0) {
+                const clickedCore = intersects[0].object;
+                selectStarSystem(clickedCore);
+                
+                if (clickedCore.parent) {
+                    glideLocalObserverTo(clickedCore.parent.position);
+                }
+            }
+        }
+
+        function glideLocalObserverTo(targetPosition) {
+            STATE.cameraLocalTarget.copy(targetPosition);
+            playBeep(880, 'sine', 0.2, 0.05);
+        }
+
+        function selectStarSystem(starObj) {
+            STATE.selectedStar = starObj;
+            playBeep(660, 'sine', 0.12, 0.08);
+
+            document.getElementById('nav-coords').innerText = starObj.userData.coordinate;
+            document.getElementById('log-coords').innerText = `COORD: ${starObj.userData.coordinate}`;
+
+            const terminal = document.getElementById('terminal-scroll');
+            const liveOut = document.getElementById('live-console-output');
+            
+            const newLog = document.createElement('div');
+            newLog.className = "text-[#00ffcc] animate-pulse";
+            newLog.innerHTML = `&gt; Locked Accretion Well: ${starObj.userData.name} (${starObj.userData.status}).`;
+            terminal.insertBefore(newLog, liveOut);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            document.getElementById('entity-peek').innerHTML = `
+                <div class="space-y-0.5 text-[#00ffcc]">
+                    <div class="text-white font-bold text-sm underline">${starObj.userData.name}</div>
+                    <div><span class="text-slate-400">Diagnostic:</span> ${starObj.userData.status}</div>
+                    <div><span class="text-slate-400">Target Coordinates:</span> Strata ${starObj.userData.layer}</div>
+                </div>
+            `;
+
+            if (starObj.parent) {
+                starObj.parent.scale.set(1.4, 1.4, 1.4);
+                setTimeout(() => { if (starObj.parent) starObj.parent.scale.set(1, 1, 1); }, 400);
+            }
+
+            // Lore-merge hook
+            window.dispatchEvent(new CustomEvent('astrolabe-star-selected', { detail: { star: starObj } }));
+
+            // BUG FIX: force-open the DLDS ASTROLABE DATABANK popup directly
+            // here too. Previously the listener-based path could miss firing
+            // on mobile (touch event dispatch order) — the user reported
+            // clicking a black hole did nothing. Calling openStrataCodex
+            // synchronously guarantees the popup appears.
+            try {
+                const lvl = (typeof starObj.userData.layer === 'number')
+                    ? starObj.userData.layer
+                    : (STATE && STATE.currentLayer) || 0;
+                if (typeof window.openStrataCodex === 'function') {
+                    window.openStrataCodex(lvl);
+                }
+            } catch (e) { /* lore module not loaded yet — silent */ }
+        }
+
+        window.selectStarSystem = selectStarSystem;
+
+        // Strata selection updates - FULLY DEFINED globally
+        function updateLayer(newLvl, forceNoSound = false) {
+            newLvl = parseInt(newLvl);
+            if (newLvl < -99) newLvl = -99;
+            if (newLvl > 99) newLvl = 99;
+
+            STATE.currentLayer = newLvl;
+            const profile = layerProfiles[newLvl];
+
+            // Update UI elements safely
+            const badge = document.getElementById('layer-badge');
+            if (badge) badge.innerText = `S: ${newLvl > 0 ? '+' : ''}${newLvl}`; // re-aligned with 'S' representation
+
+            const titleText = document.getElementById('layer-title-text');
+            if (titleText) titleText.innerText = profile.title;
+
+            const sliderReadout = document.getElementById('slider-readout');
+            if (sliderReadout) sliderReadout.innerText = `STRATA LEVEL ${newLvl > 0 ? '+' : ''}${newLvl}`;
+
+            // Sync Slider
+            const slider = document.getElementById('layer-slider');
+            if (slider) slider.value = newLvl;
+
+            // Shift active scanning coordinate indicator ring on Viewport 01
+            if (globalActiveMarker) {
+                globalActiveMarker.position.y = newLvl * ySpacing;
+                
+                // Dynamic sizing matching the global spindle tapering profile (Rigid structural geometry)
+                const rad = calculateRadiusForLayer(newLvl);
+                // FIXED: Scaled uniformly along horizontal planar dimensions X and Z, keeping Y height at 1
+                globalActiveMarker.scale.set(rad, 1, rad);
+            }
+
+            // Regenerate dedicated space nebula map for the new selected stratum
+            rebuildLocalObserverScene(newLvl);
+
+            // Reset Right Camera glide target back to active layer center
+            glideLocalObserverTo(new THREE.Vector3(0, 0, 0));
+
+            if (!forceNoSound) {
+                const pitch = 220 + (newLvl + 100) * 3;
+                playBeep(pitch, 'sine', 0.12, 0.06);
+            }
+        }
+
+        // Toggle Strata Observer Split-Viewport View
+        // RE-ENGINEERED: Viewport 02 now dynamically covers the ENTIRE viewport screen area rather than split-screen scaling
+        function setLocalObserverViewVisibility(visible) {
+            STATE.localViewportActive = visible;
+
+            const globalContainer = document.getElementById('viewport-global-container');
+            const localContainer = document.getElementById('viewport-local-container');
+
+            if (visible) {
+                // Swaps Viewport 01 off cleanly & scales Viewport 02 to 100% full screen size
+                globalContainer.classList.add('w-0', 'h-0', 'opacity-0', 'pointer-events-none');
+                globalContainer.classList.remove('w-full', 'h-full');
+
+                localContainer.classList.remove('w-0', 'h-0', 'opacity-0', 'pointer-events-none');
+                localContainer.classList.add('w-full', 'h-full', 'opacity-100', 'pointer-events-auto');
+
+                // Soft audio chime feedback
+                playBeep(620, 'sine', 0.3, 0.08);
+
+                // Print Log feedback
+                const terminal = document.getElementById('terminal-scroll');
+                const liveOut = document.getElementById('live-console-output');
+                const log = document.createElement('div');
+                log.className = "text-yellow-400 font-bold";
+                log.innerHTML = `&gt; COGNIZANCE LINK INITIALIZED: Querying detailed Strata ${STATE.currentLayer}...`;
+                terminal.insertBefore(log, liveOut);
+                terminal.scrollTop = terminal.scrollHeight;
+            } else {
+                // Swaps back cleanly restoring full-screen global Spindle
+                globalContainer.classList.remove('w-0', 'h-0', 'opacity-0', 'pointer-events-none');
+                globalContainer.classList.add('w-full', 'h-full');
+
+                localContainer.classList.remove('w-full', 'h-full', 'opacity-100', 'pointer-events-auto');
+                localContainer.classList.add('w-0', 'h-0', 'opacity-0', 'pointer-events-none');
+
+                playBeep(450, 'sine', 0.25, 0.05);
+            }
+
+            // Recalculate dimensions for both cameras and renderers
+            triggerTransitionResizeLoop();
+        }
+
+        // Toggle HUD display off and on for unobstructed views
+        function toggleHUD() {
+            STATE.hudHidden = !STATE.hudHidden;
+            
+            const leftPanel = document.getElementById('left-panel');
+            const rightPanel = document.getElementById('right-panel');
+            const bottomPanel = document.getElementById('bottom-panel');
+            const navComp = document.getElementById('nav-comp-panel');
+            const mobDock = document.getElementById('mobile-dock');
+            
+            const toggleText = document.getElementById('hud-toggle');
+            const restoreBtn = document.getElementById('floating-restore-btn');
+
+            if (STATE.hudHidden) {
+                leftPanel.classList.add('-translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+                rightPanel.classList.add('translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+                bottomPanel.classList.add('translate-y-[150%]', 'opacity-0', 'pointer-events-none');
+                navComp.classList.add('-translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+                mobDock.classList.add('translate-y-[150%]', 'opacity-0', 'pointer-events-none');
+
+                toggleText.innerText = "[ HUD: OFF ]";
+                restoreBtn.classList.remove('opacity-0', 'pointer-events-none', 'scale-75');
+                restoreBtn.classList.add('opacity-100', 'pointer-events-auto', 'scale-100');
+            } else {
+                leftPanel.classList.remove('-translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+                rightPanel.classList.remove('translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+                bottomPanel.classList.remove('translate-y-[150%]', 'opacity-0', 'pointer-events-none');
+                navComp.classList.remove('-translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+                mobDock.classList.remove('translate-y-[150%]', 'opacity-0', 'pointer-events-none');
+
+                toggleText.innerText = "[ HUD: ON ]";
+                restoreBtn.classList.add('opacity-0', 'pointer-events-none', 'scale-75');
+                restoreBtn.classList.remove('opacity-100', 'pointer-events-auto', 'scale-100');
+
+                if (STATE.activeMobileTab) {
+                    toggleMobileTab(STATE.activeMobileTab);
+                }
+            }
+            playBeep(700, 'sine', 0.15, 0.05);
+        }
+
+        // Active Anomaly filters scanner sweep (Highlights specific Black Hole Realities)
+        // BUG FIX: Now ACTUALLY filters realities by toggling visibility,
+        // not just flashing them. Toggling a filter twice clears it
+        // (returns to showing everything).
+        if (!STATE.activeFilters) STATE.activeFilters = new Set();
+        function triggerAnomalyScanner(realityType) {
+            playBeep(520, 'triangle', 0.25, 0.08);
+
+            // Toggle this filter in the active set
+            if (STATE.activeFilters.has(realityType)) {
+                STATE.activeFilters.delete(realityType);
+            } else {
+                STATE.activeFilters.add(realityType);
+            }
+
+            // Visual buttons reflect active filters
+            const buttons = {
+                'STABLE': 'filter-stable',
+                'DEAD': 'filter-dead',
+                'INFESTED': 'filter-infested'
+            };
+            Object.keys(buttons).forEach(key => {
+                const btn = document.getElementById(buttons[key]);
+                if (!btn) return;
+                btn.classList.toggle('btn-active-neon', STATE.activeFilters.has(key));
+            });
+
+            // Apply visibility AND a highlight flash to matching realities.
+            let matchCount = 0, hiddenCount = 0;
+            const showAll = STATE.activeFilters.size === 0;
+            if (activeLayerGroup) {
+                activeLayerGroup.traverse(child => {
+                    if (child.userData && child.userData.isBlackHole) {
+                        const matchesActive = STATE.activeFilters.has(child.userData.realityType);
+                        const visible = showAll || matchesActive;
+                        // Toggle the WHOLE star group so children all hide
+                        const starGroup = child;
+                        starGroup.visible = visible;
+                        if (visible) {
+                            const diskMesh = child.children[1];
+                            if (diskMesh && matchesActive) {
+                                diskMesh.scale.set(2.2, 2.2, 1);
+                                setTimeout(() => { if (diskMesh) diskMesh.scale.set(1, 1, 1); }, 1100);
+                                matchCount++;
+                            }
+                        } else {
+                            hiddenCount++;
+                        }
+                    }
+                });
+            }
+            // Also apply to global ring spindles
+            if (typeof globalRings !== 'undefined' && Array.isArray(globalRings)) {
+                for (const r of globalRings) {
+                    const rt = r.userData && r.userData.realityType;
+                    if (rt) r.visible = (showAll || STATE.activeFilters.has(rt));
+                }
+            }
+
+            // Update logs with scan telemetry results
+            const terminal = document.getElementById('terminal-scroll');
+            const liveOut = document.getElementById('live-console-output');
+            const scanLog = document.createElement('div');
+            scanLog.className = "text-[#00ffcc] font-bold";
+            const filterSummary = STATE.activeFilters.size === 0
+                ? 'CLEARED · showing all realities'
+                : 'Active: ' + Array.from(STATE.activeFilters).join(', ');
+            scanLog.innerHTML = `&gt; FILTER UPDATE :: ${filterSummary} · matched ${matchCount} · hidden ${hiddenCount}`;
+            terminal.insertBefore(scanLog, liveOut);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Frame-rate matched resize handler loop during transitions
+        function triggerTransitionResizeLoop() {
+            let start = Date.now();
+            const duration = 500; 
+            function tick() {
+                onWindowResize();
+                if (Date.now() - start < duration) {
+                    requestAnimationFrame(tick);
+                } else {
+                    onWindowResize(); 
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        // Toggle Cinematic autopilot mode
+        function toggleCinematic() {
+            STATE.cinematicActive = !STATE.cinematicActive;
+            
+            const topBar = document.getElementById('cinematic-top');
+            const bottomBar = document.getElementById('cinematic-bottom');
+            const exitBtn = document.getElementById('cinematic-exit-btn');
+            const cinBtn = document.getElementById('cinematic-btn');
+
+            if (STATE.cinematicActive) {
+                // Initialize Web Audio context safely if uninitialized
+                if (!STATE.audioContext) {
+                    initAudio();
+                }
+
+                // Hide main user HUD panel overlay
+                if (!STATE.hudHidden) {
+                    toggleHUD();
+                }
+
+                // Animate cinematic bars sliding in
+                topBar.classList.remove('h-0');
+                topBar.classList.add('h-14', 'pointer-events-auto');
+                bottomBar.classList.remove('h-0');
+                bottomBar.classList.add('h-14', 'pointer-events-auto');
+
+                // Deploy escape trigger button
+                exitBtn.classList.remove('opacity-0', 'pointer-events-none');
+                exitBtn.classList.add('opacity-100', 'pointer-events-auto');
+
+                // Update active state triggers
+                cinBtn.classList.add('btn-active-neon', 'border-amber-400');
+                cinBtn.classList.remove('text-amber-400');
+                cinBtn.classList.add('text-black');
+
+                // Temporarily disable OrbitControls to let camera sweep smoothly
+                controlsGlobal.enabled = false;
+                controlsLocal.enabled = false;
+
+                playBeep(440, 'triangle', 0.5, 0.1);
+            } else {
+                // Return cinematic bars
+                topBar.classList.add('h-0');
+                topBar.classList.remove('h-14', 'pointer-events-auto');
+                bottomBar.classList.add('h-0');
+                bottomBar.classList.remove('h-14', 'pointer-events-auto');
+
+                // Withdraw escape trigger
+                exitBtn.classList.add('opacity-0', 'pointer-events-none');
+                exitBtn.classList.remove('opacity-100', 'pointer-events-auto');
+
+                // Clean button states
+                cinBtn.classList.remove('btn-active-neon', 'border-amber-400');
+                cinBtn.classList.add('text-amber-400');
+                cinBtn.classList.remove('text-black');
+
+                // Restore user controls
+                controlsGlobal.enabled = true;
+                controlsLocal.enabled = true;
+
+                // Re-enable HUD overlay panels
+                if (STATE.hudHidden) {
+                    toggleHUD();
+                }
+
+                playBeep(330, 'sine', 0.3, 0.1);
+            }
+        }
+
+        // Bind Autopilot triggers safely
+        addListenerSafe('cinematic-btn', 'click', toggleCinematic);
+        addListenerSafe('cinematic-exit-btn', 'click', toggleCinematic);
+
+        // Mobile responsive switch tab system
+        function toggleMobileTab(tabId) {
+            const leftPanel = document.getElementById('left-panel');
+            const rightPanel = document.getElementById('right-panel');
+            const bottomPanel = document.getElementById('bottom-panel');
+            const navComp = document.getElementById('nav-comp-panel');
+
+            document.querySelectorAll('#mobile-dock button').forEach(b => {
+                b.classList.remove('bg-[#00ffcc]', 'text-black', 'shadow-lg');
+            });
+
+            if (STATE.activeMobileTab === tabId) {
+                STATE.activeMobileTab = null;
+                leftPanel.classList.add('hidden');
+                rightPanel.classList.add('hidden');
+                bottomPanel.classList.add('hidden');
+                navComp.classList.add('hidden');
+                return;
+            }
+
+            STATE.activeMobileTab = tabId;
+            playBeep(600, 'sine', 0.1, 0.06);
+
+            leftPanel.classList.add('hidden');
+            rightPanel.classList.add('hidden');
+            bottomPanel.classList.add('hidden');
+            navComp.classList.add('hidden');
+
+            if (tabId === 'nav') {
+                document.getElementById('mob-tab-nav').classList.add('bg-[#00ffcc]', 'text-black');
+                bottomPanel.classList.remove('hidden');
+                navComp.classList.remove('hidden', 'hidden-mobile');
+            } else if (tabId === 'filters') {
+                document.getElementById('mob-tab-filters').classList.add('bg-[#00ffcc]', 'text-black');
+                leftPanel.classList.remove('hidden');
+            } else if (tabId === 'logs') {
+                document.getElementById('mob-tab-logs').classList.add('bg-[#00ffcc]', 'text-black');
+                rightPanel.classList.remove('hidden');
+            }
+        }
+
+        // Mobile Dock click listeners
+        addListenerSafe('mob-tab-nav', 'click', () => toggleMobileTab('nav'));
+        addListenerSafe('mob-tab-filters', 'click', () => toggleMobileTab('filters'));
+        addListenerSafe('mob-tab-logs', 'click', () => toggleMobileTab('logs'));
+        addListenerSafe('mob-tab-clear', 'click', () => {
+            STATE.activeMobileTab = null;
+            document.getElementById('left-panel').classList.add('hidden');
+            document.getElementById('right-panel').classList.add('hidden');
+            document.getElementById('bottom-panel').classList.add('hidden');
+            document.getElementById('nav-comp-panel').classList.add('hidden');
+
+            document.querySelectorAll('#mobile-dock button').forEach(b => {
+                b.classList.remove('bg-[#00ffcc]', 'text-black');
+            });
+            playBeep(350, 'sine', 0.15, 0.05);
+        });
+
+        // Hook view togglers
+        addListenerSafe('learn-more-btn', 'click', () => setLocalObserverViewVisibility(true));
+        addListenerSafe('exit-local-btn', 'click', () => setLocalObserverViewVisibility(false));
+
+        // Hook Interactive Actions safely
+        addListenerSafe('hud-toggle', 'click', toggleHUD);
+        addListenerSafe('floating-restore-btn', 'click', toggleHUD);
+
+        // Standard / Faction view modes
+        addListenerSafe('mode-standard', 'click', () => {
+            STATE.projectionMode = 'volumetric';
+            document.getElementById('mode-standard').classList.add('btn-active-neon');
+            document.getElementById('proj-toggle').classList.remove('btn-active-neon');
+            playBeep(520, 'sine', 0.1, 0.05);
+        });
+
+        addListenerSafe('proj-toggle', 'click', () => {
+            STATE.projectionMode = 'flat';
+            document.getElementById('proj-toggle').classList.add('btn-active-neon');
+            document.getElementById('mode-standard').classList.remove('btn-active-neon');
+            playBeep(520, 'sine', 0.1, 0.05);
+        });
+
+        // Trigger reset safely
+        addListenerSafe('reset-btn', 'click', () => {
+            cameraGlobal.position.set(38, 18, 38);
+            cameraLocal.position.set(0, 45, 65);
+            updateLayer(0);
+            setLocalObserverViewVisibility(false);
+            if (STATE.cinematicActive) {
+                toggleCinematic(); // Exit cinematic mode on manual reset
+            }
+            playBeep(440, 'triangle', 0.3, 0.05);
+        });
+
+        // Fullscreen safely
+        addListenerSafe('fullscreen-btn', 'click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+            playBeep(500, 'sine', 0.1, 0.05);
+        });
+
+        const layerSlider = document.getElementById('layer-slider');
+        if (layerSlider) {
+            layerSlider.addEventListener('input', (e) => {
+                updateLayer(e.target.value);
+            });
+        }
+
+        // Safe hooks for strata changes
+        addListenerSafe('btn-layer-up', 'click', () => {
+            updateLayer(STATE.currentLayer + 1);
+        });
+        addListenerSafe('btn-layer-down', 'click', () => {
+            updateLayer(STATE.currentLayer - 1);
+        });
+        addListenerSafe('btn-ping', 'click', () => {
+            playPingSound();
+        });
+        addListenerSafe('act-btn', 'click', () => {
+            playBeep(880, 'square', 0.25, 0.15);
+            // Wire up to the Lore Codex from the merge module so [ACT] does
+            // something meaningful — opens the canon lore for the current strata.
+            if (typeof window.openStrataCodex === 'function') {
+                window.openStrataCodex(STATE.currentLayer);
+            }
+        });
+
+        // Mobile Friendly D-Pad Handlers
+        addListenerSafe('dpad-up', 'click', () => {
+            updateLayer(STATE.currentLayer + 1);
+        });
+        addListenerSafe('dpad-down', 'click', () => {
+            updateLayer(STATE.currentLayer - 1);
+        });
+        addListenerSafe('dpad-left', 'click', () => {
+            if (controlsLocal && cameraLocal) {
+                controlsLocal.target.set(0, 0, 0);
+                cameraLocal.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.2);
+            }
+            playBeep(400, 'sine', 0.05, 0.05);
+        });
+        addListenerSafe('dpad-right', 'click', () => {
+            if (controlsLocal && cameraLocal) {
+                controlsLocal.target.set(0, 0, 0);
+                cameraLocal.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.2);
+            }
+            playBeep(400, 'sine', 0.05, 0.05);
+        });
+
+        function onWindowResize() {
+            const isMobile = window.innerWidth < 1024;
+            const leftPanel = document.getElementById('left-panel');
+            const rightPanel = document.getElementById('right-panel');
+            const bottomPanel = document.getElementById('bottom-panel');
+            const navComp = document.getElementById('nav-comp-panel');
+
+            if (isMobile && !STATE.hudHidden) {
+                leftPanel.classList.add('hidden');
+                rightPanel.classList.add('hidden');
+                bottomPanel.classList.add('hidden');
+                navComp.classList.add('hidden');
+                
+                if (!STATE.activeMobileTab) {
+                    toggleMobileTab('nav');
+                }
+            } else if (!STATE.hudHidden) {
+                leftPanel.classList.remove('hidden');
+                rightPanel.classList.remove('hidden');
+                bottomPanel.classList.remove('hidden');
+                navComp.classList.remove('hidden');
+            }
+
+            // Re-eval Global Viewport dimensions with strict bounds checking
+            const containerG = document.getElementById('canvas-global');
+            const wG = containerG.clientWidth || window.innerWidth;
+            const hG = containerG.clientHeight || window.innerHeight;
+            if (wG > 0 && hG > 0) {
+                cameraGlobal.aspect = wG / hG;
+                cameraGlobal.updateProjectionMatrix();
+                rendererGlobal.setSize(wG, hG);
+            }
+
+            // Re-eval Local Viewport dimensions with strict bounds checking
+            const containerL = document.getElementById('canvas-local');
+            const wL = containerL.clientWidth || window.innerWidth;
+            const hL = containerL.clientHeight || window.innerHeight;
+            if (wL > 0 && hL > 0) {
+                cameraLocal.aspect = wL / hL;
+                cameraLocal.updateProjectionMatrix();
+                rendererLocal.setSize(wL, hL);
+            }
+        }
+
+        // Live Realtime clock updates
+        setInterval(() => {
+            const timeSpan = document.getElementById('header-time');
+            const d = new Date();
+            const pad = (num) => String(num).padStart(2, '0');
+            if (timeSpan) {
+                timeSpan.innerText = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            }
+        }, 1000);
+
+        // Core Render and Animation Loops
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now();
+
+            // Animate soul seeds smoothly along their thinned non-linear winding lanes in real-time
+            if (STATE.soulSeeds) {
+                STATE.soulSeeds.forEach(seed => {
+                    seed.userData.offset += seed.userData.speed;
+                    if (seed.userData.offset > 1.0) {
+                        seed.userData.offset = 0.0;
+                    }
+                    const pos = seed.userData.curve.getPointAt(seed.userData.offset);
+                    seed.position.copy(pos);
+                });
+            }
+
+            // Update Global Selection Marker size (Ensures perfect circular flat scale at all strata sizes)
+            if (globalActiveMarker) {
+                const i = STATE.currentLayer;
+                const currentScale = calculateRadiusForLayer(i);
+                globalActiveMarker.scale.set(currentScale, 1, currentScale);
+            }
+
+            // 1. Process Cinematic Autopilot Pathing Sweep
+            if (STATE.cinematicActive) {
+                const timeSec = time * 0.001;
+
+                // Modulate telemetry metrics dynamically
+                const telemetry = document.getElementById('cinematic-telemetry');
+                if (telemetry && Math.random() < 0.05) {
+                    telemetry.innerText = `SPEED: ${(120 + Math.sin(timeSec) * 30).toFixed(1)} LY/SEC | COORDINATES: [Y: ${cameraGlobal.position.y.toFixed(2)}]`;
+                }
+
+                // Autoplay rolling subtitles
+                const subtitles = document.getElementById('cinematic-subtitles');
+                if (subtitles) {
+                    const subs = [
+                        "AUTOPILOT TOUR ACTIVE: SURFING GEODESIC SPIDERWEB THREADS...",
+                        "SCANNING GRAVITATIONAL ACCRETION FLUXES...",
+                        "OBSERVING MOVEMENT OF SOUL SEED STRUCTURES...",
+                        "DIAGNOSING MASSIVE QUANTUM STRATA SINGULARITIES...",
+                        "SURVEYING STABLE REALITIES... CORE DENSITY OPTIMAL.",
+                        "WARNING: HIGH RADIATION EMISSION REGISTERED AT ADJACENT DEAD SECTOR."
+                    ];
+                    const subIndex = Math.floor((timeSec / 5) % subs.length);
+                    if (subtitles.innerText !== subs[subIndex]) {
+                        subtitles.innerText = subs[subIndex];
+                    }
+                }
+
+                // Sweep Camera in Viewport 01 (Global)
+                const angleGlobal = timeSec * 0.12; 
+                const radiusGlobal = 35 + Math.sin(timeSec * 0.25) * 10;
+                cameraGlobal.position.set(
+                    Math.cos(angleGlobal) * radiusGlobal,
+                    8 + Math.sin(timeSec * 0.1) * 14,
+                    Math.sin(angleGlobal) * radiusGlobal
+                );
+                controlsGlobal.target.set(0, Math.sin(timeSec * 0.08) * 4, 0);
+
+                // Sweep Camera in Viewport 02 (Observer Puck)
+                if (STATE.localViewportActive) {
+                    const angleLocal = timeSec * 0.08;
+                    const radiusLocal = 55 + Math.cos(timeSec * 0.15) * 10; // adjusted radius sweep for flat pancake
+                    cameraLocal.position.set(
+                        Math.cos(angleLocal) * radiusLocal,
+                        18 + Math.sin(timeSec * 0.12) * 8, // adjusted altitude sweep for flat pancake
+                        Math.sin(angleLocal) * radiusLocal
+                    );
+                    controlsLocal.target.set(
+                        Math.sin(timeSec * 0.2) * 5,
+                        Math.cos(timeSec * 0.1) * 2,
+                        Math.cos(timeSec * 0.15) * 5
+                    );
+                }
+            }
+
+            // Update Local Layer Observers (accretion disks and realities)
+            if (activeLayerGroup && STATE.localViewportActive) {
+                activeLayerGroup.traverse(child => {
+                    // Rotate black hole accretion disks organically
+                    if (child.userData && child.userData.spinSpeed) {
+                        child.rotation.y += child.userData.spinSpeed;
+                    }
+                });
+
+                // Sweep local scanline
+                const scanLine = activeLayerGroup.getObjectByName("radialScanLine");
+                if (scanLine) {
+                    scanLine.rotation.y += 0.012;
+                }
+            }
+
+            // Camera target gliding for right viewport observer
+            if (!STATE.cinematicActive) {
+                controlsLocal.target.x += (STATE.cameraLocalTarget.x - controlsLocal.target.x) * 0.08;
+                controlsLocal.target.y += (STATE.cameraLocalTarget.y - controlsLocal.target.y) * 0.08;
+                controlsLocal.target.z += (STATE.cameraLocalTarget.z - controlsLocal.target.z) * 0.08;
+            }
+
+            // Controls update and independent scene rendering
+            controlsGlobal.update();
+            rendererGlobal.render(sceneGlobal, cameraGlobal);
+
+            if (STATE.localViewportActive) {
+                controlsLocal.update();
+                rendererLocal.render(sceneLocal, cameraLocal);
+            }
+        }
+
+        // Setup Window Loading triggers
+        window.onload = function () {
+            initThree();
+        }

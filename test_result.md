@@ -2647,3 +2647,424 @@ metadata_addendum:
 #                              the Command Floor with sigil overlay + HUD
 #   /tmp/launcher_v2.png     — v2 launcher boot intro / Astrolabe Terminal
 #                              calibration animation playing successfully
+
+# ============================================================================
+# 2026-02-21 — ASTROLABE V2 LORE MERGE COMPLETE
+# ============================================================================
+#
+# User dropped their lost VS Code source (astrolabev2.html) into the chat.
+# I performed a full architectural merge:
+#
+# - Replaced /app/backend/static/astrolabe.html and astrolabe_v2.html with
+#   the user's new design (Universal Cartographics, dual-viewport spindle,
+#   cyber panels, Tailwind, FILTERS + BLACK-HOLE-REALITIES + DEEP ANALYZE
+#   STRATA UI). Legacy preserved as astrolabe_legacy_backup.html.
+#
+# - NEW MODULE: /app/backend/static/js/astrolabe_lore_module.js
+#   Drop-in lore-merge module (40 KB, no engine modification) that hooks
+#   into the v2 engine via window-bound symbols and CustomEvents. It:
+#     • Defines all FACTIONS, DLDS_LORE, FACTION_LORE_TEMPLATES, POIS, and
+#       NAMED_REAPERS canon data (Centurion, Vamperica, Reapers, Trigon,
+#       Watrari, Soul Collectors, Supremes Finest, Magic Whisperers, etc.)
+#     • Enriches window.layerProfiles[i]._lore for ALL 199 strata with
+#       canonical faction/POI/reaper records (deterministic by seed).
+#     • Renames generic layer titles to canon POI names (e.g.
+#       Strata 0 → "Zero Point", Strata +2 → "Centurion Home Realm",
+#       Strata -12 → "Reaper Training Planet", etc.)
+#     • Replaces the static intel ticker with a live feed that merges
+#       /api/lore/recent (community submissions) + /api/lore/canon
+#       (canon-corpus snippets) + static fallback. 90-second refresh.
+#     • Injects a Wanderer ID badge in the header (persistent localStorage).
+#     • Injects a "[ ▦ STRATA LORE CODEX ]" button under the existing
+#       [DEEP ANALYZE STRATA] button.
+#     • Renders a full Strata Lore Codex modal: dominant faction (color-
+#       coded by faction), STABLE/DEAD/INFESTED badge, POI cards (with
+#       sub-locations + canon-context expander), Reaper Dossier (sigil,
+#       rank, scythe, kills, status, backstory), and live community
+#       wanderer fragments pulled from /api/lore/recent.
+#     • Enhances the Entity Peek panel: when a black-hole reality is
+#       selected, the panel shows POI canon, faction, reaper info + an
+#       [Open Strata Codex] button.
+#
+# - Engine wiring (added at the top of the inline script in both
+#   astrolabe.html and astrolabe_v2.html):
+#       window.STATE         = STATE;
+#       window.layerProfiles = layerProfiles;
+#       window.dispatchEvent(new Event('astrolabe-engine-ready'));
+#   And in selectStarSystem():
+#       window.dispatchEvent(new CustomEvent(
+#         'astrolabe-star-selected', { detail: { star: starObj } }));
+#   These let the lore module operate without touching the 3D engine.
+#
+# - Launcher wiring (both launcher.html and launcher_v2.html):
+#     • document.body.className now restored to the v2 layout classes
+#       so the flex layout fills the viewport after innerHTML injection.
+#     • bootGame() now manually inserts the lore-merge <script> tag
+#       (innerHTML won't execute <script src=…> on its own).
+#
+# - Re-ran split_astrolabe.py and split_astrolabe_v2.py to regenerate
+#   chunks/ and chunks_v2/ from the merged sources.
+#
+# ----------------------------------------------------------------------------
+# Verified end-to-end (via screenshot tool):
+#   /api/astrolabe-v2          → V2 UI, lore merged, codex modal works.
+#   /api/astrolabe-game-v2     → Launcher boot → V2 UI fully renders with
+#                                3D spindle, FILTERS, NAV-COMP, LORE
+#                                CODEX button, live intel ticker, WANDERER
+#                                badge, layer titles enriched ("Zero
+#                                Point" etc.)
+#   Entity Peek on star select → Shows Reality name, faction color, POI
+#                                canon, Reaper sigil + name + rank, and
+#                                an "Open Strata Codex" button.
+#   /api/deaths-ship           → Still HTTP 200, Maytradalis sprite still
+#                                435 KB (real PNG, not LFS stub).
+#   /api/lore/canon            → 200, returns canon ticker items.
+#   /api/lore/recent           → 200, returns community submissions.
+#
+# Screenshots saved:
+#   /tmp/v2_codex_open.png            (Strata +2 Centurion Home Realm)
+#   /tmp/v2_launcher_codex_minus12.png (Strata -12 with both Reaper
+#                                       Training Planet AND Trigon
+#                                       Trading Hub POIs in one modal)
+#   /tmp/v2_launcher_final.png         (full V2 UI booted via launcher)
+#   /tmp/v2_entity_peek_enriched.png   (entity-peek with canon info)
+
+# ============================================================================
+# 2026-02-21 — TASKS 1, 2, 4 (3 SKIPPED per user request)
+# ============================================================================
+#
+# TASK 1: ROOM WALL FRAMING (Death's Ship)
+# -----------------------------------------
+# Added `framePerimetersForAllRooms()` IIFE at end of ROOM_DEFS in
+# deaths_ship.html. For every room with full-span perimeter walls
+# (top/bottom/left/right strips), the IIFE now:
+#   1. Strips out the four full-span perimeter wall objects.
+#   2. Detects edge-facing doors (those whose center is within 2 grid
+#      units of an edge).
+#   3. Rebuilds the perimeter as MULTIPLE wall segments with
+#      door-shaped openings carved out (0.05 grid padding on each side
+#      of each door so the door doesn't graze a wall).
+# Effect: doors now sit inside actual openings in the wall geometry —
+# they look like real doorways rather than floating gaps.
+# Verified in 7 rooms (control, dorm_hall, grand_corridor, grand_hall,
+# engine_room, memory_hall, navigators) via screenshots.
+#
+# TASK 2: BREACH DEFENSE PURGE
+# -----------------------------
+# Already fully removed from astrolabe.html / astrolabe_v2.html /
+# main_menu.html / server.py during the V2 merge.
+# Final cleanup: deleted astrolabe_legacy_backup.html (522 KB) which
+# was the last file containing breach-defense modal CSS/JS.
+# `grep -rln "breach.defense\|breach-modal\|breach-game-canvas..." /app`
+# now returns NOTHING in active files.
+#
+# TASK 4: V2 NAV-MAP AUDIT + FIXES
+# ---------------------------------
+# Used analyze_file_tool to audit astrolabe_v2.html. Applied 2 of the
+# highest-impact fixes:
+#   P0 — Memory leak when scrubbing strata slider. The local-observer
+#        scene was rebuilt without disposing the prior Group's
+#        geometries/materials/textures. Added `disposeThreeNode(node)`
+#        helper that recursively dispose()s every geometry, material,
+#        and texture map. Wired into rebuildLocalObserverScene.
+#   P2 — `[ ACT ]` button was a no-op (just played a beep). Now wired
+#        to call `window.openStrataCodex(STATE.currentLayer)` so the
+#        button actually opens the Strata Lore Codex for the current
+#        layer. Verified: clicking [ACT] at strata -50 opens the codex
+#        showing Sanguine Court · Vamperica Empire · Siltbinder
+#        Reaper · community fragments.
+#
+# Remaining audit findings noted but NOT applied (documented for later):
+#   * Excessive per-rebuild geometry creation (P1) — should pool/instance
+#   * `proj-toggle` button visible but UI only changes class; no actual
+#     projection mode swap (P2)
+#   * Viewport meta `user-scalable=no` blocks zoom (a11y P3)
+#   * Magic numbers throughout the engine (P3)
+
+# ============================================================================
+# 2026-02-22 — BUG FIX + 5 MAJOR FEATURES
+# ============================================================================
+#
+# A. DOOR AUTO-TRIGGER BUG FIX
+# ---------------------------------
+# Symptom (user-reported screenshots): Returning from Navigator's Room or
+# Maytradalis's Room would re-trigger the entrance door instantly, sending
+# the player back to where they came from. Same in many doors.
+# Root cause: doors fired `enterDoor(dr)` on any spatial overlap during
+# update() with no debounce after spawn.
+# Fix in deaths_ship.html:
+#   1. `update()` now sets `state.nearDoor = <door>` instead of calling
+#      enterDoor. The player MUST press ACT button / E / SPACE / ENTER /
+#      TAB to actually walk through. Hint text changes to
+#      "▸ Press ACT / TAB / E to enter <room>".
+#   2. `interact()` checks `state.nearDoor` first; if set, calls enterDoor.
+#   3. `enterDoor()` sets `state.doorCooldown = now + 900ms` so the
+#      receiving door doesn't immediately re-trigger on spawn. During
+#      cooldown, the proximity scan is skipped.
+#   4. Tab key added to interaction keymap.
+#
+# B. CATHEDRAL — LONG SIDESCROLLER HALL
+# ---------------------------------
+# `cathedral` room reshaped: 30×18 → 64×14, two reaper-pew rows on each
+# side of the central walking aisle, statue dais centered. Doors at
+# x=0.4 (→ grand_hall, west) and x=63 (→ reaper_market, east). Natural
+# horizontal scrolling thanks to the camera-follow + room-bounds clamp.
+#
+# C. REAPER MARKET — NEW ROOM
+# ---------------------------------
+# `reaper_market` (40×22) with central octagonal dais labelled with all
+# 5 floor names rotating around its perimeter:
+#   F1 General / F2 Banking / F3 Rarities / F4 Warehouse / F5 Classifieds
+# 8 stall booths around the perimeter (rust-red awnings + amber lanterns
+# rendered by new `drawReaperMarket()`). Stalls have plaques for sigil-oil,
+# bone-dust, carnations, strata souvenirs, cycle-bread, dormitory linen,
+# breach-date books, scythe-ring repair. Central terminal plaque +
+# per-floor plaques for the 4 upper floors. NPC: Ossin (terminal clerk).
+# Connected to `cathedral` via west door.
+#
+# D. SOUL SCALE INDICATOR (-99 ↔ +99)
+# ---------------------------------
+# Added to astrolabe_lore_module.js. Renders a horizontal gradient bar
+# (red → purple → cyan) above the strata slider, with a white tracker
+# that moves in real time as the player scrubs strata. Below it a label
+# updates: BEDROCK · NEUTRAL (0), BLESSED (1-30), ASCENDANT (31-70),
+# PEAK DIVINITY (71+), CURSED (-1 to -30), DAMNED (-31 to -70),
+# ABYSSAL NIGHTMARE (-71-).
+#
+# E. SUB-LORE POPUP EVENTS
+# ---------------------------------
+# New `LAYER_EVENTS` dict in lore module — hand-curated canon events per
+# strata (Strata 0 Tribunal Eclipse / Strata +99 "Cryious Quiet" /
+# Strata -99 "Lamp of Endings" / etc.). Rendered as a new "RECENT
+# CANON EVENTS · STRATA ±N" block at the bottom of the codex modal.
+#
+# Verified by screenshots:
+#   /tmp/ds_cathedral_long.png        cathedral as long sidescroller
+#   /tmp/ds_reaper_market.png         Reaper Market w/ F4 + F5 labels
+#                                     visible on central column
+#   /tmp/v2_soul_scale_initial.png    Soul Scale at 0 (BEDROCK)
+#   /tmp/v2_soul_scale_plus99.png     Soul Scale at +99 (PEAK DIVINITY)
+#   /tmp/v2_codex_events_plus99.png   Codex shows Cryious Quiet event
+#   /tmp/v2_codex_events_neg99.png    Codex shows Maytradalis + Abyssal Root
+
+# ============================================================================
+# 2026-02-22 — OLD DLDS TERMINAL POPUP + MINIMAP + SOUL FORENSIC + GDOCS
+# ============================================================================
+#
+# User's 2 reference screenshots (old astrolabe):
+#   - ZERO POINT terminal popup ("DLDS ASTROLABE DATABANK")
+#   - Soul Forensic Scan ("SX-####//Name + PEAK DIVINITY ↔ ABYSS bar")
+#
+# Implementation in /app/backend/static/js/astrolabe_lore_module.js:
+#   - Full rewrite of buildCodexModalShell + openCodex to render the
+#     OLD terminal aesthetic: glowing cyan Share-Tech-Mono title, italic
+#     "ASTROLABE ARCHIVE:" prose, [ × ] close button, 3-tab interface.
+#   - Tabs: [ ARCHIVE ] [ SOUL FORENSIC ] [ HOLO · 2D MAP ]
+#       * ARCHIVE  = lore prose + faction + canon POIs (with macro
+#                    context) + reaper dossier + canon events + community
+#                    fragments — all in the old terminal aesthetic.
+#       * SOUL FORENSIC = procedurally generated SX-#### soul reading
+#                    with PEAK DIVINITY ↔ LOVECRAFTIAN ABYSS gradient
+#                    bar, ORIGIN/CURRENT STRATA, TRAJECTORY ▲/▼,
+#                    KARMIC ALIGNMENT, ASSIGNED REAPER, FRAGMENT
+#                    INTEGRITY %, DIRECTORY quote, [ OPEN DATABANK ]
+#                    button. Matches user's 2nd screenshot 1:1.
+#       * HOLO     = canvas-rendered holographic projection of the
+#                    current reality with swirl background + cyan
+#                    holo-cone + ring rings + central node, matching
+#                    the bottom-of-popup vibe in the user's 1st
+#                    screenshot.
+#   - Black-hole reality click → AUTO-OPENS the codex (was previously
+#     "click to peek, button to open"). Matches old astrolabe UX.
+#   - Footer "SOURCE: DLDS CANON CORPUS ↗" now hyperlinks to the
+#     canonical Google Doc (id 1YBN75…wn5k) from the lore_canon/ corpus.
+#
+# /app/backend/static/deaths_ship.html — MINIMAP HUD:
+#   - Fixed top-right 170x120 canvas-based minimap. Live-renders walls,
+#     doors (amber, blue when target is visited), interactables (purple),
+#     NPCs (red), and the player (cyan-glow). Pulses gold when the
+#     player transitions to a new room. Click-through to the full ship
+#     map modal.
+#
+# Verified screenshots:
+#   /tmp/v2_old_terminal_zero_point.png  – ARCHIVE tab matches screenshot 1
+#   /tmp/v2_soul_forensic_zero.png       – SOUL FORENSIC tab matches screenshot 2
+#   /tmp/v2_holo_projection.png          – HOLO tab w/ canvas projection
+#   /tmp/ds_minimap_control.png          – minimap in Command Floor
+#   /tmp/ds_minimap_cathedral.png        – minimap in Cathedral
+#   /tmp/ds_minimap_reaper_market.png    – minimap in Reaper Market
+#
+# Size review collected (see assistant message for full breakdown).
+
+# ============================================================================
+# 2026-02-22 — UI PASS + SETTINGS + COMMUNITY LORE + AI STORY GENERATOR
+# ============================================================================
+#
+# Lore module gained ~1200 lines of new functionality (94 KB total):
+#
+# 1) HEADER ACTION STRIP (top-right of astrolabe, below the existing bar)
+#    - [ ◂ MAIN MENU ]  → /api/astrolabe (the user-facing main menu)
+#    - [ ⚙ SETTINGS ]   → opens Settings modal
+#    - [ ✎ LORE ]       → opens Community Lore submission form for the
+#                          currently-selected strata
+#
+# 2) SETTINGS MODAL (new)
+#    Checkboxes (persisted in localStorage):
+#      • HIGH CONTRAST UI         → body.astro-high-contrast CSS class
+#      • LARGER TEXT (READABILITY)→ body.astro-large-text scales fonts +10–20%
+#      • REDUCED MOTION           → kills animations/transitions
+#      • MUTE AUDIO               → calls window.muteAllAudio() if available
+#    + WANDERER IDENTITY card showing the current local ID with [RESET].
+#
+# 3) COMMUNITY LORE SUBMISSION FORM (NEW)
+#    - Title / Body / optional Wanderer Name fields
+#    - Live char count (1000 max, 30 min)
+#    - POST /api/lore/contribute with target_type='reality',
+#      target_id='strata-<level>'
+#    - On success: refreshes Intel Ticker so the new fragment appears
+#      live in the marquee
+#
+# 4) AI STORY GENERATOR (NEW codex tab "[ ✦ AI STORY ]")
+#    - Subject + Prompt + Tone selector (Gothic/Cosmic-horror/Intimate/
+#      Reverent/Noir) + Length selector
+#    - POST /api/lore/generate → invokes Claude through Emergent LLM key
+#      with the full canon corpus as context
+#    - Verified end-to-end: generated a coherent 286-word gothic story for
+#      "Centurion Home Realm · Strata +2" referencing the Centurion sigil
+#      and creating an original character (Operative Kaine).
+#
+# 5) DEATH'S SHIP SETTINGS BUTTON (NEW)
+#    Adds [ ⚙ ] icon-btn alongside the existing back/map/codex buttons.
+#    Settings modal includes:
+#      • SHOW MINIMAP toggle
+#      • MUTE AUDIO toggle
+#      • SHOW D-PAD ON DESKTOP toggle
+#      • HIGH CONTRAST HUD toggle
+#      • Controls reference (WASD/Arrows, E/Space/Enter/Tab, M, Esc)
+#      • "◂ Return to Main Menu" link
+#
+# 6) MOBILE / VISIBILITY CSS PASS (new <style id="astro-lore-globalstyles">)
+#    - Boosts contrast on tiny corner labels (slate-400/500 → light blue)
+#    - Sets min-height 32–36 px on buttons/anchors for touch targets
+#    - Header marquee +text-shadow for readability against the 3D canvas
+#    - Soul Scale block now has its own dark backdrop
+#    - @media (max-width:640px): tightens action strip padding, shrinks
+#      modal max-h to 95vh, hides the Wanderer-badge sidecar when narrow
+#
+# Verified screenshots:
+#   /tmp/v2_new_header_buttons.png      — header action strip visible
+#   /tmp/v2_settings_open.png           — Settings modal open
+#   /tmp/v2_community_lore_form.png     — Community Lore form open
+#   /tmp/v2_community_lore_submitted.png — Submit success + ticker refresh
+#   /tmp/v2_ai_tab_strata2.png          — AI Story idle (Strata +2)
+#   /tmp/v2_ai_story_generated.png      — Claude-generated 286-word story
+
+# ============================================================================
+# 2026-02-22 — TWO P0 BUG FIXES + SHIP REFERENCE ART
+# ============================================================================
+#
+# BUG 1: Filter buttons did nothing
+#   File: /app/backend/static/astrolabe_v2.html  (also astrolabe.html)
+#   Was: triggerAnomalyScanner() only flashed matching realities for
+#        1.5 s — no actual filter behaviour.
+#   Now: maintains STATE.activeFilters Set. Clicking a filter toggles
+#        it in/out. Black-hole star groups have .visible bound to the
+#        set membership (showAll when empty). Buttons get/lose
+#        .btn-active-neon to reflect state. Global ring spindles
+#        respect filters too. SYSTEM LOGS gets a filter-update line.
+#
+# BUG 2: Tapping a black hole reality did nothing on mobile
+#   Was: selectStarSystem() dispatched 'astrolabe-star-selected' and
+#        the lore module's event listener called openCodex inside it.
+#        On mobile touch the dispatch order sometimes never reached
+#        the listener — popup never appeared.
+#   Now: selectStarSystem() ALSO synchronously calls
+#        window.openStrataCodex(layer) directly. Belt-and-suspenders.
+#        Verified via synthetic invocation: codex opens immediately
+#        with full DLDS ASTROLABE DATABANK · CENTURION HOME REALM ·
+#        Strata +2 · Mordren-7 dossier.
+#
+# SHIP REFERENCES (user-uploaded 4 angles of Death's Ship exterior)
+#   /app/backend/static/refs_ship/ship_angled.jpg     (1.1 MB)
+#   /app/backend/static/refs_ship/ship_front.jpg       (0.9 MB)
+#   /app/backend/static/refs_ship/ship_back_top.jpg    (1.0 MB)
+#   /app/backend/static/refs_ship/ship_top_front.jpg   (0.9 MB)
+#   Used so far:
+#     - main_menu.html hero parallax (ship_angled @ 0.32 opacity,
+#       screen blend mode, centered)
+#     - deaths_ship.html boarding loader screen (ship_front backdrop
+#       + 'THE ENDLESS · CYCLE 199' subtitle)
+#   Available for future use in:
+#     - Astrolabe ambient rotating backdrop
+#     - Cinematic transitions
+#     - Reaper Market F5 (classifieds room window)
+#
+# HEADER BUTTON STRIP REPOSITIONED
+#   Was: top-12 right-2 → overlapped SYSTEM LOGS panel header.
+#   Now: top: 92px; left: 12px; — sits under the marquee bar in a
+#        clear region. No overlap with existing UI.
+#
+# Verified screenshots:
+#   /tmp/main_menu_with_ship_hero.png    — main menu w/ ship backdrop
+#   /tmp/v2_filter_test_stable.png       — STABLE filter active (cyan)
+#   /tmp/v2_filter_test_dead.png         — DEAD filter active (rose)
+#   /tmp/v2_synth_click_opens_codex.png  — codex auto-opens correctly
+
+# ============================================================================
+# 2026-02-22 — REAPER MARKET F2–F5 + CINEMATIC INTRO + CATHEDRAL POLISH
+# ============================================================================
+#
+# A. DEATH'S SHIP CINEMATIC BOARDING INTRO (NEW)
+#    Added a 3-frame fade-through slideshow using the user-uploaded ship
+#    reference images (ship_back_top → ship_angled → ship_front). Each
+#    frame holds for ~2 s with a poetic caption fading in:
+#       "A vessel of bone, hull, and quiet souls."
+#       "It drifts above the Endless · home to every reaper that ever was."
+#       "Maytradalis, you are needed at the threshold."
+#    Skip via tap/click/keypress/touch. Auto-finishes at 6.2 s. Sits at
+#    z-index:160 above the loader.
+#
+# B. REAPER MARKET FLOORS F2–F5 (NEW ROOMS, ~40×22 each)
+#    Each floor has its own palette + plaques + sub-locations. Connected
+#    via the central column terminal:
+#       reaper_market    (F1 · General · amber)
+#       reaper_market_f2 (F2 · Reaper Banking · cool blue)
+#       reaper_market_f3 (F3 · Rarities of Creation · plum/pink)
+#       reaper_market_f4 (F4 · Warehouse · amber/bronze, crate stacks)
+#       reaper_market_f5 (F5 · Lite Lite Classifieds · dark muted purple,
+#                         restricted access, cork board, sealed envelope
+#                         addressed in May's own handwriting to herself)
+#    Floor selector wired via a window.interact() hijack: any
+#    interactable flagged `__floorSelect:true` opens a modal listing the
+#    5 floors. Clicking a floor fades + calls loadRoom() with the
+#    900 ms door cooldown protecting against re-trigger.
+#
+# C. CATHEDRAL OF REAPERS POLISH (REWRITE)
+#    drawCathedral updated for the new 64×14 long-hall geometry:
+#      • 12 vaulted arches running the full length of the hall with
+#        rib-shadows along the floor edge
+#      • Updated dais centred at (30, 4, 6, 3) + statue
+#      • 4 spaced chandeliers (12, 24, 44, 56)
+#      • 4 hanging banners between arches (crimson / deep-blue / royal
+#        purple / bronze) each with sigil
+#      • Central mirror-stone aisle running the full length
+#      • Slanting god-rays through the arches
+#      • 50 candlelight motes (was 30)
+#
+# D. ASTROLABE FILTER BUG FIX (continued from prior turn)
+#    Verified: STATE.activeFilters Set toggles work; black-hole star
+#    groups now bind .visible to set membership. Buttons reflect active
+#    state via .btn-active-neon class.
+#
+# E. BLACK-HOLE CLICK → CODEX FIX (continued from prior turn)
+#    selectStarSystem() now synchronously calls window.openStrataCodex(lvl)
+#    in addition to dispatching the CustomEvent. Mobile touch event
+#    ordering can no longer lose the popup.
+#
+# Verified screenshots (all 3 ship refs working as cinematic + 5 market
+# floors + cathedral polish + minimap + soul scale + settings + lore):
+#   /tmp/ds_boarding_intro_frame{0,1,2}.png
+#   /tmp/ds_market_{f1,f2,f3,f4,f5}*.png
+#   /tmp/ds_cathedral_v2_full_polish.png
+#   /tmp/v2_filter_test_{stable,dead}.png
+#   /tmp/v2_synth_click_opens_codex.png

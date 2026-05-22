@@ -575,7 +575,8 @@
 
             // Wipe everything else from body
             document.body.innerHTML = bodyHTML;
-            document.body.className = 'text-sm md:text-base';
+            // Apply astrolabe body classes so flex layout works correctly.
+            document.body.className = 'w-screen h-screen flex flex-col justify-between text-[#00ffcc] relative grid-bg overflow-hidden select-none text-sm md:text-base';
 
             // Re-attach installer on top, will fade out
             installer.style.position = 'fixed';
@@ -602,6 +603,19 @@
             // 5) Flush any late-registered load handlers
             if (typeof window.__flushLateLoadEvents === 'function') {
                 window.__flushLateLoadEvents();
+            }
+
+            // 5b) Inject the LORE MERGE MODULE so canon UI works on
+            // launcher-based boots as well (innerHTML won't execute
+            // script tags that came from the body chunk).
+            try {
+                const loreScript = document.createElement('script');
+                loreScript.src = resolveAssetUrl('/api/static/js/astrolabe_lore_module.js');
+                loreScript.onload  = () => log('▸ <span class="ok">lore-merge module loaded</span>');
+                loreScript.onerror = () => log('▸ <span class="warn">lore-merge module failed to load</span>');
+                document.body.appendChild(loreScript);
+            } catch (e) {
+                log('▸ <span class="warn">lore-merge bootstrap error: ' + (e.message || e) + '</span>');
             }
 
             // 6) Fade installer out

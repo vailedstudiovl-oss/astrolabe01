@@ -19,6 +19,371 @@
 (function () {
     'use strict';
 
+    // ===== 4b. SUB-LORE EVENTS (canon recent happenings per strata) =====
+    // These appear as a dedicated "RECENT EVENTS" section in the codex
+    // modal for that strata, distinct from procedural lore.
+    const LAYER_EVENTS = {
+        '0':  [
+            { cycle: 199, when: 'Cycle 199 · Tribunal Eclipse', text: "Master Death seals the Zero Point chamber for three hours. No reaper is allowed in or out. Reason: classified." },
+            { cycle: 196, when: 'Cycle 196 · Accident',       text: "The Saviour ship breaches in low orbit above Zero Point. Wreckage spirals into the central well. 47 souls unaccounted for." }
+        ],
+        '2':  [
+            { cycle: 199, when: 'Cycle 199 · Garrison Rotation', text: "Fort Harpie's third-line gate-corps rotates out after 12 cycles of unbroken duty. The new corps is led by a centurion named Greyhen." }
+        ],
+        '-12': [
+            { cycle: 199, when: 'Cycle 199 · Reaper Initiations', text: "11 junior reapers manifest at the Frialed Tree. Harrow-12 personally walks each one through their first soul-shepherding." }
+        ],
+        '-25': [
+            { cycle: 198, when: 'Cycle 198 · Vault Audit', text: "An unscheduled Centurion audit of the Vault of Echoes turns up 6 ledger discrepancies. Veilwing is briefly held for questioning, then released." }
+        ],
+        '-50': [
+            { cycle: 199, when: 'Cycle 199 · Blood-Tithe Surge', text: "The Sanguine Court raises its blood-tithe rate by 30%. Passing vessels report longer-than-usual customs inspections." }
+        ],
+        '-66': [
+            { cycle: 199, when: 'Cycle 199 · Sephira-Echo', text: "The Damnation Forge briefly broadcasts a sustained twin-voice tone across all reaper sigils. Source identified as Sephira. Duration: 38 seconds." }
+        ],
+        '33': [
+            { cycle: 199, when: 'Cycle 199 · Trinity Festival', text: "The Joys Market opens its once-per-cycle Trinity Feast. Reapers off-duty are permitted to attend; Thane-IX is named guest of honour." }
+        ],
+        '45': [
+            { cycle: 197, when: 'Cycle 197 · Auction', text: "A Supremes Finest auction sells two minor realities to a private collector. The Centurion Guard buys back one of them quietly the following cycle." }
+        ],
+        '99': [
+            { cycle: 199, when: 'Cycle 199 · Cryious Quiet', text: "Grim Cryious, the First Made, has not spoken to anyone for 27 days. Maytradalis is the only one bringing him tea." }
+        ],
+        '-99': [
+            { cycle: 199, when: 'Cycle 199 · Lamp of Endings', text: "Maytradalis trims the wick of the Lamp of Endings. The flame turns from grey to white. No reaper has seen it white before." }
+        ]
+    };
+
+    // ===== 8c. HEADER BUTTON STRIP (Back / Settings / Community Lore) =====
+    // Injects three top-right action buttons that the new v2 astrolabe
+    // is missing: a return-to-main-menu button, a settings overlay, and
+    // a community-lore submission form for the active strata.
+    function injectHeaderButtons() {
+        const header = document.querySelector('header');
+        if (!header || document.getElementById('astro-action-strip')) return;
+        const strip = document.createElement('div');
+        strip.id = 'astro-action-strip';
+        // Sit BELOW the marquee + INTEL bar so we don't overlap any
+        // existing controls. On mobile we tuck to top-left so the right
+        // side stays free for the panels.
+        strip.className = 'fixed z-30 flex items-center gap-1.5 sm:gap-2 flex-wrap';
+        strip.style.cssText = 'top: 92px; left: 12px; max-width: calc(100% - 24px);';
+        strip.innerHTML = `
+            <a href="/api/astrolabe" id="astro-home-btn"
+               class="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest rounded-sm"
+               style="background: rgba(0,255,204,0.08); color:#00ffcc; border:1px solid rgba(0,255,204,0.4); box-shadow: 0 0 6px rgba(0,255,204,0.25); min-height: 36px; display:inline-flex; align-items:center;"
+               title="Return to main menu">◂ MAIN MENU</a>
+            <button id="astro-settings-btn" title="Settings"
+                    class="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest rounded-sm"
+                    style="background: rgba(155,109,255,0.08); color:#c4b5fd; border:1px solid rgba(155,109,255,0.4); box-shadow: 0 0 6px rgba(155,109,255,0.2); min-height: 36px;">⚙ SETTINGS</button>
+            <button id="astro-community-btn" title="Submit your lore"
+                    class="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest rounded-sm"
+                    style="background: rgba(255,168,80,0.08); color:#ffd28b; border:1px solid rgba(255,168,80,0.4); box-shadow: 0 0 6px rgba(255,168,80,0.2); min-height: 36px;">✎ LORE</button>
+        `;
+        document.body.appendChild(strip);
+        document.getElementById('astro-settings-btn').addEventListener('click', openSettings);
+        document.getElementById('astro-community-btn').addEventListener('click', () => openCommunityLore(window.STATE && window.STATE.currentLayer || 0));
+    }
+
+    // ===== 8d. SETTINGS MODAL ==========================================
+    function buildSettingsShell() {
+        if (document.getElementById('settings-modal')) return;
+        const m = document.createElement('div');
+        m.id = 'settings-modal';
+        m.className = 'fixed inset-0 z-50 hidden items-center justify-center p-3';
+        m.style.background = 'rgba(0,0,0,0.85)';
+        m.innerHTML = `
+            <div class="dlds-frame max-w-md w-full rounded-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-purple-500/30 flex justify-between items-center">
+                    <div>
+                        <div class="dlds-title text-[10px]">DLDS · TERMINAL SETTINGS</div>
+                        <div class="dlds-bigtitle text-lg mt-1">⚙ SETTINGS</div>
+                    </div>
+                    <button id="settings-close" class="dlds-close px-3 py-2 text-xs font-mono uppercase tracking-widest rounded-sm">[ × ]</button>
+                </div>
+                <div class="p-4 space-y-3 text-[11px] font-mono text-slate-300">
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                        <span>HIGH CONTRAST UI</span>
+                        <input type="checkbox" id="set-contrast" class="w-5 h-5">
+                    </label>
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                        <span>LARGER TEXT (READABILITY)</span>
+                        <input type="checkbox" id="set-large-text" class="w-5 h-5">
+                    </label>
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                        <span>REDUCED MOTION</span>
+                        <input type="checkbox" id="set-reduce-motion" class="w-5 h-5">
+                    </label>
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                        <span>MUTE AUDIO</span>
+                        <input type="checkbox" id="set-mute" class="w-5 h-5">
+                    </label>
+                    <div class="border border-amber-500/20 px-3 py-2 rounded-sm">
+                        <div class="text-amber-300 mb-1">WANDERER IDENTITY</div>
+                        <div class="flex items-center justify-between">
+                            <span>CURRENT:&nbsp;<span id="set-wid" class="text-purple-300 font-bold">------</span></span>
+                            <button id="set-reset-wid" class="px-2 py-1 text-[10px] uppercase tracking-widest rounded-sm border border-rose-500/40 text-rose-300 hover:bg-rose-950/30">RESET</button>
+                        </div>
+                        <div class="text-[10px] text-slate-500 mt-1">Saved locally · used to sign your community lore.</div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 text-center pt-2">Settings persist in this browser only.</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(m);
+        m.addEventListener('click', (e) => { if (e.target === m) closeSettings(); });
+        document.getElementById('settings-close').addEventListener('click', closeSettings);
+        // Wire toggles to body classes + localStorage
+        const setings = {
+            'set-contrast':      { key: 'astro_contrast',     cls: 'astro-high-contrast' },
+            'set-large-text':    { key: 'astro_large_text',   cls: 'astro-large-text' },
+            'set-reduce-motion': { key: 'astro_reduce_motion',cls: 'astro-reduce-motion' },
+            'set-mute':          { key: 'astro_mute',         cls: 'astro-muted' },
+        };
+        for (const id in setings) {
+            const cb = document.getElementById(id);
+            const s = setings[id];
+            try {
+                cb.checked = localStorage.getItem(s.key) === '1';
+                if (cb.checked) document.body.classList.add(s.cls);
+            } catch (e) {}
+            cb.addEventListener('change', () => {
+                try { localStorage.setItem(s.key, cb.checked ? '1' : '0'); } catch (e) {}
+                document.body.classList.toggle(s.cls, cb.checked);
+                // Mute toggle — also try the engine's audio
+                if (id === 'set-mute' && window.muteAllAudio) window.muteAllAudio(cb.checked);
+            });
+        }
+        document.getElementById('set-reset-wid').addEventListener('click', () => {
+            try { localStorage.removeItem('astrolabe_wanderer_id'); } catch (e) {}
+            const wid = ensureWandererId();
+            document.getElementById('set-wid').innerText = wid;
+            const badge = document.getElementById('wid-badge');
+            if (badge) {
+                const span = badge.querySelector('span'); if (span) span.innerText = wid;
+            }
+        });
+    }
+    function openSettings() {
+        buildSettingsShell();
+        const m = document.getElementById('settings-modal');
+        m.classList.remove('hidden'); m.classList.add('flex');
+        document.getElementById('set-wid').innerText = ensureWandererId();
+    }
+    function closeSettings() {
+        const m = document.getElementById('settings-modal');
+        if (!m) return;
+        m.classList.add('hidden'); m.classList.remove('flex');
+    }
+
+    // ===== 8e. COMMUNITY LORE SUBMISSION FORM ===========================
+    function buildCommunityLoreShell() {
+        if (document.getElementById('community-lore-modal')) return;
+        const m = document.createElement('div');
+        m.id = 'community-lore-modal';
+        m.className = 'fixed inset-0 z-50 hidden items-center justify-center p-3';
+        m.style.background = 'rgba(0,0,0,0.85)';
+        m.innerHTML = `
+            <div class="dlds-frame max-w-xl w-full max-h-[90vh] overflow-hidden rounded-sm flex flex-col">
+                <div class="px-4 py-3 border-b border-amber-500/30 flex justify-between items-center">
+                    <div>
+                        <div class="dlds-title text-[10px]" style="color:#ffd28b;">DLDS · COMMUNITY WANDERER ARCHIVE</div>
+                        <div class="dlds-bigtitle text-lg mt-1" style="color:#ffd28b; text-shadow:0 0 8px rgba(255,210,139,0.6);">✎ ADD YOUR LORE</div>
+                        <div class="dlds-title text-[10px] mt-1 opacity-70" id="community-strata-tag">[ STRATA 0 ]</div>
+                    </div>
+                    <button id="community-close" class="dlds-close px-3 py-2 text-xs font-mono uppercase tracking-widest rounded-sm">[ × ]</button>
+                </div>
+                <div class="p-4 space-y-3 text-[11px] font-mono text-slate-300 overflow-y-auto">
+                    <div>
+                        <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">YOUR WANDERER NAME (optional)</div>
+                        <input id="community-name" type="text" maxlength="40" placeholder="Anonymous Wanderer"
+                               class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px]" />
+                    </div>
+                    <div>
+                        <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">FRAGMENT TITLE (optional)</div>
+                        <input id="community-title" type="text" maxlength="80" placeholder="The Cyan Frost"
+                               class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px]" />
+                    </div>
+                    <div>
+                        <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">YOUR LORE (max 1000 chars, min 30)</div>
+                        <textarea id="community-content" maxlength="1000" rows="6" placeholder="A reaper named Sallow walked the cathedral aisle on cycle 173 and never returned. Maytradalis stopped lighting that pew."
+                                  class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px] resize-y leading-relaxed"></textarea>
+                        <div class="text-[10px] text-slate-500 mt-1 flex justify-between"><span id="community-charcount">0 / 1000</span><span>signed by WANDERER · <span id="community-wid" class="text-cyan-300">------</span></span></div>
+                    </div>
+                    <div id="community-result" class="text-[11px] hidden"></div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button id="community-cancel" class="px-3 py-2 text-[10px] uppercase tracking-widest rounded-sm border border-slate-500/40 text-slate-300 hover:bg-slate-800/30">CANCEL</button>
+                        <button id="community-submit" class="px-4 py-2 text-[10px] uppercase tracking-widest rounded-sm font-bold"
+                                style="background: rgba(255,168,80,0.15); border:1px solid rgba(255,168,80,0.6); color:#ffd28b; box-shadow: 0 0 8px rgba(255,168,80,0.3);">▸ SUBMIT FRAGMENT</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(m);
+        m.addEventListener('click', (e) => { if (e.target === m) closeCommunityLore(); });
+        document.getElementById('community-close').addEventListener('click', closeCommunityLore);
+        document.getElementById('community-cancel').addEventListener('click', closeCommunityLore);
+        document.getElementById('community-content').addEventListener('input', (e) => {
+            document.getElementById('community-charcount').innerText = e.target.value.length + ' / 1000';
+        });
+        document.getElementById('community-submit').addEventListener('click', submitCommunityLore);
+    }
+    let _communityStrata = 0;
+    function openCommunityLore(level) {
+        buildCommunityLoreShell();
+        _communityStrata = level;
+        const m = document.getElementById('community-lore-modal');
+        m.classList.remove('hidden'); m.classList.add('flex');
+        document.getElementById('community-strata-tag').innerText = '[ STRATA ' + (level > 0 ? '+' + level : level) + ' ]';
+        document.getElementById('community-wid').innerText = ensureWandererId();
+        document.getElementById('community-result').className = 'text-[11px] hidden';
+        document.getElementById('community-content').value = '';
+        document.getElementById('community-title').value = '';
+        document.getElementById('community-charcount').innerText = '0 / 1000';
+        // Pre-fill name with the last used one if stored
+        try {
+            const lastName = localStorage.getItem('astro_wanderer_name') || '';
+            document.getElementById('community-name').value = lastName;
+        } catch (e) {}
+    }
+    function closeCommunityLore() {
+        const m = document.getElementById('community-lore-modal');
+        if (!m) return;
+        m.classList.add('hidden'); m.classList.remove('flex');
+    }
+    async function submitCommunityLore() {
+        const result = document.getElementById('community-result');
+        const submit = document.getElementById('community-submit');
+        const name    = document.getElementById('community-name').value.trim();
+        const title   = document.getElementById('community-title').value.trim();
+        const content = document.getElementById('community-content').value.trim();
+        if (content.length < 30) {
+            result.innerText = '✕ Fragment too short. Minimum 30 characters.';
+            result.className = 'text-[11px] text-rose-400 border border-rose-500/30 px-2 py-1.5 rounded-sm';
+            return;
+        }
+        const wid = ensureWandererId();
+        try { localStorage.setItem('astro_wanderer_name', name); } catch (e) {}
+        const payload = {
+            // Server validates target_type ∈ {faction, poi, reality, reaper, sub_location}.
+            // A strata IS one reality (or a stack of them), so we file
+            // community fragments under the 'reality' bucket with
+            // `strata-<level>` as the canonical ID.
+            target_type: 'reality',
+            target_id: 'strata-' + (_communityStrata > 0 ? '+' + _communityStrata : '' + _communityStrata),
+            title: title || undefined,
+            content,
+            author_wid: wid,
+            author_name: name || undefined,
+        };
+        submit.disabled = true;
+        submit.innerText = 'TRANSMITTING…';
+        try {
+            const r = await fetch('/api/lore/contribute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!r.ok) {
+                const err = await r.text();
+                throw new Error('HTTP ' + r.status + ' — ' + err.slice(0, 200));
+            }
+            const data = await r.json();
+            result.innerText = '✓ Fragment received. Recorded as #' + (data.id || '?').slice(0, 8) + '. Your contribution now appears in the Astrolabe Intel Feed and any Wanderer fragment of Strata ' + (_communityStrata > 0 ? '+' + _communityStrata : _communityStrata) + '.';
+            result.className = 'text-[11px] text-cyan-300 border border-cyan-500/30 px-2 py-1.5 rounded-sm';
+            // Refresh intel ticker so the new fragment may appear in the feed
+            refreshIntelTicker();
+            setTimeout(closeCommunityLore, 2200);
+        } catch (e) {
+            result.innerText = '✕ Submission failed: ' + (e.message || e);
+            result.className = 'text-[11px] text-rose-400 border border-rose-500/30 px-2 py-1.5 rounded-sm';
+        } finally {
+            submit.disabled = false;
+            submit.innerText = '▸ SUBMIT FRAGMENT';
+        }
+    }
+
+    // ===== 8f. MOBILE / VISIBILITY CSS PASS =============================
+    // Boosts text contrast for tiny astrolabe labels, ensures touch
+    // targets are 36px+, adds high-contrast & large-text overrides
+    // toggled by Settings.
+    function injectGlobalStyles() {
+        if (document.getElementById('astro-lore-globalstyles')) return;
+        const style = document.createElement('style');
+        style.id = 'astro-lore-globalstyles';
+        style.textContent = `
+            /* Boost contrast on tiny corner labels */
+            #left-panel, #right-panel, #nav-comp-panel, #bottom-panel {
+                background: rgba(2, 2, 12, 0.78) !important;
+                backdrop-filter: blur(4px);
+            }
+            #left-panel .text-slate-400, #right-panel .text-slate-400,
+            #left-panel .text-slate-500, #right-panel .text-slate-500,
+            #nav-comp-panel .text-slate-400 {
+                color: #b8d4ff !important;
+            }
+            #left-panel .text-cyan-300, #right-panel .text-cyan-300 {
+                color: #5af5d8 !important;
+            }
+            header marquee {
+                font-size: 12px;
+                color: #00ffcc;
+                text-shadow: 0 0 4px rgba(0,255,204,0.5);
+            }
+            /* Touch-target minimum on small buttons everywhere */
+            button, a[role="button"] { min-height: 32px; }
+
+            /* High contrast mode (Settings) */
+            body.astro-high-contrast #left-panel,
+            body.astro-high-contrast #right-panel,
+            body.astro-high-contrast #nav-comp-panel,
+            body.astro-high-contrast #bottom-panel {
+                background: rgba(0,0,0,0.92) !important;
+                border-color: #00ffcc !important;
+            }
+            body.astro-high-contrast .text-slate-300,
+            body.astro-high-contrast .text-slate-400,
+            body.astro-high-contrast .text-slate-500 { color: #e0f7ff !important; }
+            body.astro-high-contrast .text-cyan-300,
+            body.astro-high-contrast .text-cyan-400 { color: #00ffcc !important; text-shadow: 0 0 4px #00ffcc; }
+            body.astro-high-contrast .text-purple-300,
+            body.astro-high-contrast .text-purple-400 { color: #d8b4ff !important; }
+
+            /* Larger text mode (Settings) */
+            body.astro-large-text { font-size: 110% !important; }
+            body.astro-large-text .text-[9px]  { font-size: 11px !important; }
+            body.astro-large-text .text-[10px] { font-size: 12px !important; }
+            body.astro-large-text .text-[11px] { font-size: 13px !important; }
+            body.astro-large-text .text-[12px] { font-size: 14px !important; }
+            body.astro-large-text marquee      { font-size: 15px !important; }
+
+            /* Reduced motion (Settings) */
+            body.astro-reduce-motion *, body.astro-reduce-motion *::before, body.astro-reduce-motion *::after {
+                animation-duration: 0.001s !important;
+                transition-duration: 0.001s !important;
+            }
+            body.astro-reduce-motion marquee { -webkit-animation-iteration-count: 0 !important; animation-iteration-count: 0 !important; }
+
+            /* Codex modal mobile pass — max-w-3xl already responsive */
+            @media (max-width: 640px) {
+                #codex-modal .dlds-bigtitle { font-size: 1.4rem !important; }
+                #codex-modal .dlds-frame { max-height: 95vh; }
+                #astro-action-strip { gap: 3px; padding-right: 4px; }
+                #astro-action-strip a, #astro-action-strip button { padding: 6px 8px !important; }
+                /* Header marquee narrower on mobile */
+                header marquee { font-size: 11px; }
+                /* WANDERER badge less crowded */
+                #wid-badge { display: none; }
+            }
+            /* Astrolabe header readability — drop shadow under marquee text */
+            header { box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+            #soul-scale-wrap { background: rgba(0,0,0,0.6); border-radius: 6px; padding: 4px 6px; }
+        `;
+        document.head.appendChild(style);
+    }
+
     // ===== 1. FACTIONS =================================================
     const FACTIONS = {
         CENTORIAN:         { id: 'centorian',         name: 'Centurion Guard',                 color: '#ffdd00' },
@@ -280,6 +645,63 @@
         marquee.innerHTML = shuffled.join(sep) + sep;
     }
 
+    // ===== 8b. SOUL SCALE INDICATOR ====================================
+    // Displays a -99 ↔ +99 soul-alignment bar that tracks the current
+    // strata level live (positive=Peak Divinity, negative=Lovecraftian
+    // Nightmare). Injected just above the strata slider.
+    function injectSoulScale() {
+        if (document.getElementById('soul-scale-wrap')) return;
+        const slider = document.getElementById('layer-slider') || document.getElementById('strata-slider');
+        const host = slider && slider.closest('div.cyber-panel, #bottom-panel, .bottom-panel');
+        const targetHost = host || document.getElementById('bottom-panel') || document.querySelector('#layer-indicator')?.parentElement;
+        if (!targetHost) return;
+        const wrap = document.createElement('div');
+        wrap.id = 'soul-scale-wrap';
+        wrap.className = 'mx-2 mt-1 mb-1 select-none';
+        wrap.innerHTML = `
+            <div class="flex justify-between items-center mb-0.5">
+                <span class="text-[8px] text-rose-400 tracking-widest uppercase">−99 · DAMNATION</span>
+                <span class="text-[9px] text-purple-200 tracking-widest uppercase">SOUL SCALE</span>
+                <span class="text-[8px] text-cyan-300 tracking-widest uppercase">DIVINITY · +99</span>
+            </div>
+            <div class="relative h-2 rounded-full overflow-hidden border border-slate-600/40"
+                 style="background: linear-gradient(to right, #b21027 0%, #471a4c 50%, #0bb6ff 100%);">
+                <div id="soul-scale-cursor"
+                     class="absolute top-[-3px] h-[14px] w-[2px] bg-white shadow-[0_0_4px_#fff] transition-all"
+                     style="left: 50%; transform: translateX(-1px);"></div>
+                <div id="soul-scale-tick-zero"
+                     class="absolute top-0 h-full w-[1px] bg-white/40"
+                     style="left: 50%;"></div>
+            </div>
+            <div id="soul-scale-readout" class="text-center text-[10px] text-purple-200 mt-0.5 tracking-widest">
+                STRATA <span id="soul-scale-val">0</span>  ·  <span id="soul-scale-tag">NEUTRAL</span>
+            </div>
+        `;
+        targetHost.insertBefore(wrap, targetHost.firstChild);
+        updateSoulScale(window.STATE && window.STATE.currentLayer || 0);
+    }
+    function updateSoulScale(level) {
+        const cursor = document.getElementById('soul-scale-cursor');
+        const val = document.getElementById('soul-scale-val');
+        const tag = document.getElementById('soul-scale-tag');
+        if (!cursor || !val) return;
+        const pct = ((level + 99) / 198) * 100;
+        cursor.style.left = pct + '%';
+        val.innerText = (level > 0 ? '+' : '') + level;
+        // Tag the alignment
+        let label = 'NEUTRAL', color = '#a78bfa';
+        const a = Math.abs(level);
+        if (level === 0)        { label = 'BEDROCK · NEUTRAL';     color = '#a78bfa'; }
+        else if (level > 70)    { label = 'PEAK DIVINITY';         color = '#0bb6ff'; }
+        else if (level > 30)    { label = 'ASCENDANT';             color = '#22d3ee'; }
+        else if (level > 0)     { label = 'BLESSED';               color = '#c4b5fd'; }
+        else if (level < -70)   { label = 'ABYSSAL NIGHTMARE';     color = '#b21027'; }
+        else if (level < -30)   { label = 'DAMNED';                color = '#e11d48'; }
+        else if (level < 0)     { label = 'CURSED';                color = '#a855f7'; }
+        tag.innerText = label;
+        tag.style.color = color;
+    }
+
     // ===== 8. WANDERER ID BADGE ========================================
     function ensureWandererId() {
         try {
@@ -308,25 +730,106 @@
         intelRow.appendChild(badge);
     }
 
-    // ===== 9. STRATA CODEX MODAL =======================================
+    // ===== 9. RETRO DLDS ASTROLABE DATABANK MODAL (old-style) ==========
+    // Restyles the codex to match the original "DLDS ASTROLABE DATABANK //
+    // LOCATIONS OF INTEREST" terminal look the user wants restored — big
+    // glowing cyan title bar, "ASTROLABE ARCHIVE" prose, holographic
+    // projection visualization, Soul Forensic Scan tab, Google docs link.
     function buildCodexModalShell() {
         if (document.getElementById('codex-modal')) return;
         const modal = document.createElement('div');
         modal.id = 'codex-modal';
-        modal.className = 'fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+        modal.className = 'fixed inset-0 z-50 hidden items-center justify-center backdrop-blur-sm p-2 sm:p-4';
+        modal.style.background = 'radial-gradient(circle at center, rgba(10,5,30,0.92), rgba(0,0,0,0.95))';
         modal.innerHTML = `
-            <div class="cyber-panel cyber-panel-purple max-w-2xl w-full max-h-[85vh] overflow-hidden rounded flex flex-col">
-                <div class="flex justify-between items-center px-4 py-2.5 border-b border-purple-500/30 bg-black/60">
-                    <div>
-                        <div class="text-[10px] text-purple-300 tracking-widest uppercase">STRATA LORE CODEX</div>
-                        <div id="codex-title" class="text-lg text-white font-bold">—</div>
+            <style>
+                #codex-modal .dlds-frame {
+                    background: linear-gradient(180deg, rgba(0,18,30,0.92), rgba(0,4,12,0.96));
+                    border: 1px solid rgba(0,255,204,0.4);
+                    box-shadow: 0 0 24px rgba(0,255,204,0.25), inset 0 0 60px rgba(0,255,204,0.06);
+                }
+                #codex-modal .dlds-title {
+                    font-family: 'Share Tech Mono', 'Courier New', monospace;
+                    color: #00ffcc;
+                    letter-spacing: 0.18em;
+                    text-shadow: 0 0 6px rgba(0,255,204,0.6);
+                }
+                #codex-modal .dlds-bigtitle {
+                    font-family: 'Share Tech Mono', 'Courier New', monospace;
+                    font-size: 2rem;
+                    color: #00ffcc;
+                    letter-spacing: 0.2em;
+                    text-shadow: 0 0 12px rgba(0,255,204,0.7);
+                    line-height: 1.05;
+                }
+                #codex-modal .dlds-section-head {
+                    font-family: 'Share Tech Mono', 'Courier New', monospace;
+                    color: #00ffcc;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                }
+                #codex-modal .dlds-prose {
+                    font-style: italic;
+                    color: #e2eef0;
+                    line-height: 1.55;
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 0.83rem;
+                }
+                #codex-modal .dlds-close {
+                    color: #ff5555;
+                    border: 1px solid rgba(255,80,80,0.6);
+                    box-shadow: 0 0 6px rgba(255,80,80,0.3);
+                }
+                #codex-modal .dlds-2dmap {
+                    color: #00ffcc;
+                    border: 1px solid rgba(0,255,204,0.6);
+                    background: rgba(0,255,204,0.05);
+                }
+                #codex-modal .dlds-divider {
+                    border-left: 2px solid #9b6dff;
+                    padding-left: 0.75rem;
+                }
+                #codex-modal .holo-canvas {
+                    background: radial-gradient(ellipse at center, #2a1244 0%, #150627 40%, #050010 100%);
+                }
+                #codex-modal .dlds-tab {
+                    border: 1px solid rgba(0,255,204,0.3);
+                    color: rgba(0,255,204,0.7);
+                    background: rgba(0,255,204,0.04);
+                }
+                #codex-modal .dlds-tab.active {
+                    background: rgba(0,255,204,0.18);
+                    color: #00ffcc;
+                    border-color: rgba(0,255,204,0.9);
+                    box-shadow: 0 0 8px rgba(0,255,204,0.4);
+                }
+                #codex-modal .soul-bar {
+                    background: linear-gradient(to right, #ffd700 0%, #5b21b6 50%, #6b21ff 100%);
+                }
+            </style>
+            <div class="dlds-frame max-w-3xl w-full max-h-[90vh] overflow-hidden rounded-sm flex flex-col">
+                <!-- HEADER -->
+                <div class="px-4 sm:px-6 py-3 border-b border-cyan-500/30 flex items-start justify-between gap-2">
+                    <div class="flex-1">
+                        <div class="dlds-title text-[10px] sm:text-xs">DLDS ASTROLABE DATABANK // LOCATIONS OF INTEREST</div>
+                        <div id="codex-title" class="dlds-bigtitle mt-1">ZERO POINT</div>
+                        <div id="codex-subtitle" class="dlds-title text-[10px] sm:text-xs mt-1 opacity-80">[ STRATA 0 : NEXUS ]</div>
                     </div>
-                    <button id="codex-close" class="text-xs px-2.5 py-1 border border-rose-500/60 text-rose-400 hover:bg-rose-950/30 rounded uppercase tracking-widest">[ × CLOSE ]</button>
+                    <button id="codex-close" class="dlds-close text-xs px-3 py-2 rounded-sm font-mono uppercase tracking-widest hover:bg-rose-950/40">[ × ]</button>
                 </div>
-                <div id="codex-body" class="flex-1 overflow-y-auto p-4 text-xs text-slate-300 space-y-4"></div>
-                <div class="px-4 py-2 border-t border-purple-500/20 bg-black/60 flex justify-between text-[10px] text-slate-500 font-mono">
-                    <span>WANDERER · <span id="codex-wid">------</span></span>
-                    <span>Source: <span class="text-cyan-400">DLDS canon corpus</span></span>
+                <!-- TABS -->
+                <div class="flex flex-wrap gap-1 px-4 sm:px-6 pt-3">
+                    <button id="codex-tab-archive" class="dlds-tab active text-[10px] sm:text-xs px-3 py-1.5 uppercase tracking-widest rounded-sm">[ archive ]</button>
+                    <button id="codex-tab-soul"    class="dlds-tab        text-[10px] sm:text-xs px-3 py-1.5 uppercase tracking-widest rounded-sm">[ soul forensic ]</button>
+                    <button id="codex-tab-holo"    class="dlds-tab        text-[10px] sm:text-xs px-3 py-1.5 uppercase tracking-widest rounded-sm">[ holo · 2d map ]</button>
+                    <button id="codex-tab-ai"      class="dlds-tab        text-[10px] sm:text-xs px-3 py-1.5 uppercase tracking-widest rounded-sm">[ ✦ ai story ]</button>
+                </div>
+                <!-- BODY -->
+                <div id="codex-body" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-slate-300"></div>
+                <!-- FOOTER -->
+                <div class="px-4 sm:px-6 py-2 border-t border-cyan-500/20 flex justify-between text-[10px] font-mono">
+                    <span class="text-slate-500">WANDERER · <span id="codex-wid" class="text-cyan-300">------</span></span>
+                    <span class="text-slate-500">SOURCE: <a id="codex-source-link" class="text-cyan-400 hover:text-cyan-200 underline" target="_blank" rel="noopener" href="#">DLDS CANON CORPUS</a></span>
                 </div>
             </div>
         `;
@@ -338,87 +841,401 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeCodex();
         });
+        // Tab switching
+        const tabs = {
+            archive: document.getElementById('codex-tab-archive'),
+            soul:    document.getElementById('codex-tab-soul'),
+            holo:    document.getElementById('codex-tab-holo'),
+            ai:      document.getElementById('codex-tab-ai'),
+        };
+        const setTab = (k) => {
+            for (const key in tabs) tabs[key].classList.toggle('active', key === k);
+            renderCodexTab(k);
+        };
+        tabs.archive.addEventListener('click', () => setTab('archive'));
+        tabs.soul.addEventListener('click',    () => setTab('soul'));
+        tabs.holo.addEventListener('click',    () => setTab('holo'));
+        tabs.ai.addEventListener('click',      () => setTab('ai'));
+    }
+    // ===== Google Docs canon references ===============================
+    // Each lore corpus chunk corresponds to a Google Doc. We map strata
+    // ranges → the "best" canon source doc so the footer link goes to a
+    // user-readable Google Doc.
+    const GDOC_LINKS = {
+        // The known canonical doc ID embedded in /backend/lore_canon/. We
+        // route all strata to it until per-doc IDs are wired.
+        primary:  'https://docs.google.com/document/d/1YBN75PIGnZBSxVqS0IL4T0YT5tYcohBnnwUg3Z_wn5k/edit',
+        pois:     'https://docs.google.com/document/d/1YBN75PIGnZBSxVqS0IL4T0YT5tYcohBnnwUg3Z_wn5k/edit',
+        reapers:  'https://docs.google.com/document/d/1YBN75PIGnZBSxVqS0IL4T0YT5tYcohBnnwUg3Z_wn5k/edit',
+        overview: 'https://docs.google.com/document/d/1YBN75PIGnZBSxVqS0IL4T0YT5tYcohBnnwUg3Z_wn5k/edit',
+    };
+    function gdocForStrata(level) {
+        // For pinned POI strata route to the POI doc, otherwise the primary canon doc.
+        if (POIS[String(level)]) return GDOC_LINKS.pois;
+        if (NAMED_REAPERS[String(level)]) return GDOC_LINKS.reapers;
+        return GDOC_LINKS.primary;
+    }
+
+    // ===== Holographic Projection (mini visualization) =================
+    // Tiny canvas that renders a stylized "black hole / nebula" for the
+    // current reality — matches the bottom-of-popup vibe in the user's
+    // old screenshot.
+    function drawHolographicProjection(canvas, lore, layerLevel) {
+        if (!canvas || !canvas.getContext) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        // Background swirl
+        const grad = ctx.createRadialGradient(W/2, H/2, 5, W/2, H/2, Math.max(W,H)*0.7);
+        const isAbyss = layerLevel < -30;
+        const isDivine = layerLevel > 30;
+        if (isDivine) {
+            grad.addColorStop(0,   '#88e6ff');
+            grad.addColorStop(0.3, '#3d6bcc');
+            grad.addColorStop(0.7, '#1a1a4a');
+            grad.addColorStop(1,   '#050015');
+        } else if (isAbyss) {
+            grad.addColorStop(0,   '#ff4060');
+            grad.addColorStop(0.3, '#6a0033');
+            grad.addColorStop(0.7, '#1a0010');
+            grad.addColorStop(1,   '#020005');
+        } else {
+            grad.addColorStop(0,   '#b850ff');
+            grad.addColorStop(0.3, '#7020c0');
+            grad.addColorStop(0.7, '#2a0a4a');
+            grad.addColorStop(1,   '#080015');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+        // Swirl arcs
+        const cx = W/2, cy = H*0.65;
+        for (let i = 0; i < 90; i++) {
+            const a = (i/90) * Math.PI * 6 + Math.random()*0.2;
+            const r = 30 + i * 2.5;
+            const x = cx + Math.cos(a) * r;
+            const y = cy + Math.sin(a) * r * 0.4;
+            ctx.fillStyle = 'rgba(' + (isAbyss?'255,80,80':isDivine?'120,200,255':'200,120,255') + ',' + (0.55 - i*0.005) + ')';
+            ctx.beginPath();
+            ctx.arc(x, y, Math.max(1, 4 - i*0.03), 0, Math.PI*2);
+            ctx.fill();
+        }
+        // Holo cone (cyan projection)
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#00ffcc';
+        ctx.beginPath();
+        ctx.moveTo(cx - 70, H*0.20);
+        ctx.lineTo(cx + 70, H*0.20);
+        ctx.lineTo(cx + 28, H*0.80);
+        ctx.lineTo(cx - 28, H*0.80);
+        ctx.closePath();
+        ctx.fill();
+        // Holo rings
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#00ffcc';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.ellipse(cx, H*0.55, 50 - i*9, 12 - i*2, 0, 0, Math.PI*2);
+            ctx.stroke();
+        }
+        // Central node
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx, H*0.55, 6, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+        // Title label
+        ctx.fillStyle = '#00ffcc';
+        ctx.font = 'bold 11px "Share Tech Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText((lore.primaryPoi ? lore.primaryPoi.name : ('STRATA ' + (layerLevel>0?'+'+layerLevel:layerLevel))).toUpperCase(), cx, H*0.95);
+    }
+
+    // ===== Soul Forensic Scan (random soul snapshot for this strata) ===
+    // Generates a deterministic-ish "soul reading" for the current strata,
+    // matching the SX-####//Name format from the user's screenshot.
+    function generateSoulScan(level) {
+        const firstNames = ['Zara','Tov','Nyx','Vala','Bren','Sero','Quin','Mox','Aldra','Pell','Iren','Calix','Wren','Olia','Tessen','Marn','Roya','Sef','Kainen','Lirae'];
+        const epithets   = ['of the Forge','the Quiet','of Lost Halls','the Returner','of Cycle 47','the Folded','of Asphodel','the Pale','of Last Coin','the Unwound','of the Apse','the Echo'];
+        const aligns     = ['LIGHT-WEIGHTED','SHADOW-CAST','BALANCED','SHATTERED','SOUL-FROST','EMBER-MARKED','MOON-TUNED','SUN-TUNED'];
+        const seed = (Math.abs(level)+1) * 17 + UNIVERSE_SEED * 3 + Date.now() % 1000;
+        const r1 = (s, max) => Math.floor((Math.abs(Math.sin(s)) * 9999) % max);
+        const idNum = 1000 + r1(seed+1, 8999);
+        const name = firstNames[r1(seed+2, firstNames.length)] + ' ' + epithets[r1(seed+3, epithets.length)];
+        const originStrata = Math.max(-99, Math.min(99, level + (r1(seed+4, 30) - 15)));
+        const currentStrata = level;
+        const trajectory = currentStrata > originStrata ? 'ASCENDING' : (currentStrata < originStrata ? 'DESCENDING' : 'STILL');
+        const trajGlyph = trajectory === 'ASCENDING' ? '▲' : (trajectory === 'DESCENDING' ? '▼' : '◇');
+        const trajColor = trajectory === 'ASCENDING' ? '#ffe04a' : (trajectory === 'DESCENDING' ? '#ff5050' : '#a78bfa');
+        const integrity = 20 + r1(seed+5, 79);
+        const alignment = aligns[r1(seed+6, aligns.length)];
+        // Use the strata reaper if it has one, otherwise NULL-N
+        const stratReaper = (window.layerProfiles && window.layerProfiles[level] && window.layerProfiles[level]._lore && window.layerProfiles[level]._lore.reaper)
+            ? window.layerProfiles[level]._lore.reaper.name
+            : ('NULL-' + r1(seed+7, 9));
+        const directoryQuotes = [
+            '"Born in a Dead Reality. Should not exist, yet here it drifts."',
+            '"Catalogued under suspended judgment."',
+            '"Re-tagged. Previous sigil expired during transit."',
+            '"Owner not located. Soul held in trust by Tribunal."',
+            '"Marked for ascension review at next cycle-end."',
+        ];
+        const dq = directoryQuotes[r1(seed+8, directoryQuotes.length)];
+        return {
+            id: 'SX-' + idNum, name, originStrata, currentStrata,
+            trajectory, trajGlyph, trajColor, integrity, alignment,
+            assignedReaper: stratReaper, directoryQuote: dq
+        };
+    }
+
+    // ===== 9b. Render codex body based on active tab ===================
+    let _codexCurrentLevel = 0;
+    function renderCodexTab(tab) {
+        const body = document.getElementById('codex-body');
+        if (!body) return;
+        const level = _codexCurrentLevel;
+        const profile = window.layerProfiles[level] || {};
+        const lore = profile._lore || loreForStrata(level);
+        const factionColor = lore.faction.color || '#00ffcc';
+
+        if (tab === 'archive') {
+            const statusBadge = lore.isDead
+                ? '<span class="px-1.5 py-0.5 bg-rose-950/40 text-rose-300 border border-rose-500/40 rounded text-[9px] uppercase tracking-widest">DEAD</span>'
+                : (lore.isInfested
+                    ? '<span class="px-1.5 py-0.5 bg-emerald-950/40 text-emerald-300 border border-emerald-500/40 rounded text-[9px] uppercase tracking-widest">INFESTED</span>'
+                    : '<span class="px-1.5 py-0.5 bg-cyan-950/40 text-cyan-300 border border-cyan-500/40 rounded text-[9px] uppercase tracking-widest">STABLE</span>');
+            let html = '';
+            // ASTROLABE ARCHIVE — main lore prose
+            html += '<div class="dlds-divider">'
+                  + '<div class="dlds-section-head text-sm mb-2">ASTROLABE ARCHIVE:</div>'
+                  + '<div class="dlds-prose">' + escapeHtml(lore.factionLore || '') + '</div>'
+                  + '</div>';
+            // FACTION
+            html += '<div class="border-l-4 pl-3" style="border-color:' + factionColor + '">'
+                  + '<div class="dlds-section-head text-[10px]">DOMINANT FACTION</div>'
+                  + '<div class="text-base text-white font-bold">' + escapeHtml(lore.faction.name) + ' ' + statusBadge + '</div>'
+                  + '</div>';
+            // POIs
+            if (lore.poiList && lore.poiList.length) {
+                html += '<div><div class="dlds-section-head text-[10px] mb-2">CANON LOCATIONS</div>';
+                for (const poi of lore.poiList) {
+                    html += '<div class="border border-cyan-500/30 bg-cyan-950/10 rounded-sm p-2.5 mb-2">'
+                          + '<div class="flex items-baseline justify-between gap-2">'
+                          + '<div class="text-cyan-200 font-bold text-sm">' + escapeHtml(poi.name) + '</div>'
+                          + '<div class="text-[9px] uppercase text-slate-400">' + escapeHtml(poi.type) + '</div>'
+                          + '</div>'
+                          + '<div class="text-slate-300 text-[11px] mt-1">' + escapeHtml(poi.desc) + '</div>';
+                    if (poi.subLocations && poi.subLocations.length) {
+                        html += '<div class="text-[10px] mt-2 text-slate-400">SUB-LOCATIONS: '
+                              + poi.subLocations.map(s => '<span class="text-purple-300">' + escapeHtml(s) + '</span>').join(' · ')
+                              + '</div>';
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            // Reaper (random per reality)
+            if (lore.reaper) {
+                const r = lore.reaper;
+                html += '<div class="border border-purple-500/30 bg-purple-950/10 rounded-sm p-2.5">'
+                      + '<div class="flex items-baseline justify-between">'
+                      + '<div><span class="text-3xl mr-2 align-middle" style="color:' + factionColor + '">' + r.sigil + '</span>'
+                      + '<span class="text-white font-bold text-sm">' + escapeHtml(r.name) + '</span></div>'
+                      + '<div class="text-[9px] uppercase text-slate-400">' + r.rank + '</div>'
+                      + '</div>'
+                      + '<div class="text-[10px] text-slate-400 mt-1">Specialty: <span class="text-purple-300">' + escapeHtml(r.specialty) + '</span></div>'
+                      + '<div class="text-[10px] text-slate-400">Scythe: <span class="text-purple-300">' + escapeHtml(r.scythe) + '</span></div>'
+                      + '<div class="text-[10px] text-slate-400">Souls Reaped: <span class="text-purple-300">' + r.kills.toLocaleString() + '</span></div>';
+                if (r.status === 'DECEASED') {
+                    html += '<div class="text-rose-300 text-[10px] mt-1 italic">★ DECEASED · ' + escapeHtml(r.deathNote || '') + '</div>';
+                }
+                html += '<div class="text-slate-300 text-[11px] mt-2 leading-relaxed">' + escapeHtml(r.backstory) + '</div></div>';
+            }
+            // Events
+            const events = LAYER_EVENTS[String(level)];
+            if (events && events.length) {
+                html += '<div><div class="dlds-section-head text-[10px] mb-1">RECENT CANON EVENTS</div>';
+                for (const ev of events) {
+                    html += '<div class="border-l-2 border-amber-400/60 pl-2 mb-2">'
+                          + '<div class="text-[10px] text-amber-300 uppercase tracking-widest">' + escapeHtml(ev.when) + '</div>'
+                          + '<div class="text-slate-300 text-[11px]">' + escapeHtml(ev.text) + '</div>'
+                          + '</div>';
+                }
+                html += '</div>';
+            }
+            // Community
+            html += '<div id="codex-community-block">'
+                  + '<div class="dlds-section-head text-[10px] mb-1">COMMUNITY WANDERER FRAGMENTS</div>'
+                  + '<div class="text-slate-500 italic text-[11px]" id="codex-community-loading">Loading recent wanderer fragments…</div>'
+                  + '</div>';
+            body.innerHTML = html;
+            fetchCommunityLore(level);
+        }
+
+        else if (tab === 'soul') {
+            const s = generateSoulScan(level);
+            // Soul bar position: PEAK DIVINITY (+99) → left, ABYSS (-99) → right
+            const pct = ((-s.currentStrata + 99) / 198) * 100;
+            body.innerHTML = `
+                <div class="dlds-section-head text-[10px]">SOUL FORENSIC SCAN</div>
+                <div class="dlds-bigtitle text-2xl mt-1 mb-3">${escapeHtml(s.id)}//${escapeHtml(s.name)}</div>
+                <div class="rounded-sm p-3 mb-3" style="background: linear-gradient(to right, rgba(40,30,0,0.7) 0%, rgba(30,10,80,0.7) 50%, rgba(70,0,80,0.85) 100%);">
+                    <div class="flex justify-between text-[10px] tracking-widest uppercase">
+                        <span class="text-amber-300">PEAK&nbsp;DIVINITY</span>
+                        <span class="text-purple-300">LOVECRAFTIAN&nbsp;ABYSS</span>
+                    </div>
+                    <div class="relative h-3 mt-2 rounded-full overflow-hidden border border-cyan-500/30">
+                        <div class="absolute inset-0 soul-bar"></div>
+                        <div class="absolute top-[-3px] h-[18px] w-[14px] rounded-full"
+                             style="left: ${pct.toFixed(1)}%; transform: translateX(-7px); background: radial-gradient(circle, #00ffcc 0%, #00aaaa 60%, transparent 100%); box-shadow: 0 0 16px #00ffcc;"></div>
+                    </div>
+                </div>
+                <div class="space-y-2 text-[12px] font-mono">
+                    <div class="flex justify-between border-b border-slate-700/50 py-1.5"><span class="text-slate-400 tracking-widest">ORIGIN STRATA</span><span class="text-white font-bold">${s.originStrata >= 0 ? '+' : ''}${s.originStrata}</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 py-1.5"><span class="text-slate-400 tracking-widest">CURRENT STRATA</span><span class="text-white font-bold">${s.currentStrata >= 0 ? '+' : ''}${s.currentStrata}</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 py-1.5"><span class="text-slate-400 tracking-widest">TRAJECTORY</span><span class="font-bold" style="color:${s.trajColor}">${s.trajGlyph}&nbsp;${s.trajectory}</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 py-1.5"><span class="text-slate-400 tracking-widest">KARMIC ALIGNMENT</span><span class="text-amber-300 font-bold">${escapeHtml(s.alignment)}</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 py-1.5"><span class="text-slate-400 tracking-widest">ASSIGNED REAPER</span><span class="text-white font-bold">${escapeHtml(s.assignedReaper)}</span></div>
+                    <div class="flex justify-between border-b border-slate-700/50 py-1.5"><span class="text-slate-400 tracking-widest">FRAGMENT INTEGRITY</span><span class="text-white font-bold">${s.integrity}%</span></div>
+                </div>
+                <div class="mt-3 flex justify-between items-start gap-2">
+                    <div class="flex-1">
+                        <div class="dlds-section-head text-[10px]">DIRECTORY</div>
+                        <div class="border-l-2 border-cyan-400/60 pl-2 dlds-prose">${escapeHtml(s.directoryQuote)}</div>
+                    </div>
+                    <button class="dlds-2dmap text-[10px] px-3 py-2 uppercase tracking-widest rounded-sm" onclick="document.getElementById('codex-tab-archive').click()">[ OPEN DATABANK ]</button>
+                </div>
+            `;
+        }
+
+        else if (tab === 'holo') {
+            body.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <div class="dlds-section-head text-sm">HOLOGRAPHIC PROJECTION</div>
+                    <button class="dlds-2dmap text-[10px] px-3 py-1.5 uppercase tracking-widest rounded-sm" onclick="document.getElementById('codex-tab-archive').click()">[ 2D MAP ]</button>
+                </div>
+                <canvas id="codex-holo-canvas" width="640" height="320" class="holo-canvas w-full rounded-sm border border-cyan-500/30"></canvas>
+                <div class="text-[10px] text-cyan-300/70 italic mt-2 text-center">Visualization · Strata ${level >= 0 ? '+' : ''}${level} · ${escapeHtml((lore.primaryPoi && lore.primaryPoi.name) || 'Unmapped')}</div>
+            `;
+            setTimeout(() => {
+                const c = document.getElementById('codex-holo-canvas');
+                if (c) drawHolographicProjection(c, lore, level);
+            }, 50);
+        }
+
+        else if (tab === 'ai') {
+            const stratName = (lore.primaryPoi && lore.primaryPoi.name) || ('Strata ' + (level >= 0 ? '+' + level : level));
+            body.innerHTML = `
+                <div class="dlds-section-head text-sm mb-2">✦ DYNAMIC STORY GENERATION</div>
+                <div class="text-[11px] text-slate-400 italic mb-3">Claude reads the full DimensionLock canon corpus and weaves a short story specifically for this strata. The result will be saved to the Lore Archive.</div>
+                <div class="space-y-3">
+                    <div>
+                        <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">SUBJECT / FOCUS (optional)</div>
+                        <input id="ai-subject" type="text" maxlength="80" placeholder="${escapeHtml('e.g. Maytradalis lighting the Lamp · Reaper Mordren-7 · the bay door cinematic')}"
+                               class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px]" />
+                    </div>
+                    <div>
+                        <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">PROMPT</div>
+                        <textarea id="ai-prompt" maxlength="300" rows="3"
+                                  class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px] resize-y">A short story set in ${escapeHtml(stratName)} on the night of cycle-end. Use one specific reaper sigil and one specific sensory detail.</textarea>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <div class="flex-1 min-w-[100px]">
+                            <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">TONE</div>
+                            <select id="ai-tone" class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px]">
+                                <option value="gothic">Gothic</option>
+                                <option value="cosmic-horror">Cosmic Horror</option>
+                                <option value="intimate">Intimate</option>
+                                <option value="reverent">Reverent</option>
+                                <option value="noir">Noir</option>
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[100px]">
+                            <div class="text-amber-300 text-[10px] uppercase tracking-widest mb-1">LENGTH</div>
+                            <select id="ai-length" class="w-full bg-black/60 border border-cyan-500/30 px-2 py-2 text-cyan-100 rounded-sm text-[12px]">
+                                <option value="short">Short (~180 words)</option>
+                                <option value="medium" selected>Medium (~380 words)</option>
+                                <option value="long">Long (~700 words)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="ai-generate" class="w-full py-3 text-[11px] uppercase tracking-widest rounded-sm font-bold"
+                            style="background: rgba(155,109,255,0.18); border:1px solid rgba(155,109,255,0.7); color:#dcc7ff; box-shadow: 0 0 12px rgba(155,109,255,0.35);">▸ GENERATE STORY ✦</button>
+                </div>
+                <div id="ai-output" class="mt-4"></div>
+            `;
+            document.getElementById('ai-generate').addEventListener('click', () => generateAIStory(level));
+        }
+    }
+    async function generateAIStory(level) {
+        const stratName = (window.layerProfiles[level] && window.layerProfiles[level]._lore && window.layerProfiles[level]._lore.primaryPoi && window.layerProfiles[level]._lore.primaryPoi.name)
+            || ('Strata ' + (level >= 0 ? '+' + level : level));
+        const subject = document.getElementById('ai-subject').value.trim();
+        const prompt  = document.getElementById('ai-prompt').value.trim();
+        const tone    = document.getElementById('ai-tone').value;
+        const lengthSel = document.getElementById('ai-length').value;
+        const btn = document.getElementById('ai-generate');
+        const out = document.getElementById('ai-output');
+        btn.disabled = true;
+        btn.innerText = '✦ SUMMONING NARRATIVE…';
+        out.innerHTML = '<div class="text-[11px] text-cyan-400 italic">Claude is reading the corpus and weaving canon for ' + escapeHtml(stratName) + '… (10–25 s)</div>';
+        try {
+            const r = await fetch('/api/lore/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: prompt || ('A short story set in ' + stratName + ' on the night of cycle-end.'),
+                    subject: subject || (stratName + ' · Strata ' + level),
+                    tone, length: lengthSel,
+                }),
+            });
+            if (!r.ok) {
+                const err = await r.text();
+                throw new Error('HTTP ' + r.status + ' — ' + err.slice(0, 200));
+            }
+            const data = await r.json();
+            const lines = (data.story || '').split('\n').map(line =>
+                '<div class="mb-2">' + escapeHtml(line) + '</div>'
+            ).join('');
+            out.innerHTML = `
+                <div class="border-l-4 border-purple-400/70 pl-3 py-1.5" style="background: linear-gradient(to right, rgba(155,109,255,0.10), transparent);">
+                    <div class="dlds-section-head text-[10px] mb-1" style="color:#dcc7ff;">CYCLE 199 · CANON FRAGMENT · ${escapeHtml(stratName).toUpperCase()}</div>
+                    <div class="text-[10px] text-slate-500 mb-2">Tone: ${escapeHtml(tone)} · ${data.word_count} words · ${new Date().toLocaleTimeString()}</div>
+                    <div class="dlds-prose text-[12px] sm:text-[13px]">${lines}</div>
+                </div>
+                <div class="text-[10px] text-cyan-400 italic text-center mt-3">✦ Saved to the Lore Archive · refresh /api/lore/generated to view</div>
+            `;
+        } catch (e) {
+            out.innerHTML = '<div class="text-rose-400 text-[12px] border border-rose-500/30 px-2 py-1.5 rounded-sm">✕ Story generation failed: ' + escapeHtml(String(e.message || e)) + '<br><span class="text-rose-300/70 text-[10px]">If this persists the LLM service may be down or the Emergent LLM key may need refreshing.</span></div>';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '▸ GENERATE ANOTHER ✦';
+        }
     }
     function openCodex(level) {
         buildCodexModalShell();
+        _codexCurrentLevel = level;
         const modal = document.getElementById('codex-modal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         const profile = window.layerProfiles[level] || {};
         const lore = profile._lore || loreForStrata(level);
-        const title = profile.title || ('Strata ' + (level > 0 ? '+' + level : level));
-        document.getElementById('codex-title').innerText = title + '  ·  ' + 'Strata ' + (level > 0 ? '+' + level : level);
+        const title = (lore.primaryPoi && lore.primaryPoi.name) || profile.title || ('STRATA ' + (level > 0 ? '+' + level : level));
+        const subType = (lore.primaryPoi && lore.primaryPoi.type) || (level === 0 ? 'NEXUS' : (level > 0 ? 'PEAK DIVINITY' : 'LOVECRAFTIAN'));
+        document.getElementById('codex-title').innerText = title.toUpperCase();
+        document.getElementById('codex-subtitle').innerText = '[ STRATA ' + (level > 0 ? '+' + level : level) + ' : ' + subType.toUpperCase() + ' ]';
         document.getElementById('codex-wid').innerText = ensureWandererId();
-
-        const body = document.getElementById('codex-body');
-        const factionColor = lore.faction.color || '#00ffcc';
-        const statusBadge = lore.isDead
-            ? '<span class="px-1.5 py-0.5 bg-rose-950/40 text-rose-300 border border-rose-500/40 rounded text-[9px] uppercase tracking-widest">DEAD</span>'
-            : (lore.isInfested
-                ? '<span class="px-1.5 py-0.5 bg-emerald-950/40 text-emerald-300 border border-emerald-500/40 rounded text-[9px] uppercase tracking-widest">INFESTED</span>'
-                : '<span class="px-1.5 py-0.5 bg-cyan-950/40 text-cyan-300 border border-cyan-500/40 rounded text-[9px] uppercase tracking-widest">STABLE</span>');
-
-        let html = '';
-        // Faction block
-        html += '<div class="border-l-4 pl-3" style="border-color:' + factionColor + '">'
-              + '<div class="text-[9px] uppercase tracking-widest text-slate-400">DOMINANT FACTION</div>'
-              + '<div class="text-base text-white font-bold">' + escapeHtml(lore.faction.name) + ' ' + statusBadge + '</div>'
-              + '<div class="text-slate-300 mt-1 leading-relaxed">' + escapeHtml(lore.factionLore || '') + '</div>'
-              + '</div>';
-
-        // POI block
-        if (lore.poiList && lore.poiList.length > 0) {
-            html += '<div><div class="text-[9px] uppercase tracking-widest text-slate-400 mb-1">CANON REALITIES OF RECORD</div>';
-            for (const poi of lore.poiList) {
-                html += '<div class="border border-cyan-500/30 bg-cyan-950/10 rounded p-2.5 mb-2">'
-                      + '<div class="flex items-baseline justify-between gap-2">'
-                      + '<div class="text-cyan-200 font-bold text-sm">' + escapeHtml(poi.name) + '</div>'
-                      + '<div class="text-[9px] uppercase text-slate-400">' + escapeHtml(poi.type) + '</div>'
-                      + '</div>'
-                      + '<div class="text-slate-300 mt-1">' + escapeHtml(poi.desc) + '</div>';
-                if (poi.subLocations && poi.subLocations.length) {
-                    html += '<div class="text-[10px] mt-2 text-slate-400">'
-                          + 'SUB-LOCATIONS: '
-                          + poi.subLocations.map(s => '<span class="text-purple-300">' + escapeHtml(s) + '</span>').join(' · ')
-                          + '</div>';
-                }
-                if (poi.macro) {
-                    html += '<details class="mt-2"><summary class="text-cyan-400 cursor-pointer text-[10px] uppercase tracking-widest">▸ Canon Context</summary>'
-                          + '<div class="text-slate-400 italic text-[11px] mt-1 leading-relaxed">' + escapeHtml(poi.macro) + '</div></details>';
-                }
-                html += '</div>';
-            }
-            html += '</div>';
+        const sourceLink = document.getElementById('codex-source-link');
+        if (sourceLink) {
+            sourceLink.href = gdocForStrata(level);
+            sourceLink.textContent = 'DLDS CANON CORPUS ↗';
         }
-
-        // Reaper block
-        if (lore.reaper) {
-            const r = lore.reaper;
-            html += '<div class="border border-purple-500/30 bg-purple-950/10 rounded p-2.5">'
-                  + '<div class="flex items-baseline justify-between">'
-                  + '<div><span class="text-3xl mr-2 align-middle" style="color:' + factionColor + '">' + r.sigil + '</span>'
-                  + '<span class="text-white font-bold text-sm">' + escapeHtml(r.name) + '</span></div>'
-                  + '<div class="text-[9px] uppercase text-slate-400">' + r.rank + '</div>'
-                  + '</div>'
-                  + '<div class="text-[10px] text-slate-400 mt-1">Specialty: <span class="text-purple-300">' + escapeHtml(r.specialty) + '</span></div>'
-                  + '<div class="text-[10px] text-slate-400">Scythe: <span class="text-purple-300">' + escapeHtml(r.scythe) + '</span></div>'
-                  + '<div class="text-[10px] text-slate-400">Souls Reaped: <span class="text-purple-300">' + r.kills.toLocaleString() + '</span></div>';
-            if (r.status === 'DECEASED') {
-                html += '<div class="text-rose-300 text-[10px] mt-1 italic">★ DECEASED · ' + escapeHtml(r.deathNote || '') + '</div>';
-            }
-            html += '<div class="text-slate-300 mt-2 leading-relaxed">' + escapeHtml(r.backstory) + '</div>'
-                  + '</div>';
-        }
-
-        // Community fragments
-        html += '<div id="codex-community-block">'
-              + '<div class="text-[9px] uppercase tracking-widest text-slate-400 mb-1">COMMUNITY WANDERER FRAGMENTS</div>'
-              + '<div class="text-slate-500 italic text-[11px]" id="codex-community-loading">Loading recent wanderer fragments…</div>'
-              + '</div>';
-
-        body.innerHTML = html;
-        // Load community contributions
-        fetchCommunityLore(level);
+        // Reset to Archive tab by default
+        document.getElementById('codex-tab-archive').classList.add('active');
+        document.getElementById('codex-tab-soul').classList.remove('active');
+        document.getElementById('codex-tab-holo').classList.remove('active');
+        renderCodexTab('archive');
     }
     function closeCodex() {
         const modal = document.getElementById('codex-modal');
@@ -476,47 +1293,56 @@
     }
 
     // ===== 11. ENHANCE SELECT-STAR-SYSTEM =============================
+    // The v2 engine calls selectStarSystem() directly (not via window),
+    // so monkey-patching window.selectStarSystem won't intercept those
+    // calls. Instead the engine dispatches an 'astrolabe-star-selected'
+    // CustomEvent after running its own handler — we listen and enrich
+    // the Entity Peek panel post-hoc.
     function hookSelectStarSystem() {
-        if (typeof window.selectStarSystem !== 'function') return;
-        if (window.__loreEnhancedSelect) return;
-        const orig = window.selectStarSystem;
-        window.selectStarSystem = function (starObj) {
-            orig(starObj);
+        if (window.__loreStarListenerInstalled) return;
+        window.__loreStarListenerInstalled = true;
+        window.addEventListener('astrolabe-star-selected', (ev) => {
             try {
-                const lvl = starObj.userData && typeof starObj.userData.layer === 'number'
+                const starObj = ev.detail && ev.detail.star;
+                if (!starObj || !starObj.userData) return;
+                const lvl = typeof starObj.userData.layer === 'number'
                     ? starObj.userData.layer
                     : (window.STATE ? window.STATE.currentLayer : 0);
-                const profile = window.layerProfiles[lvl];
-                if (!profile || !profile._lore) return;
-                const lore = profile._lore;
-                const peek = document.getElementById('entity-peek');
-                if (!peek) return;
-                const poi = lore.primaryPoi;
-                const factionColor = lore.faction.color || '#00ffcc';
-                let html = '<div class="space-y-1 text-[#00ffcc]">';
-                html += '<div class="text-white font-bold text-sm">' + escapeHtml(starObj.userData.name) + '</div>';
-                html += '<div class="text-[10px] text-slate-400">Strata ' + (lvl > 0 ? '+' + lvl : lvl) + ' · ' + escapeHtml(starObj.userData.status) + '</div>';
-                html += '<div class="text-[10px]" style="color:' + factionColor + '">' + escapeHtml(lore.faction.name) + '</div>';
-                if (poi) {
-                    html += '<div class="border-t border-cyan-500/20 pt-1.5 mt-1.5">'
-                          + '<div class="text-[10px] text-purple-300 uppercase tracking-widest">CANON · ' + escapeHtml(poi.type) + '</div>'
-                          + '<div class="text-slate-300 text-[11px]">' + escapeHtml(poi.desc) + '</div>'
-                          + '</div>';
+                // 1. Update Entity Peek panel summary (as before).
+                const profile = window.layerProfiles && window.layerProfiles[lvl];
+                if (profile && profile._lore) {
+                    const lore = profile._lore;
+                    const peek = document.getElementById('entity-peek');
+                    if (peek) {
+                        const poi = lore.primaryPoi;
+                        const factionColor = lore.faction.color || '#00ffcc';
+                        let html = '<div class="space-y-1 text-[#00ffcc]">';
+                        html += '<div class="text-white font-bold text-sm">' + escapeHtml(starObj.userData.name) + '</div>';
+                        html += '<div class="text-[10px] text-slate-400">Strata ' + (lvl > 0 ? '+' + lvl : lvl) + ' · ' + escapeHtml(starObj.userData.status) + '</div>';
+                        html += '<div class="text-[10px]" style="color:' + factionColor + '">' + escapeHtml(lore.faction.name) + '</div>';
+                        if (poi) {
+                            html += '<div class="border-t border-cyan-500/20 pt-1.5 mt-1.5">'
+                                  + '<div class="text-[10px] text-purple-300 uppercase tracking-widest">CANON · ' + escapeHtml(poi.type) + '</div>'
+                                  + '<div class="text-slate-300 text-[11px]">' + escapeHtml(poi.desc) + '</div>'
+                                  + '</div>';
+                        }
+                        if (lore.reaper) {
+                            html += '<div class="text-[10px] text-slate-400 border-t border-cyan-500/20 pt-1.5 mt-1.5">'
+                                  + 'Reaper: <span class="text-purple-300">' + lore.reaper.sigil + ' ' + escapeHtml(lore.reaper.name) + '</span> '
+                                  + '<span class="text-slate-500">(' + lore.reaper.rank + ')</span>'
+                                  + '</div>';
+                        }
+                        html += '<div class="text-[9px] text-cyan-400 italic mt-1">▸ databank open…</div>';
+                        html += '</div>';
+                        peek.innerHTML = html;
+                    }
                 }
-                if (lore.reaper) {
-                    html += '<div class="text-[10px] text-slate-400 border-t border-cyan-500/20 pt-1.5 mt-1.5">'
-                          + 'Reaper: <span class="text-purple-300">' + lore.reaper.sigil + ' ' + escapeHtml(lore.reaper.name) + '</span> '
-                          + '<span class="text-slate-500">(' + lore.reaper.rank + ')</span>'
-                          + '</div>';
-                }
-                html += '<button id="entity-codex-btn" class="mt-2 w-full py-1 border border-purple-400/40 hover:bg-purple-950/30 text-purple-300 text-[10px] uppercase tracking-widest rounded">[ Open Strata Codex ]</button>';
-                html += '</div>';
-                peek.innerHTML = html;
-                const codexBtn = document.getElementById('entity-codex-btn');
-                if (codexBtn) codexBtn.addEventListener('click', () => openCodex(lvl));
+                // 2. AUTO-OPEN the full DLDS ASTROLABE DATABANK modal — this
+                //    is what the user expects from clicking a black-hole
+                //    reality (matches the old astrolabe terminal behaviour).
+                openCodex(lvl);
             } catch (e) { /* swallow */ }
-        };
-        window.__loreEnhancedSelect = true;
+        });
     }
 
     // ===== 12. BOOT ===================================================
@@ -525,17 +1351,31 @@
         if (booted) return;
         if (!window.layerProfiles || !window.STATE) return;
         booted = true;
+        try { injectGlobalStyles(); } catch (e) {}
         try { enrichLayerProfiles(); } catch (e) { console.warn('[lore] enrich failed', e); }
         try { injectWandererBadge(); } catch (e) {}
+        try { injectSoulScale(); } catch (e) {}
+        try { injectHeaderButtons(); } catch (e) {}
         try { wireUpButtons(); } catch (e) {}
         try { hookSelectStarSystem(); } catch (e) {}
         try { refreshIntelTicker(); } catch (e) {}
         setInterval(refreshIntelTicker, 90000);
         // Re-render ticker as marquee element may have been recreated
         setTimeout(renderTicker, 500);
+        // Live-sync Soul Scale on every strata change. We poll STATE.currentLayer
+        // every 200ms since the engine doesn't dispatch a layer-change event.
+        let lastLevel = window.STATE.currentLayer;
+        setInterval(() => {
+            if (!window.STATE) return;
+            const lvl = window.STATE.currentLayer;
+            if (lvl !== lastLevel) {
+                lastLevel = lvl;
+                try { updateSoulScale(lvl); } catch (e) {}
+            }
+        }, 200);
         // Expose
         window.openStrataCodex = openCodex;
-        window.dimensionlockLore = { FACTIONS, DLDS_LORE, POIS, NAMED_REAPERS, loreForStrata };
+        window.dimensionlockLore = { FACTIONS, DLDS_LORE, POIS, NAMED_REAPERS, LAYER_EVENTS, loreForStrata };
     }
     function tryBoot() {
         boot();

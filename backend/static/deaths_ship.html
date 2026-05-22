@@ -194,6 +194,98 @@
   <button class="icon-btn back-btn" onclick="window.location.href='/api/astrolabe'" title="Return to main menu">⨯</button>
   <button class="icon-btn map-btn" id="mapBtn" title="Ship map">⊞</button>
   <button class="icon-btn codex-btn" id="codexBtn" title="Lore codex">☥</button>
+  <button class="icon-btn settings-btn" id="settingsBtn" title="Settings">⚙</button>
+
+  <!-- Settings modal (Death's Ship) -->
+  <div id="dsSettings" style="position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none';">
+    <div style="background:linear-gradient(180deg,#0a0612,#040208);border:1px solid #c0a050;box-shadow:0 0 30px rgba(192,160,80,0.4);max-width:380px;width:92%;padding:18px;border-radius:6px;color:#e8d9b0;font-family:'Cormorant Garamond',serif;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:.18em;color:#c0a050;text-transform:uppercase;">DEATH'S SHIP · TERMINAL</div>
+          <div style="font-size:20px;font-weight:bold;letter-spacing:.04em;">⚙ Settings</div>
+        </div>
+        <button onclick="document.getElementById('dsSettings').style.display='none'" style="padding:8px 12px;background:transparent;border:1px solid #ff7070;color:#ff7070;border-radius:4px;font-family:inherit;cursor:pointer;letter-spacing:.15em;font-size:11px;">[ × ]</button>
+      </div>
+      <div style="font-size:12px;line-height:1.7;">
+        <label style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(192,160,80,0.3);border-radius:4px;margin-bottom:8px;">
+          <span>SHOW MINIMAP</span>
+          <input type="checkbox" id="ds-set-minimap" checked style="width:18px;height:18px;cursor:pointer;">
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(192,160,80,0.3);border-radius:4px;margin-bottom:8px;">
+          <span>MUTE AUDIO</span>
+          <input type="checkbox" id="ds-set-mute" style="width:18px;height:18px;cursor:pointer;">
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(192,160,80,0.3);border-radius:4px;margin-bottom:8px;">
+          <span>SHOW D-PAD ON DESKTOP</span>
+          <input type="checkbox" id="ds-set-dpad" style="width:18px;height:18px;cursor:pointer;">
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid rgba(192,160,80,0.3);border-radius:4px;margin-bottom:14px;">
+          <span>HIGH CONTRAST HUD</span>
+          <input type="checkbox" id="ds-set-contrast" style="width:18px;height:18px;cursor:pointer;">
+        </label>
+        <div style="border-top:1px solid rgba(192,160,80,0.3);padding-top:12px;font-size:11px;color:#c0a050;">
+          <div style="margin-bottom:4px;letter-spacing:.1em;">CONTROLS REFERENCE</div>
+          <div>WASD / Arrows · Move</div>
+          <div>E / Space / Enter / Tab · Interact / Enter door</div>
+          <div>M · Open ship map · Esc · Close modal</div>
+        </div>
+        <div style="text-align:center;margin-top:14px;">
+          <a href="/api/astrolabe" style="display:inline-block;padding:8px 18px;background:rgba(0,255,204,0.1);border:1px solid #00ffcc;color:#00ffcc;text-decoration:none;letter-spacing:.18em;text-transform:uppercase;font-size:11px;border-radius:3px;">◂ Return to Main Menu</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Wire Death's Ship settings button
+    document.addEventListener('DOMContentLoaded', function(){
+      var sb = document.getElementById('settingsBtn');
+      if (sb) sb.onclick = function(){ document.getElementById('dsSettings').style.display = 'flex'; };
+      var mm = document.getElementById('ds-set-minimap');
+      if (mm) {
+        try { mm.checked = localStorage.getItem('ds_minimap') !== '0'; } catch(e) {}
+        var hud = document.getElementById('minimap-hud');
+        if (hud && !mm.checked) hud.style.display = 'none';
+        mm.addEventListener('change', function(){
+          try { localStorage.setItem('ds_minimap', mm.checked ? '1' : '0'); } catch(e) {}
+          if (hud) hud.style.display = mm.checked ? 'block' : 'none';
+        });
+      }
+      var dpcb = document.getElementById('ds-set-dpad');
+      if (dpcb) {
+        try { dpcb.checked = localStorage.getItem('ds_dpad') === '1'; } catch(e) {}
+        if (dpcb.checked) { var dp = document.getElementById('dpad'); if (dp) dp.style.display = 'grid'; }
+        dpcb.addEventListener('change', function(){
+          try { localStorage.setItem('ds_dpad', dpcb.checked ? '1' : '0'); } catch(e) {}
+          var dp = document.getElementById('dpad');
+          if (dp) dp.style.display = dpcb.checked ? 'grid' : '';
+        });
+      }
+      var cc = document.getElementById('ds-set-contrast');
+      if (cc) {
+        try { cc.checked = localStorage.getItem('ds_contrast') === '1'; } catch(e) {}
+        if (cc.checked) document.body.classList.add('ds-high-contrast');
+        cc.addEventListener('change', function(){
+          try { localStorage.setItem('ds_contrast', cc.checked ? '1' : '0'); } catch(e) {}
+          document.body.classList.toggle('ds-high-contrast', cc.checked);
+        });
+      }
+    });
+  </script>
+  <style>
+    .icon-btn.settings-btn { right: 196px !important; }
+    body.ds-high-contrast .hud { background: rgba(0,0,0,0.92) !important; border-color: #fff !important; }
+    body.ds-high-contrast .hud > div { color: #fff !important; }
+    body.ds-high-contrast #minimap-hud { background: rgba(0,0,0,0.95) !important; border-color: #fff !important; }
+  </style>
+
+  <!-- Mini-map HUD (top-right). Updates live as the player walks. -->
+  <div id="minimap-hud" style="position:fixed;top:62px;right:14px;z-index:42;width:170px;height:120px;background:rgba(8,4,16,0.78);border:1px solid rgba(192,160,80,0.45);box-shadow:0 0 12px rgba(192,160,80,0.25);border-radius:4px;padding:6px;font-family:'Cormorant Garamond',serif;color:#c0a050;font-size:10px;user-select:none;pointer-events:auto;cursor:pointer;" title="Click to expand">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;letter-spacing:0.12em;text-transform:uppercase;">
+      <span id="minimap-room-label" style="font-size:9px;opacity:0.85;">Loading…</span>
+      <span style="font-size:8px;opacity:0.5;">◌MAP</span>
+    </div>
+    <canvas id="minimap-canvas" width="158" height="92" style="display:block;width:100%;height:92px;background:#04020a;border:1px solid rgba(192,160,80,0.2);border-radius:2px;"></canvas>
+  </div>
 
   <div class="dpad" id="dpad">
     <div class="btn up"    data-dir="up">▲</div>
@@ -238,10 +330,59 @@
 
   <div class="fade-overlay" id="fade"></div>
 
-  <div class="loader" id="loader">
+  <!-- Cinematic boarding intro: 3-image slideshow of the user's ship
+       reference art, fading in before the loader runs. Tap/click/key
+       skips. Hidden after 6s or on skip. -->
+  <div id="boarding-intro" style="position:fixed;inset:0;z-index:160;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:opacity 0.8s ease;">
+    <div id="boarding-image-stack" style="position:absolute;inset:0;">
+      <div class="boarding-frame boarding-frame-0" style="position:absolute;inset:0;background-image:linear-gradient(180deg, rgba(2,0,8,0.45) 0%, rgba(0,0,0,0.85) 100%), url('/api/static/refs_ship/ship_back_top.jpg');background-size:cover;background-position:center;opacity:0;transition:opacity 1.0s ease;"></div>
+      <div class="boarding-frame boarding-frame-1" style="position:absolute;inset:0;background-image:linear-gradient(180deg, rgba(2,0,8,0.45) 0%, rgba(0,0,0,0.85) 100%), url('/api/static/refs_ship/ship_angled.jpg');background-size:cover;background-position:center;opacity:0;transition:opacity 1.0s ease;"></div>
+      <div class="boarding-frame boarding-frame-2" style="position:absolute;inset:0;background-image:linear-gradient(180deg, rgba(2,0,8,0.45) 0%, rgba(0,0,0,0.85) 100%), url('/api/static/refs_ship/ship_front.jpg');background-size:cover;background-position:center;opacity:0;transition:opacity 1.0s ease;"></div>
+    </div>
+    <div style="position:relative;z-index:2;text-align:center;color:#c0a050;font-family:'Cormorant Garamond', serif;padding:0 20px;">
+      <div id="boarding-cap" style="font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:#c0a050;opacity:0.7;margin-bottom:8px;">▸ THE ENDLESS · CYCLE 199 ◂</div>
+      <div id="boarding-title" style="font-size:clamp(28px, 6vw, 52px);font-weight:bold;letter-spacing:.05em;color:#e8d9b0;text-shadow:0 0 14px rgba(192,160,80,0.55), 0 0 24px rgba(0,0,0,0.9);margin-bottom:10px;">Death's Ship</div>
+      <div id="boarding-caption" style="font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:#c0a050;opacity:0;transition:opacity 0.8s ease;">A vessel of bone, hull, and quiet souls.</div>
+      <div style="margin-top:36px;font-size:10px;letter-spacing:.25em;color:#c0a050;opacity:0.45;text-transform:uppercase;">tap to begin</div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      const intro = document.getElementById('boarding-intro');
+      if (!intro) return;
+      const frames = intro.querySelectorAll('.boarding-frame');
+      const cap = document.getElementById('boarding-caption');
+      const captions = [
+        'A vessel of bone, hull, and quiet souls.',
+        'It drifts above the Endless · home to every reaper that ever was.',
+        'Maytradalis, you are needed at the threshold.'
+      ];
+      let i = 0;
+      function showFrame(idx) {
+        frames.forEach((f, k) => { f.style.opacity = (k === idx) ? '1' : '0'; });
+        cap.textContent = captions[idx] || '';
+        cap.style.opacity = '1';
+      }
+      // Crossfade through the 3 frames
+      setTimeout(() => showFrame(0), 200);
+      setTimeout(() => showFrame(1), 2000);
+      setTimeout(() => showFrame(2), 4000);
+      function finish() {
+        intro.style.opacity = '0';
+        setTimeout(() => { intro.style.display = 'none'; }, 800);
+      }
+      setTimeout(finish, 6200);
+      intro.addEventListener('click', finish, { once: true });
+      window.addEventListener('keydown', finish, { once: true });
+      window.addEventListener('touchstart', finish, { once: true, passive: true });
+    })();
+  </script>
+
+  <div class="loader" id="loader" style="background-image: linear-gradient(180deg, rgba(2,0,8,0.85) 0%, rgba(0,0,0,0.95) 60%), url('/api/static/refs_ship/ship_front.jpg'); background-size: cover; background-position: center;">
     <div class="ring"></div>
-    <div>Boarding Death's Ship</div>
+    <div style="text-shadow:0 0 12px rgba(192,160,80,0.7);">Boarding Death's Ship</div>
     <div class="sub" id="loaderSub">Loading sprites…</div>
+    <div style="margin-top: 14px; font-size: 11px; color: #c0a050; letter-spacing: .2em; opacity: 0.65; text-transform: uppercase;">▸ THE ENDLESS · CYCLE 199 ◂</div>
   </div>
 
 <script>
@@ -1213,36 +1354,37 @@ const ROOM_DEFS = {
   cathedral: {
     id: 'cathedral',
     name: 'The Cathedral of Reapers',
-    sub: 'The vast hall where every reaper has knelt at least once',
-    width: 30, height: 18,
+    sub: 'The vast long-hall where every reaper has knelt at least once',
+    width: 64, height: 14,
     palette: { floor:'#1a1426', wall:'#08060e', stone:'#241830', accent:'#c0a050', candle:'#ffd28b' },
-    spawn: { x: 15, y: 16 },
+    spawn: { x: 4, y: 7 },
     draw: drawCathedral,
     walls: [
-      { x:0,y:0,w:30,h:1 }, { x:0,y:17,w:30,h:1 }, { x:0,y:0,w:1,h:18 }, { x:29,y:0,w:1,h:18 },
-      // The Reaper-Statue dais (north end — 8 tiles wide)
-      { x:11, y:2, w:8, h:3 },
-      // Pews flanking the central aisle
-      { x:3, y:7,  w:8, h:1.2 },
-      { x:3, y:9.5,  w:8, h:1.2 },
-      { x:3, y:12, w:8, h:1.2 },
-      { x:19, y:7,  w:8, h:1.2 },
-      { x:19, y:9.5,  w:8, h:1.2 },
-      { x:19, y:12, w:8, h:1.2 },
+      { x:0,y:0,w:64,h:1 }, { x:0,y:13,w:64,h:1 }, { x:0,y:0,w:1,h:14 }, { x:63,y:0,w:1,h:14 },
+      // The Reaper-Statue dais (centered along the hall)
+      { x:30, y:4, w:6, h:3 },
+      // Two rows of pews flanking the central walking path
+      { x:4,  y:4,   w:22, h:1.2 },
+      { x:4,  y:8,   w:22, h:1.2 },
+      { x:40, y:4,   w:20, h:1.2 },
+      { x:40, y:8,   w:20, h:1.2 },
     ],
     interactables: [
-      { x:15, y:4, kind:'plaque', title:'THE REAPER-STATUE', body:'A twenty-foot obsidian statue of an unnamed reaper — hooded, scythe planted, head bowed. Every reaper in the cycle kneels before this statue exactly once: on the day they receive their Grim title.\n\nMay knelt here on her sixteenth birthday. She remembers nothing about the kneeling and everything about the silence after.' },
-      { x:15, y:8, kind:'plaque', title:'THE CENTRAL AISLE', body:'A long aisle of polished mirror-stone, twice the width of the Grand Hall\'s. The Cathedral is older than the Hall. The reapers walk this aisle in pairs at every cycle-end; tonight the aisle is empty.' },
-      { x:6, y:10, kind:'plaque', title:'PORT-SIDE PEWS', body:'Six tiers of dark-wood pews capable of seating every reaper who has ever served. They are almost never full. May has seen the cathedral at capacity once — on Cryious\'s birthday. Death sat in the centre. Nobody else did.' },
-      { x:24, y:10, kind:'plaque', title:'STARBOARD-SIDE PEWS', body:'Identical to the port pews. The starboard-side has one additional row in the back — small chairs, child-sized. The reaper-children sit here on cycle-end. May has not sat there since she was twelve.' },
-      { x:15, y:14, kind:'plaque', title:'GREAT CHANDELIER', body:'A massive iron chandelier hangs from the vaulted ceiling, twelve candles arranged as the constellation Death himself once mapped from a strata that no longer exists.\n\nThe candles are lit by the senior reapers in rotation. Tonight\'s candle-keeper is Elystria.' },
+      { x:33, y:7.5, kind:'plaque', title:'THE REAPER-STATUE', body:'A twenty-foot obsidian statue of an unnamed reaper — hooded, scythe planted, head bowed. Every reaper in the cycle kneels before this statue exactly once: on the day they receive their Grim title.\n\nMay knelt here on her sixteenth birthday. She remembers nothing about the kneeling and everything about the silence after.' },
+      { x:15, y:7,   kind:'plaque', title:'THE WEST WALK', body:'The cathedral aisle is the longest unbroken stretch of polished mirror-stone aboard Death\'s Ship. From the western doors all the way to the statue, then on into the eastern apse, it runs nearly the length of two reaper dormitories. The reapers walk this aisle in pairs at every cycle-end; tonight the aisle is empty.' },
+      { x:50, y:7,   kind:'plaque', title:'THE EAST WALK', body:'The eastern half of the great aisle continues past the statue toward the apse. Six tiers of dark-wood pews sit ready on either side. They are almost never full. May has seen the cathedral at capacity once — on Cryious\'s birthday. Death sat in the centre. Nobody else did.' },
+      { x:10, y:6,   kind:'plaque', title:'PORT-SIDE PEWS', body:'Six tiers of dark-wood pews capable of seating every reaper who has ever served. They are almost never full.' },
+      { x:55, y:9.2, kind:'plaque', title:'STARBOARD-SIDE PEWS', body:'Identical to the port pews. The starboard-side has one additional row in the back — small chairs, child-sized. The reaper-children sit here on cycle-end. May has not sat there since she was twelve.' },
+      { x:33, y:10,  kind:'plaque', title:'GREAT CHANDELIER', body:'A massive iron chandelier hangs from the vaulted ceiling, twelve candles arranged as the constellation Death himself once mapped from a strata that no longer exists.\n\nThe candles are lit by the senior reapers in rotation. Tonight\'s candle-keeper is Elystria.' },
     ],
     doors: [
-      { x:14.5, y:17.4, w:1, h:0.6, to:'grand_hall', spawn:{x:14, y:14} },
+      { x:0.4, y:6.0, w:0.6, h:2,  to:'grand_hall', spawn:{x:14, y:14} },
+      // East-end exit reserved for future Reaper Market connector
+      { x:63, y:6.0, w:0.6, h:2,  to:'reaper_market', spawn:{x:2, y:14} },
     ],
     npcs: [
-      // A kneeling junior reaper (placeholder — uses elite1 walk_down idle frame)
-      { x:11, y:8, sheet:'elite1_walk_down', idleSheet:'elite1_walk_down', refSheet:'elite1_walk_down',
+      // Junior reaper kneeling in front of the statue
+      { x:33, y:8.5, sheet:'elite1_walk_down', idleSheet:'elite1_walk_down', refSheet:'elite1_walk_down',
         scale:0.55, animSpeed:3, label:'Junior Reaper',
         plaqueTitle:'JUNIOR REAPER · KNEELING',
         plaqueBody:'A junior reaper in the middle of their first solo vigil. They will kneel here for eight hours, unmoving, before being permitted to leave the cathedral.\n\nMay remembers her own vigil. The eight hours felt like four. Death said that was a good sign.' },
@@ -1378,11 +1520,340 @@ const ROOM_DEFS = {
     ],
     npcs: [],
   },
+
+  // ============================================================
+  //   REAPER MARKET — Vast 5-floor cylindrical bazaar
+  // ============================================================
+  // Top-down layout of a single market floor. The "central column" is a
+  // raised dais in the middle; around it sit market stalls.  The player
+  // selects the floor via terminals on the central column, which
+  // teleports them between floor-rooms (reaper_market_f1 .. f5).
+  //   F1: General Market (open access)
+  //   F2: Reaper Banking
+  //   F3: Rarities of Creation Gear  (Reaper-exclusive)
+  //   F4: Warehouse
+  //   F5: Lite Lite Classifieds      (Restricted Access)
+  reaper_market: {
+    id: 'reaper_market',
+    name: 'Reaper Market · Floor 1 · General Market',
+    sub: 'A vast cylindrical bazaar — central column rises through 5 floors',
+    width: 40, height: 22,
+    palette: { floor:'#1a1428', wall:'#0a0810', stone:'#241834', accent:'#d8a64a', candle:'#ffd28b' },
+    spawn: { x: 4, y: 14 },
+    draw: drawReaperMarket,
+    floor: 1,
+    walls: [
+      { x:0,y:0,w:40,h:1 }, { x:0,y:21,w:40,h:1 }, { x:0,y:0,w:1,h:22 }, { x:39,y:0,w:1,h:22 },
+      // CENTRAL COLUMN — large octagonal dais (12 wide × 8 tall block in center)
+      { x:14, y:7,  w:12, h:1 },     // top edge of dais
+      { x:14, y:14, w:12, h:1 },     // bottom edge of dais
+      { x:14, y:8,  w:1,  h:6 },     // left edge
+      { x:25, y:8,  w:1,  h:6 },     // right edge
+      // STALL ROW NORTH (3 stalls, each ~5 wide × 2 tall)
+      { x:3,  y:3,  w:5,  h:2 },
+      { x:11, y:3,  w:5,  h:2 },
+      { x:24, y:3,  w:5,  h:2 },
+      { x:32, y:3,  w:5,  h:2 },
+      // STALL ROW SOUTH (4 stalls)
+      { x:3,  y:17, w:5,  h:2 },
+      { x:11, y:17, w:5,  h:2 },
+      { x:24, y:17, w:5,  h:2 },
+      { x:32, y:17, w:5,  h:2 },
+      // SIDE STALLS (west & east outer columns)
+      { x:1,  y:8,  w:1.5, h:2 },
+      { x:1,  y:12, w:1.5, h:2 },
+      { x:37.5, y:8, w:1.5, h:2 },
+      { x:37.5, y:12, w:1.5, h:2 },
+    ],
+    interactables: [
+      // CENTRAL TERMINAL — Floor selector
+      { x:20, y:10.5, kind:'plaque', title:'CENTRAL TERMINAL · FLOOR SELECTOR',
+        body:'A polished obsidian terminal embedded in the central column. It tracks reaper credit, soul-tithe and floor access.\n\n— FLOOR 1 :: General Market  (open access)\n— FLOOR 2 :: Reaper Banking  (auth: any reaper)\n— FLOOR 3 :: Rarities of Creation Gear  (reaper-exclusive)\n— FLOOR 4 :: Warehouse\n— FLOOR 5 :: Lite Lite Classifieds  (RESTRICTED · grim-tier required)\n\nMay\'s ID-sigil is recognised. All five floors unlocked.\n\n[ Use a floor terminal nearby to change levels ]' },
+      { x:20, y:7.5, kind:'plaque', title:'FLOOR 2 :: REAPER BANKING',
+        body:'The second floor handles soul-tithe deposits and the only reaper-credit exchange aboard the ship. The teller is a senior reaper named Ossin who keeps a small carnation in the tray.' },
+      { x:14.5, y:10.5, kind:'plaque', title:'FLOOR 3 :: RARITIES OF CREATION GEAR',
+        body:'Reaper-exclusive arms, sigils and scythe-forms. Each piece is signed by the maker. The third floor is patrolled by Centurion auditors; off-tier visitors are turned away politely the first time.\n\nIn the back: a single dust-covered display marked "Maytradalis-pattern. Returned."' },
+      { x:25.5, y:10.5, kind:'plaque', title:'FLOOR 4 :: WAREHOUSE',
+        body:'Bulk reaper-supply. Bone-dust, sigil-oil, candle-stock, dorm-rations. Manifests are printed daily by a small hand-cranked press.' },
+      { x:20, y:13.5, kind:'plaque', title:'FLOOR 5 :: LITE LITE CLASSIFIEDS · RESTRICTED',
+        body:'A small lounge wrapped in muffling cloth. The classifieds board is hand-written and rotates every cycle: reaper-only trade postings, contracts, lost-soul recovery jobs, and the occasional cycle-end personal note.\n\nAccess requires a Grim-tier sigil. The door reads May\'s sigil and unlocks with a soft chime.' },
+      // STALL PLAQUES (around the floor)
+      { x:5,   y:4,   kind:'plaque', title:'STALL 1 · SIGIL-OIL & CANDLES', body:'A small wax-and-oil booth run by an off-duty common reaper. Hand-poured candles in twelve sigil-shapes. The vendor refuses payment from senior reapers — "the wax tells me when it\'s yours, hat."' },
+      { x:13,  y:4,   kind:'plaque', title:'STALL 2 · BONE-DUST & GRINDING', body:'Crates of grade-A bone-dust and a rough grinding wheel. The owner repairs scythe edges for half a soul-token.\n\nThe wheel is loud and the owner is patient. There is always a queue here.' },
+      { x:26,  y:4,   kind:'plaque', title:'STALL 3 · CARNATIONS & FUNERAL FLORA', body:'A tiny floral booth, the only one of its kind aboard the ship. White carnations, black violets, a single pot of the lavender that grows in May\'s room.\n\nThe vendor is Vivian\'s sister. May has been told not to ask about Vivian here.' },
+      { x:34,  y:4,   kind:'plaque', title:'STALL 4 · STRATA SOUVENIRS', body:'Trinkets reapers bring back from the strata. A jar of red sand from -50. A folded scrap of pink cloth from +33. A piece of obsidian from -99 that visibly hums when you look at it.\n\n"Don\'t touch the obsidian, please. It hums until it knows your name."' },
+      { x:5,   y:18,  kind:'plaque', title:'STALL 5 · BREAD & BLACK COFFEE', body:'A cycle-bread vendor. The bread is heavy and dark, baked in the engine-room ovens. Coffee is poured from a brass urn that has never been off.\n\nMay buys breakfast here on Tuesdays.' },
+      { x:13,  y:18,  kind:'plaque', title:'STALL 6 · DORMITORY LINEN', body:'Folded grey linens for every reaper dorm. A small bone-token cup at the counter — the linens are free to common reapers, payable by grims.' },
+      { x:26,  y:18,  kind:'plaque', title:'STALL 7 · BREACH-DATE BOOKS', body:'Hand-bound bound books logging every reality-breach observed by the Astrolabe in the last cycle. The covers are stamped with the strata where the breach occurred. Heavily marked-up by an unknown reaper.\n\nThe owner does not sell to non-reapers.' },
+      { x:34,  y:18,  kind:'plaque', title:'STALL 8 · SCYTHE-RING REPAIR', body:'A small bench manned by a one-handed reaper named Sallow-7. He has repaired Maytradalis\' scythe-ring four times. The fifth, he says, is on the house.' },
+    ],
+    doors: [
+      // Back to the Cathedral (west end)
+      { x:0.4, y:13, w:0.6, h:2, to:'cathedral', spawn:{x:62, y:7} },
+    ],
+    npcs: [
+      // Vendor at central terminal — uses a common reaper sprite
+      { x:20, y:11.2, sheet:'elite3_idle_down', idleSheet:'elite3_idle_down', refSheet:'elite3_idle_down',
+        scale:0.55, animSpeed:3, label:'Terminal Clerk',
+        plaqueTitle:'OSSIN · MARKET TERMINAL CLERK',
+        plaqueBody:'A senior reaper with a tired smile and a sigil-pin that says "OSSIN — TERMINAL 1." He has run this terminal for nine cycles.\n\n"Welcome to the Market, hat. Floor terminals are right beside you. Stay clear of Floor 5 unless your sigil sings — it bites." ' },
+    ],
+  },
+
+  // ============================================================
+  //   REAPER MARKET F2 — Reaper Banking
+  // ============================================================
+  reaper_market_f2: {
+    id: 'reaper_market_f2', name: 'Reaper Market · F2 · Reaper Banking',
+    sub: 'Tellers count soul-tithe behind ironwork grilles',
+    width: 40, height: 22,
+    palette: { floor:'#181624', wall:'#0a0a14', stone:'#221c30', accent:'#7080d8', candle:'#a0c4ff' },
+    spawn: { x: 4, y: 14 }, draw: drawReaperMarket, floor: 2,
+    walls: [
+      { x:0,y:0,w:40,h:1 }, { x:0,y:21,w:40,h:1 }, { x:0,y:0,w:1,h:22 }, { x:39,y:0,w:1,h:22 },
+      { x:14,y:7,w:12,h:1 }, { x:14,y:14,w:12,h:1 }, { x:14,y:8,w:1,h:6 }, { x:25,y:8,w:1,h:6 },
+      // Teller booths along north/south walls
+      { x:3,y:3,w:6,h:2.5 }, { x:11,y:3,w:6,h:2.5 }, { x:23,y:3,w:6,h:2.5 }, { x:31,y:3,w:6,h:2.5 },
+      { x:3,y:17,w:6,h:2.5 }, { x:11,y:17,w:6,h:2.5 }, { x:23,y:17,w:6,h:2.5 }, { x:31,y:17,w:6,h:2.5 },
+    ],
+    interactables: [
+      { x:20, y:10.5, kind:'plaque', title:'CENTRAL TERMINAL · FLOOR SELECTOR',
+        body:'Floor 2 · Reaper Banking. The ledger room. Use this terminal to descend or ascend.\n[ Floors: 1 General · 2 Banking ★ · 3 Rarities · 4 Warehouse · 5 Classifieds ]', __floorSelect: true },
+      { x:6,  y:5,  kind:'plaque', title:'TELLER 1 · SOUL DEPOSITS', body:'A glass partition. The teller wears a small carnation and counts soul-tokens with her left hand only. Receipts are stamped with a sigil that fades within the hour. "Drop the tokens in the brass tray. Do not knock."' },
+      { x:14, y:5,  kind:'plaque', title:'TELLER 2 · REAPER CREDIT', body:'The credit line. Senior reapers approved for up to nine cycles of advance soul-stipend. The teller does not look up.' },
+      { x:26, y:5,  kind:'plaque', title:'TELLER 3 · MOURNING ACCOUNTS', body:'For deceased reaper estates. Three black coins sit on the counter — no one has claimed them in two cycles.' },
+      { x:34, y:5,  kind:'plaque', title:'TELLER 4 · OBOL EXCHANGE', body:'Exchanges old-currency obols for modern reaper-credit. A single moth circles the lamp above the teller\'s head. May suspects it has been here for months.' },
+      { x:6,  y:18, kind:'plaque', title:'TELLER 5 · VAULT INTAKE', body:'Closed window. Above it a sign in chipped gold: "BY APPOINTMENT — GRIM-TIER ONLY." May has never made an appointment here.' },
+      { x:20, y:13, kind:'plaque', title:'OSSIN HAS A NOTE FOR YOU', body:'Pinned to the underside of the central column: a small, hand-written note. "Maytradalis — your dorm-stipend was processed early this cycle. Death asked for it personally. -O"' },
+    ],
+    doors: [
+      // Returns to F1 via the central column
+      { x:20, y:10.5, w:0.6, h:0.6, to:'reaper_market', spawn:{x:20, y:11.5} },
+    ],
+    npcs: [
+      { x:6,  y:4.5, sheet:'elite2_idle_down', idleSheet:'elite2_idle_down', refSheet:'elite2_idle_down', scale:0.55, animSpeed:3, label:'Teller (Soul Deposits)',
+        plaqueTitle:'TELLER · SOUL DEPOSITS', plaqueBody:'"Tokens in the tray, hat. Receipt fades in an hour. Don\'t complain to me about it."' },
+    ],
+  },
+
+  // ============================================================
+  //   REAPER MARKET F3 — Rarities of Creation Gear
+  // ============================================================
+  reaper_market_f3: {
+    id: 'reaper_market_f3', name: 'Reaper Market · F3 · Rarities of Creation Gear',
+    sub: 'Reaper-exclusive scythe-forms, sigils, ceremonial arms',
+    width: 40, height: 22,
+    palette: { floor:'#1c1620', wall:'#0a0612', stone:'#2a1c30', accent:'#d090f0', candle:'#ffaaff' },
+    spawn: { x: 4, y: 14 }, draw: drawReaperMarket, floor: 3,
+    walls: [
+      { x:0,y:0,w:40,h:1 }, { x:0,y:21,w:40,h:1 }, { x:0,y:0,w:1,h:22 }, { x:39,y:0,w:1,h:22 },
+      { x:14,y:7,w:12,h:1 }, { x:14,y:14,w:12,h:1 }, { x:14,y:8,w:1,h:6 }, { x:25,y:8,w:1,h:6 },
+      // Glass display cases (each 4x2.5)
+      { x:3,y:3,w:4,h:2.5 }, { x:9,y:3,w:4,h:2.5 }, { x:27,y:3,w:4,h:2.5 }, { x:33,y:3,w:4,h:2.5 },
+      { x:3,y:17,w:4,h:2.5 }, { x:9,y:17,w:4,h:2.5 }, { x:27,y:17,w:4,h:2.5 }, { x:33,y:17,w:4,h:2.5 },
+    ],
+    interactables: [
+      { x:20, y:10.5, kind:'plaque', title:'CENTRAL TERMINAL · FLOOR SELECTOR',
+        body:'Floor 3 · Rarities of Creation Gear. Reaper-exclusive arms.\n[ Floors: 1 · 2 · 3 ★ · 4 · 5 ]', __floorSelect: true },
+      { x:5,  y:5,  kind:'plaque', title:'OBSIDIAN REAPING-HOOK · MARK III', body:'Cold-forged obsidian, edge thinner than thought. Will only sing when wielded by a reaper of Grim tier or higher.\n\nPrice: not listed.' },
+      { x:11, y:5,  kind:'plaque', title:'CRYSTAL REAPER (LIMITED RUN)', body:'A crystal-edged scythe modelled on the one carried by Sephira at -66. The case carries a small note: "Display only. Original blade lost cycle 167."' },
+      { x:29, y:5,  kind:'plaque', title:'SIGIL-PIN COLLECTION', body:'Twelve pins behind glass — one per reaper rank. The Grim-tier pin is missing. The card reads "RESERVED · MAYTRADALIS, CYCLE 173."' },
+      { x:35, y:5,  kind:'plaque', title:'CEREMONIAL HOOD · OLD COURT', body:'A black hood of pre-cycle make. The lining is mended in seventeen places. The card reads "Donated · Cryious, the First Made."' },
+      { x:5,  y:18, kind:'plaque', title:'BONE-INLAID HOOK · UNUSED', body:'A reaping hook with bone inlay. Never wielded. The card simply says "Returned. Reason classified."' },
+      { x:11, y:18, kind:'plaque', title:'TWIN-CRESCENT SCYTHE · DAMAGED', body:'A twin-crescent scythe with a hairline crack along one edge. Will not be repaired. Will not be sold. Will sit here, the card says, "until the cycle insists otherwise."' },
+      { x:29, y:18, kind:'plaque', title:'MAYTRADALIS-PATTERN · RETURNED', body:'A scythe-form forged in May\'s pattern. The card reads simply "Returned." There is no signature.\n\nMay does not remember commissioning it.' },
+      { x:35, y:18, kind:'plaque', title:'MIRROR-EDGE · CYCLE 92 RELIC', body:'A mirror-edge scythe from cycle 92. The blade reflects the viewer slightly older than they currently are.' },
+    ],
+    doors: [
+      { x:20, y:10.5, w:0.6, h:0.6, to:'reaper_market', spawn:{x:20, y:11.5} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   REAPER MARKET F4 — Warehouse
+  // ============================================================
+  reaper_market_f4: {
+    id: 'reaper_market_f4', name: 'Reaper Market · F4 · Warehouse',
+    sub: 'Bulk reaper-supply · bone-dust, sigil-oil, candles, rations',
+    width: 40, height: 22,
+    palette: { floor:'#1a1810', wall:'#0c0a06', stone:'#241e10', accent:'#a08850', candle:'#ffd28b' },
+    spawn: { x: 4, y: 14 }, draw: drawReaperMarket, floor: 4,
+    walls: [
+      { x:0,y:0,w:40,h:1 }, { x:0,y:21,w:40,h:1 }, { x:0,y:0,w:1,h:22 }, { x:39,y:0,w:1,h:22 },
+      { x:14,y:7,w:12,h:1 }, { x:14,y:14,w:12,h:1 }, { x:14,y:8,w:1,h:6 }, { x:25,y:8,w:1,h:6 },
+      // Long crate-stacks along the perimeter
+      { x:2,  y:3,  w:10, h:3 }, { x:14, y:3,  w:10, h:3 }, { x:26, y:3,  w:11, h:3 },
+      { x:2,  y:16, w:10, h:3 }, { x:14, y:16, w:10, h:3 }, { x:26, y:16, w:11, h:3 },
+    ],
+    interactables: [
+      { x:20, y:10.5, kind:'plaque', title:'CENTRAL TERMINAL · FLOOR SELECTOR',
+        body:'Floor 4 · Warehouse. Bulk supply.\n[ Floors: 1 · 2 · 3 · 4 ★ · 5 ]', __floorSelect: true },
+      { x:7,  y:4.5, kind:'plaque', title:'CRATE-STACK 1 · BONE-DUST', body:'Stamped barrels of grade-A bone-dust. Mostly grey, faintly luminescent. A single barrel has been mis-labelled "GRADE-AA" and is wrapped in twine.' },
+      { x:19, y:4.5, kind:'plaque', title:'CRATE-STACK 2 · SIGIL-OIL', body:'Three rows of sealed clay jars. The labels run sigil-1 through sigil-12. Sigil-9 is missing from the inventory tag.' },
+      { x:32, y:4.5, kind:'plaque', title:'CRATE-STACK 3 · CANDLES', body:'Bundles of dipped wax candles in twenty colours. The black ones are reserved for the cathedral. The white ones are reserved for May\'s lamp.' },
+      { x:7,  y:17.5, kind:'plaque', title:'CRATE-STACK 4 · DORM RATIONS', body:'Heavy-paper boxes of cycle-bread, dry coffee, sigil-tea. Stamped with the cathedral kitchens\' seal.' },
+      { x:19, y:17.5, kind:'plaque', title:'CRATE-STACK 5 · LINEN', body:'Folded grey linens for every dorm aboard. May\'s sigil is on one stack; the rest are unmarked.' },
+      { x:32, y:17.5, kind:'plaque', title:'CRATE-STACK 6 · MISC', body:'Misplaced or returned shipments. A spare brass urn from the bread-and-coffee stall. A bundle of broken sigil-pins. One single black violet, dried.' },
+    ],
+    doors: [
+      { x:20, y:10.5, w:0.6, h:0.6, to:'reaper_market', spawn:{x:20, y:11.5} },
+    ],
+    npcs: [],
+  },
+
+  // ============================================================
+  //   REAPER MARKET F5 — Lite Lite Classifieds (RESTRICTED)
+  // ============================================================
+  reaper_market_f5: {
+    id: 'reaper_market_f5', name: 'Reaper Market · F5 · Lite Lite Classifieds',
+    sub: 'Grim-tier only · the muffled lounge · the cork board',
+    width: 40, height: 22,
+    palette: { floor:'#100614', wall:'#04020a', stone:'#180b1c', accent:'#ff70a0', candle:'#ff90c0' },
+    spawn: { x: 4, y: 14 }, draw: drawReaperMarket, floor: 5,
+    walls: [
+      { x:0,y:0,w:40,h:1 }, { x:0,y:21,w:40,h:1 }, { x:0,y:0,w:1,h:22 }, { x:39,y:0,w:1,h:22 },
+      { x:14,y:7,w:12,h:1 }, { x:14,y:14,w:12,h:1 }, { x:14,y:8,w:1,h:6 }, { x:25,y:8,w:1,h:6 },
+      // Booth alcoves with hanging muffling cloth
+      { x:3,  y:5,  w:8,  h:1 }, { x:29, y:5,  w:8,  h:1 },
+      { x:3,  y:16, w:8,  h:1 }, { x:29, y:16, w:8,  h:1 },
+    ],
+    interactables: [
+      { x:20, y:10.5, kind:'plaque', title:'CENTRAL TERMINAL · FLOOR SELECTOR',
+        body:'Floor 5 · Lite Lite Classifieds. Restricted Access · Grim-tier required.\nYour sigil sang on entry. Welcome, Maytradalis.\n[ Floors: 1 · 2 · 3 · 4 · 5 ★ ]', __floorSelect: true },
+      { x:7,  y:6,  kind:'plaque', title:'THE CORK BOARD', body:'Hand-written postings on aged paper. A few examples:\n\n— "WANTED: stable-strata escort, cycle 199 mid-week. Pay in soul-tokens. See Veilwing."\n— "FOUND: a single black violet on the cathedral steps. Owner please claim."\n— "TRADE: cycle-92 mirror-edge for two clean dorm-linens. No questions." \n— "NOTICE: Cryious will not be receiving guests until further notice. — M."' },
+      { x:13, y:6,  kind:'plaque', title:'SEALED ENVELOPE · CYCLE 197', body:'A sealed envelope addressed in May\'s own handwriting. To herself. Cycle 197.\n\nShe does not remember writing it.\n\nThe seal is unbroken. The Grim-tier sigil-stamp is hers.' },
+      { x:33, y:6,  kind:'plaque', title:'OLD COURT CONTRACT', body:'A pre-cycle contract bound in waxed paper. The signing parties are listed: Death · Cryious · Maytradalis. The terms are illegible.' },
+      { x:7,  y:17, kind:'plaque', title:'CONFIDENTIAL · MORDREN-7', body:'A confidential personnel posting marked with Mordren-7\'s sigil. The content has been redacted; only the closing line remains: "...do not approach the bay door. — M-7"' },
+      { x:33, y:17, kind:'plaque', title:'THE QUIET BOOTH', body:'A small alcove wrapped in deep red muffling cloth. Inside: a single chair, a lamp, an empty teacup. The lamp is still warm.\n\nMay knows whose booth this is. She does not sit down.' },
+    ],
+    doors: [
+      { x:20, y:10.5, w:0.6, h:0.6, to:'reaper_market', spawn:{x:20, y:11.5} },
+    ],
+    npcs: [],
+  },
 };
 
+// Wire the "central terminal floor selector" plaques to actually
+// teleport between reaper-market floors. We intercept interact() AFTER
+// the room defs so it can read room.floor.
+(function wireFloorSelector(){
+  if (typeof openModal !== 'function') return; // safety
+  // Patch openModal so when an interactable with __floorSelect fires,
+  // we append a floor-picker row to the modal body via a follow-up.
+  // Simpler: hijack interact() to short-circuit __floorSelect items.
+  const origInteract = window.interact;
+  if (typeof origInteract !== 'function') return;
+  window.interact = function() {
+    if (state.nearInteract && state.nearInteract.__floorSelect) {
+      // Build a small floor list overlay
+      const floors = [
+        { id:'reaper_market',    label:'F1 · General Market' },
+        { id:'reaper_market_f2', label:'F2 · Reaper Banking' },
+        { id:'reaper_market_f3', label:'F3 · Rarities of Creation' },
+        { id:'reaper_market_f4', label:'F4 · Warehouse' },
+        { id:'reaper_market_f5', label:'F5 · Lite Lite Classifieds (restricted)' },
+      ];
+      const cur = state.currentRoom;
+      const listHtml = floors.map(f => {
+        const activeStyle = (cur === f.id)
+          ? 'background:rgba(192,160,80,0.18);border:1px solid #c0a050;color:#ffd28b;'
+          : 'background:rgba(192,160,80,0.06);border:1px solid rgba(192,160,80,0.3);color:#c0a050;';
+        const tag = (cur === f.id) ? '  · CURRENT' : '';
+        return `<button onclick="window._mktGoTo('${f.id}')" style="display:block;width:100%;text-align:left;padding:10px 12px;margin:4px 0;${activeStyle}border-radius:3px;cursor:pointer;font:inherit;letter-spacing:.08em;">${f.label}${tag}</button>`;
+      }).join('');
+      const it = state.nearInteract;
+      openModal(it.title, '\n\nSelect destination floor:\n\n', 'FLOOR SELECTOR', { sheet: null });
+      // Append the button stack into the modal body
+      setTimeout(() => {
+        const mb = document.getElementById('modalBody');
+        if (mb) {
+          mb.innerHTML = '<div style="margin-bottom:8px;font-style:italic;color:#c0a050;">Select destination floor:</div>' + listHtml;
+        }
+      }, 50);
+      return;
+    }
+    return origInteract.apply(this, arguments);
+  };
+  window._mktGoTo = function(roomId){
+    closeModal();
+    setTimeout(() => {
+      if (state.currentRoom === roomId) return;
+      state.fading = true;
+      const fade = document.getElementById('fade'); if (fade) fade.classList.add('show');
+      setTimeout(() => {
+        loadRoom(roomId);
+        state.doorCooldown = performance.now() + 700;
+        setTimeout(() => { if (fade) fade.classList.remove('show'); state.fading = false; }, 250);
+      }, 300);
+    }, 100);
+  };
+})();
+
 // ============================================================
-//   GOTHIC BACKGROUND DRAWING
+//   AUTO PERIMETER FRAMING (Task 1: walls so doors are openings)
 // ============================================================
+// Replaces each room's full-span perimeter wall strips with segmented
+// walls that have proper door-shaped openings carved out. A door is
+// considered "edge-facing" if its center lies within 2 grid units of
+// the relevant wall. Interior doors are left untouched. Pre-segmented
+// perimeters (some rooms already do this manually) are left alone.
+(function framePerimetersForAllRooms() {
+  for (const id in ROOM_DEFS) {
+    const room = ROOM_DEFS[id];
+    if (!room || !room.walls || !room.doors) continue;
+    const W = room.width, H = room.height;
+
+    // 1) Strip out the four "full-span" perimeter walls if present.
+    const isFullSpanPerim = (w) =>
+      (w.x === 0     && w.w === W && w.y === 0     && w.h === 1) ||  // TOP strip
+      (w.x === 0     && w.w === W && w.y === H - 1 && w.h === 1) ||  // BOTTOM
+      (w.x === 0     && w.y === 0 && w.w === 1     && w.h === H) ||  // LEFT
+      (w.x === W - 1 && w.y === 0 && w.w === 1     && w.h === H);    // RIGHT
+    const originalCount = room.walls.length;
+    room.walls = room.walls.filter(w => !isFullSpanPerim(w));
+    const removedPerimeter = (originalCount !== room.walls.length);
+    if (!removedPerimeter) continue; // Pre-segmented room — skip.
+
+    // 2) For each of the 4 edges, build segmented walls with openings.
+    const doors = room.doors.filter(d => d && d.to);
+    const edges = [
+      // TOP: doors near y=0 (center y within 2 of top). Opening on x-axis.
+      { kind:'x', start:0, end:W, fixed:0,     thick:1, hit:(d) => (d.y + (d.h || 1) / 2) < 2 },
+      // BOTTOM: doors near y=H. Opening on x-axis.
+      { kind:'x', start:0, end:W, fixed:H - 1, thick:1, hit:(d) => (d.y + (d.h || 1) / 2) > H - 2 },
+      // LEFT: doors near x=0. Opening on y-axis.
+      { kind:'y', start:0, end:H, fixed:0,     thick:1, hit:(d) => (d.x + (d.w || 1) / 2) < 2 },
+      // RIGHT: doors near x=W. Opening on y-axis.
+      { kind:'y', start:0, end:H, fixed:W - 1, thick:1, hit:(d) => (d.x + (d.w || 1) / 2) > W - 2 },
+    ];
+
+    for (const e of edges) {
+      // Collect door openings on this edge, sorted left-to-right / top-to-bottom.
+      // Pad each opening by 0.1 so the door doesn't graze the wall.
+      const openings = doors.filter(e.hit).map(d => {
+        if (e.kind === 'x') return [d.x - 0.05, d.x + (d.w || 1) + 0.05];
+        return [d.y - 0.05, d.y + (d.h || 1) + 0.05];
+      }).sort((a, b) => a[0] - b[0]);
+
+      const pushSeg = (segStart, segLen) => {
+        if (segLen <= 0.05) return;
+        if (e.kind === 'x') {
+          room.walls.push({ x: segStart, y: e.fixed, w: segLen, h: e.thick });
+        } else {
+          room.walls.push({ x: e.fixed, y: segStart, w: e.thick, h: segLen });
+        }
+      };
+
+      let cursor = e.start;
+      for (const [oStart, oEnd] of openings) {
+        if (oStart > cursor) pushSeg(cursor, oStart - cursor);
+        cursor = Math.max(cursor, oEnd);
+      }
+      if (cursor < e.end) pushSeg(cursor, e.end - cursor);
+    }
+  }
+})();
 // All drawing happens in WORLD coords (px = tile*64).
 
 // === GRAND CORRIDOR — long candle-lit hallway between bridge & Grand Hall ===
@@ -4921,6 +5392,85 @@ function drawBlackbox(ctx, room) {
 }
 
 // ============================================================
+//   REAPER MARKET (uses the cathedral aesthetic as a base)
+// ============================================================
+function drawReaperMarket(ctx, room) {
+  const W = room.width * 64, H = room.height * 64;
+  const p = room.palette;
+  drawStoneFloor(ctx, W, H, p, 53);
+  // outer walls
+  ctx.fillStyle = p.wall;
+  ctx.fillRect(0, 0, W, 64); ctx.fillRect(0, H - 64, W, 64);
+  ctx.fillRect(0, 0, 64, H); ctx.fillRect(W - 64, 0, 64, H);
+  drawWallTrim(ctx, W, H, '#03020a');
+  // CENTRAL COLUMN — octagonal dais
+  const cx = W / 2, cy = H / 2;
+  const colR = 7 * 64;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // outer ring
+  ctx.fillStyle = '#1a0f24';
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
+    const x = Math.cos(a) * colR, y = Math.sin(a) * colR;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  // inner amber column
+  ctx.fillStyle = '#3a2310';
+  ctx.beginPath();
+  ctx.arc(0, 0, 3.5 * 64, 0, Math.PI * 2);
+  ctx.fill();
+  // glowing core
+  const g = ctx.createRadialGradient(0, 0, 5, 0, 0, 2.5 * 64);
+  g.addColorStop(0, 'rgba(216, 166, 74, 0.95)');
+  g.addColorStop(0.5, 'rgba(216, 166, 74, 0.40)');
+  g.addColorStop(1, 'rgba(216, 166, 74, 0.00)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, 2.5 * 64, 0, Math.PI * 2);
+  ctx.fill();
+  // FLOOR labels around the column ring
+  ctx.font = 'bold 13px "Cormorant Garamond", serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd28b';
+  const labels = ['F1 · GENERAL', 'F2 · BANKING', 'F3 · RARITIES', 'F4 · WAREHOUSE', 'F5 · CLASSIFIED'];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const rx = Math.cos(a) * (colR + 14);
+    const ry = Math.sin(a) * (colR + 14);
+    ctx.save();
+    ctx.translate(rx, ry);
+    ctx.rotate(a + Math.PI / 2);
+    ctx.fillText(labels[i], 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+  // STALL booths — colored awning rectangles along the north and south stall rows
+  ctx.fillStyle = '#8c3a1a';   // awning rust-red
+  for (const [x, y, w, h] of [
+    [3, 3, 5, 2], [11, 3, 5, 2], [24, 3, 5, 2], [32, 3, 5, 2],
+    [3, 17, 5, 2], [11, 17, 5, 2], [24, 17, 5, 2], [32, 17, 5, 2]
+  ]) {
+    ctx.fillRect(x * 64, y * 64, w * 64, 12);  // awning strip
+    ctx.fillStyle = '#3a2a14';
+    ctx.fillRect(x * 64, y * 64 + 12, w * 64, h * 64 - 12);
+    ctx.fillStyle = '#8c3a1a';
+  }
+  // amber lanterns at stall corners
+  ctx.fillStyle = '#ffd28b';
+  const lanternSpots = [[3,3],[8,3],[11,3],[16,3],[24,3],[29,3],[32,3],[37,3],
+                        [3,19],[8,19],[11,19],[16,19],[24,19],[29,19],[32,19],[37,19]];
+  for (const [x, y] of lanternSpots) {
+    ctx.beginPath();
+    ctx.arc(x * 64, y * 64, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ============================================================
 //   CATHEDRAL OF REAPERS
 // ============================================================
 function drawCathedral(ctx, room) {
@@ -4931,44 +5481,115 @@ function drawCathedral(ctx, room) {
   ctx.fillRect(0,0,W,64); ctx.fillRect(0,H-64,W,64);
   ctx.fillRect(0,0,64,H); ctx.fillRect(W-64,0,64,H);
   drawWallTrim(ctx, W, H, '#03020a');
-  // Vaulted arches on back wall — taller than corridor
-  for (let i = 0; i < 7; i++) {
-    const ax = 64 + i*((W-128)/7);
-    const aw = (W-128)/7 - 4;
-    drawArchPath(ctx, ax+2, 16, aw-4, 140);
+
+  // VAULTED ARCH RIBBING — running along the entire upper portion of
+  // the long hall to read as a Gothic cathedral aisle interior.
+  const archCount = 12;
+  for (let i = 0; i < archCount; i++) {
+    const ax = 80 + i * ((W - 160) / archCount);
+    const aw = (W - 160) / archCount - 6;
+    drawArchPath(ctx, ax + 2, 18, aw - 4, 130);
     ctx.fillStyle = '#08060e'; ctx.fill();
-    ctx.strokeStyle = '#1a1428'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = '#241830'; ctx.lineWidth = 2; ctx.stroke();
+    // Crest jewel at the top of each arch
+    ctx.fillStyle = `rgba(192,160,80,${0.55 + 0.25 * Math.sin(t * 1.3 + i * 0.7)})`;
+    ctx.beginPath();
+    ctx.arc(ax + aw / 2, 28, 3, 0, Math.PI * 2);
+    ctx.fill();
   }
-  // The Reaper-Statue dais (11..19, 2..5)
+
+  // RIBBED FLOOR ARCH SHADOW (mirror of the ceiling) along the bottom edge
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#06050e';
+  for (let i = 0; i < archCount; i++) {
+    const ax = 80 + i * ((W - 160) / archCount);
+    const aw = (W - 160) / archCount - 6;
+    ctx.fillRect(ax + 2, H - 80, aw - 4, 14);
+  }
+  ctx.restore();
+
+  // CENTRAL STATUE DAIS (now at 30..36, 4..7 per the new room layout)
   ctx.fillStyle = '#0e0a18';
-  ctx.fillRect(11*64, 2*64, 8*64, 3*64);
-  ctx.strokeStyle = '#1a1428'; ctx.lineWidth = 2;
-  ctx.strokeRect(11*64+1, 2*64+1, 8*64-2, 3*64-2);
-  // The statue itself — silhouette
-  drawReaperStatue(ctx, 15*64, 2.2*64, t);
-  // Central aisle (mirror-stone)
-  drawCarpet(ctx, 12*64, 5*64, 6*64, H-7*64, '#2a1828');
+  ctx.fillRect(30 * 64, 4 * 64, 6 * 64, 3 * 64);
+  ctx.strokeStyle = '#241830'; ctx.lineWidth = 2;
+  ctx.strokeRect(30 * 64 + 1, 4 * 64 + 1, 6 * 64 - 2, 3 * 64 - 2);
+  // The statue itself — silhouette at dais center
+  drawReaperStatue(ctx, 33 * 64, 4.2 * 64, t);
+
+  // CENTRAL AISLE (mirror-stone strip running the full length)
+  drawCarpet(ctx, 4 * 64, 6 * 64, W - 8 * 64, 2 * 64, '#2a1828');
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = `rgba(120,90,40,${0.04+0.02*Math.sin(t)})`;
-  ctx.fillRect(12*64, 5*64, 6*64, H-7*64);
+  ctx.fillStyle = `rgba(120, 90, 40, ${0.04 + 0.02 * Math.sin(t)})`;
+  ctx.fillRect(4 * 64, 6 * 64, W - 8 * 64, 2 * 64);
   ctx.restore();
-  // Pews (already collidable — render as wood blocks)
-  for (const px of [3,19]) {
-    for (const py of [7, 9.5, 12]) {
-      drawPew(ctx, px*64, py*64, 8*64, 1.2*64);
+
+  // PEW ROWS — west aisle (x:4..26) and east aisle (x:40..60), top and bottom rows
+  for (const py of [4, 8]) {
+    for (const [px, pw] of [[4, 22], [40, 20]]) {
+      drawPew(ctx, px * 64, py * 64, pw * 64, 1.2 * 64);
+      // Subtle gold trim along pew front (just for richness)
+      ctx.fillStyle = 'rgba(192,160,80,0.35)';
+      ctx.fillRect(px * 64 + 4, py * 64 + 1.18 * 64 - 2, pw * 64 - 8, 1);
     }
   }
-  // Great chandelier
-  drawChandelier(ctx, W/2, 5.5*64, 1.4, '#ffd28b', t);
-  // Sparse motes
+
+  // SPACED CHANDELIERS along the hall — 4 evenly distributed
+  for (const cx of [12, 24, 44, 56]) {
+    drawChandelier(ctx, cx * 64, 5.8 * 64, 1.1, '#ffd28b', t + cx * 0.4);
+  }
+
+  // HANGING BANNERS between arches — alternating colors representing reaper sigils
+  const banners = [
+    { x: 8,  color: '#5a1a2a' },   // crimson
+    { x: 20, color: '#1a3a6a' },   // deep blue
+    { x: 48, color: '#3a1a5a' },   // royal purple
+    { x: 60, color: '#5a3a1a' },   // bronze
+  ];
+  for (const b of banners) {
+    const bx = b.x * 64, by = 64 + 12;
+    // Banner cloth
+    ctx.fillStyle = b.color;
+    ctx.fillRect(bx, by, 28, 70);
+    // Gold trim
+    ctx.fillStyle = '#c0a050';
+    ctx.fillRect(bx, by, 28, 4);
+    ctx.fillRect(bx, by + 64, 28, 6);
+    // Sigil (simple)
+    ctx.fillStyle = '#e8c870';
+    ctx.font = '20px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('✟', bx + 14, by + 42);
+  }
+
+  // SPARSE MOTES of incense / candlelight throughout
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 30; i++) {
-    const mx = (i*97 + t*8) % W;
-    const my = (i*131) % (H-160) + 80;
-    ctx.fillStyle = `rgba(255,210,140,${0.12+0.08*Math.sin(t+i*0.3)})`;
+  for (let i = 0; i < 50; i++) {
+    const mx = (i * 97 + t * 8) % W;
+    const my = (i * 131) % (H - 160) + 80;
+    ctx.fillStyle = `rgba(255,210,140,${0.10 + 0.06 * Math.sin(t + i * 0.3)})`;
     ctx.fillRect(mx, my, 2, 2);
+  }
+  ctx.restore();
+
+  // SUBTLE GOD-RAYS slanting through arches
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 4; i++) {
+    const rx = (W * (i + 1)) / 5;
+    const grad = ctx.createLinearGradient(rx, 0, rx + 120, H);
+    grad.addColorStop(0, `rgba(255, 210, 140, ${0.06 + 0.02 * Math.sin(t * 0.4 + i)})`);
+    grad.addColorStop(1, 'rgba(255, 210, 140, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(rx, 64);
+    ctx.lineTo(rx + 120, H);
+    ctx.lineTo(rx + 150, H);
+    ctx.lineTo(rx + 30, 64);
+    ctx.closePath();
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -5588,11 +6209,18 @@ function update(dt) {
       if (dx*dx + dy*dy < 110*110) { state.nearInteract = it; break; }
     }
   }
-  for (const dr of (room.doors||[])) {
-    const cx = (dr.x + dr.w/2) * 64, cy = (dr.y + dr.h/2) * 64;
-    const dx = state.player.x - cx, dy = (state.player.y + footOffsetY) - cy;
-    if (Math.abs(dx) < dr.w*32 + 18 && Math.abs(dy) < dr.h*32 + 22) {
-      enterDoor(dr); return;
+  // Door proximity — DOES NOT auto-trigger. Player must press ACT/TAB/E
+  // to actually walk through (fixes bug where the player kept landing on
+  // the entrance trigger after spawn and bouncing back instantly).
+  state.nearDoor = null;
+  if (!state.doorCooldown || performance.now() >= state.doorCooldown) {
+    for (const dr of (room.doors||[])) {
+      const cx = (dr.x + dr.w/2) * 64, cy = (dr.y + dr.h/2) * 64;
+      const dx = state.player.x - cx, dy = (state.player.y + footOffsetY) - cy;
+      if (Math.abs(dx) < dr.w*32 + 18 && Math.abs(dy) < dr.h*32 + 22) {
+        state.nearDoor = dr;
+        break;
+      }
     }
   }
 
@@ -5624,7 +6252,11 @@ function update(dt) {
   else state.camera.y = Math.max(halfH, Math.min(roomH - halfH, state.camera.y));
 
   const actBtn = document.getElementById('actionBtn');
-  if (state.nearInteract) {
+  if (state.nearDoor) {
+    actBtn.classList.remove('disabled');
+    const dest = state.nearDoor.to || 'next room';
+    showHint('▸ Press ACT / TAB / E to enter ' + dest.replace(/_/g, ' '));
+  } else if (state.nearInteract) {
     actBtn.classList.remove('disabled');
     showHint(state.nearInteract.title);
   } else {
@@ -6549,8 +7181,12 @@ function enterDoor(door){
 //   INTERACTION + MODALS
 // ============================================================
 function interact(){
-  if (!state.nearInteract || state.fading) return;
+  if (state.fading) return;
   if (state.cinematic && state.cinematic.active) return;
+  // Door takes precedence over normal interactables when the player is
+  // standing on a door threshold — pressing ACT walks them through.
+  if (state.nearDoor) { enterDoor(state.nearDoor); return; }
+  if (!state.nearInteract) return;
   const it = state.nearInteract;
   if (it.triggerCinematic === 'endless') {
     // Cinematic pan + zoom toward the bay door — pause time on the Endless
@@ -7129,7 +7765,7 @@ window.addEventListener('keydown', e => {
     e.preventDefault();
     endCinematic();
   }
-  if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter') {
+  if (e.code === 'KeyE' || e.code === 'Space' || e.code === 'Enter' || e.code === 'Tab') {
     if (document.getElementById('modal').classList.contains('show')) closeModal();
     else interact();
     e.preventDefault();
@@ -7253,6 +7889,102 @@ resize();
     document.getElementById('loaderSub').textContent = 'Load failed: ' + err.message;
     console.error(err);
   }
+})();
+
+// ============================================================
+//   MINIMAP HUD — Top-right canvas, live updates as player walks
+// ============================================================
+(function setupMinimap() {
+  const cvs = document.getElementById('minimap-canvas');
+  const label = document.getElementById('minimap-room-label');
+  const wrap = document.getElementById('minimap-hud');
+  if (!cvs || !wrap) return;
+  const ctx = cvs.getContext('2d');
+  let lastRoom = null;
+  function render() {
+    const room = state && state.rooms && state.rooms[state.currentRoom];
+    if (!room) {
+      requestAnimationFrame(render);
+      return;
+    }
+    const W = cvs.width, H = cvs.height;
+    ctx.clearRect(0, 0, W, H);
+    // Room label
+    if (label) label.textContent = (room.name || room.id || '???').slice(0, 22);
+    // Scale to fit
+    const scaleX = (W - 8) / (room.width * 64);
+    const scaleY = (H - 8) / (room.height * 64);
+    const scale = Math.min(scaleX, scaleY);
+    const offX = (W - room.width * 64 * scale) / 2;
+    const offY = (H - room.height * 64 * scale) / 2;
+    // Room background
+    ctx.fillStyle = (room.palette && room.palette.floor) || '#1a0c20';
+    ctx.fillRect(offX, offY, room.width * 64 * scale, room.height * 64 * scale);
+    // Walls
+    ctx.fillStyle = (room.palette && room.palette.wall) || '#080510';
+    for (const w of (room.walls || [])) {
+      ctx.fillRect(offX + w.x * 64 * scale, offY + w.y * 64 * scale,
+                   w.w * 64 * scale, w.h * 64 * scale);
+    }
+    // Doors — amber/gold
+    ctx.fillStyle = '#c0a050';
+    ctx.strokeStyle = '#ffd28b';
+    ctx.lineWidth = 1;
+    for (const d of (room.doors || [])) {
+      const dx = offX + d.x * 64 * scale, dy = offY + d.y * 64 * scale;
+      const dw = (d.w || 1) * 64 * scale, dh = (d.h || 1) * 64 * scale;
+      ctx.fillRect(dx, dy, dw, dh);
+      // Door target label dot
+      if (state.visited && state.visited.has(d.to)) {
+        ctx.fillStyle = '#0bb6ff'; // visited connection
+      } else {
+        ctx.fillStyle = '#c0a050'; // unvisited
+      }
+      ctx.fillRect(dx, dy, dw, dh);
+    }
+    // Interactables — small purple dots
+    ctx.fillStyle = '#b97cff';
+    for (const it of (room.interactables || [])) {
+      ctx.beginPath();
+      ctx.arc(offX + it.x * 64 * scale, offY + it.y * 64 * scale, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // NPCs — small red dots
+    ctx.fillStyle = '#ff6678';
+    for (const n of (room.npcs || [])) {
+      if (n.x === undefined) continue;
+      ctx.beginPath();
+      ctx.arc(offX + n.x * 64 * scale, offY + n.y * 64 * scale, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Player — bright cyan with glow
+    if (state.player) {
+      const px = offX + state.player.x * scale;
+      const py = offY + state.player.y * scale;
+      ctx.save();
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(px, py, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // Room change flash effect
+    if (lastRoom !== state.currentRoom) {
+      lastRoom = state.currentRoom;
+      wrap.style.boxShadow = '0 0 18px rgba(192,160,80,0.9)';
+      setTimeout(() => { wrap.style.boxShadow = '0 0 12px rgba(192,160,80,0.25)'; }, 400);
+    }
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+  // Click on minimap → toggle larger overlay (delegated to existing
+  // ship-map button for full view).
+  wrap.addEventListener('click', () => {
+    const mb = document.getElementById('mapBtn');
+    if (mb) mb.click();
+  });
 })();
 })();
 </script>

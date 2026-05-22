@@ -1,3 +1,271 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:131523350c26f85441bd06f22657eb21e3c5c4dfcf268aa996d6effc16d13732
-size 56275
+
+    
+    <!-- Visual Scanline Mask -->
+    <div class="scanlines"></div>
+
+    <!-- Cinematic Letterboxing Overlay -->
+    <div id="cinematic-top" class="absolute top-0 left-0 w-full h-0 bg-black/95 z-30 transition-all duration-700 ease-in-out border-b border-amber-500/20 flex items-center justify-between px-6 pointer-events-none overflow-hidden">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+            <span class="text-amber-500 text-[10px] tracking-widest font-mono font-bold uppercase">CINEMATIC SPECTROGRAM TELEMETRY</span>
+        </div>
+        <span class="text-slate-400 text-[9px] font-mono hidden sm:inline" id="cinematic-telemetry">SPEED: 120.0 LY/SEC</span>
+    </div>
+    <div id="cinematic-bottom" class="absolute bottom-0 left-0 w-full h-0 bg-black/95 z-30 transition-all duration-700 ease-in-out border-t border-amber-500/20 flex items-center justify-center pointer-events-none overflow-hidden">
+        <span class="text-amber-500 text-[10px] sm:text-xs tracking-widest font-mono text-center max-w-[80vw]" id="cinematic-subtitles">INITIATING SECTOR OBSERVATION PATHWAY...</span>
+    </div>
+
+    <!-- Floating Exit Cinematic Mode Button -->
+    <button id="cinematic-exit-btn" class="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-40 p-2 px-6 border border-rose-500 bg-rose-950/90 hover:bg-rose-900 text-rose-400 hover:text-white text-xs font-bold font-mono tracking-widest uppercase rounded opacity-0 pointer-events-none transition-all duration-300 shadow-lg shadow-rose-500/20">
+        Exit Cinematic Mode
+    </button>
+
+    <!-- Header Navigation Bar -->
+    <header class="w-full z-20 bg-black/90 border-b border-[#00ffcc]/20 backdrop-blur-md px-4 py-2 text-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <!-- Left Info Panel -->
+            <div class="flex flex-wrap items-center gap-3 text-[11px] md:text-xs">
+                <div>SHIP: <span class="text-white font-bold">VOID-WANDERER</span></div>
+                <div class="border-l border-slate-800 pl-2">POWER: <span class="text-[#00ffcc] font-bold uppercase animate-pulse">OPTIMAL</span></div>
+                <div class="border-l border-slate-800 pl-2">CYCLE: <span class="text-cyan-300 font-bold">108 E-YRS</span></div>
+                <div class="border-l border-slate-800 pl-2">DATA: <span class="text-purple-400 font-bold">1/199 STRATA</span></div>
+            </div>
+            <!-- Right Actions Buttons -->
+            <div class="flex items-center space-x-2 text-[11px]">
+                <button id="cinematic-btn" class="p-1 px-2.5 border border-amber-500/40 rounded bg-slate-900/30 hover:bg-amber-950/20 text-amber-400 font-bold transition">
+                    [ CINEMATIC ]
+                </button>
+                <button id="fullscreen-btn" class="p-1 px-2.5 border border-cyan-500/30 rounded bg-slate-900/30 hover:bg-cyan-950/20 text-cyan-400 font-bold transition">
+                    [ FULLSCREEN ]
+                </button>
+                <button id="reset-btn" class="p-1 px-2.5 border border-cyan-500/30 rounded bg-slate-900/30 hover:bg-cyan-950/20 text-cyan-400 font-bold transition">
+                    [ RESET ]
+                </button>
+                <button id="hud-toggle" class="p-1 px-2.5 border border-[#00ffcc]/30 rounded bg-slate-900/30 hover:bg-[#00ffcc]/20 text-[#00ffcc] font-bold transition">
+                    [ HUD: ON ]
+                </button>
+                <button id="sound-toggle" class="p-1 border border-purple-500/30 rounded bg-purple-950/20 text-purple-300 hover:bg-purple-950/40 transition">
+                    AMBIENT
+                </button>
+            </div>
+        </div>
+
+        <!-- Intel / Mission scrolling ticker banner -->
+        <div class="mt-1.5 py-1 px-2.5 bg-[#00ffcc]/5 border-t border-b border-[#00ffcc]/10 text-[10px] text-cyan-400/90 flex justify-between items-center overflow-hidden">
+            <div class="flex items-center space-x-2">
+                <span class="bg-[#00ffcc] text-black font-bold px-1 rounded-sm text-[8px] uppercase">INTEL</span>
+                <marquee scrollamount="3" class="w-[65vw] md:w-[80vw]">
+                    DEDICATED STRATA COGNIZANCE ONLINE. Every black hole represents an alternate reality. Select reality wells to lock diagnostics. &nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp; SYSTEM TELEMETRY: Strata rendered within a high-density, flattened 3D space puck.
+                </marquee>
+            </div>
+            <div id="strata-status" class="hidden md:block text-slate-400 uppercase text-[9px]">SYSTEM LINK: STABLE</div>
+        </div>
+    </header>
+
+    <!-- Floating Restore HUD Button -->
+    <button id="floating-restore-btn" class="absolute top-4 right-4 z-30 p-3 rounded-full border border-cyan-400 bg-slate-950/90 text-cyan-400 hover:bg-cyan-950/20 transition-all duration-300 opacity-0 pointer-events-none scale-75 shadow-lg shadow-cyan-500/20">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        </svg>
+    </button>
+
+    <!-- Main Dynamic Layout Container -->
+    <main class="relative w-full flex-grow flex flex-col lg:flex-row overflow-hidden bg-[#010103]">
+        
+        <!-- Left Global Viewport Container -->
+        <div id="viewport-global-container" class="relative w-full h-full flex flex-col justify-end transition-all duration-500 ease-in-out">
+            <!-- Label Tag -->
+            <div class="absolute top-3 left-3 z-10 bg-black/80 px-2 py-1 border border-cyan-500/30 rounded text-[9px] uppercase tracking-widest font-mono text-cyan-300 pointer-events-none">
+                VIEWPORT 01 // GLOBAL STRATA SPINDLE
+            </div>
+            <!-- Canvas target -->
+            <div id="canvas-global" class="w-full h-full absolute inset-0 z-0"></div>
+        </div>
+
+        <!-- Right Local Layer Viewport Container -->
+        <div id="viewport-local-container" class="relative w-0 h-0 flex flex-col justify-end transition-all duration-500 ease-in-out overflow-hidden opacity-0 pointer-events-none">
+            <!-- Label Tag -->
+            <div class="absolute top-3 left-3 z-10 bg-black/80 px-2 py-1 border border-purple-500/30 rounded text-[9px] uppercase tracking-widest font-mono text-purple-300 pointer-events-none">
+                VIEWPORT 02 // DEDICATED STRATA OBSERVER (FLATTENED 3D REALITY PUCKS)
+            </div>
+            <!-- Exit Layer View button -->
+            <div class="absolute top-3 right-3 z-10">
+                <button id="exit-local-btn" class="bg-black/95 px-3 py-2 border border-rose-500 hover:bg-rose-950/30 text-rose-400 rounded text-xs uppercase tracking-widest font-mono font-bold transition-all shadow-md shadow-rose-500/15">
+                    [ ← RETURN TO GLOBAL STRATA MAP ]
+                </button>
+            </div>
+            <!-- Canvas target -->
+            <div id="canvas-local" class="w-full h-full absolute inset-0 z-0"></div>
+        </div>
+
+        <!-- Left Controls / Filters Panel -->
+        <div id="left-panel" class="absolute top-14 left-4 z-10 w-[240px] md:w-[270px] pointer-events-auto flex flex-col gap-3 max-h-[70vh] lg:max-h-[78vh] transition-all duration-500 ease-out transform translate-x-0 opacity-100 overflow-y-auto pr-1">
+            
+            <!-- Filters Header -->
+            <div class="cyber-panel rounded p-3">
+                <div class="flex justify-between items-center border-b border-[#00ffcc]/20 pb-1.5 mb-2.5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-white">FILTERS</span>
+                    <button class="panel-collapse-btn text-[10px] text-cyan-400 font-bold hover:text-white" data-target="filters-body">[-]</button>
+                </div>
+
+                <!-- Mode Selectors -->
+                <div id="filters-body" class="space-y-3 text-[11px] transition-all duration-300 overflow-hidden max-h-[500px]">
+                    <div>
+                        <span class="text-slate-400 block mb-1 font-bold uppercase tracking-wider">VIEW MODES</span>
+                        <button id="mode-standard" class="w-full py-1.5 text-center rounded btn-active-neon uppercase tracking-wider">
+                            STANDARD
+                        </button>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 block mb-1 font-bold uppercase tracking-wider">FACTION DATA</span>
+                        <button id="proj-toggle" class="w-full py-1.5 text-center border border-[#00ffcc]/40 hover:bg-[#00ffcc]/10 text-cyan-400 rounded uppercase tracking-wider">
+                            TERRITORY MAP
+                        </button>
+                    </div>
+
+                    <!-- Anomalies toggles -->
+                    <div class="space-y-1.5 pt-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 block mb-1 font-bold uppercase tracking-wider">BLACK HOLE REALITIES</span>
+                        </div>
+                        
+                        <button id="filter-stable" class="w-full py-1.5 text-center border border-cyan-400/80 bg-cyan-950/10 hover:bg-cyan-400/20 rounded uppercase text-cyan-300 font-bold tracking-wider transition-all">
+                            STABLE REALITIES
+                        </button>
+                        
+                        <button id="filter-dead" class="w-full py-1.5 text-center border border-rose-500/80 bg-rose-950/10 hover:bg-rose-500/20 rounded uppercase text-rose-400 font-bold tracking-wider transition-all">
+                            DEAD REALITIES
+                        </button>
+                        
+                        <button id="filter-infested" class="w-full py-1.5 text-center border border-emerald-500/80 bg-emerald-950/10 hover:bg-emerald-500/20 rounded uppercase text-emerald-400 font-bold tracking-wider transition-all">
+                            INFESTED REALITIES
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer Indicator Box -->
+            <div class="cyber-panel cyber-panel-purple rounded p-2.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-300 uppercase">ACTIVE STRATA</span>
+                    <span id="layer-badge" class="px-2 py-0.5 bg-purple-950/50 border border-purple-500/60 rounded text-[#00ffcc] font-bold">S: 0</span>
+                </div>
+                <div class="mt-1 text-[11px] text-slate-400 italic truncate" id="layer-title-text">
+                    The Origin Hearth
+                </div>
+                <!-- Dynamic Viewport Toggle Button inside layer indicator -->
+                <button id="learn-more-btn" class="mt-2.5 w-full py-2 border border-cyan-400/60 hover:bg-cyan-950/30 text-cyan-300 font-bold text-[10px] rounded uppercase tracking-wider transition-all hover:text-white hover:border-cyan-400">
+                    [ DEEP ANALYZE STRATA ]
+                </button>
+            </div>
+
+            <!-- Tactical Controls Box -->
+            <div class="cyber-panel rounded p-2.5 text-xs flex flex-col">
+                <div class="flex justify-between items-center mb-2 border-b border-[#00ffcc]/10 pb-1">
+                    <span class="text-[10px] text-cyan-400 block uppercase font-bold tracking-wider">STRATA TACTICAL SCAN</span>
+                    <button class="panel-collapse-btn text-[10px] text-cyan-400 font-bold" data-target="scan-body">[-]</button>
+                </div>
+                <div id="scan-body" class="grid grid-cols-2 gap-2 text-[10px] transition-all duration-300 overflow-hidden max-h-[200px]">
+                    <button id="btn-layer-up" class="py-2 border border-cyan-500/30 hover:bg-cyan-950/30 rounded transition font-bold">[ STRATA +1 ]</button>
+                    <button id="btn-layer-down" class="py-2 border border-cyan-500/30 hover:bg-cyan-950/30 rounded transition font-bold">[ STRATA -1 ]</button>
+                    <button id="btn-ping" class="py-2 border border-emerald-500/30 hover:bg-emerald-950/30 text-emerald-400 rounded transition font-bold uppercase">[ PING ]</button>
+                    <button id="act-btn" class="py-2 border border-purple-500/30 hover:bg-purple-950/30 text-purple-400 rounded transition font-bold uppercase">[ ACT ]</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Left Bottom: Nav Computer Widget -->
+        <div id="nav-comp-panel" class="absolute bottom-20 left-4 z-10 pointer-events-auto transition-all duration-500 ease-out transform translate-y-0 opacity-100 hidden lg:block">
+            <div class="cyber-panel rounded p-3 w-[240px] flex flex-col">
+                <div class="flex justify-between items-center text-xs text-white border-b border-[#00ffcc]/20 pb-1.5 mb-1.5">
+                    <span class="font-bold tracking-widest uppercase">NAV-COMPUTER</span>
+                    <button class="panel-collapse-btn text-[10px] text-cyan-400 font-bold" data-target="nav-body">[-]</button>
+                </div>
+                <div id="nav-body" class="text-[10px] text-slate-400 space-y-1 transition-all duration-300 overflow-hidden max-h-[150px]">
+                    <div class="flex justify-between"><span>SECTOR COORD:</span><span class="text-white font-mono" id="nav-coords">[8.00, 69.37]</span></div>
+                    <div class="flex justify-between"><span>DENSITY VALUE:</span><span class="text-yellow-400 font-mono">1.199 LY³</span></div>
+                    <div class="flex justify-between"><span>HYPERPLANE JUMP:</span><span class="text-emerald-400 font-bold">READY</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Bottom: System Logs Terminal -->
+        <div id="right-panel" class="absolute bottom-20 right-4 z-10 w-[280px] md:w-[420px] pointer-events-auto flex flex-col gap-3 transition-all duration-500 ease-out transform translate-x-0 opacity-100 font-sans">
+            
+            <!-- Target Details Box -->
+            <div class="cyber-panel cyber-panel-purple rounded p-3 text-xs flex flex-col" id="entity-peek-container">
+                <div class="flex justify-between items-center mb-1 border-b border-purple-500/20 pb-1">
+                    <span class="text-[10px] text-purple-400 tracking-widest block uppercase font-bold">SELECTED REALITY DIAGNOSTICS</span>
+                    <button class="panel-collapse-btn text-[10px] text-purple-400 font-bold" data-target="peek-body">[-]</button>
+                </div>
+                <div id="peek-body" class="text-xs text-slate-300 transition-all duration-300 overflow-hidden max-h-[150px] font-mono">
+                    <div id="entity-peek">Hover, tap, or double-click black hole realities inside the flattened 3D strata cylinder to request data telemetry.</div>
+                </div>
+            </div>
+
+            <!-- Terminal console logs box -->
+            <div class="cyber-panel rounded p-3.5 flex flex-col">
+                <div class="border-b border-[#00ffcc]/20 pb-1.5 mb-2 flex justify-between items-center text-xs font-bold">
+                    <span class="text-white uppercase tracking-wider">SYSTEM LOGS</span>
+                    <span class="text-cyan-400 font-mono" id="log-coords">COORD: [8.0, 69.37]</span>
+                </div>
+                <div id="terminal-scroll" class="h-[80px] md:h-[100px] overflow-y-auto font-mono text-[10px] md:text-[11px] text-cyan-400 space-y-1.5 pr-1">
+                    <div class="text-slate-400">data.</div>
+                    <div class="text-cyan-300">&gt; Universal Cartography engines loaded.</div>
+                    <div class="text-cyan-300">&gt; Strata dedicated viewport initialized.</div>
+                    <div class="text-purple-300">&gt; Black hole reality physics enabled: no wireframe holograms.</div>
+                    <div class="text-[#00ffcc]" id="live-console-output">&gt; Navigating Strata-Zero coordinate plane...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Center Bottom: Curved Slider / Stratum Controller -->
+        <div id="bottom-panel" class="absolute bottom-16 lg:bottom-3 left-1/2 transform -translate-x-1/2 z-10 w-[290px] sm:w-[480px] bg-black/90 border border-[#00ffcc]/30 px-4 py-3 rounded-lg backdrop-blur-md pointer-events-auto transition-all duration-500 ease-out transform translate-y-0 opacity-100 font-sans">
+            <div class="flex justify-between items-center mb-1.5 text-[11px] text-cyan-400">
+                <span>Nadir (-99)</span>
+                <span id="slider-readout" class="font-bold text-xs text-white px-2 py-0.5 bg-cyan-950/40 border border-[#00ffcc]/40 rounded">LEVEL 0</span>
+                <span>Zenith (+99)</span>
+            </div>
+            <div class="relative flex items-center">
+                <input type="range" id="layer-slider" min="-99" max="99" value="0" step="1" 
+                       class="w-full appearance-none cursor-pointer focus:outline-none">
+            </div>
+        </div>
+
+        <!-- Mobile Quick Switch Control Dock -->
+        <div id="mobile-dock" class="lg:hidden fixed bottom-0 left-0 w-full z-30 flex justify-around bg-black/95 border-t border-[#00ffcc]/20 py-2.5 backdrop-blur-md text-xs">
+            <button id="mob-tab-nav" class="p-1.5 px-3 border border-purple-500/30 rounded bg-purple-950/20 text-purple-300 font-mono tracking-widest font-bold">
+                [NAV]
+            </button>
+            <button id="mob-tab-filters" class="p-1.5 px-3 border border-cyan-500/30 rounded bg-cyan-950/20 text-cyan-300 font-mono tracking-widest font-bold">
+                [FILTERS]
+            </button>
+            <button id="mob-tab-logs" class="p-1.5 px-3 border border-emerald-500/30 rounded bg-emerald-950/20 text-emerald-300 font-mono tracking-widest font-bold">
+                [LOGS]
+            </button>
+            <button id="mob-tab-clear" class="p-1.5 px-3 border border-rose-500/30 rounded bg-rose-950/20 text-rose-300 font-mono tracking-widest font-bold">
+                [HIDE ALL]
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer Status Banner -->
+    <footer class="w-full z-20 bg-black/95 border-t border-cyan-500/20 py-1.5 px-4 hidden lg:flex justify-between items-center text-[10px] text-slate-400 tracking-wider">
+        <div>
+            <span>GRID SYSTEM STATUS: <span class="text-[#00ffcc]">ONLINE (199 STRATA SPINDLES ACTIVE)</span></span>
+        </div>
+        <div>
+            <span>COSMIC COMPILER: <span class="text-cyan-300 animate-pulse">ORGANIC DISPERSION ENGINE</span></span>
+        </div>
+    </footer>
+
+    <!-- Three.js Visual logic & Application states -->
+    <!-- Lore merge module: enriches layerProfiles, wires live intel ticker,
+         adds STRATA LORE CODEX modal, enhances entity-peek with canon data. -->
+    <script src="/api/static/js/astrolabe_lore_module.js" defer></script>
+    <!-- inline scripts loaded by launcher -->

@@ -3694,3 +3694,138 @@ metadata_addendum:
 #   • Maytradalis private room polish — existing drawMaysRoom already
 #     extremely detailed (canopy bed, vanity, gallery wall, alcoves,
 #     bat decor); marginal additions deferred.
+
+
+# ============================================================================
+# 2026-05-22 — GIT LFS REVERT + ELYSTRIA DIRECTIONAL ISO SPRITES
+# ============================================================================
+#
+# 1) Git LFS revert (P0, user-requested)
+#    - No .gitattributes existed in /app (already removed in earlier session)
+#    - No `.git/config` LFS filter sections — clean
+#    - DELETED LFS hooks: .git/hooks/post-checkout, post-commit,
+#      post-merge, pre-push   (they all called `git lfs <stage>` which
+#      would fail any commit/push, as git-lfs isn't installed in the
+#      container any more).
+#    - 153 binary assets in /app/backend/static verified intact (no
+#      LFS-pointer stubs < 200 bytes detected).
+#    - Pre-commit size-guard hook (90 MB threshold) preserved — it
+#      auto-gitignores large files instead of LFS-tracking them.
+#    => Result: Git LFS is fully gone. Assets remain in-repo as plain
+#       files per user preference ("Leave assets as plan files").
+#
+# 2) Grim Elystria — directional ISO sprite wiring (P1)
+#    User uploaded full ISO walk/run sprite sheet set:
+#      • elystria_iso_walk_down  (NEW)
+#      • elystria_iso_run_up     (NEW)
+#      • elystria_iso_run_right  (NEW)
+#      • elystria_iso_run_down   (NEW)
+#      (idle_down, walk_right, walk_up already existed from prior batch)
+#
+#    Changes:
+#      a. Downloaded 4 new RAW sheets → /app/backend/static/deaths_ship/
+#         sprites/elystria_iso_*_raw.png
+#      b. Extended process_sprites.py with elystria_iso_* loop; ran
+#         processor → produced compact horizontal strips + JSON meta
+#         (all 25-frame strips, frame_w/h match per-sheet bbox).
+#      c. Added 7 SHEET_META entries in deaths_ship.html (lines ~466-472).
+#      d. Replaced Elystria NPC config in dorm_hall to use the new
+#         directional sheets map (idle_down/right/up + walk_right/up/down
+#         + run_right/up/down) — same pattern as Cryious. LEFT-facing
+#         reuses walk_right via npc.flip = true (handled by engine).
+#
+#    Verified live (Playwright screenshots):
+#      • /tmp/ds_elystria.png  — dorm_hall scene with Elystria + Cryious
+#        + a Senior Reaper visible, rendering correctly.
+#      • Sprite endpoint /api/static/deaths_ship/sprites/
+#        elystria_iso_walk_down.png → HTTP 200
+#
+#    Status: Elystria will now animate properly when ever-moving (no
+#    longer slides). She remains stationary in the current
+#    room layout; the directional sheets are reserved for future
+#    patrol/escort sequences.
+#
+# 3) Asset strategy decision (per user)
+#    User opted to keep all assets in-repo as plain files (no CDN, no
+#    sub-repos, no LFS). Pre-commit hook keeps >90 MB files out of the
+#    push automatically.
+
+
+# ============================================================================
+# 2026-05-22 — HIDE THRONE-DAIS DOOR; MASTER DEATH OPENS HIS OFFICE
+# ============================================================================
+#
+# User reported: the door behind Master Death's throne hangs in midair on
+# the descending dais staircase — it looks wrong spatially.
+#
+# Implementation:
+#   1. command_floor.doors[]  → marked the deaths_office entry with
+#      `hidden: true`. The door coord is preserved (x:13,y:5.4,w:0.6,h:1.0)
+#      so existing tooling stays consistent.
+#   2. drawDoorMarker()  → early-returns when `dr.hidden` is truthy
+#      (no arch, no warm-glow, no EXIT prompt).
+#   3. Door-proximity loop  → skips hidden doors so the player can never
+#      accidentally trigger the office via collision.
+#   4. Master Death NPC config gained `doorTo:'deaths_office'` +
+#      `doorSpawn:{x:1.5,y:5.5}` plus an explicit `plaqueTitle` and
+#      `plaqueBody`. His ambient quip is preserved.
+#   5. New `.modal-action` button (HTML+CSS) renders below `.modal-close`.
+#      `openModal({doorAction})` populates it with "ENTER DEATH'S OFFICE ▸"
+#      and binds an onClick that closes the modal and calls `enterDoor`.
+#   6. `closeModal` clears the action button (display:none, onclick=null)
+#      so it doesn't leak between modals.
+#
+# Result: The dais staircase is now clean — no floating door. Walking up
+# to Master Death and pressing ACT (or tapping his SPEAK prompt) shows
+# his dialogue with a prominent crimson "ENTER DEATH'S OFFICE ▸" button
+# that warps the player into deaths_office with the standard fade
+# transition.
+#
+# Verified live: /tmp/ds_throne.png — throne dais no longer has the
+# floating archway visible behind Master Death.
+
+
+# ============================================================================
+# 2026-05-22 — FAST TRAVEL VIA LOCATIONS MENU + CENTURION/INFESTATION VERIFY
+# ============================================================================
+#
+# Tasks:
+#   1) Verify Centurion-guard video modal + reality infestation in the
+#      layer view are still working (post-LFS-revert + post-Elystria).
+#   2) Add fast-travel from the in-game Locations menu (mapBtn).
+#
+# 1) Astrolabe v2 — layer view sanity check
+#    Live screenshot /tmp/astro_layer.png shows:
+#      • Multiple INFESTED realities ticking down countdowns (1:19,
+#        1:42, 1:54, 2:01, 2:12, 2:13, 2:21, 2:22, 2:26, 2:29, 2:31...)
+#      • Bright magenta DEAD-reality explosion at the centre (Reaper
+#        death event)
+#      • Black-hole reality pucks dispersed across the strata plane
+#      • FILTERS panel offering STABLE / INFESTED / DEAD filter toggles
+#    Code path confirmed wired:
+#      • /api/static/centurion_defense.mp4 — 5.34 MB, served 200 OK
+#      • selectStarSystem() injects "⚔ DEPLOY CENTURION GUARD" button
+#        for INFESTED realities, button onclick → openCenturionModal()
+#      • openCenturionModal() loads the video into #centurion-video,
+#        plays w/ ambient-audio fade-out, and #centurion-modal opens.
+#    Conclusion: BOTH features are operational; nothing regressed.
+#
+# 2) Death's Ship — Locations menu now fast-travels
+#    File: /app/backend/static/deaths_ship.html
+#    Changes:
+#      • #mapBtn click handler now emits <li class="warp" data-warp="…">
+#        rows for every reachable, non-current chamber. Each row shows
+#        a "↪ FAST TRAVEL" hint on the right.
+#      • New CSS rules: .codex-list li.warp (cursor:pointer + hover
+#        gradient + warp-hint fade). Aria roles + keyboard activation
+#        (Enter/Space) added for accessibility.
+#      • Click handler closes the modal, defers one frame, then calls
+#        enterDoor({to:id}) — reusing the canonical fade-transition
+#        path so audio cue + door cooldown + loadRoom collision-nudge
+#        all run as expected.
+#      • Suppresses #modalActionBtn during the locations modal so the
+#        previous "ENTER X ▸" button from Master Death doesn't leak in.
+#    Verified live: /tmp/ds_locations.png (open menu) and
+#    /tmp/ds_after_warp.png (fade-warped into Reaper Dorm Hall after
+#    tapping its row). All 17 reachable chambers usable as fast-travel
+#    targets; current room is greyed-out as "▸ <name>".

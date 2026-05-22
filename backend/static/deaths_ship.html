@@ -136,12 +136,30 @@
                cursor:pointer;font-weight:700;font-family:'Cinzel',Georgia,serif;
                transition:background .2s ease;}
   .modal-close:hover,.modal-close:active{background:rgba(110,60,180,.6);border-color:rgba(255,200,100,.6);}
+  .modal-action{margin-top:10px;width:100%;padding:13px;
+               background:linear-gradient(135deg,rgba(180,40,60,.55),rgba(120,20,40,.45));
+               border:1px solid rgba(255,180,90,.55);border-radius:2px;color:#fff;
+               font-size:12px;letter-spacing:5px;text-transform:uppercase;cursor:pointer;
+               font-weight:700;font-family:'Cinzel',Georgia,serif;
+               box-shadow:0 0 18px rgba(255,140,80,.35) inset, 0 0 22px rgba(220,80,60,.25);
+               transition:background .2s ease, transform .15s ease;}
+  .modal-action:hover,.modal-action:active{background:linear-gradient(135deg,rgba(220,70,90,.7),rgba(160,30,60,.6));transform:translateY(-1px);}
 
   /* Codex modal — log of discovered locations */
   .codex-list{margin:14px 0 8px 0;padding:0;list-style:none;font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;color:#cdb8e4;line-height:1.85;}
   .codex-list li{padding:4px 0;border-bottom:1px dotted rgba(180,140,220,.18);}
   .codex-list li.cur{color:#ffe9b3;}
   .codex-list li.sealed{color:#5b4878;font-style:italic;}
+  .codex-list li.warp{cursor:pointer;border-bottom:1px dotted rgba(255,210,140,.32);
+                       transition:background .15s ease, color .15s ease, padding .15s ease;
+                       padding-left:2px;padding-right:6px;border-radius:2px;}
+  .codex-list li.warp:hover,.codex-list li.warp:active,.codex-list li.warp:focus{
+                       background:linear-gradient(90deg,rgba(180,80,180,.18),rgba(255,170,90,.12));
+                       color:#ffe9b3;outline:none;padding-left:6px;}
+  .codex-list li.warp .warp-hint{float:right;font-size:10px;color:#ffd28b;
+                       letter-spacing:.18em;opacity:.55;text-transform:uppercase;
+                       transition:opacity .15s ease;}
+  .codex-list li.warp:hover .warp-hint,.codex-list li.warp:focus .warp-hint{opacity:1;}
 
   /* Loader */
   .loader{position:fixed;inset:0;z-index:99;background:#0c0719;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#c8a8e8;font-size:12px;letter-spacing:4px;text-transform:uppercase;transition:opacity .5s ease;font-family:'Cinzel',Georgia,serif;}
@@ -204,7 +222,6 @@
 </style>
 <script src="/api/static/config.js"></script>
 <script src="/api/static/adsense_loader.js" defer></script>
-<script src="/api/static/js/asset-loader.js"></script>
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -334,6 +351,7 @@
       <div class="modal-title" id="modalTitle"></div>
       <div class="modal-body" id="modalBody"></div>
       <button class="modal-close" onclick="closeModal()">⨯ DISMISS</button>
+      <button class="modal-action" id="modalActionBtn" style="display:none;"></button>
     </div>
   </div>
 
@@ -463,6 +481,14 @@ const SPRITE_META = {
   cryious_iso_idle_down:  { src: 'cryious_iso_idle_down.png',  frame_w: 256, frame_h: 174, frames: 25 },
   cryious_iso_walk_right: { src: 'cryious_iso_walk_right.png', frame_w: 256, frame_h: 174, frames: 25 },
   cryious_iso_run_up:     { src: 'cryious_iso_run_up.png',     frame_w: 256, frame_h: 152, frames: 25 },
+  // Grim Elystria — directional iso sprites (user-uploaded May 2026, fixes sliding)
+  elystria_iso_idle_down:  { src: 'elystria_iso_idle_down.png',  frame_w: 256, frame_h: 182, frames: 25 },
+  elystria_iso_walk_right: { src: 'elystria_iso_walk_right.png', frame_w: 240, frame_h: 192, frames: 25 },
+  elystria_iso_walk_up:    { src: 'elystria_iso_walk_up.png',    frame_w: 256, frame_h: 169, frames: 25 },
+  elystria_iso_walk_down:  { src: 'elystria_iso_walk_down.png',  frame_w: 246, frame_h: 192, frames: 25 },
+  elystria_iso_run_up:     { src: 'elystria_iso_run_up.png',     frame_w: 256, frame_h: 158, frames: 25 },
+  elystria_iso_run_right:  { src: 'elystria_iso_run_right.png',  frame_w: 256, frame_h: 168, frames: 25 },
+  elystria_iso_run_down:   { src: 'elystria_iso_run_down.png',   frame_w: 230, frame_h: 192, frames: 25 },
   // Elite Grim Reaper 1 — armoured roamer (walk/run set, no static idle: uses walk_down frame 0)
   elite1_walk_down:  { src: 'elite1_walk_down.png',  frame_w: 256, frame_h: 183, frames: 25 },
   elite1_walk_up:    { src: 'elite1_walk_up.png',    frame_w: 256, frame_h: 174, frames: 25 },
@@ -827,14 +853,23 @@ const ROOM_DEFS = {
       { x:24.4, y:1.5, w:0.6, h:12, to:'grand_corridor', spawn:{x:14,y:5} },
       // Iron lift down to the Engine Room
       { x:13, y:14.4, w:2, h:0.6, to:'engine_room', spawn:{x:3, y:6.5} },
-      // Private hatch behind the throne — Death's Office
-      { x:13, y:5.4, w:0.6, h:1.0, to:'deaths_office', spawn:{x:1.5, y:5.5} },
+      // Private hatch behind the throne — Death's Office.
+      // HIDDEN: rendered invisible. Entry is via interacting with Master
+      // Death himself (his NPC has doorTo:'deaths_office'). The floating
+      // door on the throne-dais stairs no longer makes spatial sense.
+      { x:13, y:5.4, w:0.6, h:1.0, to:'deaths_office', spawn:{x:1.5, y:5.5}, hidden:true },
       // Port-side navigator passage
       { x:4.5, y:5.4, w:0.6, h:1, to:'navigators', spawn:{x:9, y:9.5} },
     ],
     npcs: [
       // Master Death stands on his throne dais — see drawCommandThrone()
+      // Interacting with him enters his private office (the floating
+      // door on the dais staircase used to be the entry; it's now hidden
+      // and replaced by this NPC-driven action).
       { x:13, y:5.4, sheet:'death_idle', flip:false, animSpeed:6, label:'Master Death',
+        doorTo: 'deaths_office', doorSpawn: {x:1.5, y:5.5},
+        plaqueTitle: 'MASTER DEATH',
+        plaqueBody: 'The silver-eyed sovereign of the ship regards you for a long, weightless moment.\n\n"Walk with me, child. The office is quieter than the throne."\n\n▸ Tap ACT again to enter Death\'s Office.',
         idleQuips: [
           'Strata forty-seven holds. For now.',
           'The Drege Engine is at ninety-two. Tell the Engineer.',
@@ -917,7 +952,20 @@ const ROOM_DEFS = {
     ],
     npcs: [
       // Grim Elystria — leaning against the wall outside her dorm (slot top i=3 → x≈16.5)
-      { x:16.5, y:2.6, sheet:'elystria_idle', flip:false, animSpeed:5,
+      // Now uses the new directional ISO sprite set (idle_down + walk/run for all 3 dirs)
+      // so she no longer slides when moving. LEFT is walk_right mirrored via npc.flip.
+      { x:16.5, y:2.6, sheet:'elystria_iso_idle_down', flip:false, animSpeed:5,
+        sheets: {
+          idle_down:  'elystria_iso_idle_down',
+          idle_right: 'elystria_iso_walk_right', // use frame 0 of walk_right as idle_right
+          idle_up:    'elystria_iso_walk_up',    // use frame 0 of walk_up as idle_up
+          walk_right: 'elystria_iso_walk_right',
+          walk_up:    'elystria_iso_walk_up',
+          walk_down:  'elystria_iso_walk_down',
+          run_right:  'elystria_iso_run_right',
+          run_up:     'elystria_iso_run_up',
+          run_down:   'elystria_iso_run_down',
+        },
         label:'Grim Elystria', plaqueTitle:'GRIM ELYSTRIA',
         plaqueBody:'Tall, pale, scarlet-eyed beneath a tattered grey hood. She nods at May once — the only greeting Elystria has ever offered anyone.\n\n"I left tea outside your door. The hat one. Not the boots one.\n\nDeath asked after you. Twice. Be kind about it."' },
       // Grim Cryious — drifts a half-step out of his dorm (slot top i=2 → x≈12.5), facing down
@@ -6463,6 +6511,7 @@ function update(dt) {
   state.nearDoor = null;
   if (!state.doorCooldown || performance.now() >= state.doorCooldown) {
     for (const dr of (room.doors||[])) {
+      if (dr.hidden) continue;  // hidden doors only enter via NPC interaction
       const cx = (dr.x + dr.w/2) * 64, cy = (dr.y + dr.h/2) * 64;
       const dx = state.player.x - cx, dy = (state.player.y + footOffsetY) - cy;
       if (Math.abs(dx) < dr.w*32 + 18 && Math.abs(dy) < dr.h*32 + 22) {
@@ -7027,6 +7076,8 @@ function drawInteractableMarker(x, y, near){
 }
 
 function drawDoorMarker(dr){
+  // Hidden doors (entered via NPC interaction) skip all rendering.
+  if (dr.hidden) return;
   // Real gothic archway opening — a stone-cut hallway through the wall.
   // Pulses warm amber from the corridor beyond. The visible threshold sells
   // the door as a physical passage, not just a glow.
@@ -7500,7 +7551,11 @@ function interact(){
   }
   // NPC interactions get a sprite-cropped portrait shown in the modal
   if (it.__npc) {
-    openModal(it.title, it.body, 'AMBIENT QUIP', { npc: it.__npc });
+    // NPCs with a `doorTo` lead the player into a sub-room (e.g. Master
+    // Death → Death's Office). Show their lore quip first, then offer a
+    // primary action button that triggers the door transition.
+    const door = it.__npc.doorTo ? { to: it.__npc.doorTo, spawn: it.__npc.doorSpawn } : null;
+    openModal(it.title, it.body, 'AMBIENT QUIP', { npc: it.__npc, doorAction: door, doorLabel: it.__npc.doorLabel });
     return;
   }
   // Plaques / interactables may carry a character pointer (set via __slot
@@ -7540,6 +7595,23 @@ function openModal(title, body, eyebrow, opts){
     }
   }
   document.getElementById('modal').classList.add('show');
+  // Optional door-action button — appears when an NPC's interaction
+  // leads into another room (e.g. Master Death → Death's Office).
+  const actionBtn = document.getElementById('modalActionBtn');
+  if (actionBtn) {
+    if (opts.doorAction && opts.doorAction.to) {
+      const lbl = opts.doorLabel || ('ENTER ' + String(opts.doorAction.to).replace(/_/g,' ').toUpperCase() + ' ▸');
+      actionBtn.textContent = lbl;
+      actionBtn.style.display = 'block';
+      actionBtn.onclick = () => {
+        closeModal();
+        enterDoor(opts.doorAction);
+      };
+    } else {
+      actionBtn.style.display = 'none';
+      actionBtn.onclick = null;
+    }
+  }
 }
 // Expose for testability and external triggers (e.g. cinematic events).
 window.openModal = openModal;
@@ -7617,6 +7689,8 @@ function _labelToCharKey(label) {
 }
 window.closeModal = function(){
   document.getElementById('modal').classList.remove('show');
+  const actBtn = document.getElementById('modalActionBtn');
+  if (actBtn) { actBtn.style.display = 'none'; actBtn.onclick = null; }
 };
 
 // Render a 120×150 character portrait by cropping the HEAD + TORSO region
@@ -7735,15 +7809,38 @@ document.getElementById('mapBtn').onclick = () => {
     const cur = (id === state.currentRoom) ? '▸ ' : (avail ? '• ' : '✕ ');
     const klass = (id === state.currentRoom) ? 'cur' : (avail ? '' : 'sealed');
     const tag = avail ? '' : '  (sealed)';
-    return `<li class="${klass}">${cur}${n}${tag}</li>`;
+    const interactive = (avail && id !== state.currentRoom);
+    // Available, non-current rooms become tap-to-warp targets. Current
+    // room is highlighted, sealed rooms are inert.
+    return `<li class="${klass} ${interactive ? 'warp' : ''}"`
+         + (interactive ? ` data-warp="${id}" role="button" tabindex="0"` : '')
+         + `>${cur}${n}${tag}${interactive ? ' <span class="warp-hint">↪ FAST TRAVEL</span>' : ''}</li>`;
   }).join('');
   document.getElementById('modalEye').textContent = 'NAVIGATOR · DECK INDEX';
   document.getElementById('modalTitle').textContent = "Death's Ship — Map";
   document.getElementById('modalBody').innerHTML =
     `<div>You are aboard Death's Ship. ${state.visited.size} chambers visited; ${ALL_LOCATIONS.filter(l=>l[2]).length - state.visited.size} reachable. The remainder are sealed pending later commits.</div>` +
+    `<div style="font-size:11px;color:#ffd28b;letter-spacing:.18em;text-transform:uppercase;margin-top:10px;margin-bottom:-4px;">▸ tap any chamber to fast-travel</div>` +
     `<ul class="codex-list">${html}</ul>` +
     `<div style="font-size:12px;color:#a594bf;font-style:italic;margin-top:8px;">Inhabitants currently aboard: Maytradalis · the common reapers · the skeleton-servants · Romaine (Hanger) · Death (Office, off-duty) · Cryious · Elystria · Flybutt (dorms).</div>`;
   document.getElementById('modal').classList.add('show');
+  // Hide the door-action button — locations menu uses its own per-row warp.
+  const actBtn = document.getElementById('modalActionBtn');
+  if (actBtn) { actBtn.style.display = 'none'; actBtn.onclick = null; }
+  // Wire fast-travel handlers on each warp row
+  const list = document.querySelectorAll('#modalBody li.warp[data-warp]');
+  const doWarp = (id) => {
+    if (!id || state.fading) return;
+    closeModal();
+    // Defer one frame so the modal hides before the fade starts
+    setTimeout(() => enterDoor({ to: id }), 30);
+  };
+  list.forEach(li => {
+    li.addEventListener('click', () => doWarp(li.getAttribute('data-warp')));
+    li.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); doWarp(li.getAttribute('data-warp')); }
+    });
+  });
 };
 document.getElementById('codexBtn').onclick = () => {
   openModal("Codex — Death's Ship",

@@ -215,6 +215,17 @@ if __name__ == "__main__":
     metas["cryious_iso_idle_down"]  = process("cryious_iso_idle_down_raw.png",  "cryious_iso_idle_down")
     metas["cryious_iso_walk_right"] = process("cryious_iso_walk_right_raw.png", "cryious_iso_walk_right")
     metas["cryious_iso_run_up"]     = process("cryious_iso_run_up_raw.png",     "cryious_iso_run_up")
+    # Grim Elystria — directional iso sprites (fixes sliding when moving).
+    for key, src in [
+        ("elystria_iso_idle_down",  "elystria_iso_idle_down_raw.png"),
+        ("elystria_iso_walk_right", "elystria_iso_walk_right_raw.png"),
+        ("elystria_iso_walk_up",    "elystria_iso_walk_up_raw.png"),
+        ("elystria_iso_walk_down",  "elystria_iso_walk_down_raw.png"),
+        ("elystria_iso_run_up",     "elystria_iso_run_up_raw.png"),
+        ("elystria_iso_run_right",  "elystria_iso_run_right_raw.png"),
+        ("elystria_iso_run_down",   "elystria_iso_run_down_raw.png"),
+    ]:
+        metas[key] = process(src, key)
     # Elite Grim Reaper 1 (existing roaming guards — walk/run set)
     for key, src in [
         ("elite1_walk_down",  "elite1_walk_down_raw.png"),

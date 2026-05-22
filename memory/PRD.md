@@ -453,10 +453,10 @@ Verified mapping across all 14 canon POIs (relic for Vault of Echoes, horror for
 ## 2026-02-21 Session — Game Source Repair + V2 Merge
 
 ### Critical infrastructure fix
-- ALL static-image binaries restored via `git lfs pull` (140+ files were
-  131-byte LFS pointer stubs). Maytradalis sprites, character portraits,
-  splash images, ambient videos all now resolve to real binaries.
-- `git-lfs` is now installed in this container.
+- ALL static-image binaries restored. Maytradalis sprites, character
+  portraits, splash images, ambient videos all resolve to real binaries.
+  (NOTE: The modular Git-LFS / submodule asset system was reverted on
+  user request — assets now live directly in `backend/static/` again.)
 
 ### Astrolabe V2 merge (file naming preserved per user request)
 - `astrolabe_v2.html`  — merged map with lore/filters/intel-ticker/codex.

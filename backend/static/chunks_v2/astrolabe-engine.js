@@ -236,6 +236,588 @@
         // Shared geometries for memory-efficient instancing of hundreds of realities
         let sharedCoreGeom, sharedDiskGeom, sharedHaloGeom;
 
+        // ============================================================
+        // GRAPHICS PIPELINE — Post-processing (Bloom + AA + tonemapping)
+        // ============================================================
+        let composerGlobal = null;
+        let composerLocal = null;
+        let bloomPassGlobal = null;
+        let bloomPassLocal = null;
+        let smaaPassGlobal = null;
+        let smaaPassLocal = null;
+        // User-tunable graphics settings (persisted to localStorage)
+        const GRAPHICS = (() => {
+            const def = {
+                quality: 'balanced',  // 'performance' | 'balanced' | 'cinematic'
+                bloomStrength: 0.28,
+                bloomRadius: 0.45,
+                bloomThreshold: 0.70,
+                aaEnabled: true,
+                postFXEnabled: true,
+                sectorGridEnabled: true,
+            };
+            try {
+                const raw = localStorage.getItem('dlds_graphics');
+                if (raw) return Object.assign(def, JSON.parse(raw));
+            } catch (e) {}
+            return def;
+        })();
+        function saveGraphics() {
+            try { localStorage.setItem('dlds_graphics', JSON.stringify(GRAPHICS)); } catch (e) {}
+        }
+
+        function setupPostProcessing() {
+            // Skip if post-FX scripts didn't load — gracefully fall back to plain rendering
+            if (!THREE.EffectComposer || !THREE.UnrealBloomPass || !GRAPHICS.postFXEnabled) {
+                composerGlobal = null;
+                composerLocal = null;
+                return;
+            }
+            try {
+                const containerGlobal = document.getElementById('canvas-global');
+                const containerLocal  = document.getElementById('canvas-local');
+                const wG = containerGlobal.clientWidth || window.innerWidth;
+                const hG = containerGlobal.clientHeight || window.innerHeight;
+                const wL = containerLocal.clientWidth || window.innerWidth;
+                const hL = containerLocal.clientHeight || window.innerHeight;
+
+                // -- Global viewport composer --
+                composerGlobal = new THREE.EffectComposer(rendererGlobal);
+                composerGlobal.setSize(wG, hG);
+                composerGlobal.addPass(new THREE.RenderPass(sceneGlobal, cameraGlobal));
+                bloomPassGlobal = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(wG, hG),
+                    GRAPHICS.bloomStrength,
+                    GRAPHICS.bloomRadius,
+                    GRAPHICS.bloomThreshold
+                );
+                composerGlobal.addPass(bloomPassGlobal);
+                if (GRAPHICS.aaEnabled && THREE.SMAAPass) {
+                    smaaPassGlobal = new THREE.SMAAPass(
+                        wG * rendererGlobal.getPixelRatio(),
+                        hG * rendererGlobal.getPixelRatio()
+                    );
+                    composerGlobal.addPass(smaaPassGlobal);
+                }
+
+                // -- Local observer composer --
+                composerLocal = new THREE.EffectComposer(rendererLocal);
+                composerLocal.setSize(wL, hL);
+                composerLocal.addPass(new THREE.RenderPass(sceneLocal, cameraLocal));
+                bloomPassLocal = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(wL, hL),
+                    GRAPHICS.bloomStrength * 1.15,  // slightly stronger bloom in local observer
+                    GRAPHICS.bloomRadius,
+                    GRAPHICS.bloomThreshold
+                );
+                composerLocal.addPass(bloomPassLocal);
+                if (GRAPHICS.aaEnabled && THREE.SMAAPass) {
+                    smaaPassLocal = new THREE.SMAAPass(
+                        wL * rendererLocal.getPixelRatio(),
+                        hL * rendererLocal.getPixelRatio()
+                    );
+                    composerLocal.addPass(smaaPassLocal);
+                }
+                console.log('[graphics] Post-processing pipeline ready: bloom=' + GRAPHICS.bloomStrength + ' aa=' + GRAPHICS.aaEnabled);
+                // Expose live passes on window so the settings UI can tune
+                // them in real time (sliders for bloomStrength/radius/threshold)
+                window.bloomPassGlobal = bloomPassGlobal;
+                window.bloomPassLocal  = bloomPassLocal;
+            } catch (e) {
+                console.warn('[graphics] Post-processing setup failed:', e);
+                composerGlobal = null;
+                composerLocal = null;
+            }
+        }
+
+        function applyQualityPreset(preset) {
+            // Preset → bloom + AA tuning. Higher threshold = only highlights bloom.
+            if (preset === 'performance') {
+                GRAPHICS.bloomStrength = 0.25;
+                GRAPHICS.bloomRadius = 0.4;
+                GRAPHICS.bloomThreshold = 0.7;
+                GRAPHICS.aaEnabled = false;
+            } else if (preset === 'balanced') {
+                GRAPHICS.bloomStrength = 0.45;
+                GRAPHICS.bloomRadius = 0.55;
+                GRAPHICS.bloomThreshold = 0.55;
+                GRAPHICS.aaEnabled = true;
+            } else { // cinematic
+                GRAPHICS.bloomStrength = 0.70;
+                GRAPHICS.bloomRadius = 0.65;
+                GRAPHICS.bloomThreshold = 0.40;
+                GRAPHICS.aaEnabled = true;
+            }
+            GRAPHICS.quality = preset;
+            // Apply live to existing passes
+            if (bloomPassGlobal) {
+                bloomPassGlobal.strength = GRAPHICS.bloomStrength;
+                bloomPassGlobal.radius = GRAPHICS.bloomRadius;
+                bloomPassGlobal.threshold = GRAPHICS.bloomThreshold;
+            }
+            if (bloomPassLocal) {
+                bloomPassLocal.strength = GRAPHICS.bloomStrength * 1.15;
+                bloomPassLocal.radius = GRAPHICS.bloomRadius;
+                bloomPassLocal.threshold = GRAPHICS.bloomThreshold;
+            }
+            saveGraphics();
+        }
+        window.applyGraphicsQualityPreset = applyQualityPreset;
+        window.GRAPHICS = GRAPHICS;
+
+        // ============================================================
+        // REALITY STATE VISUALS — STABLE / INFESTED / DEAD
+        // ============================================================
+        function applyRealityVisuals(bhGroup, realityType, bhSize, prng) {
+            // Clear any existing children (used when we LATER mutate type via
+            // the Centurion-save flow that converts INFESTED→STABLE).
+            while (bhGroup.children.length > 0) {
+                const c = bhGroup.children.pop();
+                if (c.geometry && c.geometry !== sharedCoreGeom && c.geometry !== sharedDiskGeom && c.geometry !== sharedHaloGeom) {
+                    c.geometry.dispose && c.geometry.dispose();
+                }
+                if (c.material) {
+                    if (Array.isArray(c.material)) c.material.forEach(m => m.dispose && m.dispose());
+                    else c.material.dispose && c.material.dispose();
+                }
+            }
+
+            if (realityType === 'DEAD') {
+                // === DEAD REALITY: volumetric black blob + sparse green relics ===
+                // Volumetric blob: stacked smoky cloud sprites (no event horizon)
+                const blobTex = createCloudTexture("#0a0a14", '88');
+                for (let k = 0; k < 4; k++) {
+                    const blobMat = new THREE.SpriteMaterial({
+                        map: blobTex,
+                        transparent: true,
+                        opacity: 0.55 - k * 0.06,
+                        blending: THREE.NormalBlending,
+                        depthWrite: false
+                    });
+                    const blob = new THREE.Sprite(blobMat);
+                    const blobScale = bhSize * (5.5 + k * 1.6);
+                    blob.scale.set(blobScale, blobScale * 0.85, 1);
+                    blob.position.set(
+                        (prng() - 0.5) * bhSize * 0.6,
+                        (prng() - 0.5) * bhSize * 0.4,
+                        (prng() - 0.5) * bhSize * 0.6
+                    );
+                    blob.userData.isDeadBlob = true;
+                    bhGroup.add(blob);
+                }
+                // Sparse green relic markers (3-5 only — "don't abuse with too many")
+                const relicCount = 3 + Math.floor(prng() * 3); // 3..5
+                const relicGeom = new THREE.OctahedronGeometry(bhSize * 0.18, 0);
+                for (let k = 0; k < relicCount; k++) {
+                    const relicMat = new THREE.MeshBasicMaterial({
+                        color: 0x44ff66,
+                        transparent: true,
+                        opacity: 0.85,
+                        wireframe: true
+                    });
+                    const relic = new THREE.Mesh(relicGeom, relicMat);
+                    // Place relic at orbital offset around the dead blob
+                    const ang = (k / relicCount) * Math.PI * 2 + prng() * 0.4;
+                    const orbitR = bhSize * (3.2 + prng() * 1.8);
+                    relic.position.set(
+                        Math.cos(ang) * orbitR,
+                        (prng() - 0.5) * bhSize * 0.6,
+                        Math.sin(ang) * orbitR
+                    );
+                    relic.userData.isRelic = true;
+                    relic.userData.orbitRadius = orbitR;
+                    relic.userData.orbitAngle = ang;
+                    relic.userData.orbitSpeed = 0.003 + prng() * 0.006;
+                    relic.userData.orbitY = relic.position.y;
+                    bhGroup.add(relic);
+
+                    // Inner solid glow inside the wireframe
+                    const glowMat = new THREE.MeshBasicMaterial({
+                        color: 0x66ff88,
+                        transparent: true,
+                        opacity: 0.35
+                    });
+                    const glow = new THREE.Mesh(
+                        new THREE.OctahedronGeometry(bhSize * 0.10, 0),
+                        glowMat
+                    );
+                    glow.position.copy(relic.position);
+                    glow.userData.isRelicGlow = true;
+                    glow.userData.parentRelic = relic;
+                    bhGroup.add(glow);
+                }
+                // Pitch black absorbing core (smaller than disk-bearing realities)
+                const deadCore = new THREE.Mesh(sharedCoreGeom, new THREE.MeshBasicMaterial({
+                    color: 0x000000, transparent: false
+                }));
+                deadCore.scale.set(bhSize * 0.85, bhSize * 0.85, bhSize * 0.85);
+                deadCore.userData.isDeadCore = true;
+                bhGroup.add(deadCore);
+                return;
+            }
+
+            // INFESTED & STABLE share the black hole skeleton
+            // Pick color palette based on state
+            const palette = (realityType === 'INFESTED')
+                ? { diskHex: "#ff2030", haloColor: 0xff4040, diskOpacity: 0.92, haloOpacity: 0.50 }
+                : { diskHex: "#ff007f", haloColor: 0xff00aa, diskOpacity: 0.95, haloOpacity: 0.35 };
+
+            // Event Horizon Core Sphere (Pitch black void)
+            const coreMesh = new THREE.Mesh(sharedCoreGeom, new THREE.MeshBasicMaterial({
+                color: 0x000000, transparent: false
+            }));
+            coreMesh.scale.set(bhSize, bhSize, bhSize);
+            bhGroup.add(coreMesh);
+
+            // Accretion Disk
+            const diskTex = createFuzzyTexture(palette.diskHex, 0.3);
+            const diskMat = new THREE.MeshBasicMaterial({
+                map: diskTex,
+                transparent: true,
+                opacity: palette.diskOpacity,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            const diskMesh = new THREE.Mesh(sharedDiskGeom, diskMat);
+            diskMesh.scale.set(bhSize * 4.5, bhSize * 4.5, 1);
+            diskMesh.rotateX(Math.PI / 2);
+            diskMesh.userData.isAccretionDisk = true;
+            bhGroup.add(diskMesh);
+
+            // Accretion Halo Ring
+            const haloMesh = new THREE.Mesh(sharedHaloGeom, new THREE.MeshBasicMaterial({
+                color: palette.haloColor,
+                transparent: true,
+                opacity: palette.haloOpacity,
+                side: THREE.DoubleSide
+            }));
+            haloMesh.scale.set(bhSize * 1.2, bhSize * 1.2, 1);
+            haloMesh.userData.isAccretionHalo = true;
+            bhGroup.add(haloMesh);
+
+            // INFESTED extra: pulsing red mist sprite + outer wound aura
+            if (realityType === 'INFESTED') {
+                const mistTex = createCloudTexture("#ff2030", '55');
+                const mistMat = new THREE.SpriteMaterial({
+                    map: mistTex,
+                    transparent: true,
+                    opacity: 0.5,
+                    blending: THREE.AdditiveBlending
+                });
+                const mist = new THREE.Sprite(mistMat);
+                mist.scale.set(bhSize * 7.0, bhSize * 5.5, 1);
+                mist.userData.isInfestationMist = true;
+                bhGroup.add(mist);
+
+                // Pulsing wound aura that animates in animate()
+                const auraMat = new THREE.MeshBasicMaterial({
+                    color: 0xff0040,
+                    transparent: true,
+                    opacity: 0.35,
+                    side: THREE.DoubleSide,
+                    blending: THREE.AdditiveBlending
+                });
+                const aura = new THREE.Mesh(sharedHaloGeom, auraMat);
+                aura.scale.set(bhSize * 2.2, bhSize * 2.2, 1);
+                aura.userData.isInfestationAura = true;
+                aura.userData.basePulse = bhSize * 2.2;
+                bhGroup.add(aura);
+            }
+        }
+        window.applyRealityVisuals = applyRealityVisuals;
+
+        // ============================================================
+        // PHASE F — INFESTATION MECHANIC
+        // When a reaper dies (in Death's Ship, or via manual trigger),
+        // their assigned reality flips STABLE → INFESTED and starts a
+        // countdown timer. If the timer expires before a Centurion Guard
+        // is deployed via the modal, the reality EXPLODES (animated
+        // burst) and is downgraded to DEAD permanently.
+        // ============================================================
+        const INFESTATION_TIMER_SEC_DEFAULT = 180; // 3 minutes per infestation
+        const _infestations = new Map(); // realityName → { remaining, group, lastTick, label }
+
+        function infectReality(realityGroup, durationSec) {
+            if (!realityGroup || !realityGroup.userData) return;
+            // Skip if already infested or dead
+            if (realityGroup.userData.realityType === 'INFESTED') return;
+            if (realityGroup.userData.realityType === 'DEAD') return;
+            realityGroup.userData.realityType = 'INFESTED';
+            realityGroup.userData.status = 'SOUL PARASITE INFESTATION ACTIVE — Centurion Guard standby.';
+            // Recover bhSize from existing disk scale (if present)
+            let bhSize = 0.35;
+            const disk = realityGroup.children.find(c => c.userData && c.userData.isAccretionDisk);
+            if (disk) bhSize = disk.scale.x / 4.5;
+            applyRealityVisuals(realityGroup, 'INFESTED', bhSize, Math.random);
+
+            // Start countdown
+            const dur = (durationSec || INFESTATION_TIMER_SEC_DEFAULT);
+            _infestations.set(realityGroup.userData.name, {
+                remaining: dur,
+                group: realityGroup,
+                lastTick: performance.now(),
+                bhSize,
+            });
+            // Visual: attach a 2D HTML countdown label tracked to the reality's
+            // world position (rendered in animate loop)
+            attachInfestationTimerLabel(realityGroup);
+            return realityGroup.userData.name;
+        }
+        function cleanseInfestation(realityName) {
+            const entry = _infestations.get(realityName);
+            if (!entry) return;
+            entry.group.userData.realityType = 'STABLE';
+            entry.group.userData.status = 'Gravitational core lock stable. (Containment seal active.)';
+            applyRealityVisuals(entry.group, 'STABLE', entry.bhSize, Math.random);
+            _infestations.delete(realityName);
+            removeInfestationTimerLabel(realityName);
+        }
+        function explodeReality(realityName) {
+            const entry = _infestations.get(realityName);
+            if (!entry) return;
+            const group = entry.group;
+            // Brief explosion flash (a large additive red sprite that fades)
+            try {
+                const burstTex = createCloudTexture("#ff3050", 'ff');
+                const burstMat = new THREE.SpriteMaterial({
+                    map: burstTex,
+                    transparent: true,
+                    opacity: 1.0,
+                    blending: THREE.AdditiveBlending
+                });
+                const burst = new THREE.Sprite(burstMat);
+                burst.scale.set(entry.bhSize * 22, entry.bhSize * 22, 1);
+                group.add(burst);
+                let life = 0;
+                const fadeAnim = setInterval(() => {
+                    life += 1;
+                    burst.material.opacity = Math.max(0, 1 - life * 0.04);
+                    const s = entry.bhSize * 22 + life * 1.2;
+                    burst.scale.set(s, s, 1);
+                    if (life > 30) {
+                        clearInterval(fadeAnim);
+                        group.remove(burst);
+                        burst.material.dispose();
+                    }
+                }, 40);
+            } catch (e) {}
+            // After the burst settles, downgrade to DEAD permanently
+            setTimeout(() => {
+                group.userData.realityType = 'DEAD';
+                group.userData.status = 'REALITY COLLAPSED. Volumetric blob — only relics remain.';
+                applyRealityVisuals(group, 'DEAD', entry.bhSize, Math.random);
+                _infestations.delete(realityName);
+                removeInfestationTimerLabel(realityName);
+                // Terminal log
+                try {
+                    const t = document.getElementById('terminal-scroll');
+                    const liveOut = document.getElementById('live-console-output');
+                    if (t && liveOut) {
+                        const log = document.createElement('div');
+                        log.className = 'text-rose-500 font-bold';
+                        log.innerHTML = `&gt; ☢ CONTAINMENT FAILED — ${realityName} collapsed under soul-mass detonation.`;
+                        t.insertBefore(log, liveOut);
+                        t.scrollTop = t.scrollHeight;
+                    }
+                } catch (e) {}
+            }, 1200);
+        }
+
+        // === DOM-tracked infestation timer labels (one per active infestation) ===
+        const _labelLayer = (() => {
+            let el = document.getElementById('infestation-label-layer');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'infestation-label-layer';
+                el.style.cssText = 'position:absolute; inset:0; pointer-events:none; z-index:15;';
+                document.body.appendChild(el);
+            }
+            return el;
+        })();
+        function attachInfestationTimerLabel(group) {
+            const id = 'infest-label-' + group.userData.name.replace(/[^A-Z0-9-]/gi, '');
+            let lbl = document.getElementById(id);
+            if (!lbl) {
+                lbl = document.createElement('div');
+                lbl.id = id;
+                lbl.style.cssText = 'position:absolute; transform:translate(-50%,-50%); background:rgba(40,0,0,0.85); border:1px solid #ff3050; color:#ff7080; padding:2px 6px; font:700 10px "Share Tech Mono",monospace; letter-spacing:0.15em; box-shadow:0 0 14px rgba(255,40,60,0.55); border-radius:2px; white-space:nowrap;';
+                _labelLayer.appendChild(lbl);
+            }
+            lbl.dataset.realityName = group.userData.name;
+        }
+        function removeInfestationTimerLabel(realityName) {
+            const id = 'infest-label-' + realityName.replace(/[^A-Z0-9-]/gi, '');
+            const lbl = document.getElementById(id);
+            if (lbl && lbl.parentElement) lbl.parentElement.removeChild(lbl);
+        }
+        function updateInfestationsTick() {
+            if (_infestations.size === 0) return;
+            const now = performance.now();
+            const containerLocal = document.getElementById('canvas-local');
+            const rectLocal = containerLocal ? containerLocal.getBoundingClientRect() : null;
+            for (const [name, entry] of _infestations) {
+                const dt = (now - entry.lastTick) / 1000;
+                entry.lastTick = now;
+                entry.remaining -= dt;
+                // Project the reality's world position into screen-space (LOCAL viewport)
+                if (rectLocal && entry.group && cameraLocal) {
+                    const worldPos = new THREE.Vector3();
+                    entry.group.getWorldPosition(worldPos);
+                    worldPos.project(cameraLocal);
+                    const sx = rectLocal.left + (worldPos.x * 0.5 + 0.5) * rectLocal.width;
+                    const sy = rectLocal.top  + (-worldPos.y * 0.5 + 0.5) * rectLocal.height;
+                    const id = 'infest-label-' + name.replace(/[^A-Z0-9-]/gi, '');
+                    const lbl = document.getElementById(id);
+                    if (lbl) {
+                        // Only show if forward of the camera AND local viewport is active
+                        if (worldPos.z < 1 && STATE.localViewportActive) {
+                            lbl.style.display = 'block';
+                            lbl.style.left = sx + 'px';
+                            lbl.style.top  = (sy - 32) + 'px';
+                            const r = Math.max(0, entry.remaining);
+                            const m = Math.floor(r / 60), s = Math.floor(r % 60);
+                            lbl.innerHTML = `☢ ${m}:${s.toString().padStart(2,'0')}`;
+                            // Color ramps red as time runs out
+                            const danger = r < 30;
+                            lbl.style.background = danger ? 'rgba(80,0,0,0.95)' : 'rgba(40,0,0,0.85)';
+                            lbl.style.color = danger ? '#ffaaaa' : '#ff7080';
+                            if (danger) lbl.style.animation = 'pulse 0.6s ease-in-out infinite';
+                        } else {
+                            lbl.style.display = 'none';
+                        }
+                    }
+                }
+                // Trigger explosion if timer hits 0
+                if (entry.remaining <= 0) {
+                    explodeReality(name);
+                }
+            }
+        }
+
+        // Public API surface (for Death's Ship to call when a reaper dies)
+        window.infectReality = (selectorOrGroup, durationSec) => {
+            // Selector can be a reality name OR a starGroup OR a layer to randomly target
+            let group = null;
+            if (typeof selectorOrGroup === 'string') {
+                // Find by name across the active layer
+                if (STATE.starsOnLayer) {
+                    group = STATE.starsOnLayer.find(s => s.userData && s.userData.name === selectorOrGroup);
+                }
+            } else if (selectorOrGroup && selectorOrGroup.userData) {
+                group = selectorOrGroup;
+            } else if (selectorOrGroup === 'random') {
+                // Pick a random STABLE reality on the current layer
+                const candidates = (STATE.starsOnLayer || []).filter(s => s.userData && s.userData.realityType === 'STABLE');
+                if (candidates.length) group = candidates[Math.floor(Math.random() * candidates.length)];
+            }
+            if (group) return infectReality(group, durationSec);
+            return null;
+        };
+        window.cleanseInfestation = cleanseInfestation;
+        window.explodeReality = explodeReality;
+
+        // ============================================================
+        // REAPER ROSTER BRIDGE
+        // Each reality on the active layer is bound to a unique reaper
+        // (with name + rank + stratum_designator + backstory) generated
+        // server-side and persisted in Mongo. Cached per-session in
+        // STATE.reaperByReality so we don't re-fetch repeatedly.
+        // ============================================================
+        STATE.reaperByReality = {};
+
+        async function seedReapersForCurrentLayer(layerIndex) {
+            if (!STATE.starsOnLayer || !STATE.starsOnLayer.length) return;
+            const realities = STATE.starsOnLayer.map((g, idx) => ({
+                reality_uid: g.userData.name,
+                layer_index: layerIndex,
+                idx_on_layer: idx,
+            }));
+            try {
+                // Seed if missing (idempotent on the backend)
+                await fetch('/api/reaper-roster/seed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ realities }),
+                });
+                // Now fetch the full roster (filtered server-side
+                // wouldn't be ideal — the roster is small, just grab it)
+                const res = await fetch('/api/reaper-roster/?limit=500');
+                const list = await res.json();
+                STATE.reaperByReality = {};
+                for (const r of list) {
+                    STATE.reaperByReality[r.reality_uid] = r;
+                    // Mirror the stratum designator onto the star group's
+                    // userData so selectStarSystem can show it directly.
+                    const starGroup = STATE.starsOnLayer.find(g => g.userData && g.userData.name === r.reality_uid);
+                    if (starGroup) {
+                        starGroup.userData.stratum_designator = r.stratum_designator;
+                        starGroup.userData.bound_reaper = r;
+                    }
+                }
+                console.log('[reapers] roster ready:', list.length);
+            } catch (e) {
+                console.warn('[reapers] seed/fetch failed:', e);
+            }
+        }
+
+        // Trigger a reaper death from anywhere (e.g. Death's Ship). Updates
+        // backend status + flips the reality to INFESTED + shows a toast.
+        async function killReaperForReality(realityUid, durationSec) {
+            if (!realityUid) return null;
+            try {
+                const res = await fetch(`/api/reaper-roster/kill/${encodeURIComponent(realityUid)}`, { method: 'POST' });
+                if (!res.ok) return null;
+                const reaper = await res.json();
+                // Trigger infestation on this reality
+                if (typeof window.infectReality === 'function') {
+                    window.infectReality(realityUid, durationSec);
+                }
+                // Pop a brief reaper-fallen toast
+                showReaperFallenToast(reaper);
+                return reaper;
+            } catch (e) {
+                console.warn('[reapers] kill failed:', e);
+                return null;
+            }
+        }
+        window.killReaperForReality = killReaperForReality;
+
+        function showReaperFallenToast(reaper) {
+            if (!reaper) return;
+            let host = document.getElementById('reaper-fallen-toast-host');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'reaper-fallen-toast-host';
+                host.style.cssText = 'position:fixed; top:64px; left:50%; transform:translateX(-50%); z-index:90; pointer-events:none; display:flex; flex-direction:column; gap:8px;';
+                document.body.appendChild(host);
+            }
+            const t = document.createElement('div');
+            t.style.cssText = 'pointer-events:auto; background: linear-gradient(180deg, #1a0008, #06030a); border:1.5px solid #ff3050; box-shadow: 0 0 30px rgba(255,40,80,0.55), inset 0 0 12px rgba(255,40,80,0.18); color:#fff; font:600 12px "Share Tech Mono",monospace; padding:10px 16px; border-radius:4px; min-width:280px; max-width:88vw; animation: reaperToastIn 0.3s ease-out;';
+            t.innerHTML = `
+                <div style="color:#ff7080; letter-spacing:0.3em; font-size:10px;">▌ REAPER FALLEN</div>
+                <div style="margin-top:4px; font-weight:700; color:#fff;">${reaper.name}</div>
+                <div style="margin-top:2px; color:#9bd6ff; font-size:11px;">${reaper.stratum_designator}</div>
+                <div style="margin-top:4px; color:#cdd; font-style:italic; font-size:11px; line-height:1.4;">"${reaper.backstory}"</div>
+                <div style="margin-top:6px; color:#ffaa55; font-size:10px;">⚠ Reality ${reaper.reality_uid} now INFESTED</div>
+            `;
+            host.appendChild(t);
+            // Auto dismiss after 9s
+            setTimeout(() => {
+                t.style.transition = 'opacity 0.4s, transform 0.4s';
+                t.style.opacity = '0';
+                t.style.transform = 'translateY(-12px)';
+                setTimeout(() => t.remove(), 500);
+            }, 9000);
+        }
+
+        // CSS keyframe for the toast (injected once)
+        if (!document.getElementById('reaper-toast-style')) {
+            const s = document.createElement('style');
+            s.id = 'reaper-toast-style';
+            s.textContent = '@keyframes reaperToastIn { from { transform:translateY(-30px); opacity:0; } to { transform:none; opacity:1; } }';
+            document.head.appendChild(s);
+        }
+
         function initThree() {
             // Setup Viewport 01 (Global Navigation Spindle)
             const containerGlobal = document.getElementById('canvas-global');
@@ -248,9 +830,12 @@
             cameraGlobal = new THREE.PerspectiveCamera(50, wG / hG, 0.1, 1000);
             cameraGlobal.position.set(38, 18, 38);
 
-            rendererGlobal = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            rendererGlobal = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
             rendererGlobal.setSize(wG, hG);
             rendererGlobal.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            rendererGlobal.toneMapping = THREE.ACESFilmicToneMapping;
+            rendererGlobal.toneMappingExposure = 1.15;
+            rendererGlobal.outputEncoding = THREE.sRGBEncoding;
             containerGlobal.appendChild(rendererGlobal.domElement);
 
             controlsGlobal = new THREE.OrbitControls(cameraGlobal, rendererGlobal.domElement);
@@ -273,9 +858,12 @@
             cameraLocal = new THREE.PerspectiveCamera(60, wL / hL, 0.1, 1000);
             cameraLocal.position.set(0, 32, 45); // Tilted down slightly to match the perspective angle of the upload image
 
-            rendererLocal = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            rendererLocal = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
             rendererLocal.setSize(wL, hL);
             rendererLocal.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            rendererLocal.toneMapping = THREE.ACESFilmicToneMapping;
+            rendererLocal.toneMappingExposure = 1.25;
+            rendererLocal.outputEncoding = THREE.sRGBEncoding;
             containerLocal.appendChild(rendererLocal.domElement);
 
             controlsLocal = new THREE.OrbitControls(cameraLocal, rendererLocal.domElement);
@@ -321,10 +909,18 @@
             // Build the local dedicated observer scene safely
             updateLayer(0, true);
 
+            // Initialise post-processing AFTER scenes/cameras exist
+            setupPostProcessing();
+
             // Bind triggers
             window.addEventListener('resize', onWindowResize);
             containerGlobal.addEventListener('pointerdown', onGlobalPointerDown);
             containerGlobal.addEventListener('dblclick', onGlobalDoubleClick);
+            containerGlobal.addEventListener('pointermove', onGlobalPointerMove);
+            containerGlobal.addEventListener('pointerleave', () => {
+                const hint = document.getElementById('strata-enter-hint');
+                if (hint) hint.style.display = 'none';
+            });
             containerLocal.addEventListener('pointerdown', onLocalPointerDown);
             containerLocal.addEventListener('dblclick', onLocalDoubleClick);
 
@@ -826,6 +1422,75 @@
             bottomCap.position.y = -cylinderHeight / 2;
             activeLayerGroup.add(bottomCap);
 
+            // 1.5. SECTOR GRID overlay — Elite Dangerous-style polar wireframe
+            // on top + bottom cap so the user can navigate "sectors of
+            // interest". Toggleable via window.GRAPHICS.sectorGridEnabled
+            // (default true). Renders concentric rings + radial spokes
+            // forming a hex-like quadrant pattern.
+            if (window.GRAPHICS && window.GRAPHICS.sectorGridEnabled !== false) {
+                const SECTOR_RINGS  = 6;   // concentric rings
+                const SECTOR_SPOKES = 12;  // radial spoke divisions
+                const buildSectorGrid = (yCoord, isTop) => {
+                    const gridGroup = new THREE.Group();
+                    gridGroup.userData.isSectorGrid = true;
+                    const gridColor = isTop ? 0x6dd5ff : 0x99ddff;
+                    const gridMat = new THREE.LineBasicMaterial({
+                        color: gridColor,
+                        transparent: true,
+                        opacity: 0.18,
+                        blending: THREE.AdditiveBlending
+                    });
+                    // Concentric ring lines
+                    for (let r = 1; r <= SECTOR_RINGS; r++) {
+                        const radius = (r / SECTOR_RINGS) * cylinderRadius;
+                        const pts = [];
+                        for (let s = 0; s <= 64; s++) {
+                            const ang = (s / 64) * Math.PI * 2;
+                            pts.push(new THREE.Vector3(Math.cos(ang) * radius, 0, Math.sin(ang) * radius));
+                        }
+                        const ringG = new THREE.BufferGeometry().setFromPoints(pts);
+                        const line  = new THREE.Line(ringG, gridMat);
+                        gridGroup.add(line);
+                    }
+                    // Radial spoke lines
+                    for (let s = 0; s < SECTOR_SPOKES; s++) {
+                        const ang = (s / SECTOR_SPOKES) * Math.PI * 2;
+                        const pts = [
+                            new THREE.Vector3(0, 0, 0),
+                            new THREE.Vector3(Math.cos(ang) * cylinderRadius, 0, Math.sin(ang) * cylinderRadius)
+                        ];
+                        const spokeG = new THREE.BufferGeometry().setFromPoints(pts);
+                        gridGroup.add(new THREE.Line(spokeG, gridMat));
+                    }
+                    // Vertex pucks at ring/spoke intersections — small
+                    // glowing dots that highlight grid waypoints.
+                    const puckGeom = new THREE.SphereGeometry(0.08, 6, 6);
+                    const puckMat  = new THREE.MeshBasicMaterial({
+                        color: gridColor,
+                        transparent: true,
+                        opacity: 0.55,
+                        blending: THREE.AdditiveBlending
+                    });
+                    for (let r = 1; r <= SECTOR_RINGS; r++) {
+                        const radius = (r / SECTOR_RINGS) * cylinderRadius;
+                        for (let s = 0; s < SECTOR_SPOKES; s++) {
+                            const ang = (s / SECTOR_SPOKES) * Math.PI * 2;
+                            const puck = new THREE.Mesh(puckGeom, puckMat);
+                            puck.position.set(Math.cos(ang) * radius, 0, Math.sin(ang) * radius);
+                            gridGroup.add(puck);
+                        }
+                    }
+                    gridGroup.position.y = yCoord + (isTop ? 0.02 : -0.02);
+                    return gridGroup;
+                };
+                const topGrid    = buildSectorGrid( cylinderHeight / 2, true);
+                const bottomGrid = buildSectorGrid(-cylinderHeight / 2, false);
+                activeLayerGroup.add(topGrid);
+                activeLayerGroup.add(bottomGrid);
+                // Cache so we can toggle via settings without rebuild
+                activeLayerGroup.userData.sectorGrids = [topGrid, bottomGrid];
+            }
+
             // 2. Generate flat-deck volumetric pink/magenta clouds inside the cylinder
             // FIXED: Redesigned the distribution to span continuously from center to outer rim, completely filling the void space.
             const cloudCount = 650; // Increased count to beautifully fill up the core space with rich gaseous nebulae
@@ -875,46 +1540,23 @@
                 
                 const bhSize = 0.22 + prng() * 0.45; // Clean distinct core nodes
 
-                // Event Horizon Core Sphere (Pitch black void)
-                const coreMesh = new THREE.Mesh(sharedCoreGeom, new THREE.MeshBasicMaterial({
-                    color: 0x000000,
-                    transparent: false
-                }));
-                coreMesh.scale.set(bhSize, bhSize, bhSize);
-                bhGroup.add(coreMesh);
-
-                // Accretion Disk (glowing hot pink/magenta)
-                const diskTex = createFuzzyTexture("#ff007f", 0.3);
-                const diskMat = new THREE.MeshBasicMaterial({
-                    map: diskTex,
-                    transparent: true,
-                    opacity: 0.95,
-                    side: THREE.DoubleSide,
-                    blending: THREE.AdditiveBlending
-                });
-                const diskMesh = new THREE.Mesh(sharedDiskGeom, diskMat);
-                diskMesh.scale.set(bhSize * 4.5, bhSize * 4.5, 1);
-                diskMesh.rotateX(Math.PI / 2);
-                bhGroup.add(diskMesh);
-
-                // Accretion Halo Ring
-                const haloMesh = new THREE.Mesh(sharedHaloGeom, new THREE.MeshBasicMaterial({
-                    color: 0xff00aa,
-                    transparent: true,
-                    opacity: 0.35,
-                    side: THREE.DoubleSide
-                }));
-                haloMesh.scale.set(bhSize * 1.2, bhSize * 1.2, 1);
-                bhGroup.add(haloMesh);
+                // ===== Reality type drives visual treatment =====
+                // STABLE  → pink/magenta accretion disk (existing canonical look)
+                // INFESTED→ red accretion disk + pulsing red halo + soul-infestation mist
+                // DEAD    → volumetric black blob (no disk) + sparse green relic markers
+                const realityType = prng() < 0.55 ? 'STABLE' : (prng() < 0.55 ? 'INFESTED' : 'DEAD');
+                applyRealityVisuals(bhGroup, realityType, bhSize, prng);
 
                 bhGroup.position.set(bhX, y, bhZ);
                 bhGroup.userData = {
                     isStar: true,
                     isBlackHole: true,
-                    realityType: prng() < 0.5 ? 'STABLE' : (prng() < 0.5 ? 'DEAD' : 'INFESTED'),
+                    realityType: realityType,
                     name: `ACC-WELL L-${layerIndex}-${i}`,
                     coordinate: `[X: ${bhX.toFixed(1)}, Y: ${y.toFixed(1)}, Z: ${bhZ.toFixed(1)}]`,
-                    status: 'Gravitational core lock stable.',
+                    status: realityType === 'STABLE' ? 'Gravitational core lock stable.'
+                           : realityType === 'INFESTED' ? 'SOUL PARASITE INFESTATION ACTIVE — Centurion Guard standby.'
+                           : 'REALITY COLLAPSED. Volumetric blob — only relics remain.',
                     layer: layerIndex,
                     spinSpeed: 0.01 + prng() * 0.02
                 };
@@ -922,6 +1564,35 @@
                 activeLayerGroup.add(bhGroup);
                 STATE.starsOnLayer.push(bhGroup);
             }
+
+            // Phase F + REAPER ROSTER: any pre-seeded INFESTED realities get
+            // auto-started infestation timers (representing their respective
+            // dead reaper). Existing infestations are cleared when the layer
+            // changes. Also pushes the new realities to the backend reaper
+            // roster so each one gets a unique reaper bound to it.
+            _infestations.clear();
+            // Remove any leftover DOM labels from a previous layer
+            _labelLayer.innerHTML = '';
+            STATE.starsOnLayer.forEach(g => {
+                if (g.userData && g.userData.realityType === 'INFESTED') {
+                    // Stagger timer between 90-180s so they don't all
+                    // expire at once
+                    const dur = 90 + Math.random() * 90;
+                    let bhSize = 0.35;
+                    const disk = g.children.find(c => c.userData && c.userData.isAccretionDisk);
+                    if (disk) bhSize = disk.scale.x / 4.5;
+                    _infestations.set(g.userData.name, {
+                        remaining: dur,
+                        group: g,
+                        lastTick: performance.now(),
+                        bhSize,
+                    });
+                    attachInfestationTimerLabel(g);
+                }
+            });
+            // Seed reapers for every reality on this layer (idempotent).
+            // Sends a single bulk POST then caches the result locally.
+            seedReapersForCurrentLayer(layerIndex).catch(e => console.warn('[reapers]', e));
 
             // 4. Ambient Starpool lights (Pearl Aqua/Cyan Core glows filling the volume)
             // Added back to introduce high-fidelity atmospheric highlights throughout the full disk
@@ -1010,11 +1681,81 @@
             if (intersects.length > 0) {
                 const selectedRing = intersects[0].object;
                 if (selectedRing.userData && selectedRing.userData.isStrataRing) {
-                    updateLayer(selectedRing.userData.layerIndex);
-                    setLocalObserverViewVisibility(true);
+                    // === Cinematic zoom-through transition ===
+                    // 1. Save current camera state
+                    // 2. Tween the global camera toward the ring's Y
+                    // 3. Flash a vignette / portal effect
+                    // 4. After ~700ms, swap to local viewport and reset camera
+                    cinematicEnterLayer(selectedRing.userData.layerIndex, selectedRing);
                 }
             }
         }
+
+        // Hover hint for strata rings — shows "DOUBLE-TAP TO ENTER" floating
+        // text near the cursor when over a ring in the Global viewport.
+        function onGlobalPointerMove(event) {
+            const rect = rendererGlobal.domElement.getBoundingClientRect();
+            mouseGlobal.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseGlobal.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycasterGlobal.setFromCamera(mouseGlobal, cameraGlobal);
+            const intersects = raycasterGlobal.intersectObjects(globalRings);
+            const hint = document.getElementById('strata-enter-hint');
+            if (!hint) return;
+            if (intersects.length > 0 && intersects[0].object.userData.isStrataRing) {
+                hint.style.display = 'block';
+                hint.style.left = (event.clientX + 18) + 'px';
+                hint.style.top  = (event.clientY - 6) + 'px';
+                const li = intersects[0].object.userData.layerIndex;
+                hint.innerText = `▸ DOUBLE-TAP TO ENTER STRATA ${li > 0 ? '+'+li : li}`;
+                rendererGlobal.domElement.style.cursor = 'pointer';
+            } else {
+                hint.style.display = 'none';
+                rendererGlobal.domElement.style.cursor = 'default';
+            }
+        }
+
+        // ===================================================================
+        // PHASE E — LAYER ENTRY
+        // Brief vignette flash for visual feedback, then instantly swap to
+        // the local observer. Per user feedback we DO NOT pan the global
+        // camera (it caused the layer to scroll off-screen on mobile).
+        // ===================================================================
+        let _cinematicInProgress = false;
+        function cinematicEnterLayer(layerIndex, selectedRing) {
+            if (_cinematicInProgress) return;
+            _cinematicInProgress = true;
+
+            // Flash the vignette overlay briefly — purely visual, no camera move.
+            const vignette = document.getElementById('cinematic-vignette');
+            if (vignette) {
+                const lbl = document.getElementById('cinematic-vignette-label');
+                if (lbl) {
+                    lbl.innerText = `▸ ENTERING STRATA ${layerIndex > 0 ? '+'+layerIndex : layerIndex} ◂`;
+                }
+                vignette.style.opacity = '0';
+                vignette.style.display = 'block';
+                requestAnimationFrame(() => { vignette.style.opacity = '1'; });
+            }
+
+            // Swap to local observer immediately so the user lands on the
+            // requested strata without the global camera wandering off.
+            updateLayer(layerIndex);
+            setLocalObserverViewVisibility(true);
+
+            // Fade the vignette back out after a short beat.
+            setTimeout(() => {
+                if (vignette) {
+                    vignette.style.opacity = '0';
+                    setTimeout(() => {
+                        if (vignette) vignette.style.display = 'none';
+                        _cinematicInProgress = false;
+                    }, 420);
+                } else {
+                    _cinematicInProgress = false;
+                }
+            }, 350);
+        }
+        window.cinematicEnterLayer = cinematicEnterLayer;
 
         // Raycast selection handler on Right Side Observer
         function onLocalPointerDown(event) {
@@ -1100,13 +1841,52 @@
             terminal.insertBefore(newLog, liveOut);
             terminal.scrollTop = terminal.scrollHeight;
 
+            const ud = starObj.userData || {};
+            const realityType = ud.realityType || 'STABLE';
+            // Per-state badge color
+            const typeColor = realityType === 'INFESTED' ? 'text-red-400'
+                           : realityType === 'DEAD'     ? 'text-slate-400'
+                           : 'text-emerald-400';
+            const typeLabel = realityType === 'INFESTED' ? '▌ INFESTED · SOUL PARASITES ACTIVE'
+                           : realityType === 'DEAD'     ? '▌ DEAD · RELIC SIGNATURES ONLY'
+                           : '▌ STABLE · CONTAINMENT OPTIMAL';
+            // Deploy Centurion button — only appears for INFESTED realities
+            const deployBtn = (realityType === 'INFESTED')
+                ? `<button id="deploy-centurion-btn" class="mt-2 w-full py-2 px-3 bg-red-950/40 hover:bg-red-600/40 border border-red-500/80 hover:border-red-400 text-red-300 hover:text-white text-[11px] tracking-[0.25em] uppercase font-bold transition-all rounded animate-pulse">⚔ DEPLOY CENTURION GUARD</button>`
+                : '';
+            // Reaper info — bound reaper name + stratum + backstory
+            const reaper = ud.bound_reaper || (STATE.reaperByReality && STATE.reaperByReality[ud.name]);
+            const reaperBlock = reaper ? `
+                <div class="mt-2 pt-2 border-t border-cyan-500/15 space-y-0.5">
+                    <div class="text-[10px] tracking-[0.2em] text-amber-300">▌ BOUND REAPER</div>
+                    <div class="text-white font-bold text-xs">${reaper.name}</div>
+                    <div class="text-[10px] text-slate-400">Status: <span class="${reaper.status==='fallen'?'text-rose-400':'text-emerald-400'}">${(reaper.status||'unknown').toUpperCase()}</span> · ${reaper.service_cycles || '—'} cycles</div>
+                    <div class="text-[10px] text-cyan-200/80 italic mt-1">"${reaper.backstory}"</div>
+                </div>
+            ` : '';
+            const stratumLine = ud.stratum_designator
+                ? `<div><span class="text-slate-400">Stratum:</span> ${ud.stratum_designator}</div>`
+                : `<div><span class="text-slate-400">Layer:</span> ${ud.layer >= 0 ? '+'+ud.layer : ud.layer}</div>`;
             document.getElementById('entity-peek').innerHTML = `
                 <div class="space-y-0.5 text-[#00ffcc]">
-                    <div class="text-white font-bold text-sm underline">${starObj.userData.name}</div>
-                    <div><span class="text-slate-400">Diagnostic:</span> ${starObj.userData.status}</div>
-                    <div><span class="text-slate-400">Target Coordinates:</span> Strata ${starObj.userData.layer}</div>
+                    <div class="text-white font-bold text-sm underline">${ud.name || 'ACC-WELL'}</div>
+                    <div class="${typeColor} text-[10px] tracking-[0.2em] font-bold mt-1">${typeLabel}</div>
+                    <div class="mt-1"><span class="text-slate-400">Diagnostic:</span> ${ud.status || ''}</div>
+                    ${stratumLine}
+                    ${reaperBlock}
+                    ${deployBtn}
                 </div>
             `;
+            if (realityType === 'INFESTED') {
+                const btn = document.getElementById('deploy-centurion-btn');
+                if (btn) {
+                    btn.onclick = () => {
+                        if (typeof window.openCenturionModal === 'function' && starObj.parent) {
+                            window.openCenturionModal(starObj.parent);
+                        }
+                    };
+                }
+            }
 
             if (starObj.parent) {
                 starObj.parent.scale.set(1.4, 1.4, 1.4);
@@ -1182,6 +1962,10 @@
         // RE-ENGINEERED: Viewport 02 now dynamically covers the ENTIRE viewport screen area rather than split-screen scaling
         function setLocalObserverViewVisibility(visible) {
             STATE.localViewportActive = visible;
+            // Body class lets the mobile responsive CSS split the
+            // viewport vertically (50/50) on small screens.
+            if (visible) document.body.classList.add('local-active');
+            else        document.body.classList.remove('local-active');
 
             const globalContainer = document.getElementById('viewport-global-container');
             const localContainer = document.getElementById('viewport-local-container');
@@ -1448,17 +2232,22 @@
             rightPanel.classList.add('hidden');
             bottomPanel.classList.add('hidden');
             navComp.classList.add('hidden');
+            // Clear all mobile drawer body classes
+            document.body.classList.remove('mob-show-nav', 'mob-show-filters', 'mob-show-logs');
 
             if (tabId === 'nav') {
                 document.getElementById('mob-tab-nav').classList.add('bg-[#00ffcc]', 'text-black');
                 bottomPanel.classList.remove('hidden');
                 navComp.classList.remove('hidden', 'hidden-mobile');
+                document.body.classList.add('mob-show-nav');
             } else if (tabId === 'filters') {
                 document.getElementById('mob-tab-filters').classList.add('bg-[#00ffcc]', 'text-black');
                 leftPanel.classList.remove('hidden');
+                document.body.classList.add('mob-show-filters');
             } else if (tabId === 'logs') {
                 document.getElementById('mob-tab-logs').classList.add('bg-[#00ffcc]', 'text-black');
                 rightPanel.classList.remove('hidden');
+                document.body.classList.add('mob-show-logs');
             }
         }
 
@@ -1472,6 +2261,7 @@
             document.getElementById('right-panel').classList.add('hidden');
             document.getElementById('bottom-panel').classList.add('hidden');
             document.getElementById('nav-comp-panel').classList.add('hidden');
+            document.body.classList.remove('mob-show-nav', 'mob-show-filters', 'mob-show-logs');
 
             document.querySelectorAll('#mobile-dock button').forEach(b => {
                 b.classList.remove('bg-[#00ffcc]', 'text-black');
@@ -1603,6 +2393,11 @@
                 cameraGlobal.aspect = wG / hG;
                 cameraGlobal.updateProjectionMatrix();
                 rendererGlobal.setSize(wG, hG);
+                if (composerGlobal) composerGlobal.setSize(wG, hG);
+                if (smaaPassGlobal && smaaPassGlobal.setSize) smaaPassGlobal.setSize(
+                    wG * rendererGlobal.getPixelRatio(),
+                    hG * rendererGlobal.getPixelRatio()
+                );
             }
 
             // Re-eval Local Viewport dimensions with strict bounds checking
@@ -1613,6 +2408,11 @@
                 cameraLocal.aspect = wL / hL;
                 cameraLocal.updateProjectionMatrix();
                 rendererLocal.setSize(wL, hL);
+                if (composerLocal) composerLocal.setSize(wL, hL);
+                if (smaaPassLocal && smaaPassLocal.setSize) smaaPassLocal.setSize(
+                    wL * rendererLocal.getPixelRatio(),
+                    hL * rendererLocal.getPixelRatio()
+                );
             }
         }
 
@@ -1706,10 +2506,43 @@
 
             // Update Local Layer Observers (accretion disks and realities)
             if (activeLayerGroup && STATE.localViewportActive) {
+                const pulseT = time * 0.001;
                 activeLayerGroup.traverse(child => {
                     // Rotate black hole accretion disks organically
                     if (child.userData && child.userData.spinSpeed) {
                         child.rotation.y += child.userData.spinSpeed;
+                    }
+                    // Orbit dead-reality relics around the volumetric blob
+                    if (child.userData && child.userData.isRelic) {
+                        child.userData.orbitAngle += child.userData.orbitSpeed;
+                        const r = child.userData.orbitRadius;
+                        child.position.x = Math.cos(child.userData.orbitAngle) * r;
+                        child.position.z = Math.sin(child.userData.orbitAngle) * r;
+                        child.position.y = child.userData.orbitY + Math.sin(pulseT * 0.8 + child.userData.orbitAngle) * 0.05;
+                        child.rotation.y += 0.02;
+                        child.rotation.x += 0.01;
+                    }
+                    // Sync relic glows to parent relic positions
+                    if (child.userData && child.userData.isRelicGlow && child.userData.parentRelic) {
+                        child.position.copy(child.userData.parentRelic.position);
+                        // Subtle pulsing opacity
+                        if (child.material) {
+                            child.material.opacity = 0.30 + Math.sin(pulseT * 2.0 + child.userData.parentRelic.userData.orbitAngle) * 0.10;
+                        }
+                    }
+                    // Pulse INFESTED aura
+                    if (child.userData && child.userData.isInfestationAura) {
+                        const s = child.userData.basePulse * (1.0 + Math.sin(pulseT * 2.5) * 0.18);
+                        child.scale.set(s, s, 1);
+                        if (child.material) {
+                            child.material.opacity = 0.28 + Math.sin(pulseT * 3.0) * 0.10;
+                        }
+                    }
+                    // Slow drift on infestation mist
+                    if (child.userData && child.userData.isInfestationMist) {
+                        if (child.material) {
+                            child.material.opacity = 0.42 + Math.sin(pulseT * 1.6) * 0.10;
+                        }
                     }
                 });
 
@@ -1720,6 +2553,10 @@
                 }
             }
 
+            // Phase F: tick infestation timers (drives countdown, screen-
+            // space label projection, and explode-on-expiry).
+            updateInfestationsTick();
+
             // Camera target gliding for right viewport observer
             if (!STATE.cinematicActive) {
                 controlsLocal.target.x += (STATE.cameraLocalTarget.x - controlsLocal.target.x) * 0.08;
@@ -1729,11 +2566,19 @@
 
             // Controls update and independent scene rendering
             controlsGlobal.update();
-            rendererGlobal.render(sceneGlobal, cameraGlobal);
+            if (composerGlobal) {
+                composerGlobal.render();
+            } else {
+                rendererGlobal.render(sceneGlobal, cameraGlobal);
+            }
 
             if (STATE.localViewportActive) {
                 controlsLocal.update();
-                rendererLocal.render(sceneLocal, cameraLocal);
+                if (composerLocal) {
+                    composerLocal.render();
+                } else {
+                    rendererLocal.render(sceneLocal, cameraLocal);
+                }
             }
         }
 
@@ -1741,3 +2586,141 @@
         window.onload = function () {
             initThree();
         }
+
+/* ─── chunk break ─── */
+;
+// ============================================================
+        // CENTURION VIDEO MODAL — wiring + post-video state mutation
+        // ============================================================
+        (function () {
+            const modal   = document.getElementById('centurion-modal');
+            const video   = document.getElementById('centurion-video');
+            const closeBtn= document.getElementById('centurion-close');
+            const subtitle= document.getElementById('centurion-subtitle');
+            const statusEl= document.getElementById('centurion-status');
+            const tele    = document.getElementById('centurion-telemetry');
+            const targetEl= document.getElementById('centurion-target-label');
+            let activeTargetGroup = null;
+            let subtitleTimer = null;
+
+            const SUBTITLES = [
+                'CENTURION GUARD DEPLOYED — Hold the beacon.',
+                'SOUL PARASITES SPAWNING from infection vector...',
+                'Loomgun rotation engaged. Tracer pattern stable.',
+                'Heat sink approaching critical — venting...',
+                'Wave THREE incoming. Brace, sentinel.',
+                'BEACON CHARGE 70%. The souls will move on at last.',
+                'BEACON LAUNCH IMMINENT — Containment seal initialising.',
+                'CONTAINMENT BEACON LAUNCHED — Reality cleansed.',
+            ];
+
+            function showCenturionModal(starGroup) {
+                if (!starGroup) return;
+                activeTargetGroup = starGroup;
+                const ud = starGroup.userData || {};
+                targetEl.innerText = `TARGET: ${ud.name || 'UNKNOWN ACC-WELL'}`;
+                statusEl.innerText = '▌ INFESTED — SOUL PARASITES SPAWNING';
+                statusEl.className = 'text-red-400';
+                subtitle.innerText = '';
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                // Reset and play
+                video.src = '/api/static/centurion_defense.mp4';
+                video.loop = false;
+                video.muted = false;
+                video.volume = 0; // start silent for fade-in
+                video.currentTime = 0;
+                video.play().then(() => {
+                    // Fade audio in over 800ms
+                    const fadeIn = setInterval(() => {
+                        if (video.volume < 0.95) video.volume = Math.min(1, video.volume + 0.05);
+                        else { video.volume = 1; clearInterval(fadeIn); }
+                    }, 40);
+                }).catch(() => {
+                    // Autoplay blocked: try muted (will need user interaction to unmute)
+                    video.muted = true;
+                    video.volume = 1;
+                    video.play().catch(() => {});
+                });
+
+                // Schedule a graceful fade-out near the end of the clip
+                video.addEventListener('timeupdate', () => {
+                    const remaining = video.duration - video.currentTime;
+                    if (remaining > 0 && remaining < 1.2 && video.volume > 0.02 && !video.muted) {
+                        // Linearly fade volume out over the last ~1.2s
+                        video.volume = Math.max(0, video.volume - 0.04);
+                    }
+                });
+
+                // Animate subtitles in sequence
+                if (subtitleTimer) clearInterval(subtitleTimer);
+                let idx = 0;
+                subtitle.innerText = SUBTITLES[0];
+                subtitleTimer = setInterval(() => {
+                    idx = (idx + 1) % SUBTITLES.length;
+                    subtitle.innerText = SUBTITLES[idx];
+                    if (idx >= SUBTITLES.length - 1) {
+                        statusEl.innerText = '▌ STABLE — BEACON LAUNCHED · REALITY SAVED';
+                        statusEl.className = 'text-emerald-400';
+                    }
+                }, 3500);
+            }
+
+            function hideCenturionModal(success) {
+                if (subtitleTimer) { clearInterval(subtitleTimer); subtitleTimer = null; }
+                video.pause();
+                try { video.removeAttribute('src'); video.load(); } catch(e){}
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+
+                if (success && activeTargetGroup) {
+                    // Mutate the reality from INFESTED → STABLE
+                    // If an infestation timer was tracking this reality,
+                    // cancel it via cleanseInfestation; otherwise fall back
+                    // to a direct visual swap.
+                    if (typeof window.cleanseInfestation === 'function' &&
+                        activeTargetGroup.userData && activeTargetGroup.userData.name) {
+                        window.cleanseInfestation(activeTargetGroup.userData.name);
+                    } else {
+                        activeTargetGroup.userData.realityType = 'STABLE';
+                        activeTargetGroup.userData.status = 'Gravitational core lock stable. (Containment seal active.)';
+                        if (typeof window.applyRealityVisuals === 'function') {
+                            let bhSize = 0.35;
+                            const disk = activeTargetGroup.children.find(c => c.userData && c.userData.isAccretionDisk);
+                            if (disk) bhSize = disk.scale.x / 4.5;
+                            window.applyRealityVisuals(activeTargetGroup, 'STABLE', bhSize, Math.random);
+                        }
+                    }
+                    // Toast / terminal log feedback
+                    try {
+                        const t = document.getElementById('terminal-scroll');
+                        const liveOut = document.getElementById('live-console-output');
+                        if (t && liveOut) {
+                            const log = document.createElement('div');
+                            log.className = 'text-emerald-400 font-bold';
+                            log.innerHTML = `&gt; CONTAINMENT SUCCESSFUL — ${activeTargetGroup.userData.name} restored to STABLE.`;
+                            t.insertBefore(log, liveOut);
+                            t.scrollTop = t.scrollHeight;
+                        }
+                    } catch (e) {}
+                }
+                activeTargetGroup = null;
+            }
+
+            // When video ends → cleanse complete
+            video.addEventListener('ended', () => hideCenturionModal(true));
+            // Skip / abort button → no cleanse
+            closeBtn.addEventListener('click', () => hideCenturionModal(false));
+            // ESC key dismiss
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) hideCenturionModal(false);
+            });
+            // Click-outside dismiss
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideCenturionModal(false);
+            });
+
+            // Public trigger
+            window.openCenturionModal = showCenturionModal;
+        })();

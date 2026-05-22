@@ -208,6 +208,13 @@ if __name__ == "__main__":
     metas["cryious_run"]       = process("cryious_run_raw.png",       "cryious_run")
     metas["cryious_idle_up"]   = process("cryious_idle_up_raw.png",   "cryious_idle_up")
     metas["cryious_idle_down"] = process("cryious_idle_down_raw.png", "cryious_idle_down")
+    # User-uploaded directional iso sprites — replaces the old single-direction
+    # walk/run that left Cryious sliding when moving.
+    metas["cryious_iso_idle_up"]    = process("cryious_iso_idle_up_raw.png",    "cryious_iso_idle_up")
+    metas["cryious_iso_idle_right"] = process("cryious_iso_idle_right_raw.png", "cryious_iso_idle_right")
+    metas["cryious_iso_idle_down"]  = process("cryious_iso_idle_down_raw.png",  "cryious_iso_idle_down")
+    metas["cryious_iso_walk_right"] = process("cryious_iso_walk_right_raw.png", "cryious_iso_walk_right")
+    metas["cryious_iso_run_up"]     = process("cryious_iso_run_up_raw.png",     "cryious_iso_run_up")
     # Elite Grim Reaper 1 (existing roaming guards — walk/run set)
     for key, src in [
         ("elite1_walk_down",  "elite1_walk_down_raw.png"),

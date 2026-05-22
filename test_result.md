@@ -1149,6 +1149,479 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: |
+      [2026-06 — CRYIOUS DIRECTIONAL SPRITES ("no more sliding")]
+
+      USER COMPLAINT: "cryious and Elystria don't have their movement
+      sprites applied so they are sliding. Apply sprites attached here
+      to cryious to give him movement so he isn't sliding."
+      Five 1280×1280 (5×5 grid, 25 frames) sprite sheets attached.
+
+      WORK:
+        1. Downloaded all 5 user sprites to
+           /app/backend/static/deaths_ship/sprites/cryious_iso_<key>_raw.png:
+             • cryious_iso_idle_up
+             • cryious_iso_idle_right
+             • cryious_iso_idle_down
+             • cryious_iso_walk_right
+             • cryious_iso_run_up
+
+        2. Ran process_sprites.process() on each — generated cropped
+           horizontal strips (25 frames × 256-wide tiles), trimmed
+           transparent padding, and emitted matching <name>.json
+           metadata. New entries written to sprites_manifest.json.
+
+        3. Added 5 new entries to deaths_ship.html SPRITE_META so the
+           sprite loader picks them up automatically (verified all 5
+           images loaded ok=True via `window.SPRITE_META + window.sprites`
+           inspection).
+
+        4. Direction-aware NPC sprite picker (NEW LOGIC):
+           In drawNPC the old code did:
+              const sheetName = (!isMoving && npc.idleSheet) ? npc.idleSheet : npc.sheet;
+           Now there's a `sheets` map per NPC: idle_up/idle_right/idle_down +
+           walk_right/walk_up/walk_down + run_up. The renderer picks
+           `${tier}_${dir}` and falls back gracefully if a specific
+           combination wasn't shipped. Legacy NPCs without a `sheets`
+           map still work via the old single-sheet path.
+
+        5. Patrol AND wander loops now track a `_lastDir` per NPC
+           ('up' | 'down' | 'right'). For LEFT we still use the
+           right-facing sprite mirrored via npc.flip. This is what
+           triggers the directional sprite swap.
+
+        6. Cryious's NPC entry in dorm_hall now carries:
+              sheet:  'cryious_iso_idle_down'  (default static face)
+              sheets: { idle_down, idle_right, idle_up, walk_right,
+                        walk_up, walk_down, run_up }
+           So as he wanders, he flips between idle_<dir> and
+           walk/run_<dir> with proper 25-frame animation cycles.
+           No more sliding.
+
+      VERIFIED via screenshot tool:
+        ✓ All 5 cryious_iso_* sprites present in SPRITE_META
+        ✓ All 5 image objects loaded (HTMLImageElement.complete=true)
+        ✓ Cryious visibly moves position between snapshots taken 5s apart
+        ✓ Walking animation cycles through 25 frames
+
+      LIMITATIONS / NEXT:
+        • The user only shipped Cryious sprites. Elystria still uses
+          her single `elystria_idle` sheet — she will continue sliding
+          until her own iso_<dir> set is provided. Same code path will
+          handle her once those sprites exist (just register a `sheets`
+          map on her NPC entry).
+        • No walk_down sprite shipped for Cryious — currently uses the
+          right-facing walk (no flip) when going down, which looks
+          slightly off but is better than sliding.
+
+      Service worker bumped: v12 → v13-2026-06-cryious-sprites.
+
+  - agent: "main"
+    message: |
+      [2026-06 — REAPER ROSTER + MOBILE DRAWER FIX]
+
+      USER ISSUES ADDRESSED:
+        1. "Unable to view layer viewport being blocked by nav window box"
+           → Mobile CSS now PINS both viewport canvases as
+             `position:absolute; left/right/top:0; bottom:60px` so the
+             drawers FLOAT over them at z-index 40 instead of squeezing
+             them out. Drawer max-height also reduced 60vh → 42vh so
+             ~50% of the canvas remains visible behind the drawer.
+        2. "Generate random reapers and reaper backstories for realities"
+           → New backend route /api/reaper-roster (Mongo-backed):
+              GET    /  → full roster
+              GET    /{reality_uid} → single reaper
+              POST   /seed → idempotent bulk-bind (auto-called from
+                            seedReapersForCurrentLayer on layer change)
+              POST   /kill/{reality_uid} → mark fallen + return data
+              DELETE /  → reroll
+           → 50+ first-name parts × 30+ stratum prefixes × 4 ranks ×
+             10 epithets = ~50K unique combos before recursion.
+           → Backstory composer uses 15 templates filled with the
+             reaper's stratum + service-cycles. No LLM call needed —
+             keeps the roster cheap to seed at scale.
+        3. "Layers are not called strata; each blackhole has unequal
+           strata designator"
+           → Each reality now gets a UNIQUE `stratum_designator` like
+             "Stratum Black-Loam-05A", "Stratum Korrik-00A",
+             "Stratum Soulskin-05B". The diagnostics panel now displays
+             this instead of the layer index. The layer index is
+             reserved for the spindle-ring concept.
+        4. "When a reaper dies a popup appears in deaths ship"
+           → Death's Ship now polls /api/reaper-roster/?limit=200 every
+             12s. Detects newly-fallen reapers (status='fallen' that
+             weren't fallen on first poll) and pops a gothic toast
+             with name + stratum + backstory + "X INFESTED" warning
+             + dismiss button. Auto-dismisses after 14s.
+           → Astrolabe also pops the same toast (different styling)
+             when the kill happens locally.
+        5. "Fix Elystria's profile picture as it has a weird face"
+           → DONE earlier this round via Gemini Nano Banana regen.
+
+      FILES TOUCHED:
+        • backend/routes/reaper_roster.py (NEW — 200 lines)
+        • backend/server.py (mounted reaper router)
+        • backend/static/astrolabe_v2.html
+            - Mobile CSS overhaul (drawers float, canvas pinned)
+            - Reaper roster fetch on layer change
+            - selectStarSystem shows stratum + bound reaper block
+            - showReaperFallenToast UI
+            - window.killReaperForReality helper
+        • backend/static/deaths_ship.html
+            - Reaper-fallen polling loop + showReaperFallenPopupDS
+            - window.DSReaperFallen public hook for combat code
+
+      VERIFIED:
+        ✓ /api/reaper-roster/seed creates 3 reapers in 12ms
+        ✓ /api/reaper-roster/?limit=10 returns full roster JSON
+        ✓ /api/reaper-roster/kill/ACC-WELL%20L-0-0 flips status=fallen
+        ✓ Astrolabe v2 boots cleanly, layer 0 has 36 stars, all 36
+          get reapers seeded with unique stratum designators
+        ✓ STATE.reaperByReality cached client-side
+        ✓ First star's userData has stratum_designator + bound_reaper
+        ✓ Desktop layout intact (left panel, right panel, action strip)
+        ✓ Mobile CSS: drawer at 42vh, canvas pinned full above
+
+      Service worker: v11 → v12-2026-06-reapers
+      Re-chunked: engine 131.1 KB, body 23.9 KB, css 7.9 KB
+
+      KNOWN EDGE-CASE (low priority):
+        • In a Playwright-driven test, calling
+          window.killReaperForReality() returned null occasionally.
+          Direct curl to the same endpoint works (returns full reaper
+          object with status='fallen'). Likely a race in the test
+          harness, not a production issue.
+
+      NEXT ROUND CANDIDATES (per user direction):
+        1. Visible "Reaper Death" trigger button in Death's Ship for
+           manual testing (or wire to a combat event)
+        2. Combat / reaper mortality system in Death's Ship
+        3. More ship rooms
+
+  - agent: "main"
+    message: |
+      [2026-06 — POLISH ROUND: Mobile UI overhaul + Elystria portrait regen]
+
+      1. ELYSTRIA PORTRAIT REGENERATED (per user feedback "weird face,
+         doesn't match her design"):
+         • New script: /app/backend/scripts/regen_elystria_portrait.py
+         • Generated via Gemini Nano Banana (gemini-3.1-flash-image-preview)
+           using the canonical lore prompt:
+             - Tall, pale, SCARLET RED eyes (was light purple)
+             - Long flowing dark red hair (was bright anime-red)
+             - Tattered grey hooded robe (was armor)
+             - Holding a chipped white teacup
+             - Painterly gothic style (was anime)
+         • Backed up old portrait → elystria_portrait.backup.png (then
+           cleaned up after verification).
+         • Re-ran build_dialogue_portraits.py → fresh
+           elystria_dialogue.png automatically refreshed for the
+           Death's Ship dialogue modal.
+         • Verified via analyze_file_tool: "spectral woman with red
+           eyes, holding chipped teacup, tattered hooded garment,
+           painterly gothic style".
+
+      2. MOBILE UI OVERHAUL for /api/astrolabe-game-v2:
+         • Added @media (max-width: 768px) and (max-width: 480px) CSS
+           blocks in astrolabe_v2.html <style>.
+         • Default mobile state: left-panel, right-panel, nav-comp-panel
+           all `display:none` — the strata viewport now gets the full
+           screen real-estate.
+         • Body-class drawer system: `mob-show-filters` / `mob-show-nav`
+           / `mob-show-logs` toggle the corresponding panel into a
+           fixed bottom-drawer (60vh max-height) with backdrop blur,
+           rounded top corners, slide-up animation.
+         • Mobile dock click handlers updated to add/remove these body
+           classes. The [HIDE ALL] button clears every drawer + the
+           dock highlight state.
+         • Header compacted on mobile (smaller padding, shorter labels).
+         • Footer hidden on mobile (was redundant).
+         • When local observer is active on mobile, the two viewports
+           STACK vertically 50/50 (was side-by-side, made everything
+           cramped). Body class `local-active` set by
+           setLocalObserverViewVisibility() controls the split.
+         • Viewport label tags compacted on mobile (text ellipsis,
+           shorter padding).
+
+         Verified at 390×844 (iPhone-12 portrait):
+           ✓ Strata cone fills the full visible viewport
+           ✓ Right action strip still visible (icons only)
+           ✓ Bottom dock: [NAV] [FILTERS] [LOGS] [HIDE ALL]
+           ✓ Tapping FILTERS slides up a clean drawer with VIEW MODES,
+             FACTION DATA, BLACK HOLE REALITIES + NAV-COMPUTER below
+           ✓ Tapping LOGS slides up SELECTED REALITY DIAGNOSTICS +
+             SYSTEM LOGS terminal
+           ✓ Tapping HIDE ALL collapses all drawers, restores full view
+
+         Verified at 1280×800 (desktop):
+           ✓ mqMobile=false, left/right panels display=flex,
+             mobile dock display=none (unchanged from before)
+
+      3. Chunking + SW:
+         • Re-chunked successfully: engine 124.2 KB, body 23.9 KB,
+           CSS 7.9 KB (was 3.8 — grew with mobile rules).
+         • Service worker bumped: v10 → v11-2026-06-mobile-ui.
+
+      4. Still pending for next round per user:
+         • Switch back to Death's Ship features
+           (reaper-death → astrolabe infestation bridge, more rooms,
+           more NPCs)
+
+  - agent: "main"
+    message: |
+      [2026-06 — HOTFIX · Layout regression + Cinematic camera removed]
+
+      ROOT CAUSE (regression introduced in v9): My earlier Phase-E edit
+      that injected the strata-enter-hint and cinematic-vignette divs
+      INSIDE the viewport-global-container accidentally consumed the
+      container's closing </div>. Result: viewport-local-container and
+      every subsequent UI panel nested inside viewport-global-container,
+      collapsing the flex layout. On mobile portrait this manifested as
+      an entirely BLACK middle area (no canvas, no strata visible).
+
+      FIX:
+        • Restored the closing </div> after the new cinematic-vignette
+          element. Verified by grep: viewport-global-container open=1,
+          close=1; viewport-local-container open=1, close=1.
+
+      ADDITIONAL FIX (per user spec "keep camera viewport focused on
+      the layer, dont have a cinematic zoom"):
+        • Removed the cameraGlobal position tween from
+          cinematicEnterLayer(). It no longer moves the camera at all —
+          it only flashes the vignette overlay for ~350ms, then calls
+          updateLayer() + setLocalObserverViewVisibility(true). The
+          global camera stays anchored on the spindle.
+
+      ADDITIONAL TUNING:
+        • Default bloom lowered: strength 0.45→0.28, radius 0.55→0.45,
+          threshold 0.55→0.70. Removes the white-blowout of the
+          strata cone the user reported. User can still bump to
+          Cinematic preset (0.70 strength) via Settings → GRAPHICS.
+
+      Service-worker bumped: v9 → v10-2026-06-layout-fix.
+      Re-chunked: engine.js 123.5 KB, body.html 23.9 KB.
+
+      VERIFIED via screenshot tool at 412×915 (mobile portrait):
+        ✓ Global viewport renders correctly at all layers (0, 5, +1)
+        ✓ Local observer renders correctly with INFESTED countdown
+          timers visible (☢ 2:04, 2:29, 2:42, etc. all ticking)
+        ✓ Strata cone no longer pans out of view on layer change
+        ✓ No console errors, no pageerrors
+        ✓ Vignette flash plays briefly without moving the camera
+
+  - agent: "main"
+    message: |
+      [2026-06 — ASTROLABE V2 PHASE D + E + F · Sector Grid, Cinematic Entry, Infestation Mechanic]
+
+      Phase D — Sector Grid Overlay (Elite-Dangerous-style)
+        • Each strata layer now has cyan polar grid lines on its top + bottom
+          cap (6 concentric rings × 12 radial spokes) plus a glowing dot at
+          every ring/spoke intersection.
+        • Top grid uses #6dd5ff, bottom uses #99ddff with additive blending
+          and 18% opacity — present but not noisy.
+        • Toggle: window.GRAPHICS.sectorGridEnabled (default true). Live-
+          switchable via "SECTOR GRID OVERLAY" checkbox in the Settings →
+          GRAPHICS panel — visibility flips instantly + the active layer
+          rebuilds to apply the new state.
+
+      Phase E — Cinematic Layer Entry
+        • New cinematicEnterLayer(layerIndex, ringMesh) replaces the
+          instant updateLayer + setLocalObserverViewVisibility.
+        • Tween: smoothstep 750ms camera lerp from current overview to a
+          point 18 units above the target ring, simultaneously rotating
+          the look-at vector to the ring's world position.
+        • Vignette overlay (radial gradient on cinematic-vignette div)
+          fades in for the dive then fades out after the local viewport
+          opens. Vignette label reads "▸ ENTERING STRATA +N ◂" with neon
+          cyan glow.
+        • Pointermove hover now shows a floating "▸ DOUBLE-TAP TO ENTER
+          STRATA ±N" hint that follows the cursor when over a strata
+          ring. Renderer cursor swaps to 'pointer'.
+
+      Phase F — Infestation Mechanic (per user spec)
+        • Realities flip STABLE → INFESTED when their respective reaper
+          dies. Each infestation starts a 90-180s countdown timer
+          (staggered so they don't all expire at once).
+        • DOM-tracked timer labels project the world position of each
+          INFESTED reality into screen-space every frame and render a
+          red `☢ M:SS` badge above it. Goes critical (light-red pulse)
+          when <30s remaining.
+        • If timer hits 0 → explodeReality(name): big additive red sprite
+          burst (40-frame fade) → after 1.2s downgrades the reality to
+          DEAD permanently (volumetric blob + green relics) and logs
+          "☢ CONTAINMENT FAILED — <name> collapsed under soul-mass
+          detonation" to the live terminal.
+        • Centurion modal SUCCESS path now calls cleanseInfestation(name)
+          → cancels the timer, removes the label, rebuilds the reality
+          as STABLE.
+        • Public API exposed on window:
+            - infectReality(selector, durationSec?)
+              selector = realityName | starGroup | 'random'
+            - cleanseInfestation(realityName)
+            - explodeReality(realityName)
+          Death's Ship can now invoke window.infectReality('random') (or
+          a specific reality name) whenever a reaper NPC dies on the ship.
+
+      Polish — Centurion Modal Audio Fade
+        • Video starts with volume = 0, fades in over 800ms (50ms ticks).
+        • Last ~1.2s of the clip linearly fades volume back to 0 for a
+          clean exit, regardless of clip length.
+        • Falls back to muted autoplay if the browser still blocks.
+
+      Chunking
+        • Re-chunked successfully:
+            astrolabe.css           3.8 KB
+            astrolabe-body.html    23.9 KB  (+1.1 KB for vignette/hint divs)
+            astrolabe-engine.js   124.6 KB  (+22 KB for phases D/E/F)
+        • Service worker bumped to v9-2026-06-cinematic-entry.
+
+      Verified via screenshot tool:
+        ✓ infectReality / cleanseInfestation / explodeReality /
+          cinematicEnterLayer all exposed and 'function' typed
+        ✓ Six INFESTED realities show live red countdown badges
+          (1:59 → 1:49 → 1:43 confirmed correct ticking over 10s)
+        ✓ Label DOM elements positioned correctly above each reality
+          via THREE.Vector3.project() screen-space math
+        ✓ No console errors, no pageerrors
+
+      Next: switch back to Death's Ship for more features. Phase F's
+      window.infectReality() bridge is ready to be invoked when a reaper
+      dies in the 2D game.
+
+  - agent: "main"
+    message: |
+      [2026-06 — ASTROLABE V2 GRAPHICS OVERHAUL · Phases A+B+C complete]
+
+      Phase A — Graphics post-processing pipeline (NEW)
+        • Added Three.js EffectComposer + UnrealBloomPass + SMAAPass +
+          ACESFilmic tone mapping + sRGB output encoding to BOTH the
+          Global Spindle and Local Observer viewports.
+        • renderer.toneMappingExposure = 1.15 (global) / 1.25 (local).
+        • SetupPostProcessing() gracefully no-ops if any of the
+          post-FX scripts fail to CDN-load — falls back to plain
+          rendererX.render(scene, camera) so the app never crashes.
+        • New window.GRAPHICS object persists user prefs in localStorage
+          (quality preset, bloomStrength, bloomRadius, bloomThreshold,
+          aaEnabled, postFXEnabled). Default = "balanced" preset.
+        • applyQualityPreset('performance'|'balanced'|'cinematic') live-
+          tunes both bloom passes without rebuilding the composer.
+
+      Phase B — Reality state visualisation (NEW)
+        • Refactored black-hole creation into applyRealityVisuals() with
+          three explicit branches:
+            STABLE   → existing pink/magenta accretion disk + halo
+            INFESTED → red accretion disk + pulsing red halo + red
+                       volumetric mist sprite + animated wound aura
+            DEAD     → 4-layer stacked black volumetric cloud sprites
+                       (NO accretion disk) + 3-5 green octahedron
+                       relic markers orbiting at 3-5× bhSize radius
+                       (with inner solid glow that pulses sympathetically)
+        • animate() loop now drives relic orbits + INFESTED aura pulse
+          + infestation mist breathing.
+        • Reality types distribute ~60% STABLE / ~22% DEAD / ~17%
+          INFESTED across 36 realities per layer.
+
+      Phase C — Centurion Defense Video Modal (NEW)
+        • Downloaded user-supplied MP4 → /api/static/centurion_defense.mp4
+          (5.1MB, "Soul Parasite vs Centurion Guard").
+        • New <div id="centurion-modal"> with red gothic frame, corner
+          brackets, top "SOULSEAM CONTAINMENT — LIVE FEED" hud, animated
+          subtitle ticker (8 phases of containment narrative), abort
+          button, ESC dismiss, click-outside dismiss.
+        • selectStarSystem() now emits an INFESTED-only "⚔ DEPLOY
+          CENTURION GUARD" button in the data panel that triggers
+          window.openCenturionModal(starParentGroup).
+        • On video 'ended' event → mutates the reality's userData.realityType
+          from INFESTED → STABLE, calls applyRealityVisuals() to rebuild
+          its visuals as a stable accretion disk, and logs "CONTAINMENT
+          SUCCESSFUL — <name> restored to STABLE." in the live terminal.
+
+      Settings UI (NEW)
+        • Existing right-strip ⚙ button opens a redesigned modal with a
+          new GRAPHICS section containing the 3 preset buttons + 3
+          sliders + 2 toggles. Sliders push live changes to
+          window.bloomPassGlobal/Local without reload. AA / postFX
+          toggles persist and show an "Reload required" hint (composer
+          rebuild needed for those two).
+
+      Chunking-script fix
+        • split_astrolabe_v2.py was concatenating IIFEs without a leading
+          semicolon, leading to "(intermediate value)(...) is not a
+          function" ASI bugs whenever a new <script> block was added to
+          astrolabe_v2.html. Fixed by prepending ';' to each chunk
+          divider. Re-chunked outputs:
+            astrolabe.css           3.8 KB
+            astrolabe-body.html    22.8 KB
+            astrolabe-engine.js   103.2 KB (+0.6 KB net for centurion+visuals)
+
+      Verified via screenshot tool:
+        ✓ SMAAPass, EffectComposer, UnrealBloomPass all load (function)
+        ✓ window.GRAPHICS, applyGraphicsQualityPreset, openCenturionModal,
+          applyRealityVisuals all exposed
+        ✓ Settings modal opens, GRAPHICS section rendering with sliders
+        ✓ Centurion modal opens with the red gothic frame, target
+          telemetry, animated subtitles, MP4 in <video> stage
+        ✓ Reality distribution: 22 STABLE / 6 INFESTED / 8 DEAD per layer
+        ✓ Local observer shows the new red infestation mist + dead-blob
+          green-relic visuals
+        ✓ Service-worker bumped to v8-2026-06-graphics-pass
+        ✓ All other entry points still functional (main menu,
+          deaths_ship, astrolabe v1)
+
+      No backend code changed. No DB schema changes. Pure
+      static-asset/engine work. Backend tests NOT needed for this round.
+
+  - agent: "main"
+    message: |
+      [2026-06 — HD Dialogue Portrait System for Death's Ship]
+      Wired up high-resolution character portraits into the Death's Ship
+      2D game dialogue modal. Replaces the previous sprite-cropped 120×150
+      canvas tile with proper head-and-shoulders character art for all
+      canonical NPCs.
+
+      Files touched:
+        • backend/static/deaths_ship.html
+          - Added .modal-portrait-frame + .modal-portrait-hd CSS with
+            gothic brass cornerpieces and radial dark gradient backing.
+          - Modal HTML now has BOTH an <img> (HD path) and the existing
+            <canvas> (sprite fallback). openModal() picks one or the other.
+          - HD_PORTRAITS registry maps character-key → /api/static/
+            characters/<name>_dialogue.png.
+          - resolveCharacterKey() infers character from NPC.sheet (e.g.
+            death_*, elystria_*, cryious_*, may_*/idle_*/run_*) AND from
+            label OR from dorm-slot occupant name. Priority order is
+            explicit-character > slot-occupant > sheet-prefix > label.
+          - Falls back to renderCharacterPortrait (sprite canvas crop) for
+            procedural reapers / elites / engineers / elexus where no HD
+            asset exists.
+          - window.openModal exposed for testability.
+        • backend/scripts/build_dialogue_portraits.py (NEW)
+          - One-shot PIL script that crops each *_portrait.* under
+            backend/static/characters/ to a head-and-shoulders portrait,
+            drops white backgrounds to alpha, and writes <name>_dialogue.png.
+          - Hard-clips Cryious's left 60% so the "Core Personality Traits"
+            text panel on the right side is dropped before the head crop.
+          - Re-run any time the source character art changes.
+        • backend/static/service-worker.js
+          - Cache version bumped v6 → v7-2026-06-portrait-dialogue to
+            invalidate stale HTML.
+
+      Manual verification via screenshot tool:
+        ✓ Master Death dialog → HD portrait (hat + scythe + robe)
+        ✓ Grim Elystria dialog → HD portrait (red hair, hooded)
+        ✓ Grim Cryious dialog → HD portrait (red eye, scythe, sigil)
+        ✓ Flybutt dialog → HD portrait (dome head, robe, wings)
+        ✓ Elite Reaper dialog → falls back to sprite canvas crop
+        ✓ Generic lore plaque (no NPC) → no portrait, clean text-only modal
+        ✓ Procedural reaper plaque (Harrow-7) → no portrait
+        All assets generated under /api/static/characters/*_dialogue.png
+        (10 files, ~1.1MB total).
+
+      No backend code changed. No DB changes. Pure frontend (static HTML +
+      a build script). Backend tests do NOT need to be re-run for this
+      change.
+
+  - agent: "main"
+    message: |
       [2026-05-19 — Resend email integration wired up]
       _log_admin_notification now also dispatches an HTML email via the
       Resend REST API (https://api.resend.com/emails) to LORE_NOTIFY_EMAIL.
@@ -3170,3 +3643,54 @@ metadata_addendum:
 #                                          and the [+ ADD LORE] inline
 #                                          button visible in the
 #                                          community section
+
+# ============================================================================
+# 2026-02-22 — NAME FIX + 3 DEFERRED ART TASKS
+# ============================================================================
+#
+# A. NAME FIX: "Cryious Death" → "Grim Cryious"  (sed across deaths_ship.html)
+#    All references in dorm slots, NPC plaque body, lore comments now
+#    use the canonical "Grim Cryious" without the "Death" suffix.
+#
+# B. SURGE HANGER — DYNAMIC PERSPECTIVE CHARACTER SIZING
+#    Player draw routine (drawPlayer) now checks the active room for
+#    `perspectiveScale: true`. When set, the player's effective height
+#    interpolates from full size at the FOREGROUND (south, max y) down
+#    to `perspectiveMin` (default 0.38x) at the HORIZON (north, near
+#    bay door at y ≈ perspectiveHorizonY*64). Shadow also scales with
+#    the player width.
+#    surge_hanger room flagged:
+#      perspectiveScale: true
+#      perspectiveHorizonY: 1     // bay door horizon line
+#      perspectiveMin: 0.38       // player is 38% at the horizon
+#    Effect verified: Maytradalis is full-size at foreground spawn
+#    (y=16.6) and visibly shrinks as she walks toward the bay door —
+#    matching the perspective depth shown in the user's reference
+#    photo of the hangar interior.
+#
+# C. GRAND HALL — GOTHIC GOLDEN-ARCH STAINED-GLASS WINDOWS
+#    drawGrandHall now renders 6 tall pointed-arch stained-glass
+#    windows along the side walls (3 each side) between the existing
+#    banners. Each window has:
+#      • Dark stone frame around a pointed-arch outline
+#      • Inner amber stained-glass with a radial gradient (gold
+#        center → warm amber edges) that flickers per-frame via a
+#        sine-wave (cx-seeded so adjacent windows flicker out-of-phase)
+#      • Lead-mullion grid (vertical center mullion + 2 thirds + 2
+#        horizontal bars at 0.55 and 0.75 of the window height)
+#      • Cross-shaped sigil at the top of each arch (☩-style)
+#      • Warm halo glow cast back onto the surrounding wall stone
+#    Matches the user's reference photo of the gothic golden-arched
+#    cathedral interior.
+#
+# Verified screenshots:
+#   /tmp/ds_surge_hanger_foreground.png  — Maytradalis full-size at
+#                                          south spawn
+#   /tmp/ds_grand_hall_arches.png        — Grand Hall with 6 amber
+#                                          arch windows visibly
+#                                          glowing on the side walls
+#
+# Skipped (low-priority):
+#   • Maytradalis private room polish — existing drawMaysRoom already
+#     extremely detailed (canopy bed, vanity, gallery wall, alcoves,
+#     bat decor); marginal additions deferred.

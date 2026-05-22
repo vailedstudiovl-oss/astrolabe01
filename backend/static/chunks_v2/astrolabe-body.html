@@ -81,6 +81,12 @@
             </div>
             <!-- Canvas target -->
             <div id="canvas-global" class="w-full h-full absolute inset-0 z-0"></div>
+            <!-- Floating "DOUBLE-TAP TO ENTER" hint that follows the cursor when over a strata ring -->
+            <div id="strata-enter-hint" style="display:none; position:fixed; z-index:25; pointer-events:none; background: rgba(0,15,18,0.9); border:1px solid rgba(0,255,204,0.65); color:#9ff; padding:4px 10px; font:600 11px 'Share Tech Mono', monospace; letter-spacing:0.18em; box-shadow:0 0 14px rgba(0,255,204,0.35); border-radius:3px;">▸ DOUBLE-TAP TO ENTER ◂</div>
+            <!-- Cinematic vignette overlay used for the layer-entry transition (brief flash only — does NOT move the camera) -->
+            <div id="cinematic-vignette" style="display:none; position:absolute; inset:0; z-index:20; pointer-events:none; opacity:0; transition: opacity 380ms ease-out; background: radial-gradient(ellipse at center, rgba(0,0,0,0.0) 25%, rgba(0,30,40,0.45) 55%, rgba(0,0,0,0.92) 100%);">
+                <div id="cinematic-vignette-label" style="position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); color:#9ff; font:700 18px 'Share Tech Mono', monospace; letter-spacing:0.35em; text-shadow:0 0 22px rgba(0,255,204,0.65);">▸ ENTERING STRATA ◂</div>
+            </div>
         </div>
 
         <!-- Right Local Layer Viewport Container -->
@@ -268,4 +274,55 @@
     <!-- Lore merge module: enriches layerProfiles, wires live intel ticker,
          adds STRATA LORE CODEX modal, enhances entity-peek with canon data. -->
     <script src="/api/static/js/astrolabe_lore_module.js" defer></script>
+    <!-- inline scripts loaded by launcher -->
+
+    <!-- ============================================================
+         CENTURION DEFENSE VIDEO MODAL
+         Plays the user-supplied "Soul Parasite vs Centurion Guard" MP4
+         when an INFESTED reality is selected for cleansing. After the
+         video ends, the reality animates INFESTED → STABLE.
+         ============================================================ -->
+    <div id="centurion-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/85 backdrop-blur-sm" style="font-family: 'Share Tech Mono', monospace;">
+        <div class="relative w-[92vw] max-w-5xl bg-gradient-to-b from-[#0a0014] to-[#160416] border-2 border-red-500/70 rounded-md p-4 shadow-[0_0_60px_rgba(255,40,80,0.5),inset_0_0_30px_rgba(255,40,80,0.15)]">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-2 px-1">
+                <div class="flex items-center gap-3">
+                    <div class="text-red-400 text-[10px] tracking-[0.4em] font-bold animate-pulse">▌ CONTAINMENT PROTOCOL ENGAGED</div>
+                    <div id="centurion-target-label" class="text-white/80 text-xs tracking-wider"></div>
+                </div>
+                <button id="centurion-close" class="text-red-300 hover:text-white border border-red-500/70 hover:border-red-400 px-2.5 py-1 rounded text-xs uppercase tracking-widest transition-all">⨯ Abort</button>
+            </div>
+            <!-- Video stage -->
+            <div class="relative aspect-video bg-black border border-red-500/40 rounded overflow-hidden">
+                <video id="centurion-video" class="w-full h-full object-cover" preload="auto" playsinline></video>
+                <!-- HUD overlay frame -->
+                <div class="absolute inset-0 pointer-events-none">
+                    <!-- corner brackets -->
+                    <div class="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-red-400/80"></div>
+                    <div class="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-red-400/80"></div>
+                    <div class="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-red-400/80"></div>
+                    <div class="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-red-400/80"></div>
+                    <!-- top hud bar -->
+                    <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-3 text-[10px] tracking-[0.3em] text-red-300/90 font-bold bg-black/50 px-3 py-1 rounded">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        <span>SOULSEAM CONTAINMENT — LIVE FEED</span>
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    </div>
+                    <!-- bottom telemetry -->
+                    <div id="centurion-telemetry" class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] tracking-[0.25em] text-cyan-300/90 bg-black/60 px-3 py-1 rounded">
+                        CENTURION GUARD — HOLDING THE LINE
+                    </div>
+                </div>
+            </div>
+            <!-- Subtitles & status -->
+            <div class="mt-3 px-1">
+                <div id="centurion-subtitle" class="text-cyan-200/90 text-sm text-center min-h-[1.6em] tracking-wide"></div>
+                <div class="flex items-center justify-between mt-2 text-[10px] tracking-[0.3em] uppercase text-slate-400">
+                    <span id="centurion-status" class="text-red-400">▌ INFESTED — SOUL PARASITES SPAWNING</span>
+                    <span class="text-slate-500">PRESS [ESC] TO ABORT</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- inline scripts loaded by launcher -->

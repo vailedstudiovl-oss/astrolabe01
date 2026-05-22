@@ -166,6 +166,42 @@
                         <span>MUTE AUDIO</span>
                         <input type="checkbox" id="set-mute" class="w-5 h-5">
                     </label>
+                    <!-- ============ GRAPHICS SECTION ============ -->
+                    <div class="border border-purple-500/40 px-3 py-3 rounded-sm bg-purple-950/10">
+                        <div class="text-purple-300 mb-2 font-bold tracking-widest">⬢ GRAPHICS</div>
+                        <div class="text-[10px] text-slate-400 mb-2">Quality preset — bloom + anti-aliasing tuning</div>
+                        <div class="grid grid-cols-3 gap-1 mb-3" id="graphics-preset-group">
+                            <button data-preset="performance" class="gfx-preset-btn px-1 py-1 text-[10px] uppercase tracking-widest rounded-sm border border-cyan-500/40 hover:bg-cyan-950/30 text-cyan-300">Perf</button>
+                            <button data-preset="balanced" class="gfx-preset-btn px-1 py-1 text-[10px] uppercase tracking-widest rounded-sm border border-cyan-500/40 hover:bg-cyan-950/30 text-cyan-300">Balanced</button>
+                            <button data-preset="cinematic" class="gfx-preset-btn px-1 py-1 text-[10px] uppercase tracking-widest rounded-sm border border-cyan-500/40 hover:bg-cyan-950/30 text-cyan-300">Cinematic</button>
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <div class="flex justify-between"><span>Bloom Strength</span><span id="set-bloom-str-val" class="text-purple-300">—</span></div>
+                                <input type="range" id="set-bloom-str" min="0" max="2" step="0.05" class="w-full accent-purple-500">
+                            </div>
+                            <div>
+                                <div class="flex justify-between"><span>Bloom Radius</span><span id="set-bloom-rad-val" class="text-purple-300">—</span></div>
+                                <input type="range" id="set-bloom-rad" min="0" max="1.5" step="0.05" class="w-full accent-purple-500">
+                            </div>
+                            <div>
+                                <div class="flex justify-between"><span>Bloom Threshold</span><span id="set-bloom-thr-val" class="text-purple-300">—</span></div>
+                                <input type="range" id="set-bloom-thr" min="0" max="1" step="0.05" class="w-full accent-purple-500">
+                            </div>
+                            <label class="flex items-center justify-between border border-purple-500/20 px-2 py-1 rounded-sm">
+                                <span>ANTI-ALIASING (SMAA)</span>
+                                <input type="checkbox" id="set-aa" class="w-4 h-4">
+                            </label>
+                            <label class="flex items-center justify-between border border-purple-500/20 px-2 py-1 rounded-sm">
+                                <span>POST-PROCESSING (FX)</span>
+                                <input type="checkbox" id="set-postfx" class="w-4 h-4">
+                            </label>
+                            <label class="flex items-center justify-between border border-cyan-500/20 px-2 py-1 rounded-sm">
+                                <span>SECTOR GRID OVERLAY</span>
+                                <input type="checkbox" id="set-grid" class="w-4 h-4">
+                            </label>
+                        </div>
+                    </div>
                     <div class="border border-amber-500/20 px-3 py-2 rounded-sm">
                         <div class="text-amber-300 mb-1">WANDERER IDENTITY</div>
                         <div class="flex items-center justify-between">
@@ -211,6 +247,117 @@
                 const span = badge.querySelector('span'); if (span) span.innerText = wid;
             }
         });
+
+        // ===== GRAPHICS CONTROLS WIRING =====
+        // Bind preset buttons + sliders to window.GRAPHICS and the live
+        // bloom passes via window.applyGraphicsQualityPreset() and direct
+        // mutation of the global bloomPass instances.
+        const G = window.GRAPHICS || {};
+        const $bs = document.getElementById('set-bloom-str');
+        const $br = document.getElementById('set-bloom-rad');
+        const $bt = document.getElementById('set-bloom-thr');
+        const $bsv = document.getElementById('set-bloom-str-val');
+        const $brv = document.getElementById('set-bloom-rad-val');
+        const $btv = document.getElementById('set-bloom-thr-val');
+        const $aa = document.getElementById('set-aa');
+        const $pfx = document.getElementById('set-postfx');
+
+        function refreshGraphicsUI() {
+            const g = window.GRAPHICS || {};
+            if ($bs) $bs.value = g.bloomStrength ?? 0.5;
+            if ($br) $br.value = g.bloomRadius   ?? 0.55;
+            if ($bt) $bt.value = g.bloomThreshold?? 0.55;
+            if ($bsv) $bsv.innerText = (g.bloomStrength ?? 0.5).toFixed(2);
+            if ($brv) $brv.innerText = (g.bloomRadius   ?? 0.55).toFixed(2);
+            if ($btv) $btv.innerText = (g.bloomThreshold?? 0.55).toFixed(2);
+            if ($aa) $aa.checked = !!g.aaEnabled;
+            if ($pfx) $pfx.checked = g.postFXEnabled !== false;
+            // Highlight active preset
+            const all = document.querySelectorAll('.gfx-preset-btn');
+            all.forEach(b => b.classList.remove('bg-purple-700/40', 'border-purple-400', 'text-white'));
+            const active = document.querySelector(`.gfx-preset-btn[data-preset="${g.quality}"]`);
+            if (active) active.classList.add('bg-purple-700/40', 'border-purple-400', 'text-white');
+        }
+        refreshGraphicsUI();
+
+        // Preset buttons
+        document.querySelectorAll('.gfx-preset-btn').forEach(b => {
+            b.addEventListener('click', () => {
+                const preset = b.dataset.preset;
+                if (typeof window.applyGraphicsQualityPreset === 'function') {
+                    window.applyGraphicsQualityPreset(preset);
+                    refreshGraphicsUI();
+                }
+            });
+        });
+
+        function tweakBloom(prop, val) {
+            if (!window.GRAPHICS) return;
+            window.GRAPHICS[prop] = parseFloat(val);
+            // Apply to live bloom passes if they exist on window (engine
+            // exposes them as bloomPassGlobal / bloomPassLocal via closure)
+            if (window.bloomPassGlobal) {
+                window.bloomPassGlobal.strength   = window.GRAPHICS.bloomStrength;
+                window.bloomPassGlobal.radius     = window.GRAPHICS.bloomRadius;
+                window.bloomPassGlobal.threshold  = window.GRAPHICS.bloomThreshold;
+            }
+            if (window.bloomPassLocal) {
+                window.bloomPassLocal.strength    = window.GRAPHICS.bloomStrength * 1.15;
+                window.bloomPassLocal.radius      = window.GRAPHICS.bloomRadius;
+                window.bloomPassLocal.threshold   = window.GRAPHICS.bloomThreshold;
+            }
+            try { localStorage.setItem('dlds_graphics', JSON.stringify(window.GRAPHICS)); } catch (e) {}
+        }
+        if ($bs) $bs.addEventListener('input', () => { tweakBloom('bloomStrength', $bs.value); if ($bsv) $bsv.innerText = (+$bs.value).toFixed(2); });
+        if ($br) $br.addEventListener('input', () => { tweakBloom('bloomRadius',   $br.value); if ($brv) $brv.innerText = (+$br.value).toFixed(2); });
+        if ($bt) $bt.addEventListener('input', () => { tweakBloom('bloomThreshold',$bt.value); if ($btv) $btv.innerText = (+$bt.value).toFixed(2); });
+        if ($aa) $aa.addEventListener('change', () => {
+            window.GRAPHICS.aaEnabled = $aa.checked;
+            try { localStorage.setItem('dlds_graphics', JSON.stringify(window.GRAPHICS)); } catch (e) {}
+            // Note: enabling/disabling SMAA at runtime requires rebuilding
+            // the composer — show user a hint that a soft reload is needed.
+            const hint = document.getElementById('graphics-reload-hint');
+            if (!hint) {
+                const h = document.createElement('div');
+                h.id = 'graphics-reload-hint';
+                h.className = 'text-amber-400 text-[10px] mt-1 italic';
+                h.innerText = 'Reload required for AA toggle.';
+                $aa.parentElement.appendChild(h);
+            }
+        });
+        if ($pfx) $pfx.addEventListener('change', () => {
+            window.GRAPHICS.postFXEnabled = $pfx.checked;
+            try { localStorage.setItem('dlds_graphics', JSON.stringify(window.GRAPHICS)); } catch (e) {}
+            const hint = document.getElementById('graphics-pfx-reload-hint');
+            if (!hint) {
+                const h = document.createElement('div');
+                h.id = 'graphics-pfx-reload-hint';
+                h.className = 'text-amber-400 text-[10px] mt-1 italic';
+                h.innerText = 'Reload required for FX toggle.';
+                $pfx.parentElement.appendChild(h);
+            }
+        });
+        // Sector grid toggle — needs layer rebuild to take effect
+        const $grid = document.getElementById('set-grid');
+        if ($grid) {
+            $grid.checked = window.GRAPHICS.sectorGridEnabled !== false;
+            $grid.addEventListener('change', () => {
+                window.GRAPHICS.sectorGridEnabled = $grid.checked;
+                try { localStorage.setItem('dlds_graphics', JSON.stringify(window.GRAPHICS)); } catch (e) {}
+                // Live update: hide/show existing grids on the current layer
+                if (window.STATE && window.STATE.starsOnLayer && window.activeLayerGroup) {
+                    window.activeLayerGroup.traverse(o => {
+                        if (o.userData && o.userData.isSectorGrid) {
+                            o.visible = $grid.checked;
+                        }
+                    });
+                }
+                // Force layer rebuild for next switch
+                if (window.STATE && typeof window.updateLayer === 'function') {
+                    window.updateLayer(window.STATE.currentLayer || 0, true);
+                }
+            });
+        }
     }
     function openSettings() {
         buildSettingsShell();

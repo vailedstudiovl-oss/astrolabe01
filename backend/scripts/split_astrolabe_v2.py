@@ -29,7 +29,10 @@ body_inner = body_match.group(1)
 # 3) Extract ALL inline <script>...</script> blocks from the body
 script_blocks = re.findall(r"<script>(.*?)</script>", body_inner, flags=re.DOTALL)
 assert script_blocks, "No inline body <script> found"
-engine_js = "\n\n/* ─── chunk break ─── */\n\n".join(s.strip() for s in script_blocks)
+# Prefix each block with a leading semicolon to prevent ASI ambiguity when
+# concatenating multiple IIFEs (`(function(){})()` followed by another
+# `(function(){})()` parses as a function call on the first result otherwise).
+engine_js = "\n\n/* ─── chunk break ─── */\n;\n".join(s.strip() for s in script_blocks)
 
 # Strip inline style + script blocks from body (replaced by launcher injection markers)
 body_inner_clean = re.sub(r"<style>.*?</style>", "<!-- styles loaded by launcher -->", body_inner, flags=re.DOTALL)

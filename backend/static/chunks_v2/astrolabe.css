@@ -112,3 +112,124 @@ body {
         canvas {
             touch-action: none;
         }
+
+        /* =========================================================
+           MOBILE UI OVERHAUL — portrait phones (≤768px / ≤480px)
+           Strategy: collapse the always-visible side panels into
+           drawer-style overlays so the strata viewport gets full real-
+           estate. The mobile-dock buttons toggle a body class which
+           shows each panel as a full-height slide-in.
+           ========================================================= */
+        @media (max-width: 768px) {
+            /* By default on mobile, completely hide the side panels.
+               They re-appear via the body classes set by the mobile
+               dock buttons (.mob-show-filters, .mob-show-logs, etc.). */
+            #left-panel       { display:none; }
+            #right-panel      { display:none; }
+            #nav-comp-panel   { display:none; }
+
+            /* Header — compact. Hide button labels, show icons only. */
+            header .text-\[11px\], header .text-xs { font-size: 10px; }
+            header button { padding: 2px 6px; }
+            #cinematic-btn, #fullscreen-btn, #reset-btn { font-size: 9px; padding: 2px 5px; }
+            /* Intel ticker — narrower */
+            header marquee { width: 60vw !important; }
+
+            /* Pin BOTH viewport canvases to fill the visible area between
+               the header and the mobile dock. Drawers float OVER the
+               canvas (z-index 40) without resizing it — fixes the
+               "viewport blocked by nav box" regression. */
+            main { position: relative !important; }
+            #viewport-global-container,
+            #viewport-local-container {
+                position: absolute !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: 0 !important;
+                bottom: 60px !important;  /* room for mobile dock */
+                width: 100% !important;
+                height: auto !important;
+                min-height: 280px;
+            }
+
+            /* Bottom strata-level slider — bring it right above the
+               mobile dock so it's reachable. */
+            #bottom-panel {
+                bottom: 64px !important;
+                width: 92vw !important;
+                padding: 8px 10px !important;
+            }
+
+            /* Mobile dock — bump z-index above everything else */
+            #mobile-dock {
+                z-index: 50;
+                padding: 8px 4px;
+            }
+            #mobile-dock button {
+                font-size: 10px;
+                padding: 6px 8px;
+            }
+
+            /* When the user taps a dock button, show the corresponding
+               panel as a half-height drawer FLOATING over the canvas. */
+            body.mob-show-filters #left-panel,
+            body.mob-show-nav    #nav-comp-panel,
+            body.mob-show-logs   #right-panel {
+                display: flex !important;
+                position: fixed !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: auto !important;
+                bottom: 60px !important;  /* sits above the mobile dock */
+                width: 100vw !important;
+                max-height: 42vh !important;  /* leave canvas mostly visible */
+                margin: 0 !important;
+                padding: 12px 14px !important;
+                background: rgba(2, 6, 14, 0.95) !important;
+                backdrop-filter: blur(10px);
+                border-top: 1px solid rgba(0, 255, 204, 0.25);
+                border-radius: 12px 12px 0 0;
+                overflow-y: auto;
+                animation: mobDrawerIn 0.25s ease-out;
+                z-index: 40;
+                gap: 10px;
+            }
+            body.mob-show-filters #left-panel  { transform: none !important; }
+            body.mob-show-nav    #nav-comp-panel { transform: none !important; }
+            body.mob-show-logs   #right-panel  { transform: none !important; }
+            #nav-comp-panel > .cyber-panel { width: 100% !important; }
+            #right-panel { width: 100% !important; }
+
+            /* Drawer entrance animation */
+            @keyframes mobDrawerIn {
+                from { transform: translateY(60px); opacity: 0; }
+                to   { transform: none; opacity: 1; }
+            }
+
+            /* Hide footer status banner on mobile */
+            footer { display: none !important; }
+
+            /* Smaller viewport label tags on mobile */
+            #viewport-global-container > div:first-child,
+            #viewport-local-container > div:first-child {
+                font-size: 8px !important;
+                padding: 3px 6px !important;
+            }
+
+            /* Cinematic entry vignette label — smaller on mobile */
+            #cinematic-vignette-label { font-size: 13px !important; letter-spacing: 0.2em !important; }
+        }
+
+        /* Smaller phones — additional tweaks */
+        @media (max-width: 480px) {
+            header .border-l { display: none !important; }
+            header > div > div:first-child > div { padding-left: 0 !important; }
+            #log-coords { display: none !important; }
+            /* Drop the "DEDICATED STRATA OBSERVER ..." caption to fit on a phone */
+            #viewport-local-container > div:first-child {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 80vw;
+            }
+        }

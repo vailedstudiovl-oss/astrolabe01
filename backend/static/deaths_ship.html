@@ -97,9 +97,33 @@
     box-shadow:inset 0 0 0 1px rgba(212,168,90,0.15), 0 6px 22px rgba(0,0,0,0.6);
     image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;}
   .modal-portrait.show{display:block;}
+  /* HD portrait — uses actual character art instead of sprite crop */
+  .modal-portrait-hd{display:none;float:right;margin:0 0 12px 16px;width:140px;height:180px;
+    background:
+      radial-gradient(ellipse at center top, rgba(140,90,60,0.18) 0%, rgba(20,8,30,0.95) 70%),
+      linear-gradient(180deg, #1a0e08 0%, #06030a 100%);
+    border:1.5px solid #8a6a32;
+    box-shadow:inset 0 0 0 1px rgba(220,180,100,0.22), 0 8px 26px rgba(0,0,0,0.7), 0 0 22px rgba(220,170,90,0.12);
+    object-fit:contain; object-position:center;
+    position:relative;
+    border-radius:2px;}
+  .modal-portrait-hd.show{display:block;}
+  /* Brass cornerpiece overlay behind the HD portrait — gives it the same
+     ornamented gothic frame look as the canvas portrait. */
+  .modal-portrait-frame{display:none;float:right;position:relative;margin:0 0 12px 16px;
+    width:140px;height:180px;}
+  .modal-portrait-frame.show{display:block;}
+  .modal-portrait-frame::before,
+  .modal-portrait-frame::after{content:'';position:absolute;width:16px;height:16px;
+    border:1.5px solid #c8a45a;pointer-events:none;z-index:2;}
+  .modal-portrait-frame::before{top:-3px;left:-3px;border-right:none;border-bottom:none;}
+  .modal-portrait-frame::after{bottom:-3px;right:-3px;border-left:none;border-top:none;}
+  .modal-portrait-frame .modal-portrait-hd{display:block;margin:0;float:none;width:100%;height:100%;}
   @media (max-width:480px){
     .modal-portrait{float:none;display:none;margin:0 auto 12px;width:96px;height:120px;}
     .modal-portrait.show{display:block;}
+    .modal-portrait-frame{float:none;display:none;margin:0 auto 12px;width:110px;height:140px;}
+    .modal-portrait-frame.show{display:block;}
   }
   .modal-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:16px;
                font-family:'Cinzel',Georgia,serif;letter-spacing:1px;
@@ -302,6 +326,9 @@
 
   <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
     <div class="modal-content">
+      <div class="modal-portrait-frame" id="modalPortraitFrame">
+        <img id="modalPortraitImg" class="modal-portrait-hd" alt="" />
+      </div>
       <canvas id="modalPortrait" class="modal-portrait" width="160" height="200"></canvas>
       <div class="modal-eyebrow" id="modalEye">LORE FRAGMENT</div>
       <div class="modal-title" id="modalTitle"></div>
@@ -430,6 +457,12 @@ const SPRITE_META = {
   cryious_idle_down: { src: 'cryious_idle_down.png', frame_w: 256, frame_h: 174, frames: 25 },
   cryious_walk:      { src: 'cryious_walk.png',      frame_w: 256, frame_h: 157, frames: 25 },
   cryious_run:       { src: 'cryious_run.png',       frame_w: 256, frame_h: 125, frames: 25 },
+  // Grim Cryious — directional iso sprites (user-uploaded May 2026)
+  cryious_iso_idle_up:    { src: 'cryious_iso_idle_up.png',    frame_w: 256, frame_h: 142, frames: 25 },
+  cryious_iso_idle_right: { src: 'cryious_iso_idle_right.png', frame_w: 256, frame_h: 178, frames: 25 },
+  cryious_iso_idle_down:  { src: 'cryious_iso_idle_down.png',  frame_w: 256, frame_h: 174, frames: 25 },
+  cryious_iso_walk_right: { src: 'cryious_iso_walk_right.png', frame_w: 256, frame_h: 174, frames: 25 },
+  cryious_iso_run_up:     { src: 'cryious_iso_run_up.png',     frame_w: 256, frame_h: 152, frames: 25 },
   // Elite Grim Reaper 1 — armoured roamer (walk/run set, no static idle: uses walk_down frame 0)
   elite1_walk_down:  { src: 'elite1_walk_down.png',  frame_w: 256, frame_h: 183, frames: 25 },
   elite1_walk_up:    { src: 'elite1_walk_up.png',    frame_w: 256, frame_h: 174, frames: 25 },
@@ -503,7 +536,7 @@ function _genProceduralReaper(side, idx) {
 const CANON_DORMS = {
   // top row, slot index → fixed occupant
   top: {
-    2: { name: 'Cryious Death', sigil: '❄', kind: 'major', immortal: true, deceased: false,
+    2: { name: 'Grim Cryious', sigil: '❄', kind: 'major', immortal: true, deceased: false,
          lore: 'A frozen mist seeps out from under the door. Cryious is not human — Death\'s first ever creation, made before any of the 199 strata were stacked. He has no hair, only a smooth pale skull, and a single glowing red eye that does not blink during the long parts of cycle-end. Inside, he dreams in equations the rest of the crew can not read. Knock at his door at your own risk — the last reaper who knocked spent a week thinking in ice.' },
     3: { name: 'Grim Elystria', sigil: '♪', kind: 'major', immortal: true, deceased: false,
          lore: 'Music plays softly behind the door — a song May does not recognise, in a language that may not exist outside of this corridor. Elystria is May\'s closest ally; her real home is the City of Bones on Planet Leviticus, at Strata -37, where she runs a homeless shelter. The shelter\'s brass urn is older than her dorm here. Some nights she opens the door without being knocked on, and they share tea in silence.' },
@@ -832,6 +865,7 @@ const ROOM_DEFS = {
     palette: { floor:'#1a1028', wall:'#2c1a3e', stone:'#3a2354', accent:'#c89968', candle:'#ffd49a' },
     spawn: { x: 4, y: 5 },
     draw: drawDormHall,
+    cameraMode: 'sidescroller',
     walls: [
       { x:0,y:0,w:32,h:1 }, { x:0,y:9,w:32,h:1 }, { x:0,y:0,w:1,h:10 }, { x:31,y:0,w:1,h:10 },
       // door alcove framings
@@ -870,7 +904,7 @@ const ROOM_DEFS = {
         out.push({ x: slot.plaqueTileX, y: slot.plaqueTileY, kind: 'plaque', title, body, __slot: slot });
       }
       // Keep the canonical hall fixtures
-      out.push({ x:23, y:5,   kind:'plaque', title:'HALL TERMINAL', body:`Roster: 12 reapers on rotation. ${DORM_ROSTER.filter(s => !s.occupant.deceased && !['sealed','common','skeleton'].includes(s.occupant.kind)).length} sigils currently glowing.\n\nVivian\'s name is highlighted in red. Investigation pending.\n\nThe terminal pulls live status from the Astrolabe — a sigil here goes cold the instant a reaper falls in the field. The four named in gold (Cryious Death, Maytradalis, Grim Elystria, Flybutt) are protected by older contracts and cannot fall.` });
+      out.push({ x:23, y:5,   kind:'plaque', title:'HALL TERMINAL', body:`Roster: 12 reapers on rotation. ${DORM_ROSTER.filter(s => !s.occupant.deceased && !['sealed','common','skeleton'].includes(s.occupant.kind)).length} sigils currently glowing.\n\nVivian\'s name is highlighted in red. Investigation pending.\n\nThe terminal pulls live status from the Astrolabe — a sigil here goes cold the instant a reaper falls in the field. The four named in gold (Grim Cryious, Maytradalis, Grim Elystria, Flybutt) are protected by older contracts and cannot fall.` });
       out.push({ x:28, y:5,   kind:'plaque', title:'CHANDELIER WINCH', body:'A small crank on the wall lowers the great bone-and-iron chandelier above for cleaning.\n\nThe chandelier is May\'s responsibility. She lowers it once a week. The candles never need replacing — they burn from the bone, not from wax.' });
       return out;
     })(),
@@ -887,7 +921,19 @@ const ROOM_DEFS = {
         label:'Grim Elystria', plaqueTitle:'GRIM ELYSTRIA',
         plaqueBody:'Tall, pale, scarlet-eyed beneath a tattered grey hood. She nods at May once — the only greeting Elystria has ever offered anyone.\n\n"I left tea outside your door. The hat one. Not the boots one.\n\nDeath asked after you. Twice. Be kind about it."' },
       // Grim Cryious — drifts a half-step out of his dorm (slot top i=2 → x≈12.5), facing down
-      { x:12.5, y:2.6, sheet:'cryious_idle_down', flip:false, animSpeed:4,
+      // Uses the new ISO directional sprite set (idle_up/idle_right/idle_down +
+      // walk_right + run_up). For LEFT, walk_right is mirrored via npc.flip.
+      // For DOWN we fall back to walk-right (no walk_down sprite shipped).
+      { x:12.5, y:2.6, sheet:'cryious_iso_idle_down', flip:false, animSpeed:4,
+        sheets: {
+          idle_down:  'cryious_iso_idle_down',
+          idle_right: 'cryious_iso_idle_right',
+          idle_up:    'cryious_iso_idle_up',
+          walk_right: 'cryious_iso_walk_right',
+          walk_up:    'cryious_iso_run_up',     // no walk_up shipped, run_up is closest
+          walk_down:  'cryious_iso_walk_right', // no walk_down — use right (no flip)
+          run_up:     'cryious_iso_run_up',
+        },
         label:'Grim Cryious', plaqueTitle:'GRIM CRYIOUS',
         plaqueBody:'A thin frost-mist drifts around his boots even now. Cryious is not human — he has no hair, only a smooth pale skull, and where most reapers have eyes there is a single glowing red eye that does not blink during the long parts of cycle-end.\n\nHe does not speak when he sees May — he only tilts the skull, a single calculation completing behind that one red light. Then he returns to his dorm without sound.\n\n"... seventeen. Yes. Tuesday." (Whatever he counts, he counts it once a day.)' },
     ],
@@ -935,6 +981,14 @@ const ROOM_DEFS = {
     // open bay door where the Endless is visible.
     spawn: { x: 12, y: 16.6 },
     draw: drawSurgeHanger,
+    // PERSPECTIVE: characters shrink as they walk "into" the bay
+    // (toward smaller y, toward the bay door at the north edge).
+    // Horizon line is the bay door / top wall at y=1. At the far end
+    // characters are ~38% of their normal height; at the player-entry
+    // (south) they are full-size.
+    perspectiveScale: true,
+    perspectiveHorizonY: 1,
+    perspectiveMin: 0.38,
     walls: [
       // Outer hangar bulkheads (north / south / east / west)
       { x:0,y:0,w:24,h:1 }, { x:0,y:17,w:24,h:1 }, { x:0,y:0,w:1,h:18 }, { x:23,y:0,w:1,h:18 },
@@ -1084,7 +1138,7 @@ const ROOM_DEFS = {
       { x:6,  y:9,   kind:'plaque', title:'PORT PEWS', body:'The senior reapers sit on the port side during ceremonies — Cryious and Elystria in the front row, the rest of the seniors behind. The pews are old, dark wood, polished by uncountable robes.' },
       { x:21, y:9,   kind:'plaque', title:'STARBOARD PEWS', body:'The junior reapers and the common reapers sit starboard. The pews here are scratched with quiet sigils carved by bored apprentices over generations.\n\nMay carved one when she was nine. Death pretended not to notice.' },
       { x:1.5, y:15, kind:'plaque', title:'BANNER OF THE FALLEN', body:'A long dark banner with twelve embroidered names — the reapers who have fallen this cycle. Each name is stitched in silver thread that dims when its bearer dies.\n\nSeveral names on this banner are already dim tonight.' },
-      { x:26.5,y:15, kind:'plaque', title:'BANNER OF THE BOUND', body:'A companion banner listing the FOUR who cannot die — Cryious Death, Maytradalis, Grim Elystria, Flybutt — embroidered in gold thread that has never dimmed in any cycle on record.\n\nMay has caught herself staring at the gold thread bearing her name more times than she will admit.' },
+      { x:26.5,y:15, kind:'plaque', title:'BANNER OF THE BOUND', body:'A companion banner listing the FOUR who cannot die — Grim Cryious, Maytradalis, Grim Elystria, Flybutt — embroidered in gold thread that has never dimmed in any cycle on record.\n\nMay has caught herself staring at the gold thread bearing her name more times than she will admit.' },
       { x:14, y:16,  kind:'plaque', title:'GREAT SIGIL SKYLIGHT', body:'Set into the vaulted ceiling overhead: a circular skylight of leaded glass, twenty feet across, depicting the great seal of Death\'s House. Light filters through it in the shape of a slow-rotating sigil cast onto the aisle below.\n\nThe sigil never falls in the same place twice.' },
     ],
     doors: [
@@ -1308,7 +1362,7 @@ const ROOM_DEFS = {
     ],
     interactables: [
       { x:4.5, y:5.8, kind:'plaque', title:'PEDESTAL I · FIRST CYCLE', body:'A soul-memory orb — pale blue, slowly rotating. Touch its plaque: the memory of the first reaper Death ever bound to the cycle. A small one. A frightened one. A grateful one.\n\nNot every Pedestal holds a happy memory. This one does.' },
-      { x:8.5, y:5.8, kind:'plaque', title:'PEDESTAL II · THE COLD WALK', body:'Memory of the night Cryious Death chose his title — frozen mist seeping out from under the lab door, the air dropping forty degrees in thirty seconds, and a small reaper-child stepping out, calm, his breath visible. Death cried that night. He has not since.' },
+      { x:8.5, y:5.8, kind:'plaque', title:'PEDESTAL II · THE COLD WALK', body:'Memory of the night Grim Cryious chose his title — frozen mist seeping out from under the lab door, the air dropping forty degrees in thirty seconds, and a small reaper-child stepping out, calm, his breath visible. Death cried that night. He has not since.' },
       { x:12.5, y:5.8, kind:'plaque', title:'PEDESTAL III · MAYTRADALIS · AGE NINE', body:'Memory of a small dark-haired girl carving a sigil into a pew in the Grand Hall during a ceremony. Death looking down, expression unreadable. The girl looking up, unrepentant. The sigil she carved was correct.' },
       { x:16.5, y:5.8, kind:'plaque', title:'PEDESTAL IV · ELYSTRIA\'S SONG', body:'Memory of Grim Elystria singing — once, only once — in a strata where the locals had no concept of sound. The locals returned to their cycle with the concept of music permanently installed.\n\nElystria has not sung since. Some say she never will.' },
       { x:20.5, y:5.8, kind:'plaque', title:'PEDESTAL V · EMPTY', body:'A pedestal with no orb on it. The plaque reads: RESERVED.\n\nDeath has not said for whom. May has theories. She does not share them.' },
@@ -1359,6 +1413,7 @@ const ROOM_DEFS = {
     palette: { floor:'#1a1426', wall:'#08060e', stone:'#241830', accent:'#c0a050', candle:'#ffd28b' },
     spawn: { x: 4, y: 7 },
     draw: drawCathedral,
+    cameraMode: 'sidescroller',  // long hall — camera tracks player horizontally
     walls: [
       { x:0,y:0,w:64,h:1 }, { x:0,y:13,w:64,h:1 }, { x:0,y:0,w:1,h:14 }, { x:63,y:0,w:1,h:14 },
       // The Reaper-Statue dais (centered along the hall)
@@ -2022,6 +2077,106 @@ function drawGrandHall(ctx, room) {
     drawReaperBanner(ctx, 1.2*64, (3 + i*4.5)*64, 0.6*64, 3.5*64, '#5a1f1a', '☩', t, i);
     drawReaperBanner(ctx, (room.width - 1.8)*64, (3 + i*4.5)*64, 0.6*64, 3.5*64, '#a83a14', '⚔', t, i+5);
   }
+
+  // === GOTHIC GOLDEN-ARCH STAINED-GLASS WINDOWS (per user ref photo) ===
+  // Drawn ON THE SIDE WALLS (the actual 1-tile wall strips at x=0..64 and
+  // x=W-64..W in top-down view) — NOT as floor objects. Each window
+  // also casts a soft amber GOD-RAY beam onto the floor, slanting toward
+  // the centre aisle.
+  function drawGoldArchWindow(side, cy, winH) {
+    // side = 'L' (west wall, x:0..64) or 'R' (east wall, x:W-64..W)
+    const wallX = (side === 'L') ? 0 : W - 64;
+    const x = wallX + 6;     // 6 px inset from outer wall edge
+    const w = 52;            // window width (inside the 64 px wall strip)
+    // Inset frame inside the wall
+    ctx.fillStyle = '#0a0518';
+    ctx.beginPath();
+    ctx.moveTo(x, cy + winH);
+    ctx.lineTo(x, cy + winH * 0.45);
+    ctx.quadraticCurveTo(x, cy, x + w/2, cy);
+    ctx.quadraticCurveTo(x + w, cy, x + w, cy + winH * 0.45);
+    ctx.lineTo(x + w, cy + winH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#5a3a1a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Inner amber stained glass
+    ctx.save();
+    ctx.beginPath();
+    const inset = 3;
+    ctx.moveTo(x + inset, cy + winH - inset);
+    ctx.lineTo(x + inset, cy + winH * 0.45);
+    ctx.quadraticCurveTo(x + inset, cy + inset, x + w/2, cy + inset);
+    ctx.quadraticCurveTo(x + w - inset, cy + inset, x + w - inset, cy + winH * 0.45);
+    ctx.lineTo(x + w - inset, cy + winH - inset);
+    ctx.closePath();
+    ctx.clip();
+    const flick = 0.85 + 0.15 * Math.sin(t * 1.7 + cy * 0.01);
+    const g = ctx.createRadialGradient(x + w/2, cy + winH * 0.55, 4, x + w/2, cy + winH * 0.55, w * 1.1);
+    g.addColorStop(0,   `rgba(255, 220, 130, ${0.95 * flick})`);
+    g.addColorStop(0.5, `rgba(255, 175, 70, ${0.85 * flick})`);
+    g.addColorStop(1,   `rgba(180, 90, 30, ${0.85 * flick})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x, cy, w, winH);
+    // Lead mullion
+    ctx.fillStyle = 'rgba(40,20,8,0.85)';
+    ctx.fillRect(x + w/2 - 1.5, cy, 3, winH);
+    ctx.fillRect(x + inset, cy + winH * 0.55, w - inset * 2, 2);
+    ctx.fillRect(x + inset, cy + winH * 0.75, w - inset * 2, 2);
+    // Cross sigil
+    ctx.fillStyle = 'rgba(60,30,10,0.9)';
+    ctx.fillRect(x + w/2 - 1.5, cy + 8, 3, 22);
+    ctx.fillRect(x + w/2 - 8, cy + 16, 17, 3);
+    ctx.restore();
+    // === GOD-RAY LIGHT BEAM cast onto the floor toward the aisle ===
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const beamAlpha = 0.35 * flick;
+    ctx.globalAlpha = beamAlpha;
+    const beamGrad = ctx.createLinearGradient(
+      x + w/2, cy + winH,
+      (side === 'L' ? W * 0.45 : W * 0.55), cy + winH + 220
+    );
+    beamGrad.addColorStop(0,   'rgba(255, 200, 110, 0.85)');
+    beamGrad.addColorStop(0.6, 'rgba(255, 180, 80, 0.25)');
+    beamGrad.addColorStop(1,   'rgba(255, 180, 80, 0)');
+    ctx.fillStyle = beamGrad;
+    // Trapezoidal beam shape that fans outward toward the aisle
+    ctx.beginPath();
+    if (side === 'L') {
+      ctx.moveTo(x + 4, cy + winH);
+      ctx.lineTo(x + w - 4, cy + winH);
+      ctx.lineTo(W * 0.50, cy + winH + 280);
+      ctx.lineTo(W * 0.36, cy + winH + 280);
+    } else {
+      ctx.moveTo(x + 4, cy + winH);
+      ctx.lineTo(x + w - 4, cy + winH);
+      ctx.lineTo(W * 0.64, cy + winH + 280);
+      ctx.lineTo(W * 0.50, cy + winH + 280);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // Halo bloom around the window
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.30 * flick;
+    const halo = ctx.createRadialGradient(x + w/2, cy + winH * 0.6, 4, x + w/2, cy + winH * 0.6, w * 1.4);
+    halo.addColorStop(0, 'rgba(255, 200, 110, 0.95)');
+    halo.addColorStop(1, 'rgba(255, 200, 110, 0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(x - w, cy - 12, w * 3, winH * 1.4);
+    ctx.restore();
+  }
+  // Position: 3 windows on each side wall, evenly spaced.
+  const winH = 3.4 * 64;
+  for (let i = 0; i < 3; i++) {
+    const cy = (3.5 + i * 4.8) * 64;
+    drawGoldArchWindow('L', cy, winH);
+    drawGoldArchWindow('R', cy, winH);
+  }
+
   // === CANDLE CHANDELIERS — 3 hanging down the aisle ===
   drawChandelier(ctx, W/2, 5*64,  1.1, p.candle, t);
   drawChandelier(ctx, W/2, 10*64, 1.1, p.candle, t);
@@ -6083,6 +6238,9 @@ async function loadAllSprites() {
     done++;
     document.getElementById('loaderSub').textContent = `Loading sprites… (${done}/${total})`;
   }
+  // Expose for debug / external testing
+  window.SPRITE_META = SPRITE_META;
+  window.sprites = sprites;
   // Also preload the hangar backdrop panorama (Endless view) so the Surge
   // Hanger draw function can paint it as the back-wall view.
   await new Promise((resolve) => {
@@ -6187,6 +6345,12 @@ function update(dt) {
     npc.y += ny * step;
     npc._moving = true;
     npc.flip = nx < 0;
+    // Track dominant axis for directional sprite swap
+    if (Math.abs(ny) > Math.abs(nx)) {
+      npc._lastDir = ny < 0 ? 'up' : 'down';
+    } else {
+      npc._lastDir = 'right';
+    }
     // Distant footstep for NPC — softer than the player's
     if (window.AmbientAudio) {
       // Distance-based attenuation: NPCs further away are quieter
@@ -6196,6 +6360,80 @@ function update(dt) {
         AmbientAudio.footstep('npc_'+(npc.label||npc.x+'_'+npc.y),
           { running: (npc.speed||1.5) > 1.8, distant: npcDist > 250 });
       }
+    }
+  }
+
+  // === FREE-ROAM AUTO-WANDER ===
+  // Any NPC that does NOT have an explicit `patrol` list AND has not
+  // opted out via `wander: false` will slowly drift between random
+  // waypoints inside a small radius of their spawn position. This gives
+  // the ship a sense of life without each room needing hand-authored
+  // patrol routes.
+  for (const npc of (room.npcs || [])) {
+    if (Array.isArray(npc.patrol)) continue;       // already patrolling
+    if (npc.wander === false) continue;            // opted out
+    // First time setup: remember spawn so we wander around it.
+    if (npc._wanderHome === undefined) {
+      npc._wanderHome = { x: npc.x, y: npc.y };
+      npc._wanderTarget = null;
+      npc._wanderPauseT = 0.8 + Math.random() * 2.0;
+      npc._moving = false;
+    }
+    if (npc._wanderPauseT > 0) {
+      npc._wanderPauseT -= dt;
+      npc._moving = false;
+      continue;
+    }
+    if (!npc._wanderTarget) {
+      // Pick a new target inside a 2.5-tile radius of the home, also
+      // clamped to the room interior and avoiding the player by ~1 tile.
+      const radius = npc.wanderRadius || 2.5;
+      const ang = Math.random() * Math.PI * 2;
+      const r = 0.5 + Math.random() * radius;
+      let tx = npc._wanderHome.x + Math.cos(ang) * r;
+      let ty = npc._wanderHome.y + Math.sin(ang) * r;
+      tx = Math.max(1.2, Math.min(room.width - 1.2, tx));
+      ty = Math.max(1.2, Math.min(room.height - 1.2, ty));
+      npc._wanderTarget = { x: tx, y: ty };
+    }
+    const tgt = npc._wanderTarget;
+    const dx = tgt.x - npc.x, dy = tgt.y - npc.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 0.10) {
+      // Arrived — pause a moment, then pick a new target
+      npc._wanderTarget = null;
+      npc._wanderPauseT = 1.0 + Math.random() * 3.5;
+      npc._moving = false;
+      continue;
+    }
+    // Avoid colliding with walls — re-pick a target if blocked by wall
+    const stepSpeed = (npc.wanderSpeed || 0.55) * dt;
+    const nx = dx / dist, ny = dy / dist;
+    const nextX = npc.x + nx * stepSpeed;
+    const nextY = npc.y + ny * stepSpeed;
+    // Cheap wall check: any wall whose rect contains (nextX, nextY) blocks
+    let blocked = false;
+    for (const w of (room.walls || [])) {
+      if (nextX > w.x - 0.4 && nextX < w.x + w.w + 0.4 &&
+          nextY > w.y - 0.4 && nextY < w.y + w.h + 0.4) { blocked = true; break; }
+    }
+    if (blocked) {
+      npc._wanderTarget = null;
+      npc._wanderPauseT = 0.4 + Math.random() * 0.8;
+      npc._moving = false;
+      continue;
+    }
+    npc.x = nextX;
+    npc.y = nextY;
+    npc._moving = true;
+    npc.flip = nx < 0;
+    // Pick the dominant direction so the renderer can swap to the
+    // matching directional sprite (up / down / right). For left we use
+    // the right-facing sprite mirrored via npc.flip.
+    if (Math.abs(ny) > Math.abs(nx)) {
+      npc._lastDir = ny < 0 ? 'up' : 'down';
+    } else {
+      npc._lastDir = 'right';  // works for both left & right (mirrored)
     }
   }
 
@@ -6238,6 +6476,23 @@ function update(dt) {
   let targetCx = state.player.x;
   let targetCy = state.player.y;
   let zoomTarget = 1;
+  // === SIDESCROLLER CAMERA MODE ===
+  // Rooms flagged `cameraMode: 'sidescroller'` shift the player to be
+  // rendered slightly forward of dead-center, with a slow Y-axis follow
+  // (so the camera stays mostly locked on the hallway's vertical
+  // centerline). Long halls (dorm_hall, grand_corridor, memory_hall,
+  // cathedral, surge runway) use this for a side-scrolling feel.
+  if (room.cameraMode === 'sidescroller') {
+    // Bias camera X slightly ahead of the player in their facing direction
+    const facing = state.player.flip ? -1 : 1;
+    targetCx = state.player.x + facing * 70;
+    // Pin camera Y to the hallway's vertical midline (with a small
+    // bias toward the player's actual y so we still scroll up/down
+    // when the player drifts vertically).
+    const midY = room.height * 32;
+    targetCy = midY * 0.6 + state.player.y * 0.4;
+    zoomTarget = room.cameraZoom || 1.0;
+  }
   if (state.cinematic && state.cinematic.active) {
     const cin = state.cinematic;
     const elapsed = (performance.now() - cin.startedAt) / 1000;
@@ -6846,13 +7101,26 @@ function drawPlayer(){
   if (!img) return;
   const fIdx = frameIdx;
   // === Consistent character size across animation sheets ===
-  // Each Maytradalis sheet has a slightly different frame_h (192 / 182 /
-  // 145 etc.). Using a single `scale` against frame_h would make her
-  // visibly grow and shrink as she switches poses. Instead we normalise
-  // by deriving the per-sheet scale from a CANONICAL target height — the
-  // tallest sheet (run_down at 192) multiplied by playerScale.
   const refH = SPRITE_META.run_down.frame_h;       // 192 — canonical
-  const targetH = refH * state.playerScale;        // ~106 px on-screen
+  let targetH = refH * state.playerScale;          // ~106 px on-screen
+  // ─── PERSPECTIVE SCALING (Surge Hangar) ────────────────────────────
+  // When the active room has `perspectiveScale: true`, the player
+  // shrinks as they walk "into" the hangar (toward smaller y → vanishing
+  // point). The horizon line sits at the room's perspectiveHorizonY
+  // (default = top wall + 1 row). At the horizon the player scales to
+  // perspectiveMin (default 0.35x). At the room's foreground (max y)
+  // the scale stays at 1.0.
+  const room = state.rooms[state.currentRoom];
+  if (room && room.perspectiveScale) {
+    const horizonY = (room.perspectiveHorizonY != null ? room.perspectiveHorizonY : 1) * 64;
+    const groundY  = room.height * 64;
+    const minK     = room.perspectiveMin != null ? room.perspectiveMin : 0.38;
+    // 0 at horizon → 1 at ground, clamped
+    let pk = (state.player.y - horizonY) / (groundY - horizonY);
+    pk = Math.max(0, Math.min(1, pk));
+    const k = minK + (1 - minK) * pk;
+    targetH = targetH * k;
+  }
   const effScale = targetH / meta.frame_h;
   const drawW = meta.frame_w * effScale;
   const drawH = meta.frame_h * effScale;
@@ -6861,7 +7129,7 @@ function drawPlayer(){
   const bob = isMoving ? 0 : Math.sin(t * 2.3) * 1.6;
   const drawY = p.y - drawH + 20 + bob;
 
-  // shadow
+  // shadow — also shrinks with perspective
   ctx.save();
   ctx.globalAlpha = 0.45;
   ctx.fillStyle = '#000';
@@ -6915,7 +7183,24 @@ function drawNpc(npc) {
     return;
   }
   const isMoving = !!npc._moving;
-  const sheetName = (!isMoving && npc.idleSheet) ? npc.idleSheet : npc.sheet;
+  // === Directional sprite picker ===
+  // If the NPC defines a `sheets` map, pick the right entry based on
+  // _moving + _lastDir (set by patrol/wander). Falls back to the
+  // single-sheet legacy path for any NPC without a `sheets` map.
+  let sheetName;
+  if (npc.sheets) {
+    const dir = npc._lastDir || 'down';
+    const tier = isMoving ? (npc._lastDir === 'up' && npc.sheets.run_up ? 'run' : 'walk') : 'idle';
+    // Try most-specific to least-specific
+    sheetName =
+      npc.sheets[`${tier}_${dir}`] ||
+      npc.sheets[`${tier}`] ||
+      npc.sheets[`idle_${dir}`] ||
+      npc.sheets.idle ||
+      npc.sheet;
+  } else {
+    sheetName = (!isMoving && npc.idleSheet) ? npc.idleSheet : npc.sheet;
+  }
   const meta = SPRITE_META[sheetName];
   const img = sprites[sheetName];
   if (!meta || !img) return;
@@ -7218,23 +7503,117 @@ function interact(){
     openModal(it.title, it.body, 'AMBIENT QUIP', { npc: it.__npc });
     return;
   }
-  openModal(it.title, it.body, 'LORE FRAGMENT');
+  // Plaques / interactables may carry a character pointer (set via __slot
+  // on dorm doors). Pass it through so we can still show an HD portrait
+  // for a major character even when they're behind a closed door.
+  openModal(it.title, it.body, 'LORE FRAGMENT', { slot: it.__slot });
 }
 function openModal(title, body, eyebrow, opts){
   opts = opts || {};
   document.getElementById('modalEye').textContent = eyebrow || 'LORE FRAGMENT';
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').textContent = body;
-  // Render the character portrait (cropped from sprite-sheet) if an NPC
-  // or explicit sheet name was supplied. Hides otherwise.
-  const portrait = document.getElementById('modalPortrait');
-  const sheetName = (opts.npc && opts.npc.sheet) || opts.sheet;
-  if (sheetName && renderCharacterPortrait(portrait, sheetName)) {
-    portrait.classList.add('show');
+  // ===== PORTRAIT RESOLUTION =====
+  // Priority:
+  //  1. HD character portrait (high-res reference art under /api/static/characters/)
+  //  2. Sprite-cropped canvas portrait (fallback for procedural / generic NPCs)
+  //  3. No portrait at all (pure lore plaque)
+  const canvasPortrait = document.getElementById('modalPortrait');
+  const hdFrame = document.getElementById('modalPortraitFrame');
+  const hdImg   = document.getElementById('modalPortraitImg');
+  // Reset display state every open
+  canvasPortrait.classList.remove('show');
+  hdFrame.classList.remove('show');
+  hdImg.removeAttribute('src');
+
+  // Try HD portrait first
+  const characterKey = resolveCharacterKey(opts);
+  const hdUrl = characterKey ? HD_PORTRAITS[characterKey] : null;
+  if (hdUrl) {
+    hdImg.src = hdUrl;
+    hdFrame.classList.add('show');
   } else {
-    portrait.classList.remove('show');
+    // Fallback to sprite-cropped portrait
+    const sheetName = (opts.npc && opts.npc.sheet) || opts.sheet;
+    if (sheetName && renderCharacterPortrait(canvasPortrait, sheetName)) {
+      canvasPortrait.classList.add('show');
+    }
   }
   document.getElementById('modal').classList.add('show');
+}
+// Expose for testability and external triggers (e.g. cinematic events).
+window.openModal = openModal;
+
+// HD portrait registry — clean head-and-shoulders dialogue portraits
+// generated by /app/backend/scripts/build_dialogue_portraits.py from the
+// full character sheets under /api/static/characters/*_portrait.*. The
+// dialogue versions have white backgrounds removed and are pre-cropped to
+// the upper torso, so they render cleanly inside the modal portrait frame
+// without needing CSS object-position tweaks per character.
+const HD_PORTRAITS = {
+  maytradalis: '/api/static/characters/maytradalis_dialogue.png',
+  death:       '/api/static/characters/death_dialogue.png',
+  elystria:    '/api/static/characters/elystria_dialogue.png',
+  cryious:     '/api/static/characters/cryious_dialogue.png',
+  flybutt:     '/api/static/characters/flybutt_dialogue.png',
+  centurion:   '/api/static/characters/centurion_dialogue.png',
+  madoria:     '/api/static/characters/madoria_dialogue.png',
+  tenebris:    '/api/static/characters/tenebris_dialogue.png',
+  lurker:      '/api/static/characters/lurker_dialogue.png',
+  lurker_husks:'/api/static/characters/lurker_husks_dialogue.png',
+};
+
+// Resolve a character key from whatever pointer we have (NPC object,
+// dorm slot, explicit sheet name, or plaque title). Returns one of the
+// HD_PORTRAITS keys, or null if no major character can be identified.
+function resolveCharacterKey(opts) {
+  opts = opts || {};
+  // 1. NPC's own explicit character field (preferred)
+  if (opts.npc && opts.npc.character && HD_PORTRAITS[opts.npc.character]) {
+    return opts.npc.character;
+  }
+  // 2. Slot occupant name (dorm plaques)
+  if (opts.slot && opts.slot.occupant && opts.slot.occupant.name) {
+    const k = _labelToCharKey(opts.slot.occupant.name);
+    if (k && HD_PORTRAITS[k]) return k;
+  }
+  // 3. Infer from sprite sheet name on an NPC
+  const sheet = (opts.npc && opts.npc.sheet) || opts.sheet;
+  if (sheet) {
+    const k = _sheetToCharKey(sheet);
+    if (k && HD_PORTRAITS[k]) return k;
+  }
+  // 4. Infer from NPC label
+  if (opts.npc && opts.npc.label) {
+    const k = _labelToCharKey(opts.npc.label);
+    if (k && HD_PORTRAITS[k]) return k;
+  }
+  return null;
+}
+function _sheetToCharKey(sheet) {
+  if (!sheet) return null;
+  const s = String(sheet).toLowerCase();
+  if (s.startsWith('death_')) return 'death';
+  if (s.startsWith('elystria_')) return 'elystria';
+  if (s.startsWith('cryious_')) return 'cryious';
+  if (s.startsWith('may_') || s === 'idle_down' || s.startsWith('run_') || s.startsWith('idle_')) return 'maytradalis';
+  // engineer / elexus / elite_*/ romaine have no HD portrait → return null
+  return null;
+}
+function _labelToCharKey(label) {
+  if (!label) return null;
+  const l = String(label).toLowerCase();
+  if (l.includes('maytrad')) return 'maytradalis';
+  if (l.includes('cryious')) return 'cryious';
+  if (l.includes('elystria')) return 'elystria';
+  if (l === 'master death' || l === 'death' || /\bmaster\s+death\b/.test(l)) return 'death';
+  if (l.includes('flybutt')) return 'flybutt';
+  if (l.includes('centurion')) return 'centurion';
+  if (l.includes('madoria')) return 'madoria';
+  if (l.includes('tenebris')) return 'tenebris';
+  if (l.includes('husk')) return 'lurker_husks';
+  if (l.includes('lurker')) return 'lurker';
+  return null;
 }
 window.closeModal = function(){
   document.getElementById('modal').classList.remove('show');
@@ -7899,6 +8278,85 @@ resize();
     document.getElementById('loaderSub').textContent = 'Load failed: ' + err.message;
     console.error(err);
   }
+})();
+
+// ============================================================
+// REAPER FALLEN POLL — when a reaper bound to a reality dies (via
+// /api/reaper-roster/kill), all open Death's Ship clients pop a
+// notification toast. Polls /api/reaper-roster/?limit=200 every 12s
+// and detects newly-fallen reapers (status=='fallen' that we didn't
+// know about). Cheap because the roster is tiny (<200 docs).
+// ============================================================
+(function () {
+  const SEEN = new Set();   // ids of reapers we've already toasted
+  let firstPass = true;
+  async function poll() {
+    try {
+      const res = await fetch('/api/reaper-roster/?limit=200');
+      if (!res.ok) return;
+      const list = await res.json();
+      for (const r of list) {
+        if (r.status === 'fallen') {
+          if (firstPass) {
+            // Don't spam toasts on first load for already-fallen reapers
+            SEEN.add(r.id);
+          } else if (!SEEN.has(r.id)) {
+            SEEN.add(r.id);
+            showReaperFallenPopupDS(r);
+          }
+        }
+      }
+      firstPass = false;
+    } catch (e) { /* swallow */ }
+  }
+  setInterval(poll, 12000);
+  // First poll soon after boot, but delayed so room loads first
+  setTimeout(poll, 5000);
+
+  function showReaperFallenPopupDS(reaper) {
+    let host = document.getElementById('ds-reaper-fallen-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'ds-reaper-fallen-host';
+      host.style.cssText = 'position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:9999; pointer-events:none; display:flex; flex-direction:column; gap:10px; max-width:92vw;';
+      document.body.appendChild(host);
+    }
+    const t = document.createElement('div');
+    t.style.cssText = 'pointer-events:auto; background: linear-gradient(180deg, rgba(26,0,12,0.97) 0%, rgba(8,4,12,0.97) 100%); border: 2px solid #c33055; box-shadow: 0 0 36px rgba(255,40,80,0.65), inset 0 0 16px rgba(255,40,80,0.2); color:#fff; font:600 13px "Cinzel", "Share Tech Mono", serif; padding:14px 20px; border-radius: 4px; min-width: 300px; animation: dsReaperToastIn 0.45s cubic-bezier(0.2, 0.9, 0.2, 1.1);';
+    t.innerHTML = `
+      <div style="color:#ff7080; letter-spacing:0.36em; font-size:10px; font-weight:700;">▌ A REAPER HAS FALLEN</div>
+      <div style="margin-top:6px; font-weight:700; color:#fff; font-size:15px;">${reaper.name}</div>
+      <div style="margin-top:2px; color:#9bd6ff; font-size:11px;">${reaper.stratum_designator || ''}</div>
+      <div style="margin-top:8px; color:#cdd; font-style:italic; font-size:11px; line-height:1.45;">"${reaper.backstory}"</div>
+      <div style="margin-top:10px; color:#ffaa55; font-size:10px; letter-spacing: 0.2em;">⚠ ${reaper.reality_uid} INFESTED — soul-mass detonation imminent</div>
+      <div style="margin-top:8px; text-align:right;">
+        <button style="pointer-events:auto; background: rgba(255,40,80,0.15); border: 1px solid #c33055; color: #fff; padding: 4px 12px; font: 600 10px monospace; letter-spacing: 0.18em; cursor: pointer; border-radius: 2px;" onclick="this.closest('#ds-reaper-fallen-host > *').remove()">⨯ DISMISS</button>
+      </div>
+    `;
+    host.appendChild(t);
+    setTimeout(() => {
+      t.style.transition = 'opacity 0.5s, transform 0.5s';
+      t.style.opacity = '0';
+      t.style.transform = 'translateY(-12px)';
+      setTimeout(() => t.remove(), 600);
+    }, 14000);
+  }
+
+  if (!document.getElementById('ds-reaper-toast-style')) {
+    const s = document.createElement('style');
+    s.id = 'ds-reaper-toast-style';
+    s.textContent = '@keyframes dsReaperToastIn { from { transform:translate(-50%,-30px); opacity:0; } to { transform:translate(-50%,0); opacity:1; } }';
+    document.head.appendChild(s);
+  }
+
+  // Public hook: Death's Ship combat code can call this directly when
+  // a reaper NPC dies in-game (no roundtrip to backend needed for the
+  // local toast; the kill endpoint is still hit for cross-tab sync).
+  window.DSReaperFallen = (reaper) => {
+    if (!reaper) return;
+    SEEN.add(reaper.id || (reaper.reality_uid + '-' + Date.now()));
+    showReaperFallenPopupDS(reaper);
+  };
 })();
 
 // ============================================================

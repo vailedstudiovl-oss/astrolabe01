@@ -1516,6 +1516,15 @@ async def mark_all_admin_notifications_read(amb: Dict[str, Any] = Depends(get_cu
 # Include the router in the main app
 app.include_router(api_router)
 
+# Reaper Roster (random reaper-per-reality with backstories + stratum
+# designators, used by the reaper-death → astrolabe infestation bridge).
+try:
+    from routes.reaper_roster import router as reaper_router
+    app.include_router(reaper_router)
+    print("[startup] reaper roster router mounted at /api/reaper-roster")
+except Exception as _e:
+    print(f"[startup] reaper roster failed to mount: {_e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

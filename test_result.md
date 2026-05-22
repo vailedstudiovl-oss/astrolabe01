@@ -3068,3 +3068,105 @@ metadata_addendum:
 #   /tmp/ds_cathedral_v2_full_polish.png
 #   /tmp/v2_filter_test_{stable,dead}.png
 #   /tmp/v2_synth_click_opens_codex.png
+
+# ============================================================================
+# 2026-02-22 — UI RESTORATION + INLINE ADD LORE + CATHEDRAL NPCS
+# ============================================================================
+#
+# A. RIGHT-SIDE VERTICAL BUTTON STRIP (per user reference screenshot 1)
+#    Replaces the top-left horizontal strip with a vertical column of 8
+#    44x44 px buttons on the right side, matching the user's screenshot:
+#       ≡ MAIN MENU   → /api/astrolabe
+#       ⬢ GRAPHICS    → cycles view-mode buttons
+#       ⊕ FOCUS       → recenter / dispatch 'astrolabe-recenter'
+#       ◆ FILTER      → quick-toggle DEAD filter, fade left panel
+#       ▸ SCAN        → ping/anomaly scan flash
+#       ⚙ SETTINGS    → opens Settings modal
+#       ✎ ADD LORE    → opens Community Lore form for current strata
+#       ◐ CONTRAST    → toggles .astro-high-contrast on body
+#    All 8 verified present in DOM.
+#
+# B. [+ ADD LORE] INLINE BUTTON INSIDE CODEX (per ref screenshot 4)
+#    The codex Archive tab's "COMMUNITY ARCHIVES" section now has a
+#    [ + ADD LORE ] button on the right of the section head that opens
+#    the Community Lore submission modal pre-targeted at the active
+#    strata. Matches the user's reference screenshot of the old popup.
+#
+# C. CATHEDRAL OF REAPERS — ADDITIONAL NPCS
+#    Added Elystria + Mordren-7 to round out the long-hall:
+#      • Elystria (Candle-Keeper · Cycle 199) — Carrying a brass taper
+#        and a leather notebook near the west chandelier at (12, 6.5).
+#        Dialogue mentions the western chandelier candles ran out and
+#        asks Maytradalis to relay a message to Mordren about sigil-oil.
+#      • Mordren-7 (Death-Tribunal Executor) — At the eastern apse
+#        (56, 7.5), hooked glaive edge wrapped in linen. Acknowledges
+#        May personally and references Death's request that she come
+#        through.
+#    These join the kneeling Junior Reaper already at the statue.
+#
+# Verified screenshots:
+#   /tmp/v2_right_vertical_strip.png    — all 8 buttons in vertical stack
+#   /tmp/v2_codex_add_lore_inline.png   — codex with [+ ADD LORE] inline
+
+# ============================================================================
+# 2026-02-22 — LORE CORRECTIONS (Elystria / Maytradalis / Cryious)
+# ============================================================================
+#
+# User-provided canon corrections applied across the lore module + the
+# Death's Ship in-game plaques:
+#
+# 1. ELYSTRIA — Strata -37 · Planet Leviticus · City of Bones
+#    Before: vague "Apse" assignment in Cathedral
+#    After:  NAMED_REAPERS['-37'] entry with full canon, NEW POIS['-37']
+#            for Planet Leviticus · City of Bones, sub-locations: 
+#            Elystria's Shelter · Broth-Urn Kitchen · Ledger Hall · Bone Walks · Charity Stairs.
+#            Specialty: "Shelter-Keeper of Planet Leviticus."
+#            Backstory mentions the brass urn kept warm for 7 cycles +
+#            the two-ledger philosophy (reaped souls vs fed mortals).
+#    Plaques updated:
+#       - Cathedral candle-keeper NPC plaque
+#       - Dormitory door slot 3 (Grim Elystria) lore
+#
+# 2. MAYTRADALIS — Death's MAID (not housemaid)
+#    Before: "Death's second apprentice and household maid · keeps the
+#            Lamp of Endings lit and sweeps the threshold between cycles"
+#    After:  "Death's Maid · Appointer of Reapers · Shaper of Realities.
+#            The ONLY Reaper ever born without a reality of her own —
+#            therefore she does NOT hold the title 'Grim'. She walks the
+#            199 strata appointing new Reapers as they manifest, and she
+#            shapes the realities those Reapers will inherit. The Lamp
+#            of Endings she tends is the master ledger of those
+#            appointments. She belongs to every strata and to none, and
+#            is at her own request listed at -99 only because Cryious is
+#            listed at +99."
+#    Plaques updated:
+#       - Codex 'About May' (line 7374)
+#       - NAMED_REAPERS['-99']
+#
+# 3. CRYIOUS — Not human · no hair · single glowing red eye
+#    Before: "Death's first ever apprentice and creation"
+#    After:  "Death's first ever creation · not human. He has no hair,
+#            only a smooth pale skull, and a single glowing red eye that
+#            does not blink during the long parts of cycle-end."
+#    Plaques updated:
+#       - NAMED_REAPERS['99'] backstory
+#       - Dormitory door slot 2 (Cryious Death) major-character lore
+#       - Dormitory NPC plaque body (replaced 'purple hair / gold eyes'
+#         description)
+#
+# Verified in 3 codex screenshots:
+#   /tmp/v2_codex_elystria_minus37.png   – Planet Leviticus + City of Bones
+#                                          + sub-locations + Elystria's
+#                                          dossier with the shelter lore
+#   /tmp/v2_codex_maytradalis_minus99.png – Maytradalis at the Abyssal
+#                                          Root with the corrected
+#                                          'Death's Maid · Appointer ·
+#                                          Shaper' specialty + full
+#                                          'no reality of her own'
+#                                          backstory
+#   /tmp/v2_codex_cryious_plus99.png      – Cryious at Celestial Zenith
+#                                          with 'not human · no hair ·
+#                                          glowing red eye' backstory,
+#                                          and the [+ ADD LORE] inline
+#                                          button visible in the
+#                                          community section

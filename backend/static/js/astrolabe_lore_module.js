@@ -63,28 +63,74 @@
     function injectHeaderButtons() {
         const header = document.querySelector('header');
         if (!header || document.getElementById('astro-action-strip')) return;
+        // VERTICAL RIGHT-SIDE STRIP (per user's reference screenshot).
+        // 7 buttons stacked, large enough for mobile thumbs, with the
+        // Settings, Community Lore, Main Menu, and view-toggles all
+        // accessible at a glance.
         const strip = document.createElement('div');
         strip.id = 'astro-action-strip';
-        // Sit BELOW the marquee + INTEL bar so we don't overlap any
-        // existing controls. On mobile we tuck to top-left so the right
-        // side stays free for the panels.
-        strip.className = 'fixed z-30 flex items-center gap-1.5 sm:gap-2 flex-wrap';
-        strip.style.cssText = 'top: 92px; left: 12px; max-width: calc(100% - 24px);';
+        strip.className = 'fixed z-30 flex flex-col gap-1.5';
+        strip.style.cssText = 'right: 10px; top: 96px; align-items: flex-end;';
+        const baseBtn = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,15,18,0.86);border:1.5px solid rgba(0,255,204,0.45);color:#00ffcc;border-radius:6px;cursor:pointer;font-size:18px;font-family:"Share Tech Mono",monospace;box-shadow:0 0 6px rgba(0,255,204,0.25),inset 0 0 6px rgba(0,255,204,0.05);transition:all 0.15s ease;';
         strip.innerHTML = `
-            <a href="/api/astrolabe" id="astro-home-btn"
-               class="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest rounded-sm"
-               style="background: rgba(0,255,204,0.08); color:#00ffcc; border:1px solid rgba(0,255,204,0.4); box-shadow: 0 0 6px rgba(0,255,204,0.25); min-height: 36px; display:inline-flex; align-items:center;"
-               title="Return to main menu">◂ MAIN MENU</a>
-            <button id="astro-settings-btn" title="Settings"
-                    class="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest rounded-sm"
-                    style="background: rgba(155,109,255,0.08); color:#c4b5fd; border:1px solid rgba(155,109,255,0.4); box-shadow: 0 0 6px rgba(155,109,255,0.2); min-height: 36px;">⚙ SETTINGS</button>
-            <button id="astro-community-btn" title="Submit your lore"
-                    class="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-widest rounded-sm"
-                    style="background: rgba(255,168,80,0.08); color:#ffd28b; border:1px solid rgba(255,168,80,0.4); box-shadow: 0 0 6px rgba(255,168,80,0.2); min-height: 36px;">✎ LORE</button>
+            <a href="/api/astrolabe" id="astro-home-btn" title="◂ Main Menu" style="${baseBtn}text-decoration:none;">≡</a>
+            <button id="astro-graphics-btn" title="Graphics / View" style="${baseBtn}">⬢</button>
+            <button id="astro-focus-btn"    title="Re-center camera" style="${baseBtn}">⊕</button>
+            <button id="astro-filter-btn"   title="Filter quick-toggle" style="${baseBtn}">◆</button>
+            <button id="astro-scan-btn"     title="Ping / scan" style="${baseBtn}">▸</button>
+            <button id="astro-settings-btn" title="Settings" style="${baseBtn}">⚙</button>
+            <button id="astro-community-btn" title="Add Community Lore" style="${baseBtn}border-color:rgba(255,168,80,0.55);color:#ffd28b;">✎</button>
+            <button id="astro-contrast-btn" title="Toggle high contrast" style="${baseBtn}">◐</button>
         `;
         document.body.appendChild(strip);
-        document.getElementById('astro-settings-btn').addEventListener('click', openSettings);
-        document.getElementById('astro-community-btn').addEventListener('click', () => openCommunityLore(window.STATE && window.STATE.currentLayer || 0));
+
+        // Wire each button
+        const $ = (id) => document.getElementById(id);
+        $('astro-settings-btn').addEventListener('click', openSettings);
+        $('astro-community-btn').addEventListener('click', () =>
+            openCommunityLore(window.STATE && window.STATE.currentLayer || 0)
+        );
+        $('astro-contrast-btn').addEventListener('click', () => {
+            const on = !document.body.classList.contains('astro-high-contrast');
+            document.body.classList.toggle('astro-high-contrast', on);
+            try { localStorage.setItem('astro_contrast', on ? '1' : '0'); } catch (e) {}
+        });
+        // Graphics → cycles through view modes if those buttons exist in the
+        // left panel. Otherwise toggles ambient.
+        $('astro-graphics-btn').addEventListener('click', () => {
+            const modes = ['view-standard', 'view-thermal', 'view-density'];
+            for (const m of modes) {
+                const b = document.getElementById(m);
+                if (b && !b.classList.contains('btn-active-neon')) { b.click(); return; }
+            }
+            // Fallback: simulate cinematic toggle
+            const cin = document.getElementById('cinematic-toggle');
+            if (cin) cin.click();
+        });
+        // Focus → call recenterCamera if defined
+        $('astro-focus-btn').addEventListener('click', () => {
+            if (typeof window.recenterCamera === 'function') window.recenterCamera();
+            else if (typeof window.dispatchEvent === 'function')
+                window.dispatchEvent(new Event('astrolabe-recenter'));
+        });
+        // Filter → opens left panel filters / cycles through
+        $('astro-filter-btn').addEventListener('click', () => {
+            const lp = document.getElementById('left-panel');
+            if (lp) {
+                lp.style.opacity = lp.style.opacity === '0' ? '1' : (lp.style.opacity === '1' ? '0.5' : '1');
+            }
+            const dead = document.getElementById('filter-dead');
+            if (dead) dead.click();
+        });
+        // Scan → calls ping if button exists
+        $('astro-scan-btn').addEventListener('click', () => {
+            const ping = document.getElementById('btn-ping') || document.getElementById('ping-btn');
+            if (ping) { ping.click(); return; }
+            // Fallback: trigger anomaly scan flash
+            if (typeof window.triggerAnomalyScanner === 'function') window.triggerAnomalyScanner('STABLE');
+        });
+        // Restore contrast state from settings
+        try { if (localStorage.getItem('astro_contrast') === '1') document.body.classList.add('astro-high-contrast'); } catch(e) {}
     }
 
     // ===== 8d. SETTINGS MODAL ==========================================
@@ -435,6 +481,7 @@
             { name: 'Trigon Trading Hub',         type: 'Floating City',      faction: FACTIONS.TRIGON,            desc: "A massive, neutral-ground trading city floating in the void of the Endless.",                macro: DLDS_LORE.trigon,  subLocations: ['Rippers Street Marketplace','Centadel Square','The Odin Dockyards','The Lower Spires','The Collectors House','R&J Book collections'] }
         ],
         '-25': [{ name: 'Vault of Echoes',            type: 'Soul Repository',    faction: FACTIONS.SOUL_COLLECTORS,   desc: "A dark, labyrinthine reality where harvested and lost souls are stored.",                    macro: DLDS_LORE.soul_collectors, subLocations: ['The Wailing Cells','Harvest Docks','The Ledger Room','Spectral Siphons'] }],
+        '-37': [{ name: 'Planet Leviticus · The City of Bones', type: 'Shelter-Reality', faction: FACTIONS.REAPERS, desc: "A bone-white world ruled in soft voices. Elystria of the City of Bones runs a homeless shelter here, feeding the mortal poor with broth ladled from a brass urn she has kept warm for seven cycles.", macro: "Planet Leviticus at -37 is a different Leviticus than the divine one at +33: it is bone-white, soft-spoken, and full of people who could not be saved by either. Elystria's shelter feeds them anyway.", subLocations: ['Elystria\'s Shelter','The Broth-Urn Kitchen','The Ledger Hall','The Bone Walks','Charity Stairs'] }],
         '-38': [{ name: 'Astra Reality -38',          type: 'Shattered Plane',    faction: FACTIONS.UNCLAIMED,         desc: "A massive ringed structure floating in the void.",                                          macro: DLDS_LORE.endless, subLocations: ['Grand Demos City','The Other Rings','Evectius Hope Ship','Tear of Zeus'] }],
         '-50': [{ name: 'Sanguine Court',             type: 'Vampiric Empire',    faction: FACTIONS.VAMPERICA,         desc: "Illuminated by a dying, blood-red sun.",                                                    macro: DLDS_LORE.vamperica, subLocations: ['Crimson Keep','The Vein Tunnels','Thrall Pens','Sunless Sea'] }],
         '-66': [{ name: 'The Damnation Forge Plane', type: 'Nightmare Relic',     faction: FACTIONS.UNHOLY_ONES,       desc: "A blistering, heat-scorched reality powered by condemned souls.",                            macro: DLDS_LORE.endless, subLocations: ['The Cursed Valley','Broken Steel','Ashen Relic City','Old Hopeful','The Sun that Stares'] }],
@@ -448,11 +495,20 @@
         '-12': { name: 'Harrow-12',                 sigil: '☥', specialty: 'Border Shepherd of the Training Plane', backstory: "Harrow walks the contested fringe between Trigon and Reaper territories. She rarely speaks." },
         '33':  { name: 'Thane-IX',                  sigil: '⚖', specialty: 'Ascension Tribunal Speaker',            backstory: "Thane-IX presides over upward souls of Trinity Leviticus. His judgments are televised on Centura News." },
         '-25': { name: 'Veilwing',                  sigil: '✸', specialty: 'Soul-Smuggler of the Vault',            backstory: "Veilwing trades favors with the Supremes Finest at Trigon Trading Hub. Wanted by Reaper Hunters." },
+        '-37': { name: 'Elystria, of the City of Bones', sigil: '✠', specialty: 'Shelter-Keeper of Planet Leviticus', backstory: "Born of Strata -37, Elystria's reality is Planet Leviticus — and within its City of Bones she runs a homeless shelter, ladling soup-broth from a brass urn she has kept warm for seven cycles. The reapers who serve under her say she keeps two ledgers: one for the souls she has reaped, and one for the mortals she has fed. She insists they are the same ledger, in different lights." },
         '-66': { name: 'Sephira',                   sigil: '✶', specialty: 'Twin-Souled Empress of Sorrow',         backstory: "Once mortal, twice-killed, thrice-reborn. Her two voices speak in unison and contradiction." },
         '-38': { name: 'Grim-3X',                   sigil: '✟', specialty: 'First-Death Officer',                   backstory: "Manifested only three cycles ago at Astra -38. Handles inexperienced souls — often gentle, always carrying a fresh ledger." },
         '-50': { name: 'Siltbinder',                sigil: '✻', specialty: 'Cleanup of Forgotten Realities',        backstory: "Newly-formed and assigned the unglamorous work of the Sanguine Court." },
-        '99':  { name: 'Grim Cryious, the First Made', sigil: '✧', specialty: "Death's first ever apprentice and creation", backstory: "Before the 199 layers were stacked, Death made Grim Cryious. His sigil is older than the cyan of the divinity-pole." },
-        '-99': { name: 'Maytradalis, the Second Made', sigil: '✦', specialty: "Death's second apprentice and household maid", backstory: "Made directly after Grim Cryious. She keeps the Lamp of Endings lit and sweeps the threshold between cycles." }
+        '99':  { name: 'Grim Cryious, the First Made', sigil: '✧', specialty: "Death's first ever creation · not human", backstory: "Before the 199 layers were stacked, Death made Cryious — not from any mortal stock. He is not human. He has no hair, only a smooth pale skull, and a single glowing red eye that does not blink during the long parts of cycle-end. His sigil predates the cyan of the divinity-pole. Most reapers will never speak to him directly, and the ones who have say it felt like being read." },
+        // NOTE: Maytradalis is the only Reaper ever born WITHOUT a reality of
+        // her own. For that reason she does NOT carry the title 'Grim'. She
+        // is Death's maid — but NOT a housemaid. Her role is to APPOINT new
+        // reapers across the 199 strata and to SHAPE the realities they
+        // inherit. The Lamp of Endings she tends is the ledger of those
+        // appointments, not a household chore. The fact that she has no
+        // strata of her own is why the engine pins her to '-99' for
+        // selection purposes only — she exists at every strata and at none.
+        '-99': { name: 'Maytradalis, the Second Made', sigil: '✦', specialty: "Death's Maid · Appointer of Reapers · Shaper of Realities", backstory: "Made directly after Cryious. Maytradalis is the only Reaper ever born without a reality of her own — for that reason she does not hold the title 'Grim.' Her role under Death is not a housemaid's role: she walks the 199 strata appointing new Reapers as they manifest, and she shapes the realities those Reapers will inherit. The Lamp of Endings she tends is the master ledger of those appointments. She belongs to every strata and to none, and is at her own request listed in the Astrolabe at -99 only because Cryious is listed at +99." }
     };
 
     const FIRST_PARTS = ['Mordren','Harrow','Grim','Sephira','Thane','Korax','Veilwing','Sloth','Null','Obol','Cresh','Marrow','Echtor','Pyx','Quill','Sallow','Wraith','Zinder','Helix','Vren'];
@@ -1066,10 +1122,19 @@
             }
             // Community
             html += '<div id="codex-community-block">'
-                  + '<div class="dlds-section-head text-[10px] mb-1">COMMUNITY WANDERER FRAGMENTS</div>'
+                  + '<div class="flex justify-between items-center mb-1">'
+                  + '<div class="dlds-section-head text-[10px]">[ COMMUNITY ARCHIVES ]</div>'
+                  + '<button id="codex-add-lore-inline" class="text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-sm" style="background:rgba(0,255,204,0.06);border:1px solid rgba(0,255,204,0.5);color:#00ffcc;">[ + ADD LORE ]</button>'
+                  + '</div>'
                   + '<div class="text-slate-500 italic text-[11px]" id="codex-community-loading">Loading recent wanderer fragments…</div>'
                   + '</div>';
             body.innerHTML = html;
+            // Wire the in-popup ADD LORE button — opens the community
+            // submission modal pre-targeted at this strata.
+            const addInline = document.getElementById('codex-add-lore-inline');
+            if (addInline) {
+                addInline.addEventListener('click', () => openCommunityLore(level));
+            }
             fetchCommunityLore(level);
         }
 

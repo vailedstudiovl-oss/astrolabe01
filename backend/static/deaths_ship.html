@@ -504,9 +504,9 @@ const CANON_DORMS = {
   // top row, slot index → fixed occupant
   top: {
     2: { name: 'Cryious Death', sigil: '❄', kind: 'major', immortal: true, deceased: false,
-         lore: 'A frozen mist seeps out from under the door. Inside, Cryious dreams in equations the rest of the crew can not read. Knock at his door at your own risk — the last reaper who knocked spent a week thinking in ice.' },
+         lore: 'A frozen mist seeps out from under the door. Cryious is not human — Death\'s first ever creation, made before any of the 199 strata were stacked. He has no hair, only a smooth pale skull, and a single glowing red eye that does not blink during the long parts of cycle-end. Inside, he dreams in equations the rest of the crew can not read. Knock at his door at your own risk — the last reaper who knocked spent a week thinking in ice.' },
     3: { name: 'Grim Elystria', sigil: '♪', kind: 'major', immortal: true, deceased: false,
-         lore: 'Music plays softly behind the door — a song May does not recognise, in a language that may not exist outside of this corridor. Elystria is May\'s closest ally. Some nights she opens the door without being knocked on, and they share tea in silence.' },
+         lore: 'Music plays softly behind the door — a song May does not recognise, in a language that may not exist outside of this corridor. Elystria is May\'s closest ally; her real home is the City of Bones on Planet Leviticus, at Strata -37, where she runs a homeless shelter. The shelter\'s brass urn is older than her dorm here. Some nights she opens the door without being knocked on, and they share tea in silence.' },
     5: { name: 'Flybutt', sigil: '✿', kind: 'major', immortal: true, deceased: false,
          lore: 'A faint thrum of wings. Flybutt sleeps suspended from the ceiling of his dorm, a constellation of small luminous moths circling around him.\n\nHe is the only reaper on the ship that cannot die — the contract he signed predates Death\'s own.' },
   },
@@ -889,7 +889,7 @@ const ROOM_DEFS = {
       // Grim Cryious — drifts a half-step out of his dorm (slot top i=2 → x≈12.5), facing down
       { x:12.5, y:2.6, sheet:'cryious_idle_down', flip:false, animSpeed:4,
         label:'Grim Cryious', plaqueTitle:'GRIM CRYIOUS',
-        plaqueBody:'A thin frost-mist drifts around his boots even now. His purple hair seems to absorb the candlelight rather than reflect it.\n\nHe does not speak when he sees May — he only tilts his head, a single calculation completing behind his gold eyes. Then he returns to his dorm without sound.\n\n"... seventeen. Yes. Tuesday." (Whatever he counts, he counts it once a day.)' },
+        plaqueBody:'A thin frost-mist drifts around his boots even now. Cryious is not human — he has no hair, only a smooth pale skull, and where most reapers have eyes there is a single glowing red eye that does not blink during the long parts of cycle-end.\n\nHe does not speak when he sees May — he only tilts the skull, a single calculation completing behind that one red light. Then he returns to his dorm without sound.\n\n"... seventeen. Yes. Tuesday." (Whatever he counts, he counts it once a day.)' },
     ],
   },
 
@@ -1388,6 +1388,16 @@ const ROOM_DEFS = {
         scale:0.55, animSpeed:3, label:'Junior Reaper',
         plaqueTitle:'JUNIOR REAPER · KNEELING',
         plaqueBody:'A junior reaper in the middle of their first solo vigil. They will kneel here for eight hours, unmoving, before being permitted to leave the cathedral.\n\nMay remembers her own vigil. The eight hours felt like four. Death said that was a good sign.' },
+      // Elystria — candle-keeper for the cycle, tending the great chandelier
+      { x:12, y:6.5, sheet:'elite2_idle_down', idleSheet:'elite2_idle_down', refSheet:'elite2_idle_down',
+        scale:0.55, animSpeed:2, label:'Elystria',
+        plaqueTitle:'ELYSTRIA · CANDLE-KEEPER · CYCLE 199',
+        plaqueBody:'A senior reaper carrying a brass taper and a small leather notebook. Her sigil-pin reads "ELYSTRIA · CITY OF BONES, STRATA -37."\n\nElystria\'s reality is Planet Leviticus — but not the divine Leviticus at +33. Her Leviticus is bone-white and soft-spoken; on it stands the City of Bones, and in the City she runs a homeless shelter for the mortal poor, ladling broth from a brass urn she has kept warm for seven cycles.\n\nTonight, in the cathedral, she is re-lighting the western chandelier — three candles ran out before vigil-end.\n\n"Hello, May. If you see Mordren on the way to the apse, tell him I have his sigil-oil. He keeps forgetting it. — Oh, and the shelter is fine. The urn is fine. Some nights I do this and then I go back to it."' },
+      // Mordren-7 — Death-Tribunal Executor, walking the eastern apse
+      { x:56, y:7.5, sheet:'elite3_walk_down', idleSheet:'elite3_walk_down', refSheet:'elite3_walk_down',
+        scale:0.6, animSpeed:3, label:'Mordren-7',
+        plaqueTitle:'MORDREN-7 · DEATH-TRIBUNAL EXECUTOR',
+        plaqueBody:'A senior reaper with a sigil of the asphodel plains stitched into his cowl. He carries a hooked glaive, edge wrapped in linen.\n\n"Maytradalis. I haven\'t seen you in the cathedral since cycle 174. Death said you would be coming through. I have nothing for you tonight — only the silence and the long aisle. You are welcome to walk it as many times as you need."\n\nHe inclines his head, briefly, and turns to face the apse.' },
     ],
   },
 
@@ -7361,7 +7371,7 @@ document.getElementById('codexBtn').onclick = () => {
 `A vessel that crosses the 199-Layer Creation. Older than its crew. Older than most of the souls aboard.
 
 KEY INHABITANTS
-• Maytradalis — the maid of Death. Junior in rank, senior in keys. Knows where everything is. Does not yet know why.
+• Maytradalis — the maid of Death. The ONLY reaper ever born without a reality of her own, which is why she does NOT carry the title "Grim." Her role under Death is not a housemaid's role: she walks the 199 strata appointing new Reapers as they manifest, and she shapes the realities those Reapers will inherit. Junior in rank, senior in keys. Knows where everything is. Does not yet know why.
 • Death — captain. Most often in the Office or the Memory Hall.
 • Romaine — sole mechanic, pink-haired, in the Surge Hanger. Common reaper rank, senior privileges. Keeps the ship aloft. Pins a fresh carnation to his harness daily.
 • The common reapers — twelve, on rotation. They pilot the harvest skiffs and tend the smaller souls.

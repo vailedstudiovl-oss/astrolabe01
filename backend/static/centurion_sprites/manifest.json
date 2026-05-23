@@ -1,0 +1,47 @@
+{
+  "frame_count": 25,
+  "states": {
+    "idle": {
+      "frame_w": 130,
+      "frame_h": 253,
+      "frames": 25,
+      "strip": "/api/static/centurion_sprites/idle_strip.png",
+      "strip_left": "/api/static/centurion_sprites/idle_strip_left.png"
+    },
+    "walk": {
+      "frame_w": 158,
+      "frame_h": 218,
+      "frames": 25,
+      "strip": "/api/static/centurion_sprites/walk_strip.png",
+      "strip_left": "/api/static/centurion_sprites/walk_strip_left.png"
+    },
+    "run": {
+      "frame_w": 200,
+      "frame_h": 204,
+      "frames": 25,
+      "strip": "/api/static/centurion_sprites/run_strip.png",
+      "strip_left": "/api/static/centurion_sprites/run_strip_left.png"
+    },
+    "jump": {
+      "frame_w": 150,
+      "frame_h": 203,
+      "frames": 25,
+      "strip": "/api/static/centurion_sprites/jump_strip.png",
+      "strip_left": "/api/static/centurion_sprites/jump_strip_left.png"
+    },
+    "attack": {
+      "frame_w": 411,
+      "frame_h": 351,
+      "frames": 25,
+      "strip": "/api/static/centurion_sprites/attack_strip.png",
+      "strip_left": "/api/static/centurion_sprites/attack_strip_left.png"
+    },
+    "shooting": {
+      "frame_w": 378,
+      "frame_h": 192,
+      "frames": 25,
+      "strip": "/api/static/centurion_sprites/shooting_strip.png",
+      "strip_left": "/api/static/centurion_sprites/shooting_strip_left.png"
+    }
+  }
+}

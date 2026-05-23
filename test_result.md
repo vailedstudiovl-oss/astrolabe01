@@ -4040,3 +4040,79 @@ metadata_addendum:
 #   1. Edit  /app/backend/static/astrolabe_v2.html
 #   2. Run   python /app/backend/scripts/split_astrolabe_v2.py
 #   3. Hard-refresh the mobile browser to bypass the cached chunk.
+
+
+# ============================================================================
+# 2026-05-23 — STRATA OUTBREAK HALOS + FRACTURED VISUALS + LORE ARCHIVE TAB
+# ============================================================================
+#
+# Three concurrent enhancements to the infected-reality gameplay loop:
+#
+# ----------------------------------------------------------------------------
+# 1) STRATA-WIDE OUTBREAK HALOS (Global View)
+#    File: /app/backend/static/astrolabe_v2.html  (updateInfestationsTick)
+#
+#    Each render frame:
+#      • Group _infestations by their bound layerIndex
+#      • For each infested layer: lazy-create a red TorusGeometry halo
+#        (radius = saucer.scale.x * 1.04) attached to sceneGlobal at
+#        saucer.position.y + 0.04. Additive blending + depthWrite:false.
+#      • Pulse halo opacity = (0.35 + count*0.08) * (0.7 + sin*0.3)
+#      • Subtle in-plane scale wobble = 1 + sin*0.015 for slow breathing
+#      • Layers no longer infested → halo disposed + removed from sceneGlobal
+#    Storage: window._strataHalos = Map<layerIdx, Mesh>.
+#
+#    Result: players see at a glance which strata are under outbreak even
+#    from the global view, before zooming into a layer.
+#
+# ----------------------------------------------------------------------------
+# 2) FRACTURED-REALITY VISUALS (Local View)
+#    File: /app/backend/static/astrolabe_v2.html  (updateInfestationsTick)
+#
+#    Iterates STATE.starsOnLayer each frame. For any group with
+#    userData.fractured === true:
+#      • Caches userData._fracOrigin = group.position.clone() on first tick
+#      • Applies per-frame XZ jitter of ±0.025 around the origin
+#      • Flickers any child mesh tagged isAccretionDisk: opacity =
+#        0.35 + rand()*0.65 each frame.
+#    This makes a Centurion-aborted reality visibly violent vs the steady
+#    pulse of an INFESTED one.
+#
+# ----------------------------------------------------------------------------
+# 3) LORE ARCHIVE — STRATA TAB
+#    Files:
+#      • NEW  /app/backend/static/js/lore_corpus.js  (~9 KB)
+#        Exports window.LORE_CORPUS = {FACTIONS, DLDS_LORE, POIS,
+#        NAMED_REAPERS, stratumIndex} — a public-safe subset of the
+#        astrolabe_lore_module.js corpus.
+#      • PATCH /app/backend/static/lore.html
+#        – Inserts new tab button: "▦ STRATA <count>"
+#        – Loads /api/static/js/lore_corpus.js BEFORE the main script
+#        – switchTab gate updated so the search/sort toolbar stays visible
+#          on the strata tab too
+#        – loadCurrentTab() adds  STATE.tab === 'strata' → loadStrata()
+#        – loadStrata() renders the 15 canonical strata as cards (auto-fill
+#          minmax(320px,1fr) grid), each with:
+#            ▸ Huge ±NN level number with Cinzel font and divinity-pole
+#              color tinting
+#            ▸ Polychromatic POLY badge (PEAK DIVINITY / HIGH DIVINITY /
+#              ASCENDED / NEXUS / MORTAL TIDES / NIGHTMARE / LOVECRAFTIAN)
+#            ▸ POI name, type, faction (in faction color), description
+#            ▸ Up to six sub-location pills
+#            ▸ Bound Reaper block (sigil + name + specialty + backstory)
+#              when one is canon-bound to that strata
+#        – Search input filters cards client-side
+#        – New CSS block under </style> handles .strata-grid, .strata-card,
+#          .sc-head, .sc-level, .sc-poly, .poi-block, .poi-subs, .reap-block
+#
+#    Verified: /tmp/lore_strata_tab.png — 15 strata cards rendered, search
+#    visible, faction colors correct, reaper sigils + backstories present.
+#    Console reports: cards=15, corpus keys=['FACTIONS','DLDS_LORE','POIS',
+#    'NAMED_REAPERS','stratumIndex'].
+#
+# ----------------------------------------------------------------------------
+# Cache bust:
+#   service-worker.js  →  v16-2026-05-23-strata-tab-outbreak-halos
+#
+# Chunking:
+#   python /app/backend/scripts/split_astrolabe_v2.py executed (157.2 KB).

@@ -206,6 +206,46 @@ a{color:var(--cyan);}
 .story-date{margin-left:auto;color:#666;}
 .story-prompt{font-size:11px;color:#bbb;font-style:italic;margin-bottom:10px;border-left:2px solid rgba(160,80,255,.25);padding-left:8px;}
 .story-body{font-size:14px;color:#e8e8f0;line-height:1.65;font-family:Georgia,serif;}
+
+/* ============================================================
+ * STRATA TAB STYLES
+ * ============================================================ */
+.strata-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:4px 2px 60px;}
+@media (max-width:520px){ .strata-grid{grid-template-columns:1fr;gap:10px;} }
+.strata-card{position:relative;background:linear-gradient(160deg, rgba(0,15,22,.94), rgba(0,5,10,.96));
+  border:1px solid rgba(0,255,204,.18);border-radius:6px;padding:14px 14px 12px;
+  box-shadow:0 6px 22px rgba(0,0,0,.55), inset 0 0 24px rgba(0,255,204,.045);
+  overflow:hidden;}
+.strata-card::before{content:'';position:absolute;top:0;left:0;width:14px;height:14px;
+  border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);opacity:.55;}
+.strata-card::after{content:'';position:absolute;bottom:0;right:0;width:14px;height:14px;
+  border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);opacity:.55;}
+.sc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px dashed rgba(0,255,204,.18);}
+.sc-level{font-family:'Cinzel',serif;font-weight:700;line-height:1;}
+.sc-level .sc-sign{font-size:14px;color:#9bd6ff;vertical-align:top;}
+.sc-level .sc-num{font-size:30px;color:#fff;text-shadow:0 0 10px rgba(0,255,204,.6);}
+.sc-poly{font-size:9px;letter-spacing:.22em;padding:3px 8px;border:1px solid;border-radius:99px;
+  text-transform:uppercase;opacity:.95;}
+
+.poi-block{margin-bottom:10px;}
+.poi-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+.poi-name{font-weight:700;color:#fff;font-size:13px;letter-spacing:.04em;}
+.poi-type{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:#aa44ff;}
+.poi-faction{font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-top:2px;}
+.poi-desc{font-size:11px;color:#cfe;line-height:1.5;margin-top:6px;}
+.poi-subs{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;}
+.poi-subs .sub{font-size:9px;letter-spacing:.1em;padding:1px 6px;background:rgba(0,255,204,.08);
+  border:1px solid rgba(0,255,204,.18);color:#9ec9c2;border-radius:3px;}
+
+.reap-block{margin-top:10px;padding:8px 10px;background:rgba(170,68,255,.08);
+  border-left:3px solid rgba(170,68,255,.6);border-radius:2px;}
+.reap-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.reap-sigil{font-size:16px;color:#dd66ff;text-shadow:0 0 6px rgba(170,68,255,.6);}
+.reap-name{font-size:12px;font-weight:700;color:#fff;}
+.reap-spec{font-size:9px;color:#aa88ff;letter-spacing:.15em;text-transform:uppercase;margin-left:auto;}
+.reap-back{font-size:10px;color:#ccb8e6;font-style:italic;line-height:1.55;margin-top:4px;}
+
 </style>
 <script src="/api/static/config.js"></script>
 <script src="/api/static/adsense_loader.js" defer></script>
@@ -229,6 +269,7 @@ a{color:var(--cyan);}
   <div class="l-tabs">
     <button class="l-tab active" data-tab="characters" onclick="switchTab('characters')">CHARACTERS <span class="count" id="cnt-characters">0</span></button>
     <button class="l-tab" data-tab="factions" onclick="switchTab('factions')">FACTIONS <span class="count" id="cnt-factions">0</span></button>
+    <button class="l-tab" data-tab="strata" onclick="switchTab('strata')">▦ STRATA <span class="count" id="cnt-strata">199</span></button>
     <button class="l-tab" data-tab="stories" onclick="switchTab('stories')">✦ STORIES <span class="count" id="cnt-stories">0</span></button>
     <button class="l-tab" data-tab="mine" id="tab-mine" onclick="switchTab('mine')" style="display:none;">MY CONTRIBUTIONS</button>
     <button class="l-tab" data-tab="admin" id="tab-admin" onclick="switchTab('admin')" style="display:none;">ADMIN <span class="count" id="cnt-admin">0</span></button>
@@ -341,6 +382,9 @@ a{color:var(--cyan);}
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- LORE CORPUS (FACTIONS / POIS / NAMED_REAPERS data for STRATA tab) -->
+<script src="/api/static/js/lore_corpus.js"></script>
 
 <script>
 // ====== STATE ======
@@ -560,7 +604,7 @@ async function saveAccount(e) {
 function switchTab(tab) {
   STATE.tab = tab;
   document.querySelectorAll('.l-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  document.getElementById('toolbar').style.display = (tab==='characters'||tab==='factions') ? '' : 'none';
+  document.getElementById('toolbar').style.display = (tab==='characters'||tab==='factions'||tab==='strata') ? '' : 'none';
   loadCurrentTab();
 }
 async function loadCurrentTab() {
@@ -577,6 +621,8 @@ async function loadCurrentTab() {
       await loadAdmin();
     } else if (STATE.tab === 'stories') {
       await loadStories();
+    } else if (STATE.tab === 'strata') {
+      await loadStrata();
     }
   } catch(err) {
     c.innerHTML = `<div class="l-empty"><div class="e-icon">⚠</div><div>${escapeHTML(err.message)}</div></div>`;
@@ -881,6 +927,77 @@ async function submitEntry(e) {
 
 // ====== STORIES TAB ======
 // Generative AI storytelling powered by the Lore Canon corpus.
+// ====== STRATA TAB ======
+async function loadStrata() {
+  const c = document.getElementById('content');
+  if (!window.LORE_CORPUS) {
+    c.innerHTML = '<div class="l-empty"><div class="e-icon">⚠</div><div>Lore corpus failed to load. Try reloading the page.</div></div>';
+    return;
+  }
+  const corp = window.LORE_CORPUS;
+  const search = (STATE.search || '').toLowerCase();
+  document.getElementById('cnt-strata').textContent = corp.stratumIndex.length;
+
+  let html = '<div style="padding:6px 4px 14px;color:#9ec9c2;font-size:11px;letter-spacing:.18em;text-transform:uppercase;">▦ CANONICAL DLDS STRATA — '
+           + corp.stratumIndex.length + ' MAPPED LAYERS · +99 PEAK DIVINITY → -99 LOVECRAFTIAN NIGHTMARE</div>';
+  html += '<div class="strata-grid">';
+
+  for (const row of corp.stratumIndex) {
+    const lvl = row.level;
+    const sign = lvl > 0 ? '+' : '';
+    const poly = lvl >= 60 ? 'PEAK DIVINITY' : lvl >= 30 ? 'HIGH DIVINITY'
+               : lvl >= 1  ? 'ASCENDED'      : lvl === 0 ? 'NEXUS'
+               : lvl >= -30 ? 'MORTAL TIDES'  : lvl >= -60 ? 'NIGHTMARE'
+               : 'LOVECRAFTIAN';
+    const polyColor = lvl >= 30 ? '#00ffcc' : lvl >= 1 ? '#aaffe6'
+                    : lvl === 0 ? '#ffd28b' : lvl >= -30 ? '#dd66ff'
+                    : lvl >= -60 ? '#ff66aa' : '#ff3344';
+    const poiHTML = (row.pois || []).map(poi => {
+      const fac = poi.faction || {};
+      const subs = (poi.subLocations || []).slice(0, 6).map(s => `<span class="sub">${escapeHTML(s)}</span>`).join('');
+      return `<div class="poi-block">
+                <div class="poi-head">
+                  <span class="poi-name">${escapeHTML(poi.name)}</span>
+                  <span class="poi-type">${escapeHTML(poi.type)}</span>
+                </div>
+                <div class="poi-faction" style="color:${fac.color || '#00ffcc'};">${escapeHTML(fac.name || 'Unclaimed')}</div>
+                <div class="poi-desc">${escapeHTML(poi.desc)}</div>
+                ${subs ? `<div class="poi-subs">${subs}</div>` : ''}
+              </div>`;
+    }).join('');
+    const reaperHTML = row.reaper ? `
+      <div class="reap-block">
+        <div class="reap-head">
+          <span class="reap-sigil">${escapeHTML(row.reaper.sigil)}</span>
+          <span class="reap-name">${escapeHTML(row.reaper.name)}</span>
+          <span class="reap-spec">${escapeHTML(row.reaper.specialty)}</span>
+        </div>
+        <div class="reap-back">${escapeHTML(row.reaper.backstory)}</div>
+      </div>` : '';
+
+    // Apply search filter
+    if (search) {
+      const hay = (poiHTML + reaperHTML + ' ' + sign + lvl + ' ' + poly).toLowerCase();
+      if (!hay.includes(search)) continue;
+    }
+
+    html += `<article class="strata-card" data-level="${lvl}">
+      <header class="sc-head">
+        <div class="sc-level">
+          <span class="sc-sign">${sign}</span><span class="sc-num">${Math.abs(lvl)}</span>
+        </div>
+        <div class="sc-poly" style="color:${polyColor}; border-color:${polyColor};">${poly}</div>
+      </header>
+      <div class="sc-body">
+        ${poiHTML}
+        ${reaperHTML}
+      </div>
+    </article>`;
+  }
+  html += '</div>';
+  c.innerHTML = html;
+}
+
 async function loadStories() {
   const c = document.getElementById('content');
   c.innerHTML = `

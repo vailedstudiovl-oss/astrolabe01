@@ -1359,6 +1359,82 @@
                     explodeReality(name);
                 }
             }
+
+            // === STRATA-WIDE OUTBREAK HALOS (Global View) ===
+            // Group active infestations by their layerIndex and pulse a red
+            // torus around the corresponding global-view saucer mesh.
+            const layerCounts = new Map();
+            for (const [name, entry] of _infestations) {
+                const li = entry.group && entry.group.userData && typeof entry.group.userData.layer === 'number'
+                    ? entry.group.userData.layer
+                    : null;
+                if (li !== null) layerCounts.set(li, (layerCounts.get(li) || 0) + 1);
+            }
+            // Lazy-init halo store
+            if (!window._strataHalos) window._strataHalos = new Map();
+            const haloStore = window._strataHalos;
+            const t = performance.now() * 0.0014;
+            // Add halos for currently-infested layers
+            for (const [lvl, cnt] of layerCounts) {
+                let halo = haloStore.get(lvl);
+                if (!halo) {
+                    const saucer = (globalRings || []).find(r => r.userData && r.userData.layerIndex === lvl);
+                    if (!saucer) continue;
+                    const radius = saucer.scale.x;
+                    const tubeR = Math.max(0.18, radius * 0.025);
+                    const torusGeom = new THREE.TorusGeometry(radius * 1.04, tubeR, 6, 64);
+                    torusGeom.rotateX(Math.PI / 2);
+                    const torusMat = new THREE.MeshBasicMaterial({
+                        color: 0xff2030,
+                        transparent: true,
+                        opacity: 0.55,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                    });
+                    halo = new THREE.Mesh(torusGeom, torusMat);
+                    halo.position.y = saucer.position.y + 0.04;
+                    halo.userData.isStrataInfestHalo = true;
+                    halo.userData.layerIndex = lvl;
+                    sceneGlobal.add(halo);
+                    haloStore.set(lvl, halo);
+                }
+                // Pulse opacity by count + sine wave
+                const intensity = Math.min(1.0, 0.35 + cnt * 0.08);
+                halo.material.opacity = intensity * (0.7 + Math.sin(t + lvl * 0.3) * 0.3);
+                halo.scale.set(1 + Math.sin(t * 1.5 + lvl) * 0.015, 1, 1 + Math.sin(t * 1.5 + lvl) * 0.015);
+            }
+            // Remove halos for layers no longer infested
+            for (const [lvl, halo] of haloStore) {
+                if (!layerCounts.has(lvl)) {
+                    sceneGlobal.remove(halo);
+                    if (halo.geometry) halo.geometry.dispose();
+                    if (halo.material) halo.material.dispose();
+                    haloStore.delete(lvl);
+                }
+            }
+
+            // === FRACTURED-REALITY JITTER (Local View) ===
+            // Realities marked as fractured by failed/aborted Centurion deploys
+            // get a constant high-frequency wobble + accretion-disk flicker.
+            if (STATE.starsOnLayer) {
+                for (const g of STATE.starsOnLayer) {
+                    if (!g || !g.userData || !g.userData.fractured) continue;
+                    // Lazy: cache the original position so jitter has a base
+                    if (!g.userData._fracOrigin) {
+                        g.userData._fracOrigin = g.position.clone();
+                    }
+                    const o = g.userData._fracOrigin;
+                    const jitterAmp = 0.05;
+                    g.position.x = o.x + (Math.random() - 0.5) * jitterAmp;
+                    g.position.z = o.z + (Math.random() - 0.5) * jitterAmp;
+                    // Flicker any accretion disk inside
+                    for (const c of g.children) {
+                        if (c.userData && c.userData.isAccretionDisk && c.material) {
+                            c.material.opacity = 0.35 + Math.random() * 0.65;
+                        }
+                    }
+                }
+            }
         }
 
         // Public API surface (for Death's Ship to call when a reaper dies)

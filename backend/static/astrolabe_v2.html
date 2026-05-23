@@ -3068,6 +3068,40 @@
         addListenerSafe('cinematic-btn', 'click', toggleCinematic);
         addListenerSafe('cinematic-exit-btn', 'click', toggleCinematic);
 
+        // ============================================================
+        // PANEL COLLAPSE HANDLERS (.panel-collapse-btn)
+        // The [-] buttons in NAV-COMPUTER, FILTERS, STRATA TACTICAL SCAN,
+        // and SELECTED REALITY DIAGNOSTICS were missing event listeners
+        // entirely. This wires them up to collapse/expand the body panel
+        // via `data-target` attribute. State persists per session.
+        // ============================================================
+        document.querySelectorAll('.panel-collapse-btn').forEach((btn) => {
+            btn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const targetId = btn.getAttribute('data-target');
+                if (!targetId) return;
+                const body = document.getElementById(targetId);
+                if (!body) return;
+                const collapsed = body.classList.toggle('panel-collapsed');
+                if (collapsed) {
+                    body.style.maxHeight = '0px';
+                    body.style.opacity = '0';
+                    body.style.marginTop = '0';
+                    body.style.paddingTop = '0';
+                    body.style.paddingBottom = '0';
+                    btn.innerText = '[+]';
+                } else {
+                    body.style.maxHeight = '';
+                    body.style.opacity = '';
+                    body.style.marginTop = '';
+                    body.style.paddingTop = '';
+                    body.style.paddingBottom = '';
+                    btn.innerText = '[-]';
+                }
+                try { playBeep(collapsed ? 360 : 520, 'sine', 0.10, 0.04); } catch (e) {}
+            });
+        });
+
         // Mobile responsive switch tab system
         function toggleMobileTab(tabId) {
             const leftPanel = document.getElementById('left-panel');
@@ -3075,40 +3109,51 @@
             const bottomPanel = document.getElementById('bottom-panel');
             const navComp = document.getElementById('nav-comp-panel');
 
+            // Reset the visual active state on all dock buttons
             document.querySelectorAll('#mobile-dock button').forEach(b => {
-                b.classList.remove('bg-[#00ffcc]', 'text-black', 'shadow-lg');
+                b.classList.remove('bg-[#00ffcc]', 'text-black', 'shadow-lg', 'ring-2', 'ring-cyan-200');
             });
 
+            // Always clear body mobile drawer classes BEFORE evaluating
+            // the toggle — so that the `display: flex !important` CSS
+            // governing mob-show-* doesn't keep an old drawer visible
+            // when the user is closing it.
+            document.body.classList.remove('mob-show-nav', 'mob-show-filters', 'mob-show-logs');
+
+            // Toggling the same tab → close it.
             if (STATE.activeMobileTab === tabId) {
                 STATE.activeMobileTab = null;
                 leftPanel.classList.add('hidden');
                 rightPanel.classList.add('hidden');
                 bottomPanel.classList.add('hidden');
                 navComp.classList.add('hidden');
+                try { playBeep(380, 'sine', 0.10, 0.04); } catch (e) {}
                 return;
             }
 
             STATE.activeMobileTab = tabId;
-            playBeep(600, 'sine', 0.1, 0.06);
+            try { playBeep(600, 'sine', 0.10, 0.06); } catch (e) {}
 
+            // Hide everything first
             leftPanel.classList.add('hidden');
             rightPanel.classList.add('hidden');
             bottomPanel.classList.add('hidden');
             navComp.classList.add('hidden');
-            // Clear all mobile drawer body classes
-            document.body.classList.remove('mob-show-nav', 'mob-show-filters', 'mob-show-logs');
 
             if (tabId === 'nav') {
-                document.getElementById('mob-tab-nav').classList.add('bg-[#00ffcc]', 'text-black');
+                const btn = document.getElementById('mob-tab-nav');
+                if (btn) btn.classList.add('bg-[#00ffcc]', 'text-black', 'ring-2', 'ring-cyan-200');
                 bottomPanel.classList.remove('hidden');
                 navComp.classList.remove('hidden', 'hidden-mobile');
                 document.body.classList.add('mob-show-nav');
             } else if (tabId === 'filters') {
-                document.getElementById('mob-tab-filters').classList.add('bg-[#00ffcc]', 'text-black');
+                const btn = document.getElementById('mob-tab-filters');
+                if (btn) btn.classList.add('bg-[#00ffcc]', 'text-black', 'ring-2', 'ring-cyan-200');
                 leftPanel.classList.remove('hidden');
                 document.body.classList.add('mob-show-filters');
             } else if (tabId === 'logs') {
-                document.getElementById('mob-tab-logs').classList.add('bg-[#00ffcc]', 'text-black');
+                const btn = document.getElementById('mob-tab-logs');
+                if (btn) btn.classList.add('bg-[#00ffcc]', 'text-black', 'ring-2', 'ring-cyan-200');
                 rightPanel.classList.remove('hidden');
                 document.body.classList.add('mob-show-logs');
             }

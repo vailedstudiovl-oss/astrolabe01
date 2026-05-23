@@ -14,7 +14,7 @@ import random
 import requests
 
 BASE_URL = os.environ.get(
-    "BACKEND_URL", "https://sidescroller-camera.preview.emergentagent.com"
+    "BACKEND_URL", "https://terminal-ui-overhaul.preview.emergentagent.com"
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 ADMIN_EMAIL = "dimensionlockdeath@gmail.com"

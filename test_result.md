@@ -3829,3 +3829,86 @@ metadata_addendum:
 #    /tmp/ds_after_warp.png (fade-warped into Reaper Dorm Hall after
 #    tapping its row). All 17 reachable chambers usable as fast-travel
 #    targets; current room is greyed-out as "▸ <name>".
+
+
+# ============================================================================
+# 2026-05-23 — ASTROLABE TERMINAL UI POLISH + CENTURION DEPLOY CONFIRMATION
+# ============================================================================
+#
+# User asked for:
+#   • Fix the Astrolabe Terminal UI (general visual polish).
+#   • When the player DOUBLE-TAPS a soulparasite-infested reality, a button
+#     [⚔ DEPLOY CENTURION GUARD] must pop up FIRST. Clicking it plays
+#     centurion_defense.mp4 and on video-end the strata is cleansed.
+#
+# ----------------------------------------------------------------------------
+# 1) CENTURION DEPLOY CONFIRMATION POPUP  (file: /app/backend/static/
+#    astrolabe_v2.html)
+#
+#    a. New modal #centurion-confirm with red-bordered cyber-frame:
+#       • Header: "▌ ALERT · DOUBLE-TAP CONFIRMED"
+#       • Title: "DEPLOY CENTURION GUARD?"
+#       • Target subtitle: TARGET: <name> · <stratum_designator>
+#       • Lore body explaining the soulparasite-infested reality threat
+#       • Two-cell stat grid: THREAT (SOUL PARASITES) / PROTOCOL
+#         (BEACON SEAL)
+#       • Big pulsing red [⚔ DEPLOY CENTURION GUARD] confirm button
+#       • Subtle [⨯ STAND DOWN] cancel button
+#
+#    b. onLocalDoubleClick() now branches BEFORE selectStarSystem(): if
+#       the clicked core's userData.realityType === 'INFESTED', it calls
+#       window.openCenturionConfirm(starGroup) and returns. Other reality
+#       types continue to the codex modal as before.
+#
+#    c. New script block at bottom wires:
+#       • openConfirm(starGroup) → fills label, shows modal
+#       • closeConfirm() → hides modal, clears _pendingTarget
+#       • DEPLOY click → close confirm + showCenturionModal(pendingTarget)
+#       • STAND DOWN / Esc / backdrop click → closeConfirm
+#       • Exposed as window.openCenturionConfirm
+#
+#    d. The existing centurion video flow remains unchanged, so on video
+#       end the strata still auto-cleanses to STABLE (window.cleanseInfestation)
+#       and prints a green terminal-log entry.
+#
+# ----------------------------------------------------------------------------
+# 2) HUD / VISUAL POLISH PASS
+#
+#    a. .cyber-panel — deeper glass: dual radial accent (cyan + violet),
+#       saturated backdrop-filter, layered drop-shadow, sharper corner
+#       brackets (14×14 px) with drop-shadow glow.
+#
+#    b. .btn-active-neon — gradient fill + inset highlight + text-shadow
+#       (was flat).
+#
+#    c. NEW .status-pill — used for header SHIP / POWER / CYCLE / DATA.
+#       Pulsing 6-px dots in cyan / amber / purple. Replaced the old
+#       border-divided text row.
+#
+#    d. NEW .hdr-btn-group — segmented button group for header right side
+#       (▶ CINEMA, ⛶ FULLSCREEN, ↻ RESET, ⊞ HUD, ♪ AMBIENT). One unified
+#       container, per-button hover gradient, accent classes (warn,
+#       lavender). HUD toggle text updated to "⊞ HUD: ON/OFF".
+#
+#    e. <input type=range> — track now gradient-tinted (rose → cyan →
+#       purple) reflecting the SOUL SCALE strata bias. Thumb upgraded to
+#       a glowing 20-px radial-gradient orb with hover scale-up. Firefox
+#       fallback added.
+#
+#    f. Mobile drawer aesthetic — taller drawer (46vh), gradient blob top,
+#       saturated backdrop, drop-shadow, plus an iOS-style 42×4 drag
+#       handle pill (::before) shown when drawer is open. #mobile-dock
+#       gets a soft gradient backing + tap-scale feedback.
+#
+# ----------------------------------------------------------------------------
+# Verified live (Playwright):
+#   • /tmp/astro_polished_header.png — new pill row + segmented button
+#     group + refined panels + glowing slider.
+#   • /tmp/astro_centurion_confirm.png — confirmation popup correctly
+#     appears for INFESTED ACC-WELL L-0-1 with full lore + buttons.
+#   • /tmp/astro_centurion_video.png — clicking DEPLOY successfully
+#     transitions into the centurion video modal with the live-feed HUD
+#     overlay and rolling subtitle SOUL PARASITES SPAWNING…
+#
+# Status: All three Astrolabe-polish items requested in this user
+# message ARE COMPLETE.

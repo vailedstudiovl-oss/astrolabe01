@@ -56,81 +56,41 @@
         ]
     };
 
-    // ===== 8c. HEADER BUTTON STRIP (Back / Settings / Community Lore) =====
-    // Injects three top-right action buttons that the new v2 astrolabe
-    // is missing: a return-to-main-menu button, a settings overlay, and
-    // a community-lore submission form for the active strata.
+    // ===== 8c. HEADER BUTTON STRIP (slim 3-icon vertical strip) =====
+    // De-cluttered: removed Graphics / Focus / Filter / Scan / Contrast
+    // (all dead or redundant). Replaced with three essential icons:
+    //   ◂ Main Menu, ⚙ Settings, ✎ Add Lore.
+    // Everything else now lives inside the ⚙ Settings modal.
     function injectHeaderButtons() {
         const header = document.querySelector('header');
         if (!header || document.getElementById('astro-action-strip')) return;
-        // VERTICAL RIGHT-SIDE STRIP (per user's reference screenshot).
-        // 7 buttons stacked, large enough for mobile thumbs, with the
-        // Settings, Community Lore, Main Menu, and view-toggles all
-        // accessible at a glance.
         const strip = document.createElement('div');
         strip.id = 'astro-action-strip';
         strip.className = 'fixed z-30 flex flex-col gap-1.5';
-        strip.style.cssText = 'right: 10px; top: 96px; align-items: flex-end;';
+        strip.style.cssText = 'right: 10px; top: 86px; align-items: flex-end;';
         const baseBtn = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,15,18,0.86);border:1.5px solid rgba(0,255,204,0.45);color:#00ffcc;border-radius:6px;cursor:pointer;font-size:18px;font-family:"Share Tech Mono",monospace;box-shadow:0 0 6px rgba(0,255,204,0.25),inset 0 0 6px rgba(0,255,204,0.05);transition:all 0.15s ease;';
         strip.innerHTML = `
-            <a href="/api/astrolabe" id="astro-home-btn" title="◂ Main Menu" style="${baseBtn}text-decoration:none;">≡</a>
-            <button id="astro-graphics-btn" title="Graphics / View" style="${baseBtn}">⬢</button>
-            <button id="astro-focus-btn"    title="Re-center camera" style="${baseBtn}">⊕</button>
-            <button id="astro-filter-btn"   title="Filter quick-toggle" style="${baseBtn}">◆</button>
-            <button id="astro-scan-btn"     title="Ping / scan" style="${baseBtn}">▸</button>
-            <button id="astro-settings-btn" title="Settings" style="${baseBtn}">⚙</button>
-            <button id="astro-community-btn" title="Add Community Lore" style="${baseBtn}border-color:rgba(255,168,80,0.55);color:#ffd28b;">✎</button>
-            <button id="astro-contrast-btn" title="Toggle high contrast" style="${baseBtn}">◐</button>
+            <a href="/api/astrolabe" id="astro-home-btn" title="Main Menu" style="${baseBtn}text-decoration:none;">≡</a>
+            <button id="astro-settings-btn" title="Settings · HUD · Audio · Graphics" style="${baseBtn}">⚙</button>
+            <button id="astro-community-btn" title="Add Community Lore for this strata" style="${baseBtn}border-color:rgba(255,168,80,0.55);color:#ffd28b;">✎</button>
         `;
         document.body.appendChild(strip);
 
-        // Wire each button
         const $ = (id) => document.getElementById(id);
         $('astro-settings-btn').addEventListener('click', openSettings);
         $('astro-community-btn').addEventListener('click', () =>
             openCommunityLore(window.STATE && window.STATE.currentLayer || 0)
         );
-        $('astro-contrast-btn').addEventListener('click', () => {
-            const on = !document.body.classList.contains('astro-high-contrast');
-            document.body.classList.toggle('astro-high-contrast', on);
-            try { localStorage.setItem('astro_contrast', on ? '1' : '0'); } catch (e) {}
-        });
-        // Graphics → cycles through view modes if those buttons exist in the
-        // left panel. Otherwise toggles ambient.
-        $('astro-graphics-btn').addEventListener('click', () => {
-            const modes = ['view-standard', 'view-thermal', 'view-density'];
-            for (const m of modes) {
-                const b = document.getElementById(m);
-                if (b && !b.classList.contains('btn-active-neon')) { b.click(); return; }
-            }
-            // Fallback: simulate cinematic toggle
-            const cin = document.getElementById('cinematic-toggle');
-            if (cin) cin.click();
-        });
-        // Focus → call recenterCamera if defined
-        $('astro-focus-btn').addEventListener('click', () => {
-            if (typeof window.recenterCamera === 'function') window.recenterCamera();
-            else if (typeof window.dispatchEvent === 'function')
-                window.dispatchEvent(new Event('astrolabe-recenter'));
-        });
-        // Filter → opens left panel filters / cycles through
-        $('astro-filter-btn').addEventListener('click', () => {
-            const lp = document.getElementById('left-panel');
-            if (lp) {
-                lp.style.opacity = lp.style.opacity === '0' ? '1' : (lp.style.opacity === '1' ? '0.5' : '1');
-            }
-            const dead = document.getElementById('filter-dead');
-            if (dead) dead.click();
-        });
-        // Scan → calls ping if button exists
-        $('astro-scan-btn').addEventListener('click', () => {
-            const ping = document.getElementById('btn-ping') || document.getElementById('ping-btn');
-            if (ping) { ping.click(); return; }
-            // Fallback: trigger anomaly scan flash
-            if (typeof window.triggerAnomalyScanner === 'function') window.triggerAnomalyScanner('STABLE');
-        });
-        // Restore contrast state from settings
+        // Restore contrast state from saved settings
         try { if (localStorage.getItem('astro_contrast') === '1') document.body.classList.add('astro-high-contrast'); } catch(e) {}
+        // Restore HUD hidden state if previously toggled
+        try {
+            if (localStorage.getItem('astro_hud_hidden') === '1') {
+                setTimeout(() => {
+                    if (typeof window.toggleHUD === 'function') window.toggleHUD(true);
+                }, 1200);
+            }
+        } catch (e) {}
     }
 
     // ===== 8d. SETTINGS MODAL ==========================================
@@ -141,31 +101,62 @@
         m.className = 'fixed inset-0 z-50 hidden items-center justify-center p-3';
         m.style.background = 'rgba(0,0,0,0.85)';
         m.innerHTML = `
-            <div class="dlds-frame max-w-md w-full rounded-sm overflow-hidden">
-                <div class="px-4 py-3 border-b border-purple-500/30 flex justify-between items-center">
+            <div class="dlds-frame max-w-md w-full rounded-sm overflow-hidden flex flex-col"
+                 style="max-height: 92vh; background: linear-gradient(180deg, rgba(0,18,30,0.96), rgba(0,4,12,0.98)); border: 1.5px solid rgba(0,255,204,0.45); box-shadow: 0 0 28px rgba(0,255,204,0.28), inset 0 0 60px rgba(0,255,204,0.05);">
+                <div class="px-4 py-3 border-b border-purple-500/30 flex justify-between items-center shrink-0" style="background: rgba(0,12,20,0.6);">
                     <div>
-                        <div class="dlds-title text-[10px]">DLDS · TERMINAL SETTINGS</div>
-                        <div class="dlds-bigtitle text-lg mt-1">⚙ SETTINGS</div>
+                        <div class="dlds-title text-[10px]" style="color:#00ffcc; letter-spacing:0.18em; text-shadow: 0 0 6px rgba(0,255,204,0.6);">DLDS · TERMINAL SETTINGS</div>
+                        <div class="dlds-bigtitle text-lg mt-1" style="color:#00ffcc; letter-spacing:0.18em; text-shadow: 0 0 8px rgba(0,255,204,0.55);">⚙ SETTINGS</div>
                     </div>
-                    <button id="settings-close" class="dlds-close px-3 py-2 text-xs font-mono uppercase tracking-widest rounded-sm">[ × ]</button>
+                    <button id="settings-close" class="px-3 py-2 text-xs font-mono uppercase tracking-widest rounded-sm" style="color:#ff7575; border:1px solid rgba(255,80,80,0.6); background:rgba(255,80,80,0.08);">[ × ]</button>
                 </div>
-                <div class="p-4 space-y-3 text-[11px] font-mono text-slate-300">
-                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                <div class="p-4 space-y-3 text-[11px] font-mono text-slate-300 overflow-y-auto" style="overscroll-behavior: contain;">
+                    <!-- ============ DISPLAY CONTROLS ============ -->
+                    <div class="border border-cyan-500/30 px-3 py-2.5 rounded-sm bg-cyan-950/10">
+                        <div class="text-cyan-300 mb-1.5 font-bold tracking-widest text-[10px]">▦ DISPLAY</div>
+                        <label class="flex items-center justify-between mt-1 cursor-pointer hover:bg-cyan-950/30 px-1 py-1 rounded-sm">
+                            <span class="text-[12px]">⊞ HIDE HUD (minimize all icons)</span>
+                            <input type="checkbox" id="set-hide-hud" class="w-5 h-5">
+                        </label>
+                        <div class="text-[10px] text-slate-500 leading-tight mt-0.5 px-1">Collapses panels, header, dock, and the right strip. Restore via the floating eye icon.</div>
+                    </div>
+                    <!-- ============ QUICK ACTIONS ============ -->
+                    <div class="border border-amber-500/30 px-3 py-2.5 rounded-sm bg-amber-950/5">
+                        <div class="text-amber-300 mb-1.5 font-bold tracking-widest text-[10px]">▸ QUICK ACTIONS</div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <button id="set-act-cinema" class="px-2 py-2 text-[10px] uppercase tracking-widest rounded-sm border border-amber-500/50 text-amber-200 hover:bg-amber-950/30 transition">▶ CINEMATIC</button>
+                            <button id="set-act-fullscreen" class="px-2 py-2 text-[10px] uppercase tracking-widest rounded-sm border border-cyan-500/50 text-cyan-200 hover:bg-cyan-950/30 transition">⛶ FULLSCREEN</button>
+                            <button id="set-act-reset" class="px-2 py-2 text-[10px] uppercase tracking-widest rounded-sm border border-purple-500/50 text-purple-200 hover:bg-purple-950/30 transition">↻ RESET VIEW</button>
+                            <button id="set-act-ambient" class="px-2 py-2 text-[10px] uppercase tracking-widest rounded-sm border border-fuchsia-500/50 text-fuchsia-200 hover:bg-fuchsia-950/30 transition">♪ AMBIENT</button>
+                        </div>
+                    </div>
+                    <!-- ============ ACCESSIBILITY ============ -->
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm cursor-pointer hover:bg-cyan-950/20">
                         <span>HIGH CONTRAST UI</span>
                         <input type="checkbox" id="set-contrast" class="w-5 h-5">
                     </label>
-                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm cursor-pointer hover:bg-cyan-950/20">
                         <span>LARGER TEXT (READABILITY)</span>
                         <input type="checkbox" id="set-large-text" class="w-5 h-5">
                     </label>
-                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm cursor-pointer hover:bg-cyan-950/20">
                         <span>REDUCED MOTION</span>
                         <input type="checkbox" id="set-reduce-motion" class="w-5 h-5">
                     </label>
-                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm">
+                    <label class="flex items-center justify-between border border-cyan-500/20 px-3 py-2 rounded-sm cursor-pointer hover:bg-cyan-950/20">
                         <span>MUTE AUDIO</span>
                         <input type="checkbox" id="set-mute" class="w-5 h-5">
                     </label>
+                    <!-- ============ TELEMETRY ============ -->
+                    <div class="border border-emerald-500/30 px-3 py-2.5 rounded-sm bg-emerald-950/5">
+                        <div class="text-emerald-300 mb-1.5 font-bold tracking-widest text-[10px]">▣ SHIP TELEMETRY</div>
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+                            <div class="flex justify-between"><span class="text-slate-400">SHIP</span><span class="text-cyan-200 font-bold">VOID-WANDERER</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">POWER</span><span class="text-emerald-300 font-bold">OPTIMAL</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">CYCLE</span><span class="text-cyan-200 font-bold">108 E-YRS</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">DATA</span><span class="text-fuchsia-300 font-bold" id="set-telemetry-strata">—/199</span></div>
+                        </div>
+                    </div>
                     <!-- ============ GRAPHICS SECTION ============ -->
                     <div class="border border-purple-500/40 px-3 py-3 rounded-sm bg-purple-950/10">
                         <div class="text-purple-300 mb-2 font-bold tracking-widest">⬢ GRAPHICS</div>
@@ -247,6 +238,55 @@
                 const span = badge.querySelector('span'); if (span) span.innerText = wid;
             }
         });
+
+        // ===== HIDE HUD TOGGLE =====
+        const $hideHud = document.getElementById('set-hide-hud');
+        if ($hideHud) {
+            try { $hideHud.checked = (localStorage.getItem('astro_hud_hidden') === '1'); } catch (e) {}
+            $hideHud.addEventListener('change', () => {
+                if (typeof window.toggleHUD === 'function') window.toggleHUD($hideHud.checked);
+            });
+        }
+
+        // ===== QUICK ACTION BUTTONS =====
+        // These replace the removed top-header buttons. We dispatch to the
+        // existing engine handlers via element-click fallback or direct call.
+        const fireQuickAction = (engineFn, fallbackId) => {
+            if (typeof window[engineFn] === 'function') { window[engineFn](); return; }
+            const el = document.getElementById(fallbackId);
+            if (el) el.click();
+        };
+        const $cinema = document.getElementById('set-act-cinema');
+        if ($cinema) $cinema.addEventListener('click', () => fireQuickAction('toggleCinematic', 'cinematic-btn'));
+        const $full = document.getElementById('set-act-fullscreen');
+        if ($full) $full.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+            else document.exitFullscreen();
+        });
+        const $reset = document.getElementById('set-act-reset');
+        if ($reset) $reset.addEventListener('click', () => {
+            const r = document.getElementById('reset-btn');
+            if (r) r.click();
+            // Direct camera reset fallback if engine has it
+            if (window.STATE && typeof window.updateLayer === 'function') {
+                try { window.updateLayer(0); } catch (e) {}
+            }
+        });
+        const $amb = document.getElementById('set-act-ambient');
+        if ($amb) $amb.addEventListener('click', () => {
+            const s = document.getElementById('sound-toggle');
+            if (s) { s.click(); return; }
+            // No engine button — toggle synthHum directly
+            if (window.STATE) window.STATE.soundEnabled = !window.STATE.soundEnabled;
+        });
+        // Live-update strata telemetry tag
+        const $telStrata = document.getElementById('set-telemetry-strata');
+        if ($telStrata && window.STATE) {
+            const refresh = () => { $telStrata.innerText = (Math.abs(window.STATE.currentLayer || 0) + 1) + '/199'; };
+            refresh();
+            window.addEventListener('strata-change', refresh);
+            setInterval(refresh, 1500);
+        }
 
         // ===== GRAPHICS CONTROLS WIRING =====
         // Bind preset buttons + sliders to window.GRAPHICS and the live
@@ -365,6 +405,7 @@
         m.classList.remove('hidden'); m.classList.add('flex');
         document.getElementById('set-wid').innerText = ensureWandererId();
     }
+    window.openSettings = openSettings;
     function closeSettings() {
         const m = document.getElementById('settings-modal');
         if (!m) return;

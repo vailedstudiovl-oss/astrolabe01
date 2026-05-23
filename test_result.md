@@ -4116,3 +4116,91 @@ metadata_addendum:
 #
 # Chunking:
 #   python /app/backend/scripts/split_astrolabe_v2.py executed (157.2 KB).
+
+
+# ============================================================================
+#  Session 2026-05-23 (UI Overhaul + Game Preview + Centurion Sprites)
+# ============================================================================
+#  User asks:
+#   1. Build a game preview + summary
+#   2. Overhaul Astrolabe Terminal GUI — less cluttered, mobile friendly
+#   3. Remove non-functional UI buttons
+#   4. Function to minimize icons (placed in Settings per user clarification)
+#   5. Reimplement filters visually (they had no real visual function)
+#   6. Use attached Centurion Guard Trooper sprite zip for gameplay
+#      → user clarified: Centurions never board Death's Ship; if present, only
+#        in the hangar; arrival can be a cinematic or dialogue with art icon
+#        triggered by goals completed.
+#
+#  Work done:
+#   1. Trimmed top header — removed SHIP/POWER/CYCLE/DATA pills + 5 header
+#      buttons (CINEMA/FULLSCREEN/RESET/HUD/AMBIENT). Kept compact title +
+#      strata badge + 3 dynamic pills (OUTBREAKS/SQUADS/BALANCE).
+#   2. Reduced right vertical icon strip from 8 icons to 3 (≡ Main, ⚙ Settings,
+#      ✎ Add Lore). Removed broken ⬢ Graphics / ⊕ Focus / ◆ Filter / ▸ Scan /
+#      ◐ Contrast.
+#   3. Removed dead VIEW MODES (Standard) + FACTION DATA (Territory Map)
+#      sections from the filters panel — they had no visible effect.
+#   4. Rebuilt filter panel as a single "REALITY HIGHLIGHT" group with live
+#      match-count badges (STABLE x, DEAD x, INFESTED x) + [× CLEAR] reset.
+#   5. Rebuilt triggerAnomalyScanner() — dim+highlight mode replacing the old
+#      hide-visibility mode. Non-matching realities dim to 18% opacity,
+#      matching realities scale 1.25× + global ring spindles brighten 1.4×.
+#      applyFilterVisualState() exposed globally + auto-runs after updateLayer.
+#   6. Rebuilt toggleHUD() — single function now hides ALL chrome (header,
+#      footer, panels, dock, action strip, badge) and shows a single restore
+#      eye-icon FAB. State persists via localStorage.astro_hud_hidden.
+#      Exposed as window.toggleHUD.
+#   7. Expanded Settings modal with new sections:
+#        · DISPLAY — HIDE HUD toggle (primary, per user request)
+#        · QUICK ACTIONS — Cinematic / Fullscreen / Reset / Ambient buttons
+#          (replaces the removed top header buttons)
+#        · ACCESSIBILITY — Contrast / Large Text / Reduced Motion / Mute
+#        · SHIP TELEMETRY — SHIP / POWER / CYCLE / DATA read-only summary
+#          (replaces the removed header pills)
+#        · GRAPHICS PRESETS — Performance / Balanced / Cinematic
+#      Added inline frame styles since `.dlds-frame` CSS was scoped only to
+#      `#codex-modal` and the Settings modal was rendering invisible.
+#   8. Mobile dock — replaced [HIDE ALL] tab with [⚙ MENU] that opens Settings.
+#   9. New module: backend/static/js/centurion_arrival.js
+#      → Tracks cleansings in localStorage.astro_cleansings_done.
+#      → At milestones [1, 3, 7] shows a stylised purple dialogue with:
+#         · Centurion sprite portrait (cropped via background-position from
+#           /api/static/centurion_arrival/iso_idle_down.png)
+#         · Officer rank + cruiser name + approach vector
+#         · 4-line transmission honouring the "no boarding" pact
+#         · CTA button (Acknowledge Beacon / Accept Fast-Warp / Accept Legion)
+#      → Terminal-log feedback line on each arrival.
+#      → Each milestone fires once (tracked in astro_centurion_seen_milestones).
+#      → Hooked into hideCenturionModal(true) success path; debug entry
+#         point window.debugCenturionArrival(milestone).
+#  10. Unpacked /tmp/centurion_zip into /app/backend/static/centurion_arrival/
+#      (10 sprite sheets ready for future scenes).
+#  11. Wrote /app/GAME_PREVIEW.md — comprehensive game summary + this
+#      iteration's change index + browser-console test commands.
+#
+#  Files touched / created:
+#   - backend/static/astrolabe_v2.html         (header, filters, toggleHUD,
+#     triggerAnomalyScanner, mobile dock, centurion hook, header-strata-badge)
+#   - backend/static/js/astrolabe_lore_module.js (strip → 3 icons; Settings
+#     modal expansion; openSettings exposed; HIDE HUD wired; Quick Actions
+#     wired; inline frame styles)
+#   - backend/static/js/centurion_arrival.js   (NEW module)
+#   - backend/static/centurion_arrival/*.png   (NEW — 10 sprite sheets)
+#   - GAME_PREVIEW.md                          (NEW summary doc at repo root)
+#
+#  Verified visually via screenshot tool:
+#   - Clean Astrolabe view (3-icon strip, compact header, slim filters)
+#   - Settings modal opens correctly with all 5 sections
+#   - STABLE filter highlights matching realities + dims others
+#   - HIDE HUD minimises everything → only 3D scene + restore FAB
+#   - Centurion Arrival dialogue (milestone 3) renders with portrait + lore
+#   - Mobile (390px) layout — compact header, 4-tab dock, panels stack
+#
+#  Open items for next iteration:
+#   - Real-time animated Centurion sprite scene in Surge Hanger (currently
+#     a static dialogue portrait; full sprite-sheet animator is sketched but
+#     not wired into the 2D Death's Ship rendering loop)
+#   - Per-strata color shift on filter highlights
+#   - "Recall Beacon" gameplay affordance after Centurion alliance milestones
+# ============================================================================

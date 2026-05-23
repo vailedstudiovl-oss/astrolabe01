@@ -4017,3 +4017,26 @@ metadata_addendum:
 # Debug hooks (for QA): window.DEBUG_centurion.refill() resets squads to
 # max + clears cooldown. window.DEBUG_centurion.state() dumps the campaign
 # state.
+
+
+# ============================================================================
+# 2026-05-23 — CHUNK-SCRIPT REGEN (user still saw codex first on mobile)
+# ============================================================================
+# Root cause: /api/astrolabe-game-v2 serves launcher_v2.html which loads
+# /chunks_v2/astrolabe-engine.js. My edits to astrolabe_v2.html were NOT
+# propagated because I forgot to run split_astrolabe_v2.py.
+#
+# Fix:
+#   • Ran  python /app/backend/scripts/split_astrolabe_v2.py
+#     → updated chunks_v2/astrolabe-engine.js (153.2 KB) with the
+#       INFESTED bypass logic.
+#
+# Verified live on the chunked path /api/astrolabe-game-v2:
+#   • Selecting ACC-WELL L-0-0 (INFESTED) → DEPLOY CENTURION GUARD?
+#     popup appears immediately, codex stays hidden.
+#   • Header reads "▌ ALERT · INFESTATION DETECTED".
+#
+# WORKFLOW REMINDER (for any future Astrolabe edit):
+#   1. Edit  /app/backend/static/astrolabe_v2.html
+#   2. Run   python /app/backend/scripts/split_astrolabe_v2.py
+#   3. Hard-refresh the mobile browser to bypass the cached chunk.

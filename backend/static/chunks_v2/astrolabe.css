@@ -288,6 +288,45 @@ body {
             }
             #mobile-dock button:active { transform: scale(.94); }
 
+            /* ---------------------------------------------------------
+             * MOBILE GUI OVERHAUL — declutter aggressively on vertical
+             * portrait viewports. Hide non-essential chrome and replace
+             * the bulky pill row + header button-group with a single
+             * consolidated mission pill that surfaces only the gameplay-
+             * critical numbers (OUTBREAKS / SQUADS / BALANCE).
+             * --------------------------------------------------------- */
+            /* Hide all individual status pills EXCEPT the consolidated one */
+            header .flex.flex-wrap > .status-pill:not(#mission-pill) { display: none !important; }
+            /* Hide segmented action buttons (CINEMA/FULLSCREEN/RESET/HUD/AMBIENT)
+               from the header — they're available via the bottom-dock
+               "SETTINGS" / hamburger now. */
+            .hdr-btn-group { display: none !important; }
+            /* Hide the static intel ticker banner — too busy on mobile */
+            header > .mt-1\.5 { display: none !important; }
+            /* Hide the VIEWPORT labels (purely decorative) */
+            #viewport-global-container > .absolute.top-3.left-3,
+            #viewport-local-container  > .absolute.top-3.left-3 { display: none !important; }
+            /* Tighter header padding */
+            header { padding-top: 6px !important; padding-bottom: 6px !important; }
+            /* Make the consolidated mission pill prominent and full-width */
+            #mission-pill {
+                display: inline-flex !important;
+                width: 100%;
+                justify-content: space-around;
+                padding: 7px 10px;
+                font-size: 11px;
+                gap: 14px;
+                border: 1px solid rgba(0,255,204,.32);
+                background: linear-gradient(180deg, rgba(8,12,22,.95), rgba(4,8,16,.85));
+                box-shadow: 0 0 14px rgba(0,255,204,.18), inset 0 0 14px rgba(0,255,204,.05);
+            }
+            #mission-pill > .seg {
+                display:flex; align-items:center; gap:5px;
+            }
+            #mission-pill .seg-dot {
+                width: 7px; height: 7px; border-radius: 99px;
+            }
+
             /* When the user taps a dock button, show the corresponding
                panel as a half-height drawer FLOATING over the canvas. */
             body.mob-show-filters #left-panel,

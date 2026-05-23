@@ -614,15 +614,29 @@
             // load it AFTER the engine is up so it can hook the engine's
             // global symbols (window.layerProfiles, window.STATE,
             // window.selectStarSystem, window.updateLayer).
-            try {
-                const loreScript = document.createElement('script');
-                loreScript.src = resolveAssetUrl('/api/static/js/astrolabe_lore_module.js');
-                loreScript.onload  = () => log('▸ <span class="ok">lore-merge module loaded</span>');
-                loreScript.onerror = () => log('▸ <span class="warn">lore-merge module failed to load (canon UI disabled)</span>');
-                document.body.appendChild(loreScript);
-            } catch (e) {
-                log('▸ <span class="warn">lore-merge bootstrap error: ' + (e.message || e) + '</span>');
+            //
+            // Sequenced load: lore_corpus.js  →  astrolabe_lore_module.js
+            //                                →  astrolabe_features_module.js
+            // so window.LORE_CORPUS is present before the features module
+            // tries to render POIs / faction volumes.
+            function loadScriptSeq(src) {
+                return new Promise((resolve) => {
+                    const s = document.createElement('script');
+                    s.src = resolveAssetUrl(src);
+                    s.onload  = () => { log('▸ <span class="ok">' + src.split('/').pop() + ' loaded</span>'); resolve(true); };
+                    s.onerror = () => { log('▸ <span class="warn">' + src.split('/').pop() + ' failed</span>'); resolve(false); };
+                    document.body.appendChild(s);
+                });
             }
+            (async () => {
+                try {
+                    await loadScriptSeq('/api/static/js/lore_corpus.js');
+                    await loadScriptSeq('/api/static/js/astrolabe_lore_module.js');
+                    await loadScriptSeq('/api/static/js/astrolabe_features_module.js');
+                } catch (e) {
+                    log('▸ <span class="warn">module load chain error: ' + (e.message || e) + '</span>');
+                }
+            })();
 
             // 6) Fade installer out
             setProgress(100);

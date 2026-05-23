@@ -491,6 +491,61 @@ END OF CANON CORPUS
     return response
 
 
+# ============================================================
+#   POI LORE CACHE — pre-baked canon-faithful vignettes
+#   Generated offline via /app/backend/scripts/prebake_poi_lore.py
+#   Served instantly (no LLM cost at request time).
+# ============================================================
+_POI_LORE_CACHE: Optional[Dict[str, Any]] = None
+_POI_LORE_PATH = ROOT_DIR / "lore_canon" / "poi_lore_cache.json"
+
+
+def _load_poi_lore_cache() -> Dict[str, Any]:
+    global _POI_LORE_CACHE
+    if _POI_LORE_CACHE is not None:
+        return _POI_LORE_CACHE
+    try:
+        if _POI_LORE_PATH.exists():
+            import json as _json
+            with open(_POI_LORE_PATH, "r", encoding="utf-8") as f:
+                _POI_LORE_CACHE = _json.load(f) or {}
+        else:
+            _POI_LORE_CACHE = {}
+    except Exception as e:
+        logging.exception(f"POI lore cache load failed: {e}")
+        _POI_LORE_CACHE = {}
+    return _POI_LORE_CACHE
+
+
+@api_router.get("/lore/poi")
+async def list_poi_lore():
+    """Return the entire pre-baked POI lore cache (small JSON)."""
+    return _load_poi_lore_cache()
+
+
+@api_router.get("/lore/poi/{poi_id}")
+async def get_poi_lore(poi_id: str):
+    cache = _load_poi_lore_cache()
+    poi_id = poi_id.lower().strip()
+    if poi_id not in cache:
+        raise HTTPException(status_code=404, detail=f"no pre-baked lore for poi_id={poi_id}")
+    return cache[poi_id]
+
+
+# ---- Reality Defense mini-game page ----
+
+@api_router.get("/reality-defense", response_class=FileResponse)
+async def reality_defense_page():
+    """Serves the Centurion Guard 2D side-scroller defense mini-game.
+
+    Triggered from the Astrolabe v2 'DEPLOY CENTURION GUARD' popup as the
+    'PLAY LIVE OPS' option. Player runs/guns to defend a beacon until 100%
+    deploy — score modifies success chance for the infested reality.
+    """
+    html_path = ROOT_DIR / "static" / "reality_defense.html"
+    return FileResponse(html_path, media_type="text/html")
+
+
 @api_router.get("/lore/generated", response_model=List[LoreStoryResponse])
 async def list_generated_stories(limit: int = Query(20, ge=1, le=100)):
     """Recent generated stories for the Lore Archive feed."""

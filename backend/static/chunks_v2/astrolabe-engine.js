@@ -3028,8 +3028,29 @@
                         <span class="status-dot purple"></span>
                         BALANCE <b id="cent-balance" class="text-fuchsia-300">±0</b>
                     </span>
+                    <span id="mission-pill" class="status-pill cursor-pointer" title="Tap an outbreak segment to jump to nearest infestation">
+                        <span class="seg" id="mp-outbreaks">
+                            <span class="seg-dot" style="background:#f43f5e;box-shadow:0 0 5px #f43f5e;"></span>
+                            <span class="opacity-70">⚠</span>
+                            <b id="mp-outbreaks-val" class="text-rose-300">0</b>
+                        </span>
+                        <span class="seg" id="mp-squads">
+                            <span class="seg-dot" style="background:#fbbf24;box-shadow:0 0 5px #fbbf24;"></span>
+                            <span class="opacity-70">⚙</span>
+                            <b id="mp-squads-val" class="text-amber-200">5/5</b>
+                        </span>
+                        <span class="seg" id="mp-balance">
+                            <span class="seg-dot" style="background:#d946ef;box-shadow:0 0 5px #d946ef;"></span>
+                            <span class="opacity-70">±</span>
+                            <b id="mp-balance-val" class="text-fuchsia-300">0</b>
+                        </span>
+                    </span>
                 `);
                 document.getElementById('outbreak-pill').addEventListener('click', quickJumpInfested);
+                const mp = document.getElementById('mission-pill');
+                if (mp) {
+                    document.getElementById('mp-outbreaks').addEventListener('click', quickJumpInfested);
+                }
             }
 
             function refreshHud() {

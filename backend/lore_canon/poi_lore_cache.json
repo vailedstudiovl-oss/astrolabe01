@@ -1,0 +1,251 @@
+{
+  "zero-point": {
+    "name": "Zero Point",
+    "strata": "0",
+    "faction": "Dimensionlock Corp",
+    "faction_id": "dimensionlock",
+    "type": "Nexus",
+    "desc": "The bedrock of Creation. Realities are stacked so densely here they form a hyper-solid state.",
+    "subLocations": [
+      "Event Horizen",
+      "The Accident Location",
+      "The Destroyed City Of Saviours",
+      "Gaskets Reality"
+    ],
+    "story": "The hydraulic press descended with the sound of grinding galaxies.\n\nEngineer Voss adjusted her filtration mask as another compressed reality-wafer slid from the Gaskets Reality processing unit—what had once been an entire civilization now reduced to a disc the size of her palm, dense as a neutron star. The hyper-solid state of Zero Point made everything here feel wrong: gravity pulled sideways through stacked dimensions, and her boots left footprints that echoed in seventeen different frequencies.\n\n\"Batch seven-seven-nine from Event Horizon sector,\" she muttered into her comm, watching the wafer's surface ripple with the compressed screams of a billion souls. The Dimensionlock Corp facility stretched endlessly above and below, processing the bedrock realities that kept Creation stable. Through reinforced windows, she glimpsed the skeletal remains of The Destroyed City Of Saviours—its twisted spires serving as warning monuments to those who'd tried to resist the compression protocols.\n\nThe wafer pulsed once, a final dying heartbeat of defiance, before going inert. Voss slotted it into the storage matrix alongside thousands of others, each one a compressed eternity feeding the endless hunger of the Drege Engine far above. In the distance, The Accident Location's quarantine sirens wailed their perpetual lament—a reminder that even here, in the foundation of all existence, some failures were too catastrophic to fully contain.\n\nShe reached for the next reality, already feeling the weight of compressed infinities settling into her bones.",
+    "word_count": 232
+  },
+  "centurion-home-realm": {
+    "name": "Centurion Home Realm",
+    "strata": "2",
+    "faction": "Centurion Guard",
+    "faction_id": "centorian",
+    "type": "Capital Plane",
+    "desc": "The seat of the Centurion Guard's power.",
+    "subLocations": [
+      "The Capital Of Oasis",
+      "Gods Docks Port 1200",
+      "Zardents Peak",
+      "Operators Master Hall",
+      "Greyhen's throne",
+      "The Garden Streets",
+      "Fort Harpie Gate Defense",
+      "The Grand Fleet"
+    ],
+    "story": "The brass prayer-wheel spun lazily in Operator Thane's palm as he descended the marble steps toward Gods Docks Port 1200, the ritual clicks echoing off the towering columns of Operators Master Hall behind him. Each click marked another soul processed through the Centurion systems, another reality catalogued and filed in the vast administrative engines that hummed beneath the Realm's pristine surface.\n\nBelow, the Grand Fleet's dreadnoughts floated in perfect formation above the crystalline waters, their hull-mounted sanctification cannons gleaming like devotional offerings to Master Death. Thane could smell the ozone from their blessing-charges, the electrical prayers that would soon arc across the Endless to purify another infected reality. The dock workers—all certified Centurion personnel—moved in choreographed silence, loading soul-seed canisters with the mechanical precision of the faithful.\n\nA shadow fell across the dock as one of the massive ships rotated, its prow bearing the Death-mark etched in meteor-silver. Through the gaps between vessels, Thane glimpsed the distant spires of The Capital Of Oasis shimmering in the artificial twilight, where Alpha Superium held court beneath Greyhen's throne. But here at the port, surrounded by the quiet efficiency of the Guard's operations, he felt closest to their sacred purpose.\n\nThe prayer-wheel stopped spinning. Somewhere in the Endless, another Reaper had fallen. Thane pocketed the brass disc and quickened his pace toward the loading bay, where the Agitator of Sin's strike team was already boarding their vessel, black robes flowing like spilled ink across the consecrated deck.",
+    "word_count": 244
+  },
+  "centura-broadcast-matrix": {
+    "name": "Centura Broadcast Matrix",
+    "strata": "15",
+    "faction": "Centura News Corp",
+    "faction_id": "centura_news",
+    "type": "Media Nexus",
+    "desc": "The propaganda and news epicenter of the Endless.",
+    "subLocations": [
+      "The Grand Transmitter",
+      "Editor's Spire",
+      "Propaganda Decks",
+      "Data Vats"
+    ],
+    "story": "The acid-green light of the Data Vats cast skeletal shadows across Kira's face as she lowered her hand into the bubbling neural fluid. The harvested memories of a thousand dying souls writhed against her fingertips like electric eels, their final moments condensed into marketable grief. Above her, the Grand Transmitter's obsidian tower pulsed with each broadcast wave, feeding the Endless its daily dose of curated despair.\n\n\"Another reality falls to the Madness,\" she whispered into her recording crystal, her voice honey-sweet with practiced sorrow. \"Citizens of the Endless, we must trust in Master Death's wisdom as the Centurion Guard wages their holy war against chaos itself.\"\n\nThe souls in the vat screamed their truth—that the Centurion Guard had arrived three days too late, that Grim Cryious himself had turned his back on the dying children, that the Drege Engine had already consumed their hope. But Kira filtered their anguish through Centura's algorithms, transforming testimony into propaganda. The raw horror became noble sacrifice. The abandoned became heroes.\n\nShe lifted her dripping hand, watching droplets of liquid memory fall back into the Data Vat. Each drop contained a life's worth of love, terror, and betrayal—commodified, sanitized, and ready for broadcast across Strata 15's infinite networks. In twelve hours, every soul protector in the Endless would hear how brilliantly the Guard had saved Maytradalis from corruption, how Death's mercy had spared another reality from the Lurker's touch.\n\nThe Editor's Spire chimed midnight. Time to feed the machine another lie.",
+    "word_count": 246
+  },
+  "trinity-leviticus-reality": {
+    "name": "Trinity Leviticus Reality",
+    "strata": "33",
+    "faction": "Elderions",
+    "faction_id": "elderions",
+    "type": "Divine Construct",
+    "desc": "A bright, surreal plane characterized by floating foundations and surreal markets.",
+    "subLocations": [
+      "Planet Leviticus",
+      "Blood Foundation City",
+      "Joys Market",
+      "Grass Of Death",
+      "Unknown Place",
+      "Loves House"
+    ],
+    "story": "The copper bells of Joys Market chimed against each other as Marek descended the spiral staircase carved into the floating stone foundation. Below him, the market sprawled across three suspended platforms, each one tethered to the others by chains of burnished bronze that sang in the wind. The Elderions had built this place well—their architecture defied the physics of lesser realities, anchoring commerce itself to the void.\n\nMarek pressed his palm against the Soul Protector hanging at his throat. Even at strata 33, the Endless could drain a mortal's essence if they lingered too long without protection. The necklace pulsed warm against his skin, a reminder of how far he'd traveled from home.\n\nHe paused at a vendor's stall where bottled laughter bubbled in glass spheres, each one labeled with the name of its origin reality. The Elderion merchant—tall, pale, with eyes like polished obsidian—gestured toward a particularly bright bottle. \"From the children of Maytradalis's first reality,\" she said in that musical dialect common to strata 33. \"Before the Centurion Guard found them.\"\n\nMarek shook his head. \"I need something from Planet Leviticus.\"\n\nThe merchant's smile flickered. Her fingers traced the air, and a smaller bottle appeared—this one containing what looked like liquid starlight. \"Compressed hope,\" she whispered. \"Harvested from the surface cities before they learned what the Grim Reapers truly harvest.\"\n\nAs Marek counted out his Soul Seeds, the wind carried the distant sound of weeping from Blood Foundation City, where the condemned still waited for their final judgment.",
+    "word_count": 250
+  },
+  "the-golden-spire": {
+    "name": "The Golden Spire",
+    "strata": "45",
+    "faction": "The Supremes Finest",
+    "faction_id": "supremes_finest",
+    "type": "Elitist Sanctuary",
+    "desc": "A reality draped in opulence and temporal stasis.",
+    "subLocations": [
+      "The Gilded Vaults",
+      "Stasis Gardens",
+      "Auction House of Souls",
+      "Celestial Runway"
+    ],
+    "story": "The auction hammer fell with a sound like breaking crystal, and Lady Maraleth's breath caught as the Soul Seed pulsed once—brilliant azure—before settling into dormancy within its gilded cage. Around her, the Auction House of Souls hummed with whispered bids and the soft rustle of silk against marble. Chandeliers of crystallized time cast no shadows here, their light frozen at the perfect angle to illuminate each display without aging a single thread of tapestry.\n\n\"Lot forty-seven,\" the auctioneer intoned, his voice cutting through the perfumed air. \"An Omega-class essence from the merchant prince of Maytradalis sector. Opening bid: ten thousand standard Soul Seeds.\"\n\nMaraleth adjusted her temporal brooch—a necessity in the Golden Spire's stasis fields—and watched the Soul Seed float in its suspension chamber. The essence within flickered with memories of vast trading fleets, of decisions that shaped entire economies across the Endless. She had come to the Supremes Finest seeking such power, though the price would empty even her considerable vaults.\n\nThe bidding war began in earnest. Around the amphitheater, figures draped in wealth beyond mortal comprehension raised jeweled fingers. The Centurion Guard representative sat motionless, his authority badge catching the frozen light. A delegate from the Drege Engine leaned forward, hunger evident despite the emotionless mask required by Golden Spire etiquette.\n\nMaraleth's fingertip traced the edge of her bid paddle. In the Gilded Vaults below, her own collection waited—decades of careful acquisition, souls harvested from the dying edges of Creation. But this Omega essence could elevate her above mere collecting. This was the soul of someone who had mattered.\n\nThe price climbed past thirty thousand. The auctioneer's smile never wavered, preserved in the same temporal amber that kept dust from settling on the auction house's pristine surfaces.",
+    "word_count": 289
+  },
+  "watrari-rebel-encampment": {
+    "name": "Watrari Rebel Encampment",
+    "strata": "60",
+    "faction": "Watrari Rebels",
+    "faction_id": "watrari",
+    "type": "Shadow Fleet Base",
+    "desc": "A hidden, heavily masked reality used as a staging ground for Watrari Rebels.",
+    "subLocations": [
+      "The Obsidian Drydocks",
+      "Insurgent Command",
+      "Smuggler's Run",
+      "The Sabotage Labs"
+    ],
+    "story": "The copper taste of recycled air hung thick in the Sabotage Labs as Keth'ara bent over the dissected Centurion Guard helmet, her fingers tracing the neural interface ports with surgical precision. Steam hissed from overhead pipes, casting wavering shadows across workbenches cluttered with stolen technology and improvised weaponry.\n\n\"Another batch of Drege Engine fragments just came through Smuggler's Run,\" her assistant whispered, glancing toward the reinforced blast doors. \"Fresh from the Maytradalis raids.\"\n\nKeth'ara's scarred hands never paused in their work, carefully extracting the loyalty conditioning chip from the helmet's core. The lab's bio-luminescent fungi—cultivated to mask their heat signatures from Centurion sweeps—pulsed in rhythm with her heartbeat. Around them, half-completed neural scramblers and reality-breach charges lined the walls like sleeping predators.\n\n\"Good,\" she murmured, her voice distorted by the breathing mask that all Watrari wore in the deep strata. \"The Soul Parasites in these chips are getting more sophisticated. Each one we crack brings us closer to freeing their minds.\"\n\nThrough the lab's viewports, the endless fog of strata 60 swirled past, its currents deliberately poisoned to hide their rebellion. In the distance, she could glimpse the skeletal frames of captured Centurion vessels in the Obsidian Drydocks, their hulls being stripped and repurposed into weapons that could wound even the Endless itself.\n\nThe chip sparked once in her palm, its malevolent glow dying as the Soul Parasite within finally released its grip on consciousness.",
+    "word_count": 235
+  },
+  "the-arcane-nebula": {
+    "name": "The Arcane Nebula",
+    "strata": "-5",
+    "faction": "Magic Whisperers",
+    "faction_id": "magic_whisperers",
+    "type": "Magical Anomaly",
+    "desc": "Physics barely function here.",
+    "subLocations": [
+      "The Spell-Forge",
+      "Floating Isles of Mana",
+      "The Silent Library",
+      "Rune-Scarred Craters"
+    ],
+    "story": "The parchment crumbles to ash between Keth's fingers before the incantation leaves his lips. Physics here mock even the simplest certainties—gravity flows upward through his boots, his shadow splits into fractals that whisper contradictory truths, and the very air tastes of unwritten equations.\n\nHe stands at the edge of a Rune-Scarred Crater, its obsidian walls still smoking from some ancient miscalculation. The Magic Whisperers carved their warnings deep: *\"Here, intention precedes reality.\"* Below in the crater's heart, molten mathematics bubble and hiss, casting impossible geometries across the rim where Keth works.\n\nHis nineteenth attempt at the Soul Seed preservation ritual fails as the seed itself decides to exist as both harvested and unharvested simultaneously. Flybutt buzzes nervously around his hat—even the little familiar's simple flight patterns bend into spirals that shouldn't hold him aloft.\n\n\"Focus through the paradox,\" he mutters, channeling the Whisperers' teachings. In the Arcane Nebula, magic doesn't follow rules—it negotiates with them. The floating Spell-Forge drifts overhead, its impossible anvils ringing with the sound of tomorrow's failures, while distant screams echo from the Silent Library where knowledge devours its readers.\n\nKeth breathes deep and lets his rational mind dissolve. Here on strata -5, only madness makes sense.\n\nThe Soul Seed finally stabilizes, existing in seventeen dimensions at once, each one perfectly, impossibly correct.",
+    "word_count": 216
+  },
+  "trigon-trading-hub": {
+    "name": "Trigon Trading Hub",
+    "strata": "-12",
+    "faction": "Trigon Trading Hub",
+    "faction_id": "trigon",
+    "type": "Floating City",
+    "desc": "A massive, neutral-ground trading city floating in the void of the Endless.",
+    "subLocations": [
+      "Rippers Street Marketplace",
+      "Centadel Square",
+      "The Odin Dockyards",
+      "The Lower Spires",
+      "The Collectors House",
+      "R&J Book collections"
+    ],
+    "story": "The scent of charred soul residue and exotic spices hung thick in the air as Kex pressed deeper into Rippers Street Marketplace, her augmented lungs filtering the toxic blend of interdimensional commerce. Stall vendors from seven different realities hawked their wares beneath flickering neon signs that sparked and died in languages she couldn't read. A Centurion Guard patrol moved through the crowd with mechanical precision, their obsidian armor reflecting the sickly green glow of the overhead strip lights.\n\nShe paused before a weathered stall where an old trader with too many eyes sorted Soul Seeds by luminosity. His gnarled fingers moved with practiced efficiency, separating the brilliant white cores from the dimmer, tainted specimens that pulsed with darker energies.\n\n\"Fresh harvest from Level -8,\" he croaked, his voice like grinding metal. \"Still warm from the Drege Engine processing. The Endless hungers, but these beauties will feed your ship's core for months.\"\n\nKex fingered the soul protector at her throat, feeling its steady thrum against her skin. In the distance, beyond the maze of merchant stalls and desperate hawkers, the Lower Spires stretched downward into shadow—where those who couldn't afford passage between realities made their homes in the hub's forgotten depths. Here on Rippers Street, credits flowed like blood, and everything had a price that someone, somewhere, was willing to pay.\n\nThe trader's many eyes fixed on her with predatory interest, waiting.",
+    "word_count": 231
+  },
+  "vault-of-echoes": {
+    "name": "Vault of Echoes",
+    "strata": "-25",
+    "faction": "Soul Collectors",
+    "faction_id": "soul_collectors",
+    "type": "Soul Repository",
+    "desc": "A dark, labyrinthine reality where harvested and lost souls are stored.",
+    "subLocations": [
+      "The Wailing Cells",
+      "Harvest Docks",
+      "The Ledger Room",
+      "Spectral Siphons"
+    ],
+    "story": "The bone stylus scratched against parchment as Keeper Malthus recorded another entry in the endless ledger. *Soul #847,392: Origin Reality L-7, Classification: Omega-Major, Estimated Harvest Value: 2,847 seeds.* The scratching echoed through the Ledger Room's vaulted ceiling, joining the symphony of a thousand other scribes bent over their desks in the perpetual twilight.\n\nBehind him, the Spectral Siphons hummed their mechanical lullaby—great brass tubes that snaked through the chamber walls, drawing essence from the Wailing Cells below. Each pulse sent tremors through the stone floor, and Malthus felt the familiar tingle as raw soul energy passed overhead, flowing toward the Harvest Docks where it would be compressed into tradeable seeds.\n\nA scream pierced the air from somewhere in the depths—sharp, then fading to a whimper. Malthus didn't look up. In Vault of Echoes, screams were merely background noise, like rainfall or wind. He dipped his stylus again, the ink dark as dried blood.\n\n*Soul #847,393: Origin Reality unknown, Classification: Corrupted, Estimated Harvest Value: Negligible. Note: Exhibits traces of Madness. Recommend immediate processing before contamination spreads.*\n\nThe siphon above his desk gave a particularly violent shudder, and for just a moment, the mechanical hum carried something else—a whisper, desperate and pleading. Malthus paused, stylus hovering over the parchment, before continuing his endless catalog of the harvested and the damned.",
+    "word_count": 218
+  },
+  "planet-leviticus-the-city-of-bones": {
+    "name": "Planet Leviticus · The City of Bones",
+    "strata": "-37",
+    "faction": "Reaper Order",
+    "faction_id": "reapers",
+    "type": "Shelter-Reality",
+    "desc": "A bone-white world ruled in soft voices. Elystria runs a homeless shelter here, feeding the mortal poor with broth ladled from a brass urn she has kept warm for seven cycles.",
+    "subLocations": [
+      "Elystria's Shelter",
+      "The Broth-Urn Kitchen",
+      "The Ledger Hall",
+      "The Bone Walks",
+      "Charity Stairs"
+    ],
+    "story": "The brass ladle trembled in Elystria's grip as she filled the hundredth bowl of the cycle, steam curling from the broth that had never cooled in seven years. The Broth-Urn Kitchen echoed with whispered gratitude—no voices rose above a murmur in the City of Bones, where even the desperate knew better than to disturb the sacred quiet of strata -37.\n\n\"Bless you, Reaper,\" breathed a hollow-eyed woman whose soul flickered like a dying candle. Elystria nodded, her own voice barely audible: \"The Order provides.\" Through the shelter's bone-framed windows, she glimpsed other figures shuffling along the Bone Walks, their footsteps silent on the calcified streets that wound through Leviticus like the ribs of some ancient, slumbering god.\n\nThe woman clutched her bowl with skeletal fingers, and Elystria watched her drift toward the Charity Stairs—those spiraling steps carved from vertebrae where the lost souls gathered to share their meager warmth. Above them all, the ivory spires of the Ledger Hall gleamed in the pale light of Creation, where Master Death's accountants tallied the endless hunger that could never quite be satisfied, no matter how many cycles the brass urn burned.\n\nIn the corner of her vision, Elystria caught the familiar flutter of dark wings—a raven perched on the shelter's threshold, watching with eyes that held too much knowledge of what lay beyond the bone-white horizon.",
+    "word_count": 224
+  },
+  "sanguine-court": {
+    "name": "Sanguine Court",
+    "strata": "-50",
+    "faction": "Vamperica Empire",
+    "faction_id": "vamperica",
+    "type": "Vampiric Empire",
+    "desc": "Illuminated by a dying, blood-red sun.",
+    "subLocations": [
+      "Crimson Keep",
+      "The Vein Tunnels",
+      "Thrall Pens",
+      "Sunless Sea"
+    ],
+    "story": "The dying sun cast its crimson light through the stained crystal windows of Crimson Keep, painting the marble floors in shades of dried blood. Lady Vethara traced her pale finger along the carved veins that ran through the obsidian walls, each groove pulsing faintly with collected essence from the Thrall Pens below.\n\nShe paused at the great viewing chamber, where the nobility of the Vamperica Empire gathered each twilight to observe the feeding rituals. Through the reinforced glass, she watched the latest shipment from the Vein Tunnels being processed—souls still clinging to their mortal husks, their terror seasoning the air like fine wine.\n\n\"Another reality falls to the Lurker's touch,\" whispered Count Dracul, materializing from shadow beside her. \"The refugees from Maytradalis's failed cleansing arrive hourly through our lower passages.\"\n\nVethara's lips curved into a smile that never reached her crimson eyes. The blood-red sun flickered weakly beyond the Sunless Sea, its dying light barely illuminating the floating platforms where her kind conducted their eternal harvest. Here on strata -50, where souls descended heavy with guilt and despair, the Vamperica Empire had built their perfect feeding ground—a court of eternal twilight where the corrupt essence of failed realities pooled like vintage in a cellar.\n\nShe pressed her palm against the cold stone, feeling the pulse of a thousand captured souls flowing through the Keep's arterial channels. The Sanguine Court thrived on the Endless's darkest offerings, and tonight's feast would be particularly exquisite.",
+    "word_count": 242
+  },
+  "the-damnation-forge-plane": {
+    "name": "The Damnation Forge Plane",
+    "strata": "-66",
+    "faction": "The Unholy Ones",
+    "faction_id": "unholy_ones",
+    "type": "Nightmare Relic",
+    "desc": "A blistering, heat-scorched reality powered by condemned souls.",
+    "subLocations": [
+      "The Cursed Valley",
+      "Broken Steel",
+      "Ashen Relic City",
+      "Old Hopeful",
+      "The Sun that Stares"
+    ],
+    "story": "The acrid smoke of ten thousand forges clawed at Korveth's throat as he dragged the soul-cartridge toward the Broken Steel foundries. Each breath tasted of molten copper and despair. Above, The Sun that Stares never blinked—its malevolent eye tracking every movement across the scorched wasteland of strata -66.\n\nThe cartridge's contents writhed behind translucent walls—souls of the condemned, their ethereal forms compressed into fuel for the Unholy Ones' endless production. Korveth had stopped counting how many he'd fed to the Damnation Forge Plane's hungry machinery. The Soul Parasites had long since devoured his capacity for mercy.\n\n\"Another shipment for the eastern furnaces,\" rasped the overseer, her flesh a patchwork of burns and obsidian grafts. \"Old Hopeful's quota demands it.\"\n\nKorveth nodded, wheels grinding against the blackened stone as he hauled his cargo past the twisted spires of Broken Steel. In the distance, the Cursed Valley exhaled its perpetual scream—a symphony of the damned that powered Maytradalis's enemies. The irony wasn't lost on him; these very souls might once have deserved ascension to the higher layers of Creation.\n\nThe furnace door yawned open like a wound. Heat kissed his face as he tilted the cartridge, watching compressed agony pour into the flames like liquid starlight. The Damnation Forge Plane consumed everything—hope, flesh, memory. Only ash remained.",
+    "word_count": 215
+  },
+  "the-abyssal-root": {
+    "name": "The Abyssal Root",
+    "strata": "-99",
+    "faction": "Abyss Followers",
+    "faction_id": "abyss_followers",
+    "type": "Lovecraftian Nightmare",
+    "desc": "A Lovecraftian nightmare where physics invert and ancient Gods of Destruction slumber.",
+    "subLocations": [
+      "The Maw of the Void",
+      "Whispering Deeps",
+      "The Frozen Core"
+    ],
+    "story": "The acid rain falls *upward* here.\n\nMarcus watches it stream toward the obsidian ceiling of the Whispering Deeps, each droplet carrying fragments of screaming souls. He adjusts his Soul Protector—a twisted thing of bone and shadow that barely functions at strata -99—and continues his descent along the inverted spire. The Abyss Followers sent him to retrieve a God-shard from the Frozen Core, but first he must pass through this writhing cathedral of reversed entropy.\n\nThe whispers grow louder as he descends. Not words, exactly—more like the memory of language before Creation learned to speak. They seep from the porous walls where Drege Engine parasites have burrowed deep, their feeding channels glowing with stolen soul-light. Marcus knows better than to listen too closely. Three Centurion Guard expeditions vanished here when their operators tried to decode the voices.\n\nHe reaches the threshold where physics finally surrender entirely. Below stretches the Frozen Core—not cold, but *absence*. A crystalline void where one of the ancient Gods of Destruction lies dreaming, its presence so vast that space itself warps around the sleeping form. Ice that burns. Gravity that flows like water. Time that moves in spirals.\n\nMarcus draws his harvesting blade and steps into the impossible geometry. The whispers suddenly cease. In the silence, he hears something far worse—the slow, rhythmic breathing of something that should never wake.\n\nThe acid rain continues its upward fall, carrying his footprints away from where he's been toward where he'll never return.",
+    "word_count": 243
+  },
+  "reaper-training-planet": {
+    "name": "Reaper Training Planet",
+    "strata": "-12",
+    "faction": "Reaper Order",
+    "faction_id": "reapers",
+    "type": "Supernatural Realm",
+    "desc": "A grim, shadowed reality where newly manifested Reapers learn the art of soul-shepherding.",
+    "subLocations": [
+      "Grave Fields",
+      "Soulious",
+      "The Frialed Tree",
+      "The Portal Zone"
+    ],
+    "story": "The Grave Fields exhale at dawn, and Harrow-12 walks the rows where the dirt is still warm from yesterday's lessons. A first-cycle Reaper kneels at a shallow hole, holding a sigil-stamp the wrong way around. \"Other side,\" Harrow says, without unfolding her arms. The trainee flips it. The earth answers. Somewhere in the dim purple sky above Soulious, a soul-bell rings — one of theirs has crossed over correctly for the first time, and the Frialed Tree shivers loose a single iron leaf in salute. Harrow does not smile. She has seen too many leaves fall in panic. She turns the trainee toward The Portal Zone, where Maytradalis is waiting in her colorless dress, ledger open. \"Don't tell her you were nervous,\" Harrow murmurs. \"She knows. She just wants to see if you'll lie.\"",
+    "word_count": 156
+  },
+  "astra-reality-38": {
+    "name": "Astra Reality -38",
+    "strata": "-38",
+    "faction": "Unclaimed Space",
+    "faction_id": "unclaimed",
+    "type": "Shattered Plane",
+    "desc": "A massive ringed structure floating in the void.",
+    "subLocations": [
+      "Grand Demos City",
+      "The Other Rings",
+      "Evectius Hope Ship",
+      "Tear of Zeus"
+    ],
+    "story": "The rings of Astra -38 do not turn in unison. They lag, drift, recover — like a heart that forgot the count and is trying to remember without anyone noticing. From the high promenade of Grand Demos City, a vendor with too many eyes sells reality-jerky strips cut from the outer ring's slow decay. \"Two grams per bite,\" she insists. \"You won't taste anything for an hour. Then everything.\" Below, the Evectius Hope Ship sits keel-up in dry dock, half-stripped for parts; its name was painted out generations ago but the paint refused to forget. Out past the Tear of Zeus, a single Centurion drone hovers at hold-pattern, watching nothing in particular. Astra is Unclaimed because no faction wants the bill for repairing the rings. Reapers come anyway. They always come.",
+    "word_count": 142
+  }
+}

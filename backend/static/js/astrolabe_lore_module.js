@@ -1580,7 +1580,12 @@
                 // 2. AUTO-OPEN the full DLDS ASTROLABE DATABANK modal — this
                 //    is what the user expects from clicking a black-hole
                 //    reality (matches the old astrolabe terminal behaviour).
-                openCodex(lvl);
+                //    EXCEPTION: skip when the reality is INFESTED — the
+                //    selectStarSystem in the engine routes those to the
+                //    Centurion deploy popup instead (more critical action).
+                if (starObj.userData && starObj.userData.realityType !== 'INFESTED') {
+                    openCodex(lvl);
+                }
             } catch (e) { /* swallow */ }
         });
     }

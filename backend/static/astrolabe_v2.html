@@ -2603,6 +2603,18 @@
             // Lore-merge hook
             window.dispatchEvent(new CustomEvent('astrolabe-star-selected', { detail: { star: starObj } }));
 
+            // INFECTED REALITIES: open the Centurion deploy popup INSTEAD of
+            // the strata codex. The user expects the soulparasite-containment
+            // action to be the primary interaction (screenshot ref:
+            // 20260522_164532). The codex can still be opened from the
+            // STRATA LORE CODEX button in the left panel.
+            if (realityType === 'INFESTED') {
+                if (typeof window.openCenturionConfirm === 'function') {
+                    setTimeout(() => window.openCenturionConfirm(starObj.parent || starObj), 80);
+                }
+                return;
+            }
+
             // BUG FIX: force-open the DLDS ASTROLABE DATABANK popup directly
             // here too. Previously the listener-based path could miss firing
             // on mobile (touch event dispatch order) — the user reported
@@ -3318,7 +3330,7 @@
             <!-- Header -->
             <div class="flex items-center gap-2 text-red-400 text-[10px] tracking-[0.35em] font-bold mb-2">
                 <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                <span>▌ ALERT · DOUBLE-TAP CONFIRMED</span>
+                <span>▌ ALERT · INFESTATION DETECTED</span>
             </div>
             <div class="text-white text-lg font-bold leading-tight">DEPLOY CENTURION GUARD?</div>
             <div id="centurion-confirm-target" class="text-red-300 text-[11px] tracking-wider mt-0.5">TARGET: —</div>

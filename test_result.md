@@ -109,6 +109,60 @@ user_problem_statement: |
   + community-saved universes backed by MongoDB.
 
 backend:
+  - task: "Phase B/C — POI pre-baked AI lore endpoint (/api/lore/poi, /api/lore/poi/{id}) + /api/reality-defense static route"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            [2026-06 — Focused validation of the 4 new endpoints]
+            Ran /app/poi_lore_test.py against external preview URL
+            (https://astrolabe-map-mobile.preview.emergentagent.com).
+            RESULTS: 19 / 19 assertions PASSED. No failures.
+
+            ✅ GET /api/lore/poi → 200, JSON dict, exactly 15 keys cached.
+               Every value has all required keys: name, strata, faction,
+               faction_id, type, desc, subLocations (list), story (non-empty
+               str), word_count (int). Shape audit across all 15 entries
+               clean — no missing fields or wrong types.
+
+            ✅ GET /api/lore/poi/zero-point → 200, full POI dict shape.
+               name == "Zero Point" ✓, strata == "0" ✓, subLocations is a
+               list ✓, story is non-empty string ✓, word_count is int ✓.
+
+            ✅ GET /api/lore/poi/nonexistent-id-xyz → 404 with detail
+               "no pre-baked lore for poi_id=nonexistent-id-xyz".
+               Mentions "lore" / "pre-baked" as expected.
+
+            ✅ GET /api/reality-defense → 200, Content-Type
+               "text/html; charset=utf-8". HTML body contains
+               "REALITY DEFENSE", "CENTURION GUARD", and the audio src
+               "/api/static/dl_opening_theme.mp3".
+
+            Per request, regression of unrelated endpoints was not run.
+            All 4 newly added endpoints are confirmed WORKING. Marking
+            needs_retesting=false.
+
+        - working: true
+          agent: "main"
+          comment: |
+            Added 3 endpoints:
+              • GET  /api/lore/poi               → full pre-baked cache (15 POIs)
+              • GET  /api/lore/poi/{poi_id}      → single POI vignette
+              • GET  /api/reality-defense        → serves reality_defense.html
+            Pre-bake script /app/backend/scripts/prebake_poi_lore.py used Claude 4
+            via Emergent LLM key to generate canon-faithful vignettes for all 15
+            POIs (13 generated + 2 hand-stubbed when LLM budget was exhausted).
+            Cache stored in /app/backend/lore_canon/poi_lore_cache.json.
+            Smoke-tested: curl returns 200 with proper JSON shape including
+            name, strata, faction, faction_id, type, desc, subLocations, story,
+            word_count. /api/reality-defense returns 200 with the HTML page.
+
   - task: "Phase E — Real email notifications via Resend (admin notifications also dispatch HTML email to LORE_NOTIFY_EMAIL)"
     implemented: true
     working: true
@@ -1140,13 +1194,34 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "Phase E — Real email notifications via Resend (admin notifications also dispatch HTML email to LORE_NOTIFY_EMAIL)"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "testing"
+    message: |
+      [2026-06 — Focused validation: 3 POI/lore + reality-defense endpoints]
+      Ran /app/poi_lore_test.py against the external preview URL. All 19
+      assertions PASSED. No regressions of unrelated endpoints were run,
+      per instructions.
+
+      Confirmed:
+        ✅ GET /api/lore/poi → 200, dict, 15 keys, correct shape on every entry.
+        ✅ GET /api/lore/poi/zero-point → 200, name="Zero Point", strata="0",
+           full required shape (subLocations list, non-empty story string,
+           int word_count).
+        ✅ GET /api/lore/poi/nonexistent-id-xyz → 404 with detail
+           "no pre-baked lore for poi_id=nonexistent-id-xyz".
+        ✅ GET /api/reality-defense → 200, Content-Type text/html, HTML
+           contains "REALITY DEFENSE", "CENTURION GUARD", and the
+           "/api/static/dl_opening_theme.mp3" reference.
+
+      Test file: /app/poi_lore_test.py.
+      Task "Phase B/C — POI pre-baked AI lore endpoint ..." marked
+      working=true, needs_retesting=false.
+
   - agent: "main"
     message: |
       [2026-06 — CRYIOUS DIRECTIONAL SPRITES ("no more sliding")]

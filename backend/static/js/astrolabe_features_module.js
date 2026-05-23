@@ -779,6 +779,7 @@
                     hookDeployDispatch();
                 }, 250);
                 animateFeatureObjects();
+                pollLayerChange();
                 consumeRealityDefenseResult();
                 log('features ready');
             });

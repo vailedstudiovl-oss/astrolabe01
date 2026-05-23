@@ -3912,3 +3912,108 @@ metadata_addendum:
 #
 # Status: All three Astrolabe-polish items requested in this user
 # message ARE COMPLETE.
+
+
+# ============================================================================
+# 2026-05-23 — INFECTED-REALITY GAMEPLAY LOOP  (items A → B → D → C → E)
+# ============================================================================
+#
+# Builds full Centurion campaign mechanics around soulparasite outbreaks.
+#
+# ----------------------------------------------------------------------------
+# 0) Single-tap DEPLOY button (per user screenshot)
+#    • selectStarSystem() now emits a much larger CTA with crimson glow,
+#      4 corner brackets, gradient body, subtitle ("Containment beacon ·
+#      soulparasite cleanse"), and animate-pulse for any INFESTED reality.
+#    • Click → goes through openCenturionConfirm() (NOT straight to video)
+#      so the single-tap and double-tap flows are consistent.
+#    • Lore module also re-injects the button after its panel rewrite +
+#      re-wires the click handler. (Previously the lore module clobbered
+#      the deploy button on every selection.)
+#
+# ----------------------------------------------------------------------------
+# 1) Outbreak Alert System (A + C)
+#    • Three new header status-pills wired into the existing pill row:
+#        ⚠ OUTBREAKS <n>   ⚙ SQUADS <x/5>   ⊞ BALANCE <±n>
+#    • OUTBREAKS pill pulses red when >0, click = JUMP-TO-NEAREST outbreak.
+#    • TOAST STACK at top-right (148px from top to clear RETURN button)
+#      with red/green/amber variants. Slides in from right, auto-dismisses
+#      after 4.8s.
+#    • window.infectReality wrapper fires klaxon SFX + red "NEW OUTBREAK"
+#      toast on every new infestation (whether triggered by a Reaper
+#      death or random infestReality call).
+#    • playKlaxon() uses WebAudio: 3 alternating 880/440 Hz square pulses.
+#    • _infestations Map exposed to window so the campaign script (different
+#      <script> block) can read it.
+#
+# ----------------------------------------------------------------------------
+# 2) Centurion Campaign Mechanics (B)
+#    • STATE: { squads:5/max:5, cooldownEnd, cooldownSec:30, saves, losses,
+#      fractured, jumpIdx } exposed as window.CENT.
+#    • attemptDeploy(starGroup):
+#        – Gates on squads > 0 + cooldown
+#        – Rolls outcome by remaining timer:
+#            >120s → 95% success
+#            60-120s → 70%
+#            30-60s  → 50%
+#            <30s    → 30%
+#        – Consumes a squad and starts cooldown
+#        – Stores roll on starGroup._pendingOutcome
+#    • applyCenturionOutcome(starGroup) runs at video-end:
+#        – success → CENT.saves++; 35% chance to replenish a squad;
+#          existing cleanseInfestation() runs (STABLE).
+#        – failure → CENT.losses++; fractureReality() runs.
+#    • HUD updates every 600ms (squads count, cooldown countdown, BALANCE
+#      delta, OUTBREAKS count + pulse class).
+#
+# ----------------------------------------------------------------------------
+# 3) Aborted Operation = FRACTURED Reality (D)
+#    • fractureReality(group):
+#        – infestation.remaining = max(20s, current * 0.4)  → faster doom
+#        – userData.fractured = true
+#        – status text → "▌ FRACTURED · Soulparasite breach metastasising —
+#          collapse imminent."
+#        – Visual: 1.8s opacity flicker on the accretion disk.
+#    • Triggered by: (a) clicking ABORT mid-video, (b) failed deploy roll.
+#
+# ----------------------------------------------------------------------------
+# 4) Klaxon SFX (C)
+#    • playKlaxon() — 3 alternating square-wave beeps via WebAudio
+#    • Fires on:
+#        – New outbreak (infectReality)
+#        – DEPLOY confirm button click (just before the video starts)
+#
+# ----------------------------------------------------------------------------
+# 5) Infested Filter Quick-Jump (E)
+#    • Double-clicking the "INFESTED REALITIES" filter button now cycles
+#      camera through every active infestation on the current layer via
+#      glideLocalObserverTo(). Index wraps. Toast shows total outbreak
+#      count.
+#    • Same handler used by the OUTBREAKS header pill click.
+#
+# ----------------------------------------------------------------------------
+# 6) Hide-the-leak fix (lore module clobber)
+#    The lore module's `astrolabe-star-selected` listener rewrote
+#    entity-peek.innerHTML after selectStarSystem() finished, deleting the
+#    DEPLOY button. Fixed by re-injecting the button + re-binding its
+#    onclick in the lore module's same panel-rewrite block, gated on
+#    `userData.realityType === 'INFESTED'`.
+#
+# ----------------------------------------------------------------------------
+# Verified live (Playwright):
+#   • /tmp/astro_campaign_header.png — three new pills (OUTBREAKS / SQUADS /
+#     BALANCE) sitting flush with the existing SHIP / POWER / CYCLE / DATA.
+#   • /tmp/astro_outbreak_toast.png — "TEST OUTBREAK ALERT" toast slides
+#     in (now positioned at top:148px to clear the RETURN button).
+#   • /tmp/astro_diag_with_btn.png — DEPLOY button persists in the
+#     diagnostics panel after lore module rewrite (DEPLOY BTN EXISTS:
+#     True).
+#   • Outbreak counter ticked 0 → 11 → 12 when window.infectReality was
+#     invoked (verified in console).
+#
+# Status: ALL FIVE gameplay items (A, B, D, C, E) plus the requested
+# button-on-selection are wired and functional.
+#
+# Debug hooks (for QA): window.DEBUG_centurion.refill() resets squads to
+# max + clears cooldown. window.DEBUG_centurion.state() dumps the campaign
+# state.

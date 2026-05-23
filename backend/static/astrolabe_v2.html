@@ -1200,6 +1200,9 @@
         // ============================================================
         const INFESTATION_TIMER_SEC_DEFAULT = 180; // 3 minutes per infestation
         const _infestations = new Map(); // realityName → { remaining, group, lastTick, label }
+        // Expose the map so the campaign / outbreak-alert script block (loaded
+        // later in a separate <script>) can read it for HUD counts + jumps.
+        window._infestations = _infestations;
 
         function infectReality(realityGroup, durationSec) {
             if (!realityGroup || !realityGroup.userData) return;
@@ -2526,9 +2529,31 @@
             const typeLabel = realityType === 'INFESTED' ? '▌ INFESTED · SOUL PARASITES ACTIVE'
                            : realityType === 'DEAD'     ? '▌ DEAD · RELIC SIGNATURES ONLY'
                            : '▌ STABLE · CONTAINMENT OPTIMAL';
-            // Deploy Centurion button — only appears for INFESTED realities
+            // Deploy Centurion button — only appears for INFESTED realities.
+            // Now shows a larger CTA-style button with crimson glow + corner
+            // brackets, and routes through the confirmation popup (so the
+            // single-tap and double-tap flows are consistent).
             const deployBtn = (realityType === 'INFESTED')
-                ? `<button id="deploy-centurion-btn" class="mt-2 w-full py-2 px-3 bg-red-950/40 hover:bg-red-600/40 border border-red-500/80 hover:border-red-400 text-red-300 hover:text-white text-[11px] tracking-[0.25em] uppercase font-bold transition-all rounded animate-pulse">⚔ DEPLOY CENTURION GUARD</button>`
+                ? `<div class="mt-3 relative">
+                       <div class="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-red-400 pointer-events-none"></div>
+                       <div class="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-red-400 pointer-events-none"></div>
+                       <div class="absolute -bottom-1 -left-1 w-3 h-3 border-l-2 border-b-2 border-red-400 pointer-events-none"></div>
+                       <div class="absolute -bottom-1 -right-1 w-3 h-3 border-r-2 border-b-2 border-red-400 pointer-events-none"></div>
+                       <button id="deploy-centurion-btn"
+                           class="w-full py-2.5 px-3
+                                  bg-gradient-to-b from-red-600/40 to-red-950/50
+                                  hover:from-red-500/60 hover:to-red-900/70
+                                  border-2 border-red-400/80 hover:border-red-300
+                                  text-red-100 hover:text-white
+                                  text-[12px] tracking-[0.28em] uppercase font-bold
+                                  transition-all rounded shadow-[0_0_18px_rgba(255,60,80,0.45),inset_0_0_18px_rgba(255,60,80,0.25)]
+                                  animate-pulse">
+                           ⚔ DEPLOY CENTURION GUARD
+                       </button>
+                       <div class="mt-1 text-[9px] tracking-[0.2em] text-red-300/70 uppercase text-center">
+                           ▸ Containment beacon · soulparasite cleanse
+                       </div>
+                   </div>`
                 : '';
             // Reaper info — bound reaper name + stratum + backstory
             const reaper = ud.bound_reaper || (STATE.reaperByReality && STATE.reaperByReality[ud.name]);
@@ -2557,8 +2582,14 @@
                 const btn = document.getElementById('deploy-centurion-btn');
                 if (btn) {
                     btn.onclick = () => {
-                        if (typeof window.openCenturionModal === 'function' && starObj.parent) {
-                            window.openCenturionModal(starObj.parent);
+                        // Route via confirmation popup for UX consistency with
+                        // the double-tap flow. Fallback to direct video if the
+                        // confirmation function isn't loaded.
+                        const target = starObj.parent || starObj;
+                        if (typeof window.openCenturionConfirm === 'function') {
+                            window.openCenturionConfirm(target);
+                        } else if (typeof window.openCenturionModal === 'function') {
+                            window.openCenturionModal(target);
                         }
                     };
                 }
@@ -3456,7 +3487,44 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
 
-                if (success && activeTargetGroup) {
+                // === CENTURION CAMPAIGN OUTCOME HOOK ===
+                // If a roll was queued on activeTargetGroup at DEPLOY time, the
+                // outcome of this engagement overrides the simple success flag.
+                //  • Aborted mid-video  → forced failure → mark FRACTURED
+                //  • Video completed naturally → use the queued success roll.
+                let realSuccess = success;
+                if (activeTargetGroup && activeTargetGroup._pendingOutcome) {
+                    if (!success) {
+                        // ABORTED — fracture the reality (D)
+                        if (typeof window.fractureReality === 'function') {
+                            window.fractureReality(activeTargetGroup);
+                        }
+                        if (typeof window.applyCenturionOutcome === 'function') {
+                            // Force the outcome to a loss for stats tracking
+                            activeTargetGroup._pendingOutcome.success = false;
+                            activeTargetGroup._pendingOutcome.aborted = true;
+                            window.applyCenturionOutcome(activeTargetGroup);
+                        }
+                        activeTargetGroup = null;
+                        return;
+                    } else {
+                        // Use the roll result instead of the always-true success
+                        realSuccess = activeTargetGroup._pendingOutcome.success;
+                        if (typeof window.applyCenturionOutcome === 'function') {
+                            window.applyCenturionOutcome(activeTargetGroup);
+                        }
+                        if (!realSuccess) {
+                            // Squad lost — fracture the reality, don't cleanse
+                            if (typeof window.fractureReality === 'function') {
+                                window.fractureReality(activeTargetGroup);
+                            }
+                            activeTargetGroup = null;
+                            return;
+                        }
+                    }
+                }
+
+                if (realSuccess && activeTargetGroup) {
                     // Mutate the reality from INFESTED → STABLE
                     // If an infestation timer was tracking this reality,
                     // cancel it via cleanseInfestation; otherwise fall back
@@ -3534,6 +3602,13 @@
             }
             if (confirmYes) confirmYes.addEventListener('click', () => {
                 const tgt = _pendingTarget;
+                // === Campaign gate: check squads & cooldown, roll outcome ===
+                if (tgt && typeof window.attemptDeploy === 'function') {
+                    const ok = window.attemptDeploy(tgt);
+                    if (!ok) return; // toast already shown
+                }
+                // Klaxon SFX (C)
+                if (typeof window.playKlaxon === 'function') window.playKlaxon();
                 closeConfirm();
                 if (tgt) showCenturionModal(tgt);
             });
@@ -3545,6 +3620,261 @@
                 if (e.key === 'Escape' && confirmModal && !confirmModal.classList.contains('hidden')) closeConfirm();
             });
             window.openCenturionConfirm = openConfirm;
+        })();
+
+        // ============================================================
+        // CENTURION CAMPAIGN + OUTBREAK ALERT  (gameplay items A/B/C/D/E)
+        //
+        // A: Outbreak HUD pills + toast popups + jump-to-nearest
+        // B: Squad supply + cooldown + success/fail rolls + balance
+        // C: Klaxon SFX before deploy + outbreak alert
+        // D: Aborted operation → FRACTURED reality (faster timer)
+        // E: Double-click INFESTED filter → cycle through outbreaks
+        // ============================================================
+        (function () {
+            const CENT = {
+                squads: 5, max: 5,
+                cooldownSec: 30,
+                cooldownEnd: 0,
+                saves: 0, losses: 0, fractured: 0,
+                jumpIdx: 0,
+            };
+            window.CENT = CENT;
+
+            // --- KLAXON ---
+            function playKlaxon() {
+                try {
+                    const ctx = window._audioCtx || (window._audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+                    if (ctx.state === 'suspended') ctx.resume();
+                    const now = ctx.currentTime, dur = 0.16;
+                    for (let i = 0; i < 3; i++) {
+                        const osc = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 440, now + i * dur * 1.35);
+                        g.gain.setValueAtTime(0.13, now + i * dur * 1.35);
+                        g.gain.linearRampToValueAtTime(0, now + i * dur * 1.35 + dur);
+                        osc.connect(g).connect(ctx.destination);
+                        osc.start(now + i * dur * 1.35);
+                        osc.stop(now + i * dur * 1.35 + dur);
+                    }
+                } catch (e) {}
+            }
+            window.playKlaxon = playKlaxon;
+
+            // --- TOAST STACK ---
+            function toast(msg, kind) {
+                kind = kind || 'red';
+                const colors = {
+                    red:    'border-red-400 text-red-100',
+                    green:  'border-emerald-400 text-emerald-100',
+                    amber:  'border-amber-400 text-amber-100',
+                };
+                const bgs = {
+                    red:    'rgba(60,5,15,0.92)',
+                    green:  'rgba(5,40,28,0.92)',
+                    amber:  'rgba(45,32,5,0.92)',
+                };
+                let stack = document.getElementById('outbreak-toasts');
+                if (!stack) {
+                    stack = document.createElement('div');
+                    stack.id = 'outbreak-toasts';
+                    stack.style.cssText = 'position:fixed;top:148px;right:14px;z-index:80;display:flex;flex-direction:column;gap:8px;pointer-events:none;font-family:"Share Tech Mono",monospace;max-width:340px;';
+                    document.body.appendChild(stack);
+                }
+                const t = document.createElement('div');
+                t.className = `${colors[kind]} px-4 py-2.5 border-l-4 text-[11px] tracking-[0.18em] uppercase shadow-2xl rounded-r`;
+                t.style.cssText = `min-width:240px;max-width:340px;backdrop-filter:blur(8px);background:${bgs[kind]};transform:translateX(360px);transition:transform .35s cubic-bezier(.2,.9,.25,1.1),opacity .5s ease;opacity:0;`;
+                t.innerHTML = msg;
+                stack.appendChild(t);
+                requestAnimationFrame(() => { t.style.transform = 'translateX(0)'; t.style.opacity = '1'; });
+                setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(360px)'; setTimeout(() => t.remove(), 500); }, 4800);
+            }
+            window.outbreakToast = toast;
+
+            // --- HEADER WIDGETS ---
+            function injectHeaderWidgets() {
+                const pillRow = document.querySelector('header .flex.flex-wrap');
+                if (!pillRow || document.getElementById('outbreak-pill')) return;
+                pillRow.insertAdjacentHTML('beforeend', `
+                    <span id="outbreak-pill" class="status-pill cursor-pointer hover:brightness-125" title="Click to jump to nearest outbreak">
+                        <span class="status-dot" style="background:#f43f5e;box-shadow:0 0 6px #f43f5e;"></span>
+                        OUTBREAKS <b id="outbreak-count" class="text-rose-300">0</b>
+                    </span>
+                    <span id="centurion-pill" class="status-pill" title="Centurion squad reserve">
+                        <span class="status-dot amber"></span>
+                        SQUADS <b id="cent-squads" class="text-amber-200">5/5</b>
+                        <span id="cent-cooldown" class="text-amber-400/70 ml-1"></span>
+                    </span>
+                    <span id="balance-pill" class="status-pill" title="Saves vs Losses">
+                        <span class="status-dot purple"></span>
+                        BALANCE <b id="cent-balance" class="text-fuchsia-300">±0</b>
+                    </span>
+                `);
+                document.getElementById('outbreak-pill').addEventListener('click', quickJumpInfested);
+            }
+
+            function refreshHud() {
+                const cnt = document.getElementById('outbreak-count');
+                const sq  = document.getElementById('cent-squads');
+                const cd  = document.getElementById('cent-cooldown');
+                const bal = document.getElementById('cent-balance');
+                if (cnt) {
+                    const n = (window._infestations && _infestations.size) || 0;
+                    cnt.textContent = n;
+                    cnt.className = n > 0 ? 'text-rose-300 animate-pulse' : 'text-slate-500';
+                }
+                if (sq) {
+                    sq.textContent = `${CENT.squads}/${CENT.max}`;
+                    sq.className = CENT.squads === 0 ? 'text-rose-400 animate-pulse' :
+                                    CENT.squads <= 1 ? 'text-amber-200' : 'text-amber-200';
+                }
+                if (cd) {
+                    const now = performance.now();
+                    if (now < CENT.cooldownEnd) {
+                        const s = Math.ceil((CENT.cooldownEnd - now) / 1000);
+                        cd.textContent = ` · ${s}s`;
+                    } else cd.textContent = '';
+                }
+                if (bal) {
+                    const net = CENT.saves - CENT.losses;
+                    bal.textContent = (net > 0 ? '+' : '') + net;
+                    bal.className = net > 0 ? 'text-emerald-300' : net < 0 ? 'text-rose-300' : 'text-fuchsia-300';
+                }
+            }
+            setInterval(refreshHud, 600);
+            setTimeout(injectHeaderWidgets, 800);
+            setTimeout(injectHeaderWidgets, 2500); // retry in case header re-renders
+
+            // --- INFEST HOOK — toast + klaxon on new outbreak (A + C) ---
+            const _origInfect = window.infectReality;
+            if (typeof _origInfect === 'function') {
+                window.infectReality = function (selectorOrGroup, dur) {
+                    // Resolve group to capture pre-state (handles name|group|'random')
+                    let preGroup = null;
+                    if (typeof selectorOrGroup === 'string' && selectorOrGroup !== 'random' &&
+                        window.STATE && STATE.starsOnLayer) {
+                        preGroup = STATE.starsOnLayer.find(s => s.userData && s.userData.name === selectorOrGroup);
+                    } else if (selectorOrGroup && selectorOrGroup.userData) {
+                        preGroup = selectorOrGroup;
+                    }
+                    const wasInf = preGroup && preGroup.userData && preGroup.userData.realityType === 'INFESTED';
+                    const result = _origInfect.call(this, selectorOrGroup, dur);
+                    // `result` is the infected reality's name when newly infected
+                    if (!wasInf && result) {
+                        toast(`⚠ NEW OUTBREAK · <span class="text-white">${result}</span><br><span class="normal-case tracking-wide text-rose-300/70 text-[10px]">Soulparasites breaching reality. Deploy Centurion Guard.</span>`, 'red');
+                        playKlaxon();
+                    }
+                    return result;
+                };
+            }
+
+            // --- QUICK JUMP (A + E) ---
+            function quickJumpInfested() {
+                if (!window._infestations || _infestations.size === 0) {
+                    toast('▌ NO ACTIVE OUTBREAKS<br><span class="normal-case tracking-wide text-emerald-300/70 text-[10px]">All realities stable in this stratum.</span>', 'green');
+                    return;
+                }
+                const entries = Array.from(_infestations.values()).filter(e => e.group);
+                if (entries.length === 0) return;
+                const target = entries[CENT.jumpIdx % entries.length];
+                CENT.jumpIdx = (CENT.jumpIdx + 1) % entries.length;
+                if (typeof window.glideLocalObserverTo === 'function' && target.group.position) {
+                    window.glideLocalObserverTo(target.group.position);
+                }
+                toast(`▸ JUMPING TO ${target.group.userData.name}<br><span class="normal-case tracking-wide text-amber-200/70 text-[10px]">${entries.length} active outbreak${entries.length>1?'s':''} in this stratum.</span>`, 'amber');
+            }
+            window.quickJumpInfested = quickJumpInfested;
+
+            // INFESTED filter double-click → quick-jump (E)
+            setTimeout(() => {
+                const f = document.getElementById('filter-infested');
+                if (f && !f._jumpHooked) {
+                    f._jumpHooked = true;
+                    f.addEventListener('dblclick', (e) => { e.preventDefault(); e.stopPropagation(); quickJumpInfested(); });
+                    f.title = 'Double-click to cycle through outbreaks on this layer';
+                }
+            }, 2200);
+
+            // --- CAMPAIGN: SQUAD GATE + OUTCOME ROLL (B) ---
+            window.attemptDeploy = function (starGroup) {
+                const now = performance.now();
+                if (CENT.squads <= 0) {
+                    toast('▌ NO CENTURION SQUADS REMAINING<br><span class="normal-case tracking-wide text-rose-300/70 text-[10px]">Fleet redeploy pending. Cleanse a reality to reinforce.</span>', 'red');
+                    return false;
+                }
+                if (now < CENT.cooldownEnd) {
+                    const sec = Math.ceil((CENT.cooldownEnd - now) / 1000);
+                    toast(`▌ DEPLOY COOLDOWN · ${sec}s<br><span class="normal-case tracking-wide text-amber-300/70 text-[10px]">Squad rotation in progress.</span>`, 'amber');
+                    return false;
+                }
+                // Outcome roll based on infestation timer remaining
+                const inf = window._infestations && _infestations.get(starGroup.userData.name);
+                const remaining = inf ? inf.remaining : 180;
+                const successChance =
+                    remaining > 120 ? 0.95 :
+                    remaining > 60  ? 0.70 :
+                    remaining > 30  ? 0.50 :
+                                       0.30;
+                const success = Math.random() < successChance;
+                CENT.squads--;
+                CENT.cooldownEnd = now + CENT.cooldownSec * 1000;
+                starGroup._pendingOutcome = { success, remaining, successChance };
+                return true;
+            };
+
+            window.applyCenturionOutcome = function (starGroup) {
+                const out = starGroup && starGroup._pendingOutcome;
+                if (!out) return;
+                if (out.success) {
+                    CENT.saves++;
+                    // Successful save → 35% chance to replenish a squad (up to max)
+                    if (CENT.squads < CENT.max && Math.random() < 0.35) {
+                        CENT.squads++;
+                        toast(`▌ SQUAD REINFORCED<br><span class="normal-case tracking-wide text-emerald-300/70 text-[10px]">Centurion reserves rotated. Total ${CENT.squads}/${CENT.max}.</span>`, 'green');
+                    }
+                    toast(`▌ CONTAINMENT SUCCESS · ${starGroup.userData.name}`, 'green');
+                } else {
+                    CENT.losses++;
+                    if (out.aborted) {
+                        toast(`▌ OPERATION ABORTED · ${starGroup.userData.name}<br><span class="normal-case tracking-wide text-rose-300/70 text-[10px]">Reality fractured. Soul-mass detonation imminent.</span>`, 'red');
+                    } else {
+                        toast(`▌ SQUAD OVERWHELMED · ${starGroup.userData.name}<br><span class="normal-case tracking-wide text-rose-300/70 text-[10px]">${Math.round(out.successChance*100)}% odds failed. Reality fractured.</span>`, 'red');
+                    }
+                }
+                starGroup._pendingOutcome = null;
+            };
+
+            // --- FRACTURED STATE (D) ---
+            window.fractureReality = function (group) {
+                if (!group || !group.userData) return;
+                const inf = window._infestations && _infestations.get(group.userData.name);
+                if (inf) {
+                    // Accelerate the countdown: cut timer to 40% (min 20s)
+                    inf.remaining = Math.max(20, inf.remaining * 0.4);
+                }
+                group.userData.fractured = true;
+                group.userData.status = '▌ FRACTURED · Soulparasite breach metastasising — collapse imminent.';
+                CENT.fractured++;
+                // Visual flourish: red flicker
+                try {
+                    const flicker = setInterval(() => {
+                        group.children.forEach(c => {
+                            if (c.material && c.material.opacity !== undefined && c.userData && c.userData.isAccretionDisk) {
+                                c.material.opacity = 0.45 + Math.random() * 0.55;
+                            }
+                        });
+                    }, 110);
+                    setTimeout(() => clearInterval(flicker), 1800);
+                } catch (e) {}
+            };
+
+            // --- DEBUG hooks for testing ---
+            window.DEBUG_centurion = {
+                refill: () => { CENT.squads = CENT.max; CENT.cooldownEnd = 0; refreshHud(); },
+                killAll: () => { CENT.squads = 0; refreshHud(); },
+                state: () => CENT,
+            };
         })();
     </script>
 </body>

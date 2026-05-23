@@ -1544,9 +1544,37 @@
                                   + '<span class="text-slate-500">(' + lore.reaper.rank + ')</span>'
                                   + '</div>';
                         }
+                        // === Re-inject the DEPLOY CENTURION GUARD button for
+                        // INFESTED realities — the lore module otherwise
+                        // clobbers the button added by selectStarSystem. ===
+                        if (starObj.userData && starObj.userData.realityType === 'INFESTED') {
+                            html += '<div class="mt-3 relative">'
+                                  + '<div class="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-red-400 pointer-events-none"></div>'
+                                  + '<div class="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-red-400 pointer-events-none"></div>'
+                                  + '<div class="absolute -bottom-1 -left-1 w-3 h-3 border-l-2 border-b-2 border-red-400 pointer-events-none"></div>'
+                                  + '<div class="absolute -bottom-1 -right-1 w-3 h-3 border-r-2 border-b-2 border-red-400 pointer-events-none"></div>'
+                                  + '<button id="deploy-centurion-btn" class="w-full py-2.5 px-3 bg-gradient-to-b from-red-600/40 to-red-950/50 hover:from-red-500/60 hover:to-red-900/70 border-2 border-red-400/80 hover:border-red-300 text-red-100 hover:text-white text-[12px] tracking-[0.28em] uppercase font-bold transition-all rounded shadow-[0_0_18px_rgba(255,60,80,0.45),inset_0_0_18px_rgba(255,60,80,0.25)] animate-pulse">⚔ DEPLOY CENTURION GUARD</button>'
+                                  + '<div class="mt-1 text-[9px] tracking-[0.2em] text-red-300/70 uppercase text-center">▸ Containment beacon · soulparasite cleanse</div>'
+                                  + '</div>';
+                        }
                         html += '<div class="text-[9px] text-cyan-400 italic mt-1">▸ databank open…</div>';
                         html += '</div>';
                         peek.innerHTML = html;
+                        // Re-wire DEPLOY button (the previous handler from
+                        // selectStarSystem was lost when we overwrote innerHTML)
+                        if (starObj.userData && starObj.userData.realityType === 'INFESTED') {
+                            const btn = document.getElementById('deploy-centurion-btn');
+                            if (btn) {
+                                btn.onclick = () => {
+                                    const target = starObj.parent || starObj;
+                                    if (typeof window.openCenturionConfirm === 'function') {
+                                        window.openCenturionConfirm(target);
+                                    } else if (typeof window.openCenturionModal === 'function') {
+                                        window.openCenturionModal(target);
+                                    }
+                                };
+                            }
+                        }
                     }
                 }
                 // 2. AUTO-OPEN the full DLDS ASTROLABE DATABANK modal — this

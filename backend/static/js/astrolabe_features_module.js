@@ -210,16 +210,15 @@
     function buildPOIMarker(poi, layerIndex, idxInLayer, totalInLayer) {
         const THREE = window.THREE;
         if (!THREE) return null;
-        // Position on the disc — deterministic ring placement based on POI index
+        // Position on the disc — deterministic from name hash so it doesn't jitter
         const cylinderRadius = 32.0;
-        // Use a stable angle derived from POI name hash so it doesn't jitter
         let hash = 0;
         for (let i = 0; i < poi.name.length; i++) hash = ((hash << 5) - hash) + poi.name.charCodeAt(i);
         const ang = ((hash & 0x7fffffff) % 1000) / 1000 * Math.PI * 2;
-        const r = cylinderRadius * 0.62 + ((hash >> 5) & 7);
+        const r = cylinderRadius * 0.58 + ((hash >> 5) & 7);
         const x = Math.cos(ang) * r;
         const z = Math.sin(ang) * r;
-        const y = 0.6 + (idxInLayer % 2) * 0.4;
+        const y = 0.4 + (idxInLayer % 2) * 0.4;
 
         const factionColor = (poi.faction && poi.faction.color) ? poi.faction.color : '#66e8ff';
         const color = new THREE.Color(factionColor);
@@ -227,55 +226,136 @@
         const group = new THREE.Group();
         group.position.set(x, y, z);
         group.userData = {
-            isPOI: true,
-            poi: poi,
-            poiId: slugify(poi.name),
-            name: poi.name,
-            layer: layerIndex,
+            isPOI: true, poi: poi, poiId: slugify(poi.name),
+            name: poi.name, layer: layerIndex,
+            animPhase: Math.random() * Math.PI * 2,
         };
 
-        // Octahedron core (holographic relic)
-        const coreGeom = new THREE.OctahedronGeometry(0.7, 0);
+        // === Core: solid octahedron (the holographic "relic") ===
+        const coreSize = 1.3;
+        const coreGeom = new THREE.OctahedronGeometry(coreSize, 0);
         const coreMat = new THREE.MeshBasicMaterial({
-            color: color, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending,
+            color: color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending,
         });
         const core = new THREE.Mesh(coreGeom, coreMat);
         group.add(core);
 
-        // Inner glow sphere
-        const glowGeom = new THREE.SphereGeometry(1.1, 12, 8);
-        const glowMat = new THREE.MeshBasicMaterial({
-            color: color, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending,
+        // === Wireframe inverted octahedron rotating opposite — double-helix feel ===
+        const wireGeom = new THREE.OctahedronGeometry(coreSize * 1.65, 1);
+        const wireMat = new THREE.LineBasicMaterial({
+            color: color, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending,
         });
-        const glow = new THREE.Mesh(glowGeom, glowMat);
-        group.add(glow);
+        const wireEdges = new THREE.EdgesGeometry(wireGeom);
+        const wire = new THREE.LineSegments(wireEdges, wireMat);
+        group.add(wire);
 
-        // Vertical light pillar
-        const pillarGeom = new THREE.CylinderGeometry(0.12, 0.12, 3.5, 8, 1, true);
+        // === Outer halo sphere — soft bloom ===
+        const haloGeom = new THREE.SphereGeometry(2.2, 16, 12);
+        const haloMat = new THREE.MeshBasicMaterial({
+            color: color, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        const halo = new THREE.Mesh(haloGeom, haloMat);
+        group.add(halo);
+
+        // === Vertical light pillar — taller, more dramatic ===
+        const pillarH = 5.2;
+        const pillarGeom = new THREE.CylinderGeometry(0.14, 0.14, pillarH, 8, 1, true);
         const pillarMat = new THREE.MeshBasicMaterial({
-            color: color, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+            color: color, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
         });
         const pillar = new THREE.Mesh(pillarGeom, pillarMat);
-        pillar.position.y = 0;
+        pillar.position.y = -0.5;
         group.add(pillar);
 
-        // Ground ring
-        const ringGeom = new THREE.RingGeometry(0.9, 1.1, 24);
-        ringGeom.rotateX(-Math.PI / 2);
-        const ringMat = new THREE.MeshBasicMaterial({
+        // === Multi-ring ground projection ===
+        for (let i = 0; i < 3; i++) {
+            const rInner = 1.4 + i * 0.3, rOuter = rInner + 0.15;
+            const ringGeom = new THREE.RingGeometry(rInner, rOuter, 32);
+            ringGeom.rotateX(-Math.PI / 2);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: color, transparent: true, opacity: 0.55 - i*0.12, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+            });
+            const ring = new THREE.Mesh(ringGeom, ringMat);
+            ring.position.y = -2.6;
+            ring.userData.isGroundRing = true; ring.userData.ringIdx = i;
+            group.add(ring);
+        }
+
+        // === Sigil text label floating above the relic ===
+        const label = makePOISigilLabel(poi.name, factionColor, poi.type);
+        if (label) {
+            label.position.set(0, 3.6, 0);
+            label.userData.isPOILabel = true;
+            group.add(label);
+        }
+
+        // === Faction icon ring around label ===
+        const iconRingGeom = new THREE.RingGeometry(0.42, 0.5, 16);
+        const iconRingMat = new THREE.MeshBasicMaterial({
             color: color, transparent: true, opacity: 0.7, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
         });
-        const ring = new THREE.Mesh(ringGeom, ringMat);
-        ring.position.y = -1.6;
-        group.add(ring);
+        const iconRing = new THREE.Mesh(iconRingGeom, iconRingMat);
+        iconRing.position.set(0, 4.4, 0);
+        // make it face the camera (billboard) — Three.js sprites do this naturally;
+        // for ring meshes we'll spin it which gives a 3D hologram feel.
+        group.add(iconRing);
 
-        // userData for animation
-        group.userData.animPhase = Math.random() * Math.PI * 2;
+        // Stash references for animation
         group.userData.core = core;
-        group.userData.ring = ring;
-        group.userData.glow = glow;
+        group.userData.wire = wire;
+        group.userData.halo = halo;
+        group.userData.pillar = pillar;
+        group.userData.label = label;
+        group.userData.iconRing = iconRing;
 
         return group;
+    }
+
+    function makePOISigilLabel(name, hexColor, typeLabel) {
+        const THREE = window.THREE;
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 128;
+        const c = canvas.getContext('2d');
+        // Holographic background — translucent dark band with neon edges
+        c.fillStyle = 'rgba(8, 14, 22, 0.55)';
+        c.fillRect(20, 28, canvas.width - 40, canvas.height - 56);
+        // Top + bottom edge lines
+        c.strokeStyle = hexColor;
+        c.lineWidth = 1.5;
+        c.shadowColor = hexColor; c.shadowBlur = 10;
+        c.beginPath(); c.moveTo(20, 28); c.lineTo(canvas.width - 20, 28); c.stroke();
+        c.beginPath(); c.moveTo(20, canvas.height - 28); c.lineTo(canvas.width - 20, canvas.height - 28); c.stroke();
+        c.shadowBlur = 0;
+        // Corner brackets (sci-fi UI flair)
+        const drawCorner = (x, y, dx, dy) => {
+            c.beginPath();
+            c.moveTo(x, y + dy * 10); c.lineTo(x, y); c.lineTo(x + dx * 18, y);
+            c.stroke();
+        };
+        drawCorner(20, 28, 1, 1);
+        drawCorner(canvas.width - 20, 28, -1, 1);
+        drawCorner(20, canvas.height - 28, 1, -1);
+        drawCorner(canvas.width - 20, canvas.height - 28, -1, -1);
+        // Main name
+        c.font = 'bold 28px "Share Tech Mono", monospace';
+        c.textBaseline = 'middle';
+        c.textAlign = 'center';
+        c.fillStyle = '#ffffff';
+        c.shadowColor = hexColor; c.shadowBlur = 14;
+        c.fillText(name.toUpperCase(), canvas.width/2, canvas.height/2 - 6);
+        c.shadowBlur = 0;
+        // Sub-label (POI type)
+        if (typeLabel) {
+            c.font = '14px "Share Tech Mono", monospace';
+            c.fillStyle = hexColor;
+            c.fillText('◆ ' + typeLabel.toUpperCase(), canvas.width/2, canvas.height/2 + 22);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.needsUpdate = true;
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(8, 2, 1);
+        return sprite;
     }
 
     function rebuildPOIMarkers() {
@@ -1039,16 +1119,37 @@
         _poiObjects.forEach(g => {
             if (!g || !g.userData) return;
             const ph = g.userData.animPhase || 0;
-            if (g.userData.core) {
-                g.userData.core.rotation.y = t * 0.6 + ph;
-                g.userData.core.rotation.x = t * 0.3 + ph;
+            const u = g.userData;
+            if (u.core) {
+                u.core.rotation.y = t * 0.55 + ph;
+                u.core.rotation.x = t * 0.27 + ph;
+                u.core.material.opacity = 0.78 + 0.15 * Math.sin(t * 2.5 + ph);
             }
-            if (g.userData.ring) {
-                g.userData.ring.scale.set(1 + 0.2 * Math.sin(t*2 + ph), 1, 1 + 0.2 * Math.sin(t*2 + ph));
+            if (u.wire) {
+                // Counter-rotate the wire shell for that holographic double-helix feel
+                u.wire.rotation.y = -t * 0.85 + ph;
+                u.wire.rotation.z = t * 0.4 + ph;
             }
-            if (g.userData.glow) {
-                g.userData.glow.material.opacity = 0.12 + 0.12 * (0.5 + 0.5 * Math.sin(t*2 + ph));
+            if (u.halo) {
+                u.halo.material.opacity = 0.08 + 0.10 * (0.5 + 0.5 * Math.sin(t * 1.4 + ph));
+                u.halo.scale.setScalar(1 + 0.05 * Math.sin(t * 1.2 + ph));
             }
+            if (u.iconRing) {
+                u.iconRing.rotation.z = t * 1.5 + ph;
+                u.iconRing.rotation.x = Math.sin(t * 0.6 + ph) * 0.35;
+            }
+            if (u.label) {
+                // Subtle vertical bob for the sigil label
+                u.label.position.y = 3.6 + Math.sin(t * 1.5 + ph) * 0.15;
+            }
+            // Pulse ground rings outward
+            g.children.forEach(c => {
+                if (c.userData && c.userData.isGroundRing) {
+                    const idx = c.userData.ringIdx || 0;
+                    const sc = 1 + 0.15 * Math.sin(t * 1.6 + ph + idx * 0.7);
+                    c.scale.set(sc, 1, sc);
+                }
+            });
         });
         requestAnimationFrame(animateFeatureObjects);
     }

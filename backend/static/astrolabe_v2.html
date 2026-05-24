@@ -2406,16 +2406,11 @@
                 activeLayerGroup.add(sprite);
             }
 
-            // 5. Sparse background stars within the observer puck
-            const bgStarGeom = new THREE.SphereGeometry(0.1, 4, 4);
-            const bgStarMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
-            for (let s = 0; s < 100; s++) {
-                const mesh = new THREE.Mesh(bgStarGeom, bgStarMat);
-                const r = prng() * (cylinderRadius - 2.0);
-                const theta = prng() * Math.PI * 2;
-                mesh.position.set(Math.cos(theta) * r, (prng() - 0.5) * cylinderHeight, Math.sin(theta) * r);
-                activeLayerGroup.add(mesh);
-            }
+            // 5. (REMOVED) — Canon: realities are the ONLY containers of
+            //    universes, galaxies, and planets in the Endless. The layer
+            //    plate itself is endless clouds + realities (black holes)
+            //    only. Background "star" spheres were canon-incorrect and
+            //    have been removed; ambient cloud glows above remain.
 
             // 6. Connective neon line networks
             const linkGeom = new THREE.BufferGeometry();

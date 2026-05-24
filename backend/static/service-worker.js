@@ -6,7 +6,7 @@
 //   - stale-while-revalidate for cross-origin CDN assets (Three.js, Tailwind, Google Fonts)
 //     so the app launches offline once it has been opened once.
 
-const VERSION       = 'v21-2026-05-24-saves-achievements-rebranded';
+const VERSION       = 'v22-2026-05-24-tier2-no-stars-holo-poi';
 const SHELL_CACHE   = `astrolabe-shell-${VERSION}`;
 const RUNTIME_CACHE = `astrolabe-runtime-${VERSION}`;
 const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;

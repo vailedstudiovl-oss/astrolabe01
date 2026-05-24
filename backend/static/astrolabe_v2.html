@@ -287,11 +287,18 @@
             }
 
             /* Bottom strata-level slider — bring it right above the
-               mobile dock so it's reachable. */
+               mobile dock so it's reachable but below drawer panels. */
             #bottom-panel {
                 bottom: 64px !important;
                 width: 92vw !important;
                 padding: 8px 10px !important;
+                z-index: 20 !important; /* Below drawers (z-40) and dock (z-50) */
+            }
+            /* Hide bottom-panel when any drawer is open to prevent overlap */
+            body.mob-show-filters #bottom-panel,
+            body.mob-show-nav #bottom-panel,
+            body.mob-show-logs #bottom-panel {
+                display: none !important;
             }
 
             /* Mobile dock — bump z-index above everything else */
@@ -3807,7 +3814,7 @@
                 if (!stack) {
                     stack = document.createElement('div');
                     stack.id = 'outbreak-toasts';
-                    stack.style.cssText = 'position:fixed;top:148px;right:14px;z-index:80;display:flex;flex-direction:column;gap:8px;pointer-events:none;font-family:"Share Tech Mono",monospace;max-width:340px;';
+                    stack.style.cssText = 'position:fixed;top:100px;right:8px;z-index:80;display:flex;flex-direction:column;gap:8px;pointer-events:none;font-family:"Share Tech Mono",monospace;max-width:min(340px,90vw);';
                     document.body.appendChild(stack);
                 }
                 const t = document.createElement('div');

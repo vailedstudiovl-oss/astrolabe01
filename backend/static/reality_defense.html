@@ -89,10 +89,10 @@
   }
   #tcJoyThumb.active { display: block; }
 
-  /* Right side: aim/fire zone + action buttons */
+  /* Right side: aim/fire zone + action buttons — expanded for better mobile responsiveness */
   #tcAimZone {
     position: absolute; pointer-events: auto;
-    right: 0; bottom: 0; width: 50%; height: 70%;
+    right: 0; bottom: 0; width: 62%; height: 85%;
     background: transparent;
     touch-action: none;
   }
@@ -143,9 +143,10 @@
     25%  { box-shadow: 0 0 32px 4px currentColor, 0 0 60px 10px currentColor; filter: brightness(2.4); }
     100% { box-shadow: 0 0 14px rgba(255,255,255,0.08), 0 2px 12px rgba(0,0,0,.45); filter: brightness(1); }
   }
+  /* === Mobile-optimized ability buttons — smaller footprint, repositioned to fit in safe area === */
   #tcJump {
-    right: 18px; bottom: 110px; width: 78px; height: 78px;
-    font-size: 14px; letter-spacing: 1px;
+    right: 12px; bottom: 70px; width: 64px; height: 64px;
+    font-size: 12px; letter-spacing: 1px;
     color: #6effd4;
     border: 2px solid #6effd4;
     background: radial-gradient(circle at 38% 38%, rgba(110,255,212,0.30) 0%, rgba(20,40,60,0.55) 60%, rgba(0,0,0,0.65) 100%);
@@ -153,8 +154,8 @@
   }
   #tcJump.pressed { background: radial-gradient(circle at 38% 38%, rgba(110,255,212,0.7) 0%, rgba(20,40,60,0.6) 60%, rgba(0,0,0,0.6) 100%); }
   #tcBurst {
-    right: 104px; bottom: 110px; width: 72px; height: 72px;
-    font-size: 11px; letter-spacing: 1px;
+    right: 84px; bottom: 70px; width: 60px; height: 60px;
+    font-size: 10px; letter-spacing: 1px;
     color: #ffaa3a;
     border: 2px solid #ffaa3a;
     background: radial-gradient(circle at 38% 38%, rgba(255,170,58,0.30) 0%, rgba(60,30,10,0.55) 60%, rgba(0,0,0,0.65) 100%);
@@ -162,8 +163,8 @@
   }
   #tcBurst.pressed { background: radial-gradient(circle at 38% 38%, rgba(255,170,58,0.85) 0%, rgba(60,30,10,0.6) 60%, rgba(0,0,0,0.6) 100%); }
   #tcDash {
-    right: 18px; bottom: 200px; width: 66px; height: 66px;
-    font-size: 11px; letter-spacing: 1px;
+    right: 12px; bottom: 145px; width: 56px; height: 56px;
+    font-size: 10px; letter-spacing: 1px;
     color: #bb6eff;
     border: 2px solid #bb6eff;
     background: radial-gradient(circle at 38% 38%, rgba(187,110,255,0.30) 0%, rgba(50,20,80,0.55) 60%, rgba(0,0,0,0.65) 100%);
@@ -173,8 +174,8 @@
   #tcDash.active { display: flex; }
   #tcDash.pressed { background: radial-gradient(circle at 38% 38%, rgba(187,110,255,0.85) 0%, rgba(50,20,80,0.6) 60%, rgba(0,0,0,0.6) 100%); }
   #tcWarp {
-    right: 94px; bottom: 200px; width: 66px; height: 66px;
-    font-size: 9px; letter-spacing: 1px;
+    right: 78px; bottom: 145px; width: 56px; height: 56px;
+    font-size: 8px; letter-spacing: 1px;
     color: #6effd0;
     border: 2px solid #6effd0;
     background: radial-gradient(circle at 38% 38%, rgba(110,255,208,0.30) 0%, rgba(10,60,55,0.55) 60%, rgba(0,0,0,0.65) 100%);
@@ -1017,15 +1018,18 @@ function applyPowerup(id) {
 
 // Powerup card layout — three cards centered on screen.
 function powerupCardGeom(idx) {
-  // Mobile portrait: stack vertically. Desktop landscape: 3 cards in a row.
+  // Mobile portrait: stack vertically with smaller cards, respecting touch controls zone
   // We detect via the runtime portraitMode flag (set by resize()) so we use
   // the actual screen orientation, not the fixed logical canvas dims.
   if (State.portraitMode) {
-    const cardW = Math.min(W - 80, 900);
-    const cardH = Math.min(Math.floor((H - 220) / 3) - 12, 220);
-    const gap = 14;
+    // Reserve space at bottom for touch controls (approx 220px safe zone)
+    const safeBottom = 220;
+    const availableH = H - 100 - safeBottom; // 100px top margin for HUD
+    const cardW = Math.min(W - 60, 800);
+    const cardH = Math.min(Math.floor(availableH / 3) - 10, 160); // Smaller max height
+    const gap = 10;
     const total = cardH * 3 + gap * 2;
-    const startY = Math.max(120, (H - total) / 2);
+    const startY = Math.max(90, (H - safeBottom - total) / 2 + 40);
     const x = (W - cardW) / 2;
     const y = startY + idx * (cardH + gap);
     return { x, y, w: cardW, h: cardH, mobile: true };

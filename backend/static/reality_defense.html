@@ -98,35 +98,100 @@
   }
 
   /* Action buttons stacked on the right edge above the aim zone bottom */
+  /* === ABILITY BUTTONS — neon-framed hex-tone glassmorph + press shockwave === */
+  .touchBtn {
+    /* Pulled to top of cascade by tcJump/tcBurst/tcDash/tcWarp below */
+    backdrop-filter: blur(2px);
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04) inset,
+      0 0 14px rgba(255,255,255,0.08),
+      0 2px 12px rgba(0,0,0,.45);
+    transition: transform .12s, box-shadow .15s, filter .15s;
+    -webkit-tap-highlight-color: transparent;
+    overflow: visible;
+  }
+  .touchBtn::before {
+    /* Outer thin neon ring (color overridden per-button) */
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: .35;
+    pointer-events: none;
+  }
+  .touchBtn::after {
+    /* Press-shockwave ring, animated on .pressed */
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    transform: scale(1);
+    pointer-events: none;
+  }
+  .touchBtn.pressed::after { animation: tcShock .45s ease-out forwards; }
+  @keyframes tcShock {
+    0%   { opacity:.9; transform:scale(1);   }
+    100% { opacity:0;  transform:scale(2.2); }
+  }
+  .touchBtn.pressed { transform: scale(.92); filter: brightness(1.4); }
+  /* Level-up flash, applied by JS when an ability cools down + is freshly ready */
+  .touchBtn.flash-ready { animation: tcReady 1.2s ease-out; }
+  @keyframes tcReady {
+    0%   { box-shadow: 0 0 0 0 currentColor, 0 2px 12px rgba(0,0,0,.45); filter: brightness(1); }
+    25%  { box-shadow: 0 0 32px 4px currentColor, 0 0 60px 10px currentColor; filter: brightness(2.4); }
+    100% { box-shadow: 0 0 14px rgba(255,255,255,0.08), 0 2px 12px rgba(0,0,0,.45); filter: brightness(1); }
+  }
   #tcJump {
-    right: 18px; bottom: 110px; width: 70px; height: 70px;
+    right: 18px; bottom: 110px; width: 78px; height: 78px;
     font-size: 14px; letter-spacing: 1px;
+    color: #6effd4;
+    border: 2px solid #6effd4;
+    background: radial-gradient(circle at 38% 38%, rgba(110,255,212,0.30) 0%, rgba(20,40,60,0.55) 60%, rgba(0,0,0,0.65) 100%);
+    text-shadow: 0 0 8px #6effd4, 0 0 16px rgba(110,255,212,0.5);
   }
+  #tcJump.pressed { background: radial-gradient(circle at 38% 38%, rgba(110,255,212,0.7) 0%, rgba(20,40,60,0.6) 60%, rgba(0,0,0,0.6) 100%); }
   #tcBurst {
-    right: 98px; bottom: 110px; width: 64px; height: 64px;
+    right: 104px; bottom: 110px; width: 72px; height: 72px;
     font-size: 11px; letter-spacing: 1px;
-    border-color: #ffaa3a; color: #ffe8c4; text-shadow: 0 0 6px #ff8800;
-    background: radial-gradient(circle, rgba(255,170,58,0.25) 0%, rgba(255,170,58,0.05) 70%);
+    color: #ffaa3a;
+    border: 2px solid #ffaa3a;
+    background: radial-gradient(circle at 38% 38%, rgba(255,170,58,0.30) 0%, rgba(60,30,10,0.55) 60%, rgba(0,0,0,0.65) 100%);
+    text-shadow: 0 0 8px #ff8800, 0 0 16px rgba(255,170,58,0.5);
   }
-  #tcBurst.pressed { background: radial-gradient(circle, rgba(255,170,58,0.7) 0%, rgba(255,170,58,0.2) 70%); }
+  #tcBurst.pressed { background: radial-gradient(circle at 38% 38%, rgba(255,170,58,0.85) 0%, rgba(60,30,10,0.6) 60%, rgba(0,0,0,0.6) 100%); }
   #tcDash {
-    right: 18px; bottom: 190px; width: 60px; height: 60px;
+    right: 18px; bottom: 200px; width: 66px; height: 66px;
     font-size: 11px; letter-spacing: 1px;
-    border-color: #bb6eff; color: #e8caff; text-shadow: 0 0 6px #aa44ff;
-    background: radial-gradient(circle, rgba(187,110,255,0.25) 0%, rgba(187,110,255,0.05) 70%);
+    color: #bb6eff;
+    border: 2px solid #bb6eff;
+    background: radial-gradient(circle at 38% 38%, rgba(187,110,255,0.30) 0%, rgba(50,20,80,0.55) 60%, rgba(0,0,0,0.65) 100%);
+    text-shadow: 0 0 8px #aa44ff, 0 0 16px rgba(187,110,255,0.5);
     display: none;
   }
   #tcDash.active { display: flex; }
-  #tcDash.pressed { background: radial-gradient(circle, rgba(187,110,255,0.7) 0%, rgba(187,110,255,0.2) 70%); }
+  #tcDash.pressed { background: radial-gradient(circle at 38% 38%, rgba(187,110,255,0.85) 0%, rgba(50,20,80,0.6) 60%, rgba(0,0,0,0.6) 100%); }
   #tcWarp {
-    right: 88px; bottom: 190px; width: 60px; height: 60px;
+    right: 94px; bottom: 200px; width: 66px; height: 66px;
     font-size: 9px; letter-spacing: 1px;
-    border-color: #6effd0; color: #c0fff0; text-shadow: 0 0 6px #2effb0;
-    background: radial-gradient(circle, rgba(110,255,208,0.25) 0%, rgba(110,255,208,0.05) 70%);
+    color: #6effd0;
+    border: 2px solid #6effd0;
+    background: radial-gradient(circle at 38% 38%, rgba(110,255,208,0.30) 0%, rgba(10,60,55,0.55) 60%, rgba(0,0,0,0.65) 100%);
+    text-shadow: 0 0 8px #2effb0, 0 0 16px rgba(110,255,208,0.5);
     display: none;
   }
   #tcWarp.active { display: flex; }
-  #tcWarp.pressed { background: radial-gradient(circle, rgba(110,255,208,0.7) 0%, rgba(110,255,208,0.2) 70%); }
+  #tcWarp.pressed { background: radial-gradient(circle at 38% 38%, rgba(110,255,208,0.85) 0%, rgba(10,60,55,0.6) 60%, rgba(0,0,0,0.6) 100%); }
+  /* Cooldown-progress ring (set as conic-gradient mask via JS) */
+  .touchBtn .cd-ring {
+    position: absolute; inset: -2px; border-radius: 50%;
+    background: conic-gradient(currentColor calc(var(--cd, 0) * 1%), transparent 0);
+    -webkit-mask: radial-gradient(circle, transparent calc(50% - 4px), black calc(50% - 3px), black calc(50% + 0px), transparent calc(50% + 1px));
+            mask: radial-gradient(circle, transparent calc(50% - 4px), black calc(50% - 3px), black calc(50% + 0px), transparent calc(50% + 1px));
+    opacity: .85;
+    pointer-events: none;
+  }
 
   /* Hint label drawn above each active special button */
   .touchHint {
@@ -137,6 +202,8 @@
 </style>
 <!-- Universal auth + settings (top-right gear) — shared with Lore Archive -->
 <script src="/api/static/js/auth_module.js" defer></script>
+<!-- Cinematic overlay + Web Audio SFX (drop-pod intro / reality entry) -->
+<script src="/api/static/js/cinematic_overlay.js" defer></script>
 </head>
 <body>
 <div id="wrap">
@@ -513,26 +580,30 @@ const BIOMES = [
     ambientKind: 'embers', ambientColor: 'rgba(255, 200, 120, 0.55)',
   },
   {
-    id: 'cobalt',
-    name: 'COBALT REACH',
-    sub: 'Toxic blue tides. The breach widens.',
-    sky: ['#02080f', '#063044', '#0c5078', '#021020'],
-    ground: ['#0c5078', '#063044', '#020a14'],
-    mountain: '#021020', ruins: '#063044',
-    accent: '#33d4ff', veinColor: 'rgba(51, 212, 255, 0.4)',
+    id: 'dredgecity',
+    name: 'DREDGE CITY',
+    sub: 'Futuristic neon-soaked spire grids. The breach floods the gutter.',
+    sky: ['#02060f', '#062040', '#0a4880', '#021024'],
+    ground: ['#0a4880', '#062040', '#020a14'],
+    mountain: '#021020', ruins: '#063060',
+    accent: '#33d4ff', veinColor: 'rgba(51, 212, 255, 0.5)',
     nebulaHueBase: 195, nebulaHueRange: 30,
-    ambientKind: 'spores', ambientColor: 'rgba(80, 200, 255, 0.55)',
+    ambientKind: 'spores', ambientColor: 'rgba(120, 230, 255, 0.65)',
+    // New flags — consumed by drawBackground extras
+    cityscape: true,        // draws neon-lit skyscraper silhouettes
+    skylineColor: '#33d4ff',
   },
   {
-    id: 'rotwood',
-    name: 'ROTWOOD HOLLOW',
-    sub: 'A reality being eaten from inside.',
-    sky: ['#08100a', '#1a3018', '#2a4a22', '#0a1408'],
-    ground: ['#2a4a22', '#1a3018', '#06100a'],
-    mountain: '#08100a', ruins: '#1a3018',
-    accent: '#88ff44', veinColor: 'rgba(136, 255, 68, 0.4)',
-    nebulaHueBase: 110, nebulaHueRange: 30,
-    ambientKind: 'spores', ambientColor: 'rgba(180, 255, 100, 0.55)',
+    id: 'infestation',
+    name: 'INFESTATION HIVE',
+    sub: 'A reality consumed. Flesh weeps from the sky.',
+    sky: ['#0a0006', '#260616', '#3a0c1c', '#0e0408'],
+    ground: ['#3a0c1c', '#260616', '#08040a'],
+    mountain: '#0a0006', ruins: '#260616',
+    accent: '#ff70a0', veinColor: 'rgba(255, 112, 160, 0.55)',
+    nebulaHueBase: 330, nebulaHueRange: 30,
+    ambientKind: 'spores', ambientColor: 'rgba(255, 120, 160, 0.55)',
+    infested: true,         // adds pulsing fleshy growths along the floor
   },
   {
     id: 'bloodtide',
@@ -546,15 +617,17 @@ const BIOMES = [
     ambientKind: 'embers', ambientColor: 'rgba(255, 80, 80, 0.55)',
   },
   {
-    id: 'glasswastes',
-    name: 'GLASS WASTES',
-    sub: 'Reality fractures into mirrored shards.',
-    sky: ['#040614', '#101830', '#202c4a', '#080a18'],
-    ground: ['#202c4a', '#101830', '#040614'],
-    mountain: '#040614', ruins: '#101830',
-    accent: '#cce8ff', veinColor: 'rgba(204, 232, 255, 0.45)',
-    nebulaHueBase: 220, nebulaHueRange: 30,
-    ambientKind: 'snow', ambientColor: 'rgba(220, 235, 255, 0.7)',
+    id: 'gothic_cathedral',
+    name: 'GOTHIC CATHEDRAL',
+    sub: 'Vaulted bone-spires under a brass moon. Candles gutter at every aisle.',
+    sky: ['#080414', '#1a0a2a', '#3a1850', '#0a0418'],
+    ground: ['#1c0a30', '#100618', '#04020a'],
+    mountain: '#06030c', ruins: '#1c0a30',
+    accent: '#d8a64a', veinColor: 'rgba(216, 166, 74, 0.55)',
+    nebulaHueBase: 35, nebulaHueRange: 25,
+    ambientKind: 'embers', ambientColor: 'rgba(255, 220, 140, 0.65)',
+    gothic: true,           // draws cathedral arches + candle dots along the floor
+    skylineColor: '#d8a64a',
   },
   {
     id: 'finalrun',
@@ -1536,15 +1609,60 @@ window.addEventListener('orientationchange', () => setTimeout(_refreshTouchVisib
 
 // Show/hide dash/warp ability buttons based on player progression
 function refreshAbilityButtons() {
-  const dashEl = document.getElementById('tcDash');
-  const warpEl = document.getElementById('tcWarp');
+  const dashEl  = document.getElementById('tcDash');
+  const warpEl  = document.getElementById('tcWarp');
+  const burstEl = document.getElementById('tcBurst');
+  const jumpEl  = document.getElementById('tcJump');
   const p = State.player;
   if (!p) return;
   if (dashEl) dashEl.classList.toggle('active', !!p.hasDash);
   if (warpEl) warpEl.classList.toggle('active', !!p.hasTimeWarp);
-  // Also dim if on cooldown
-  if (dashEl && p.hasDash) dashEl.classList.toggle('disabled', p.dashCooldown > 0);
-  if (warpEl && p.hasTimeWarp) warpEl.classList.toggle('disabled', p.timeWarpCooldown > 0 || p.timeWarpTime > 0);
+  // Dim disabled abilities + drive cooldown rings + ready-flash highlight.
+  _updateAbilityBtn(burstEl, 'burst',
+    (p.burstCooldown || 0) / Math.max(0.0001, 2.5 * (p.burstCdMult || 1)),
+    (p.burstCooldown || 0) <= 0);
+  if (p.hasDash) {
+    _updateAbilityBtn(dashEl, 'dash',
+      (p.dashCooldown || 0) / Math.max(0.0001, p.dashCooldownMax || 6),
+      (p.dashCooldown || 0) <= 0);
+  }
+  if (p.hasTimeWarp) {
+    const active = (p.timeWarpTime || 0) > 0;
+    _updateAbilityBtn(warpEl, 'warp',
+      active ? (1 - (p.timeWarpTime / 3.0))
+             : ((p.timeWarpCooldown || 0) / Math.max(0.0001, p.timeWarpCooldownMax || 14)),
+      !active && (p.timeWarpCooldown || 0) <= 0);
+  }
+  // Jump: no cooldown ring needed, but keep .disabled in sync when not grounded.
+  if (jumpEl) jumpEl.classList.toggle('disabled', !p.grounded && !p.doubleJump);
+}
+
+// Helper: drive .disabled state, cooldown ring (--cd CSS var), and flash-ready
+// pulse when an ability fades from on-cooldown to ready.
+const _readyMemory = { burst:false, dash:false, warp:false };
+function _updateAbilityBtn(el, key, ratio /* 0=ready, 1=full cd */, isReady) {
+  if (!el) return;
+  el.classList.toggle('disabled', !isReady);
+  // Cooldown ring — show only when on cooldown.
+  let ring = el.querySelector('.cd-ring');
+  if (!ring) {
+    ring = document.createElement('div');
+    ring.className = 'cd-ring';
+    el.appendChild(ring);
+  }
+  const pct = Math.max(0, Math.min(100, (1 - ratio) * 100));
+  ring.style.setProperty('--cd', pct.toFixed(1));
+  ring.style.opacity = isReady ? '0' : '.85';
+  // Edge-detect ready → fire the flash exactly once per transition.
+  if (isReady && !_readyMemory[key]) {
+    _readyMemory[key] = true;
+    el.classList.remove('flash-ready');
+    void el.offsetWidth;
+    el.classList.add('flash-ready');
+    setTimeout(() => el.classList.remove('flash-ready'), 1300);
+  } else if (!isReady && _readyMemory[key]) {
+    _readyMemory[key] = false;
+  }
 }
 
 // === BULLETS ===
@@ -2434,9 +2552,121 @@ function drawBackground() {
     ctx.stroke();
   }
   ctx.restore();
-}
 
-// === REALITY CRACKS ===
+  // === BIOME-SPECIFIC OVERLAYS ===
+  // Dredge City: neon-lit skyscraper silhouettes
+  if (biome.cityscape) {
+    const c = biome.skylineColor || biome.accent;
+    ctx.save();
+    ctx.fillStyle = '#020a18';
+    // Far skyline
+    const scrollFar = (State.bgScrollX * 0.25) % 240;
+    for (let x = -scrollFar; x < W + 240; x += 60) {
+      const h = 90 + ((x * 13.7) % 90);
+      ctx.fillRect(x, GROUND_Y - h, 52, h);
+    }
+    // Near skyline — taller and crisper
+    const scrollNear = (State.bgScrollX * 0.5) % 180;
+    ctx.fillStyle = '#04132a';
+    for (let x = -scrollNear; x < W + 180; x += 80) {
+      const h = 140 + ((x * 19.3) % 130);
+      ctx.fillRect(x + 10, GROUND_Y - h, 64, h);
+      // window grid (neon dots)
+      ctx.fillStyle = hexA(c, 0.85);
+      for (let wy = GROUND_Y - h + 12; wy < GROUND_Y - 12; wy += 12) {
+        for (let wx = x + 16; wx < x + 70; wx += 10) {
+          if (Math.sin(wx * 0.31 + wy * 0.17) > 0.2) ctx.fillRect(wx, wy, 3, 5);
+        }
+      }
+      ctx.fillStyle = '#04132a';
+    }
+    // Neon horizon stripe (city skyglow)
+    const sg = ctx.createLinearGradient(0, GROUND_Y - 270, 0, GROUND_Y - 40);
+    sg.addColorStop(0, 'rgba(0,0,0,0)');
+    sg.addColorStop(1, hexA(c, 0.25));
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, GROUND_Y - 270, W, 230);
+    ctx.restore();
+  }
+
+  // Gothic Cathedral: vaulted arches + candle dots along the floor
+  if (biome.gothic) {
+    const c = biome.skylineColor || biome.accent;
+    ctx.save();
+    // Three-arch silhouette spanning the canvas
+    ctx.fillStyle = '#0a0612';
+    const scroll = (State.bgScrollX * 0.4) % 280;
+    for (let x = -scroll - 140; x < W + 280; x += 280) {
+      const apex = GROUND_Y - 320;
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y);
+      ctx.lineTo(x, GROUND_Y - 180);
+      ctx.quadraticCurveTo(x + 140, apex, x + 280, GROUND_Y - 180);
+      ctx.lineTo(x + 280, GROUND_Y);
+      ctx.closePath();
+      ctx.fill();
+      // Stained-glass rose at apex
+      const cx = x + 140;
+      ctx.fillStyle = hexA(c, 0.35);
+      ctx.beginPath(); ctx.arc(cx, apex + 60, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = hexA(c, 0.6);
+      ctx.beginPath(); ctx.arc(cx, apex + 60, 10, 0, Math.PI * 2); ctx.fill();
+      // Stained-glass pillar windows
+      ctx.fillStyle = hexA(c, 0.45);
+      ctx.fillRect(x + 30, GROUND_Y - 150, 6, 90);
+      ctx.fillRect(x + 244, GROUND_Y - 150, 6, 90);
+      ctx.fillStyle = '#0a0612';
+    }
+    // Candle dots along the floor — gutter randomly
+    for (let i = 0; i < 14; i++) {
+      const cx = ((i * 113.7 - State.bgScrollX * 0.6) % (W + 60));
+      const x = cx < 0 ? cx + W + 60 : cx;
+      const flick = 0.6 + 0.4 * Math.sin(performance.now() * 0.012 + i * 1.7);
+      ctx.fillStyle = `rgba(255, 200, 110, ${flick})`;
+      ctx.beginPath(); ctx.arc(x, GROUND_Y - 4, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(255, 240, 180, ${flick * 0.4})`;
+      ctx.beginPath(); ctx.arc(x, GROUND_Y - 4, 9, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Infestation Hive: pulsing fleshy growths along the floor + drip-veins from sky
+  if (biome.infested) {
+    ctx.save();
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.003);
+    // Mound silhouettes (fleshy lumps) along the ground
+    ctx.fillStyle = '#3a0a18';
+    const scroll = (State.bgScrollX * 0.5) % 220;
+    for (let x = -scroll; x < W + 220; x += 110) {
+      const h = 60 + ((x * 21.7) % 50);
+      ctx.beginPath();
+      ctx.ellipse(x + 55, GROUND_Y - h * 0.5 + 6, 55, h * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Pulsing veiny glow on the mounds
+    ctx.strokeStyle = `rgba(255, 80, 130, ${0.3 + 0.5 * pulse})`;
+    ctx.lineWidth = 2;
+    for (let x = -scroll; x < W + 220; x += 110) {
+      ctx.beginPath();
+      ctx.moveTo(x + 18, GROUND_Y - 8);
+      ctx.quadraticCurveTo(x + 55, GROUND_Y - 80 - pulse * 16, x + 92, GROUND_Y - 8);
+      ctx.stroke();
+    }
+    // Slow drips from the top: vertical pink lines
+    ctx.strokeStyle = `rgba(255, 112, 160, ${0.18 + 0.18 * pulse})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 18; i++) {
+      const dx = ((i * 79.3 - State.bgScrollX * 0.3) % W);
+      const x = dx < 0 ? dx + W : dx;
+      const len = 50 + Math.sin(i + performance.now()*0.001) * 30;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, len);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
 // Render every active crack as a glowing fractured line with growing animation
 // and a soft halo around each crack indicating energy bleed-through.
 function drawRealityCracks() {
@@ -4028,6 +4258,24 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   document.getElementById('title').style.display = 'none';
   ensureAudio();
   await loadSprites();
+
+  // === DROP-POD CINEMATIC ===
+  // Skip if the player has already seen it this session, OR if the
+  // Cinematic module failed to load.
+  const seenKey = 'dlds_seen_drop_pod';
+  const showCinematic = window.Cinematic && !sessionStorage.getItem(seenKey);
+  if (showCinematic) {
+    try { sessionStorage.setItem(seenKey, '1'); } catch(e){}
+    await new Promise((res) => {
+      window.Cinematic.play({
+        id: 'drop-pod',
+        videoUrl: '/api/static/cinematic_drop_pod.mp4',
+        maxDurationMs: 5500,
+        onComplete: res,
+      });
+    });
+  }
+
   reset();
   resize();
   requestAnimationFrame(frame);

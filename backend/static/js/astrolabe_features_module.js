@@ -20,6 +20,60 @@
     const log = (...a) => console.log('[features]', ...a);
     const warn = (...a) => console.warn('[features]', ...a);
 
+    // ──────────────────────────────────────────────────────────────────
+    //   PANEL COLLAPSE TOGGLES  (the bottom-navigator [-]/[+] icons)
+    //   Each button has data-target pointing at the <div id="..."> that
+    //   should collapse. We toggle max-height between 0 and the natural
+    //   scrollHeight, swap the label, and remember state in localStorage.
+    // ──────────────────────────────────────────────────────────────────
+    function _wirePanelCollapsers() {
+        const btns = document.querySelectorAll('.panel-collapse-btn:not([data-bound])');
+        if (!btns.length) return;
+        btns.forEach((btn) => {
+            btn.setAttribute('data-bound', '1');
+            const targetId = btn.getAttribute('data-target');
+            const target = document.getElementById(targetId); if (!target) return;
+            const storageKey = 'dlds_panel_' + targetId;
+            const isCollapsed = localStorage.getItem(storageKey) === '1';
+            const apply = (collapsed) => {
+                if (collapsed) {
+                    target.dataset.naturalHeight = target.dataset.naturalHeight || (target.scrollHeight + 'px');
+                    target.style.maxHeight = '0px';
+                    target.style.opacity = '0';
+                    target.style.paddingTop = '0px';
+                    target.style.paddingBottom = '0px';
+                    btn.textContent = '[+]';
+                    btn.setAttribute('aria-label', 'Expand panel');
+                } else {
+                    const h = target.dataset.naturalHeight || '300px';
+                    target.style.maxHeight = h;
+                    target.style.opacity = '';
+                    target.style.paddingTop = '';
+                    target.style.paddingBottom = '';
+                    btn.textContent = '[-]';
+                    btn.setAttribute('aria-label', 'Collapse panel');
+                }
+            };
+            target.style.transition = 'max-height .35s ease, opacity .25s ease, padding .25s ease';
+            target.style.overflow = 'hidden';
+            apply(isCollapsed);
+            btn.style.cursor = 'pointer';
+            btn.addEventListener('click', (ev) => {
+                ev.preventDefault(); ev.stopPropagation();
+                const nowCollapsed = btn.textContent.trim() === '[-]';
+                localStorage.setItem(storageKey, nowCollapsed ? '1' : '0');
+                apply(nowCollapsed);
+            });
+        });
+    }
+    document.addEventListener('DOMContentLoaded', _wirePanelCollapsers);
+    setTimeout(_wirePanelCollapsers, 600);
+    setTimeout(_wirePanelCollapsers, 2000);
+    try {
+        const _mo = new MutationObserver(() => _wirePanelCollapsers());
+        _mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+
     // Wait until both engine + lore are ready.
     function whenReady(cb) {
         const tryStart = () => {
@@ -772,7 +826,21 @@
             // Open mini-game in same tab (mobile-friendly). Use a flag so we can
             // consume the result on return.
             try { localStorage.setItem('reality_defense_pending', JSON.stringify({reality: realityName, strata, ts: Date.now()})); } catch(e){}
-            window.location.href = url;
+
+            // === REALITY-ENTRY CINEMATIC ===
+            // Play a brief fullscreen overlay with synthesised shimmer + sub-thump
+            // before navigating away. Falls through immediately if the Cinematic
+            // module isn't loaded yet.
+            if (window.Cinematic && window.Cinematic.play) {
+                window.Cinematic.play({
+                    id: 'reality-entry',
+                    videoUrl: '/api/static/cinematic_reality_entry.mp4',
+                    maxDurationMs: 4200,
+                    onComplete: () => { window.location.href = url; },
+                });
+            } else {
+                window.location.href = url;
+            }
         });
 
         return true;
@@ -827,7 +895,67 @@
     }
 
     // ──────────────────────────────────────────────────────────────────
-    //   PERSISTENT SAVE STATE + ACHIEVEMENTS
+    //   FILTER REWARD MODIFIERS  (Faction / Stable / Dead / Infested
+    //   reality filters now signal a soul-token reward multiplier the
+    //   player earns when they Seal a matching reality — surfaces a
+    //   small green hint label below each filter button and pipes the
+    //   modifier through ENTER STRATA → /api/reality-defense)
+    // ──────────────────────────────────────────────────────────────────
+    const REWARD_MODIFIERS = {
+        STABLE:   { mult: 1.00, sub: 'BASELINE · 1.0× tokens',     color: '#9ad' },
+        INFESTED: { mult: 1.50, sub: 'HIGH RISK · 1.5× tokens',    color: '#6effd4' },
+        DEAD:     { mult: 2.00, sub: 'SACRED RECLAIM · 2.0× tokens', color: '#ff70a0' },
+    };
+    function _annotateFilterButtons() {
+        ['filter-stable', 'filter-dead', 'filter-infested'].forEach((id) => {
+            const btn = document.getElementById(id);
+            if (!btn || btn.dataset.rewardAnnotated) return;
+            btn.dataset.rewardAnnotated = '1';
+            const key = id === 'filter-stable' ? 'STABLE' : (id === 'filter-dead' ? 'DEAD' : 'INFESTED');
+            const meta = REWARD_MODIFIERS[key];
+            const hint = document.createElement('div');
+            hint.className = 'reward-hint';
+            hint.textContent = '▸ ' + meta.sub;
+            hint.style.cssText = `font-size:9px;letter-spacing:.16em;color:${meta.color};opacity:.78;
+                                   margin-top:2px;text-align:center;font-family:'Courier New',monospace;`;
+            btn.insertAdjacentElement('afterend', hint);
+        });
+        // Soul-seed lane importance: surface a header pill near the bottom-nav
+        // explaining that lanes feed the Astrolabe's tithe — purely informative,
+        // but adds clear narrative purpose. Inserted once.
+        if (!document.getElementById('soul-seed-note')) {
+            const host = document.querySelector('#nav-body, #panel-body, .nav-computer-panel');
+            if (host) {
+                const note = document.createElement('div');
+                note.id = 'soul-seed-note';
+                note.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:6px;
+                        margin-top:8px;padding:6px 8px;border:1px dashed rgba(187,110,255,.5);
+                        background:rgba(20,8,36,.4);border-radius:3px;
+                        font:9px/1.4 'Courier New',monospace;letter-spacing:.12em;color:#bb6eff;">
+                        <span style="font-size:14px;line-height:1;">⌬</span>
+                        <span><b>SOUL-SEED LANES</b> · each traversal yields +1 ambient soul-token (idle income while Sealing)</span>
+                    </div>`;
+                host.appendChild(note);
+            }
+        }
+    }
+    document.addEventListener('DOMContentLoaded', _annotateFilterButtons);
+    setTimeout(_annotateFilterButtons, 1000);
+    setTimeout(_annotateFilterButtons, 3000);
+    try {
+        const _mo2 = new MutationObserver(() => _annotateFilterButtons());
+        _mo2.observe(document.documentElement, { childList: true, subtree: true });
+    } catch(e) {}
+
+    // Helper exposed to ENTER STRATA: returns the current reward mult based
+    // on whatever filters are active when the player chooses a target.
+    window.__rewardModForReality = function(realityType) {
+        const m = REWARD_MODIFIERS[realityType] || REWARD_MODIFIERS.STABLE;
+        return m.mult;
+    };
+
+
     // ──────────────────────────────────────────────────────────────────
     // Use the unified AuthModule's user id (wanderer_id when signed in,
     // anonymous local fallback otherwise) so saved realities migrate

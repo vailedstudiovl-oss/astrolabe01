@@ -14,7 +14,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Any, Dict, Literal
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import httpx
 
 
@@ -560,6 +560,8 @@ class SavedReality(BaseModel):
     strata: str
     faction_id: Optional[str] = None
     faction_name: Optional[str] = None
+    reality_type: Optional[str] = None  # STABLE | INFESTED | DEAD — drives reward_mod when unset
+    reward_mod: Optional[float] = None  # multiplier applied to soul-token reward
     won: bool = True
     succeeded: bool = True
     roll: int = 70
@@ -569,21 +571,69 @@ class SavedReality(BaseModel):
     ts: Optional[float] = None
 
 
+# Base soul-token reward for sealing a reality. Multiplied by reward_mod.
+_BASE_SEAL_REWARD_TOKENS = 4
+_REWARD_MOD_TABLE = {"STABLE": 1.0, "INFESTED": 1.5, "DEAD": 2.0}
+
+
 @api_router.post("/realities/save")
 async def save_reality(payload: SavedReality):
-    """Persist a Reality Defense outcome (typically a successful save)."""
+    """Persist a Reality Defense outcome (typically a successful save) and
+    credit the player's Reaper-Market wallet with soul-tokens based on the
+    reality type (STABLE 1.0× / INFESTED 1.5× / DEAD 2.0×)."""
     doc = payload.model_dump()
     if not doc.get("ts"):
         doc["ts"] = time.time()
     doc["id"] = str(uuid.uuid4())
+
+    # Resolve reward modifier — explicit > looked-up-by-type > 1.0
+    mod = doc.get("reward_mod")
+    if mod is None:
+        mod = _REWARD_MOD_TABLE.get((doc.get("reality_type") or "STABLE").upper(), 1.0)
+    awarded_tokens = 0
+    if doc.get("succeeded") or (doc.get("won") and doc.get("roll", 0) >= 50):
+        awarded_tokens = int(round(_BASE_SEAL_REWARD_TOKENS * float(mod)))
+    doc["awarded_tokens"] = awarded_tokens
+    doc["reward_mod_resolved"] = float(mod)
+
     try:
         await db.saved_realities.insert_one(doc)
     except Exception as e:
         logging.exception(f"save_reality insert failed: {e}")
         raise HTTPException(500, "persistence failed")
+
+    # Credit wallet (idempotent-ish: each save is a distinct id, so duplicates
+    # would only happen if the client re-POSTs; we accept that risk in MVP).
+    if awarded_tokens > 0:
+        try:
+            # Two-step so we keep the 24-token seed default for brand-new
+            # users instead of starting them at just `awarded_tokens`.
+            await db["reaper_wallet"].update_one(
+                {"user_id": payload.user_id},
+                {"$setOnInsert": {
+                    "soul_tokens": 24, "reaper_credit": 60, "obols": 3,
+                    "tier": "reaper", "last_stipend_ts": 0.0,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
+            await db["reaper_wallet"].update_one(
+                {"user_id": payload.user_id},
+                {"$inc": {"soul_tokens": awarded_tokens},
+                 "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+            )
+        except Exception as e:
+            logging.exception(f"wallet credit failed: {e}")
+
     # Recompute unlocked achievements for this user
     unlocked = await _evaluate_achievements(payload.user_id)
-    return {"ok": True, "id": doc["id"], "unlocked": unlocked}
+    return {
+        "ok": True,
+        "id": doc["id"],
+        "unlocked": unlocked,
+        "awarded_tokens": awarded_tokens,
+        "reward_mod": float(mod),
+    }
 
 
 @api_router.get("/realities/saved")

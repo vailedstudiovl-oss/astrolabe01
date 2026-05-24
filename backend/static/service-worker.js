@@ -6,7 +6,7 @@
 //   - stale-while-revalidate for cross-origin CDN assets (Three.js, Tailwind, Google Fonts)
 //     so the app launches offline once it has been opened once.
 
-const VERSION       = 'v31-2026-05-24-skill-tree';
+const VERSION       = 'v32-2026-05-24-cinematics-biomes';
 const SHELL_CACHE   = `astrolabe-shell-${VERSION}`;
 const RUNTIME_CACHE = `astrolabe-runtime-${VERSION}`;
 const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;
@@ -32,6 +32,10 @@ const SHELL_ASSETS = [
   // Universal auth + settings (shared JWT with Lore Archive)
   '/api/static/js/auth_module.js',
   '/api/static/js/reaper_market_ui.js',
+  '/api/static/js/skill_tree_ui.js',
+  '/api/static/js/cinematic_overlay.js',
+  '/api/static/cinematic_drop_pod.mp4',
+  '/api/static/cinematic_reality_entry.mp4',
   // music + video (cached on demand by runtime strategy; listed here so they
   // pre-cache on install for offline replay)
   '/api/static/dimensionlock_theme.mp3',

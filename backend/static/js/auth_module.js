@@ -224,9 +224,11 @@
                 </div>
                 
                 <a class="btn ghost" href="/api/lore">VIEW LORE ARCHIVE ▸</a>
+                <button class="btn community" id="amCommunityLore" style="background:rgba(255,168,80,.16);border-color:#ffd28b;color:#ffd28b;">✎ ADD COMMUNITY LORE</button>
                 <button class="btn danger" id="amLogout">LOG OUT</button>
             `;
             document.getElementById('amLogout').onclick = doLogout;
+            document.getElementById('amCommunityLore').onclick = openCommunityLoreFromSettings;
             loadSaveSummary();
             initGraphicsUI();
         } else {
@@ -400,6 +402,19 @@
         if (State.user) { try { cb && cb(State.user); } catch(e){} return true; }
         openPanel();
         return false;
+    }
+
+    // Open community lore modal - connects to astrolabe_lore_module if available
+    function openCommunityLoreFromSettings() {
+        closePanel();
+        // Try to call the astrolabe lore module's community lore function
+        if (typeof window.openCommunityLore === 'function') {
+            const strata = window.STATE && window.STATE.currentLayer || 0;
+            window.openCommunityLore(strata);
+        } else {
+            // Fallback: redirect to lore page with submission param
+            window.location.href = '/api/lore?submit=1';
+        }
     }
 
     window.AuthModule = {

@@ -329,7 +329,7 @@
         // Wire video
         vid.src = opts.videoUrl;
         vid.currentTime = 0;
-        vid.muted = true;  // we ignore the embedded music
+        vid.muted = false;  // Allow original mp4 audio to play
         try { vid.play(); } catch(e){}
         // Kick the SFX in a microtask so the video starts at the same time.
         setTimeout(() => playSfx(sfxId), 50);

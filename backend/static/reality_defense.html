@@ -1061,15 +1061,16 @@ function powerupCardGeom(idx) {
   // We detect via the runtime portraitMode flag (set by resize()) so we use
   // the actual screen orientation, not the fixed logical canvas dims.
   if (State.portraitMode) {
-    // Reserve space at bottom for touch controls (approx 220px safe zone)
-    const safeBottom = 220;
-    const availableH = H - 100 - safeBottom; // 100px top margin for HUD
-    const cardW = Math.min(W - 60, 800);
-    const cardH = Math.min(Math.floor(availableH / 3) - 10, 160); // Smaller max height
-    const gap = 10;
+    // Reserve space at bottom for touch controls (approx 200px safe zone)
+    const safeBottom = 200;
+    const topMargin = 80; // Space for HUD at top
+    const availableH = H - topMargin - safeBottom;
+    const cardW = Math.min(W - 40, 340); // Narrower cards for mobile, max 340px
+    const cardH = Math.min(Math.floor(availableH / 3) - 8, 140); // Smaller cards
+    const gap = 8;
     const total = cardH * 3 + gap * 2;
-    const startY = Math.max(90, (H - safeBottom - total) / 2 + 40);
-    const x = (W - cardW) / 2;
+    const startY = topMargin + (availableH - total) / 2;
+    const x = (W - cardW) / 2; // Centered horizontally
     const y = startY + idx * (cardH + gap);
     return { x, y, w: cardW, h: cardH, mobile: true };
   }
@@ -3976,6 +3977,9 @@ function drawPowerupCard(x, y, w, h, id, pu, hover, alpha, hotkey) {
   ctx.save();
   ctx.globalAlpha = alpha;
 
+  // Detect if mobile (small card)
+  const isMobile = h < 200;
+
   // Hover lift
   if (hover) { y -= 8; }
 
@@ -3989,52 +3993,54 @@ function drawPowerupCard(x, y, w, h, id, pu, hover, alpha, hotkey) {
   grad.addColorStop(0, '#1f1438');
   grad.addColorStop(1, '#0d0820');
   ctx.fillStyle = grad;
-  roundRect(x, y, w, h, 14); ctx.fill();
+  roundRect(x, y, w, h, isMobile ? 10 : 14); ctx.fill();
   ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
   // Top color band (theme color of the powerup)
+  const bandH = isMobile ? 36 : 60;
   ctx.fillStyle = pu.color;
-  roundRect(x, y, w, 60, 14, 14, 0, 0); ctx.fill();
+  roundRect(x, y, w, bandH, isMobile ? 10 : 14, isMobile ? 10 : 14, 0, 0); ctx.fill();
   // Cut bottom of band straight
   ctx.fillStyle = pu.color;
-  ctx.fillRect(x, y + 40, w, 22);
+  ctx.fillRect(x, y + bandH - 18, w, 18);
 
   // Inner glow border (highlighted when hovered)
   ctx.lineWidth = hover ? 3 : 1.5;
   ctx.strokeStyle = hover ? pu.color : 'rgba(255,255,255,0.15)';
-  roundRect(x + 1, y + 1, w - 2, h - 2, 13); ctx.stroke();
+  roundRect(x + 1, y + 1, w - 2, h - 2, isMobile ? 9 : 13); ctx.stroke();
 
   // Hotkey badge (top-left)
+  const badgeSize = isMobile ? 24 : 32;
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  roundRect(x + 12, y + 12, 32, 32, 8); ctx.fill();
+  roundRect(x + 8, y + 6, badgeSize, badgeSize, isMobile ? 5 : 8); ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.font = `bold ${isMobile ? 14 : 18}px "Courier New", monospace`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(hotkey, x + 28, y + 28);
+  ctx.fillText(hotkey, x + 8 + badgeSize/2, y + 6 + badgeSize/2);
 
   // Stack indicator (top-right, "x2" if already taken)
   const taken = State.player.powerupsTaken[id] || 0;
   if (taken > 0) {
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    roundRect(x + w - 56, y + 12, 44, 26, 6); ctx.fill();
+    roundRect(x + w - (isMobile ? 40 : 56), y + 6, isMobile ? 32 : 44, isMobile ? 20 : 26, 6); ctx.fill();
     ctx.fillStyle = '#ffe066';
-    ctx.font = 'bold 14px "Courier New", monospace';
-    ctx.fillText(`+${taken}`, x + w - 34, y + 25);
+    ctx.font = `bold ${isMobile ? 11 : 14}px "Courier New", monospace`;
+    ctx.fillText(`+${taken}`, x + w - (isMobile ? 24 : 34), y + (isMobile ? 16 : 19));
   }
 
-  // Icon box (centered, large)
-  const iconBoxSize = 130;
+  // Icon box (centered)
+  const iconBoxSize = isMobile ? 50 : 130;
   const iconX = x + (w - iconBoxSize) / 2;
-  const iconY = y + 80;
+  const iconY = y + bandH + (isMobile ? 4 : 20);
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  roundRect(iconX, iconY, iconBoxSize, iconBoxSize, 12); ctx.fill();
+  roundRect(iconX, iconY, iconBoxSize, iconBoxSize, isMobile ? 8 : 12); ctx.fill();
   // Subtle inner glow
   const igrad = ctx.createRadialGradient(iconX + iconBoxSize/2, iconY + iconBoxSize/2, 10,
                                           iconX + iconBoxSize/2, iconY + iconBoxSize/2, iconBoxSize * 0.7);
   igrad.addColorStop(0, hexA(pu.color, 0.30));
   igrad.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = igrad;
-  roundRect(iconX, iconY, iconBoxSize, iconBoxSize, 12); ctx.fill();
+  roundRect(iconX, iconY, iconBoxSize, iconBoxSize, isMobile ? 8 : 12); ctx.fill();
 
   // The actual icon — drawn by the powerup's iconDraw function
   if (pu.iconDraw) {
@@ -4043,49 +4049,43 @@ function drawPowerupCard(x, y, w, h, id, pu, hover, alpha, hotkey) {
     ctx.restore();
   }
 
-  // Sparkle effect on hover or on entry
-  const sparkleT = (performance.now() / 600 + (id.length * 0.3)) % 1;
-  if (hover || sparkleT < 0.3) {
-    ctx.fillStyle = hexA(pu.color, 0.6);
-    for (let k = 0; k < 4; k++) {
-      const sa = (k * 0.25 + sparkleT) * Math.PI * 2;
-      const sx = iconX + iconBoxSize/2 + Math.cos(sa) * (iconBoxSize * 0.45);
-      const sy = iconY + iconBoxSize/2 + Math.sin(sa) * (iconBoxSize * 0.45);
-      ctx.beginPath(); ctx.arc(sx, sy, 2, 0, Math.PI*2); ctx.fill();
-    }
-  }
-
   // Name
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.font = `bold ${isMobile ? 13 : 18}px "Courier New", monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(pu.name, x + w/2, iconY + iconBoxSize + 30);
+  ctx.fillText(pu.name, x + w/2, iconY + iconBoxSize + (isMobile ? 14 : 30));
 
-  // Description (word-wrap)
-  ctx.fillStyle = '#c0d0e0';
-  ctx.font = '13px "Courier New", monospace';
-  const words = pu.desc.split(' ');
-  let line = '';
-  let lineY = iconY + iconBoxSize + 52;
-  for (const word of words) {
-    const test = line + (line ? ' ' : '') + word;
-    if (ctx.measureText(test).width > w - 24) {
-      ctx.fillText(line, x + w/2, lineY);
-      line = word;
-      lineY += 16;
-    } else {
-      line = test;
+  // Description (word-wrap) - skip on mobile if not enough space
+  if (!isMobile || h > 120) {
+    ctx.fillStyle = '#c0d0e0';
+    ctx.font = `${isMobile ? 10 : 13}px "Courier New", monospace`;
+    const words = pu.desc.split(' ');
+    let line = '';
+    let lineY = iconY + iconBoxSize + (isMobile ? 26 : 52);
+    const maxLines = isMobile ? 2 : 5;
+    let lineCount = 0;
+    for (const word of words) {
+      if (lineCount >= maxLines) break;
+      const test = line + (line ? ' ' : '') + word;
+      if (ctx.measureText(test).width > w - 16) {
+        ctx.fillText(line, x + w/2, lineY);
+        line = word;
+        lineY += isMobile ? 12 : 16;
+        lineCount++;
+      } else {
+        line = test;
+      }
     }
+    if (line && lineCount < maxLines) ctx.fillText(line, x + w/2, lineY);
   }
-  if (line) ctx.fillText(line, x + w/2, lineY);
 
   // Rarity indicator (color dots at bottom)
-  const dotY = y + h - 18;
+  const dotY = y + h - (isMobile ? 10 : 18);
   for (let r = 0; r < 3; r++) {
     ctx.fillStyle = (r < pu.rarity) ? pu.color : 'rgba(255,255,255,0.12)';
     ctx.beginPath();
-    ctx.arc(x + w/2 - 12 + r * 12, dotY, 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.arc(x + w/2 - 12 + r * 12, dotY, isMobile ? 2.5 : 3.5, 0, Math.PI*2); ctx.fill();
   }
 
   ctx.restore();
@@ -4311,20 +4311,12 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   const showCinematic = window.Cinematic && !sessionStorage.getItem(seenKey);
   if (showCinematic) {
     try { sessionStorage.setItem(seenKey, '1'); } catch(e){}
-    // Play cinematic music during intro
-    const cinematicMusic = new Audio('/api/static/audio/endless_phonk.mp3');
-    cinematicMusic.volume = 0.5;
-    cinematicMusic.play().catch(() => {});
     await new Promise((res) => {
       window.Cinematic.play({
         id: 'drop-pod',
         videoUrl: '/api/static/cinematic_drop_pod.mp4',
         maxDurationMs: 5500,
-        onComplete: () => {
-          cinematicMusic.pause();
-          cinematicMusic.currentTime = 0;
-          res();
-        },
+        onComplete: res,
       });
     });
   }

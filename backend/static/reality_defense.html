@@ -25,134 +25,254 @@
   canvas { display: block; flex: 1 1 auto; width: 100%; image-rendering: auto;
     background: radial-gradient(ellipse at 70% 30%, rgba(140,60,170,0.45) 0%, rgba(20,8,30,0.7) 60%, #050308 100%); }
 
-  #hud { position: absolute; top: 0; left: 0; right: 0; padding: 8px 12px; pointer-events: none;
-    display: flex; flex-direction: column; gap: 4px; z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.72), rgba(0,0,0,0)); }
-  .hud-row { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
-  .pill { background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.15); padding: 3px 9px; border-radius: 3px; color: #cbd5e1; font-size: 10px; }
-  .pill.danger { border-color: var(--c-danger); color: #ffd0d0; }
-  .pill.accent { border-color: var(--c-accent); color: #b2ffd6; }
-  .pill.cyan { border-color: var(--c-cyan); color: #c8efff; }
-  .pill.amber { border-color: var(--c-armor-glow); color: #ffd8ad; }
+  /* ──────────────── HUD (revamped, glanceable, mobile-first) ──────────────── */
+  #hud { position: absolute; top: 0; left: 0; right: 0; padding: max(env(safe-area-inset-top), 8px) 10px 0 10px;
+    pointer-events: none; z-index: 10;
+    display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto; gap: 6px 8px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.78), rgba(0,0,0,0) 90%); }
 
-  #beacon-bar { width: 100%; height: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(102, 255, 170, 0.5); border-radius: 2px; position: relative; overflow: hidden; box-shadow: inset 0 0 6px rgba(0,0,0,0.6); }
-  #beacon-bar .fill { position: absolute; inset: 0; width: 0%; background: linear-gradient(90deg, #66ffaa, #00d4ff); box-shadow: 0 0 12px rgba(102,255,170,0.7); transition: width 0.2s linear; }
-  #beacon-bar .label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; letter-spacing: 2px; color: white; text-shadow: 0 0 4px black; }
+  /* TOP-LEFT — HP armor segments (5 angled diamonds with red glow) */
+  .hud-armor { grid-column: 1; grid-row: 1; display: flex; align-items: center; gap: 6px; }
+  .hud-armor-label { font-size: 9px; letter-spacing: 2px; color: #ffb6b6; font-weight: bold; text-transform: uppercase; opacity: 0.85; }
+  #hp-strip { display: flex; gap: 3px; }
+  .hp-cell { width: 14px; height: 18px; background: linear-gradient(180deg, #ff4d6d, #aa0a2a);
+    clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
+    box-shadow: 0 0 8px rgba(255,60,80,0.65), inset 0 0 6px rgba(255,180,180,0.4);
+    transition: all 0.15s; }
+  .hp-cell.empty { background: rgba(255,255,255,0.06); box-shadow: inset 0 0 4px rgba(0,0,0,0.5); opacity: 0.45; }
+  .hp-cell.flash { animation: hpFlash .35s ease-out; }
+  @keyframes hpFlash { 0% { transform: scale(1.4); filter: brightness(2); } 100% { transform: scale(1); filter: brightness(1); } }
 
-  .hp-cell { width: 14px; height: 14px; border: 1px solid rgba(255,80,80,0.6); background: var(--c-danger); box-shadow: 0 0 6px rgba(255,60,60,0.7); }
-  .hp-cell.empty { background: transparent; opacity: 0.3; box-shadow: none; }
+  /* TOP-CENTER — Wave indicator (big, dramatic) */
+  .hud-center { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: center; gap: 0;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(255,138,58,0.6); border-radius: 4px;
+    padding: 3px 14px; min-width: 90px; box-shadow: 0 0 14px rgba(255,138,58,0.25); position: relative; }
+  .hud-center::before { content:''; position: absolute; inset:-2px; border:1px solid rgba(255,138,58,0.2); border-radius: 5px; pointer-events: none; }
+  .hud-wave-lbl { font-size: 8.5px; letter-spacing: 2.5px; color: #ffd6a8; font-weight: bold; }
+  .hud-wave-num { font-size: 17px; letter-spacing: 4px; color: #ffd866; font-weight: bold; line-height: 1; text-shadow: 0 0 8px rgba(255,180,80,0.7); }
 
-  #controls { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 14px 14px 14px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 11; }
-  .ctrl-cluster { display: flex; gap: 10px; pointer-events: auto; }
-  .ctrl-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(20,30,40,0.55); border: 2px solid rgba(102,232,255,0.55); color: #d6f8ff;
-    font-size: 22px; font-weight: bold; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
-    box-shadow: 0 0 12px rgba(102,232,255,0.25), inset 0 0 8px rgba(102,232,255,0.18); transition: transform 0.08s, background 0.08s;
-    touch-action: none; -webkit-user-select: none; user-select: none; cursor: pointer; }
-  .ctrl-btn:active, .ctrl-btn.held { transform: scale(0.92); background: rgba(102,232,255,0.25); border-color: var(--c-accent); }
-  .ctrl-btn.fire { border-color: rgba(255,140,80,0.7); color: #ffd6b8; box-shadow: 0 0 12px rgba(255,120,60,0.3), inset 0 0 8px rgba(255,120,60,0.18); width: 72px; height: 72px; font-size: 26px; }
-  .ctrl-btn.fire:active, .ctrl-btn.fire.held { background: rgba(255,140,80,0.32); border-color: #ffaa55; }
-  .ctrl-btn.jump { border-color: rgba(102,255,170,0.65); color: #d6ffea; box-shadow: 0 0 12px rgba(102,255,170,0.3), inset 0 0 8px rgba(102,255,170,0.18); }
-  .ctrl-btn.jump:active, .ctrl-btn.jump.held { background: rgba(102,255,170,0.28); }
+  /* TOP-RIGHT — Kill counter + pause button */
+  .hud-right { grid-column: 3; grid-row: 1; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .hud-kills { display: flex; align-items: center; gap: 5px; padding: 4px 9px;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(102,255,170,0.5); border-radius: 3px;
+    box-shadow: 0 0 10px rgba(102,255,170,0.18); }
+  .hud-kills-icon { width: 8px; height: 8px; background: var(--c-accent); border-radius: 50%; box-shadow: 0 0 6px var(--c-accent); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.75); } }
+  .hud-kills-num { font-size: 13px; letter-spacing: 1.5px; color: #b2ffd6; font-weight: bold; min-width: 22px; text-align: right; }
+  #pause-btn { pointer-events: auto; background: rgba(0,0,0,0.6); color: #d8e1ee; border: 1px solid rgba(255,255,255,0.25);
+    width: 34px; height: 34px; border-radius: 4px; font-family: inherit; font-size: 12px; cursor: pointer; transition: all .15s; }
+  #pause-btn:hover, #pause-btn:active { border-color: var(--c-accent); color: white; background: rgba(102,255,170,0.18); }
 
-  .overlay { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 40%, rgba(20,10,40,0.85) 0%, rgba(5,4,12,0.96) 70%); backdrop-filter: blur(4px); padding: 20px; }
-  .overlay.hidden { display: none; }
-  .panel { max-width: 520px; width: 100%; background: rgba(10,14,22,0.94); border: 1px solid rgba(255,138,58,0.4); border-radius: 6px; padding: 22px; box-shadow: 0 0 32px rgba(255,138,58,0.18), inset 0 0 18px rgba(0,0,0,0.55); position: relative; overflow: hidden; }
-  .panel::before { content:''; position:absolute; inset:0; background: url('/api/static/centurion_player_256.png') no-repeat right -40px bottom -30px / auto 320px; opacity: 0.15; pointer-events: none; }
-  .panel > * { position: relative; z-index: 1; }
-  .panel h1 { font-size: 22px; letter-spacing: 3px; color: var(--c-armor-glow); margin-bottom: 8px; text-shadow: 0 0 8px rgba(255,138,58,0.55); }
-  .panel .sub { font-size: 11px; letter-spacing: 2px; color: #94a3b8; text-transform: uppercase; margin-bottom: 16px; }
-  .panel p { font-size: 13px; line-height: 1.55; color: #cbd5e1; margin-bottom: 12px; }
-  .panel .stat-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px; }
-  .panel .stat-row span:first-child { color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-  .panel .stat-row span:last-child { color: var(--c-cyan); font-weight: bold; }
-  .btn { display: block; width: 100%; padding: 12px 18px; margin-top: 14px; background: rgba(255,138,58,0.18); border: 2px solid var(--c-armor-glow); color: white;
-    font-family: inherit; font-size: 13px; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; border-radius: 3px;
-    text-decoration: none; text-align: center; }
-  .btn:hover, .btn:active { background: rgba(255,138,58,0.35); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,138,58,0.3); }
-  .btn.secondary { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.25); color: #cbd5e1; }
-  .btn.secondary:hover { background: rgba(255,255,255,0.1); }
-  .btn.danger { border-color: var(--c-danger); background: rgba(255,50,80,0.18); }
-  .btn.danger:hover { background: rgba(255,50,80,0.35); }
+  /* SECOND ROW — reality label + beacon meter */
+  .hud-reality { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+  .hud-reality-pill { font-size: 9px; padding: 3px 8px; background: rgba(192,117,255,0.15); border: 1px solid rgba(192,117,255,0.5);
+    color: #e8d4ff; border-radius: 2px; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap; max-width: 38vw; overflow: hidden; text-overflow: ellipsis; }
+  /* Beacon: chunky glowing bar */
+  #beacon-wrap { flex: 1 1 auto; display: flex; align-items: center; gap: 6px; }
+  .beacon-icon { font-size: 11px; color: var(--c-accent); letter-spacing: 1.5px; font-weight: bold; min-width: 56px; text-shadow: 0 0 6px rgba(102,255,170,0.5); }
+  #beacon-bar { flex: 1 1 auto; height: 12px; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(102, 255, 170, 0.6); border-radius: 2px; position: relative; overflow: hidden; box-shadow: inset 0 0 8px rgba(0,0,0,0.6); }
+  #beacon-bar .fill { position: absolute; inset: 0; width: 0%; background: linear-gradient(90deg, #66ffaa 0%, #00d4ff 70%, #66e8ff 100%);
+    box-shadow: 0 0 14px rgba(102,255,170,0.7); transition: width 0.2s linear; }
+  #beacon-bar .label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; letter-spacing: 2px; color: white; font-weight: bold; text-shadow: 0 0 4px black; }
+  #beacon-bar.surging .fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation: surge 1.2s linear infinite; }
+  @keyframes surge { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
-  #pause-btn { position: absolute; top: 8px; right: 10px; z-index: 12; pointer-events: auto;
-    background: rgba(0,0,0,0.55); color: #d8e1ee; border: 1px solid rgba(255,255,255,0.2); padding: 4px 10px; font-family: inherit; font-size: 11px; letter-spacing: 2px; border-radius: 3px; cursor: pointer; }
-  #pause-btn:hover { border-color: var(--c-accent); color: white; }
+  /* ──────────────── Combo / streak bubble (centered, transient) ──────────────── */
+  #combo-bubble { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); z-index: 14;
+    font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #ffd866;
+    text-shadow: 0 0 12px rgba(255,180,80,0.9), 0 0 24px rgba(255,120,30,0.5);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  #combo-bubble.visible { opacity: 1; transform: translateX(-50%) scale(1.05); }
 
-  .floater { position: absolute; pointer-events: none; font-weight: bold; text-shadow: 0 0 4px black; animation: floatup 1s ease-out forwards; }
-  @keyframes floatup { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-32px); } }
+  /* ──────────────── MOBILE CONTROLS (revamped — bigger, glanceable, glowing) ──────────────── */
+  #controls { position: absolute; bottom: max(env(safe-area-inset-bottom), 10px); left: 0; right: 0;
+    padding: 0 12px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 11; }
+  .ctrl-cluster { display: flex; gap: 10px; pointer-events: auto; align-items: flex-end; }
 
+  /* D-pad cluster (left side) — stacked horizontally with subtle background */
+  .dpad-wrap { display: flex; gap: 8px; padding: 6px; background: rgba(10,20,30,0.4); border: 1px solid rgba(102,232,255,0.2);
+    border-radius: 12px; box-shadow: 0 0 14px rgba(102,232,255,0.1), inset 0 0 12px rgba(0,0,0,0.4); backdrop-filter: blur(6px); }
+
+  .ctrl-btn { width: 64px; height: 64px; border-radius: 50%; background: rgba(20,30,40,0.7); border: 2px solid rgba(102,232,255,0.6); color: #e6f6ff;
+    font-size: 24px; font-weight: bold; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+    box-shadow: 0 0 14px rgba(102,232,255,0.28), inset 0 0 10px rgba(102,232,255,0.16);
+    transition: transform 0.08s, background 0.08s, border-color 0.08s; touch-action: none;
+    -webkit-user-select: none; user-select: none; cursor: pointer; position: relative; }
+  .ctrl-btn .ctrl-lbl { position: absolute; bottom: -16px; font-size: 8.5px; letter-spacing: 1.5px; opacity: 0.65; color: #cbd5e1; pointer-events: none; }
+  .ctrl-btn:active, .ctrl-btn.held { transform: scale(0.9); background: rgba(102,232,255,0.32); border-color: var(--c-accent);
+    box-shadow: 0 0 22px rgba(102,255,170,0.55), inset 0 0 14px rgba(102,232,255,0.3); }
+
+  .ctrl-btn.jump { border-color: rgba(102,255,170,0.7); color: #ddffea;
+    box-shadow: 0 0 14px rgba(102,255,170,0.32), inset 0 0 10px rgba(102,255,170,0.2); width: 72px; height: 72px; font-size: 28px; }
+  .ctrl-btn.jump:active, .ctrl-btn.jump.held { background: rgba(102,255,170,0.32); border-color: #b2ffd6; }
+
+  .ctrl-btn.fire { border-color: rgba(255,140,80,0.8); color: #fff1de;
+    box-shadow: 0 0 18px rgba(255,120,60,0.4), inset 0 0 14px rgba(255,140,60,0.25);
+    width: 88px; height: 88px; font-size: 32px;
+    background: radial-gradient(circle at 50% 50%, rgba(255,160,80,0.28), rgba(40,20,10,0.65));
+    animation: fireBreath 2.4s ease-in-out infinite; }
+  @keyframes fireBreath { 0%, 100% { box-shadow: 0 0 18px rgba(255,120,60,0.4), inset 0 0 14px rgba(255,140,60,0.25); }
+                          50%       { box-shadow: 0 0 28px rgba(255,180,80,0.65), inset 0 0 18px rgba(255,180,80,0.4); } }
+  .ctrl-btn.fire:active, .ctrl-btn.fire.held { background: radial-gradient(circle at 50% 50%, rgba(255,210,120,0.55), rgba(80,30,10,0.85));
+    border-color: #ffd866; transform: scale(0.94); animation: none; }
+
+  /* Hide DOM controls entirely on big screens with a real pointer */
   @media (min-width: 900px) and (pointer: fine) {
     #controls { display: none; }
+  }
+
+  /* ──────────────── OVERLAY SCREENS ──────────────── */
+  .overlay { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 35%, rgba(20,10,40,0.88) 0%, rgba(5,4,12,0.98) 70%); backdrop-filter: blur(6px); padding: 18px; }
+  .overlay.hidden { display: none; }
+  .panel { max-width: 480px; width: 100%; background: linear-gradient(180deg, rgba(10,14,22,0.94), rgba(14,8,28,0.94));
+    border: 1px solid rgba(255,138,58,0.45); border-radius: 8px; padding: 0;
+    box-shadow: 0 0 36px rgba(255,138,58,0.22), inset 0 0 22px rgba(0,0,0,0.55); position: relative; overflow: hidden; }
+  .panel-header { padding: 18px 20px 12px; border-bottom: 1px solid rgba(255,138,58,0.25);
+    background: linear-gradient(180deg, rgba(255,138,58,0.08), rgba(0,0,0,0)); }
+  .panel-body { padding: 16px 20px 20px; }
+  .panel::before { content:''; position:absolute; inset:0; background: url('/api/static/centurion_sprites/idle_strip.png') no-repeat -10px bottom / auto 280px;
+    opacity: 0.13; pointer-events: none; mix-blend-mode: screen; }
+  .panel > * { position: relative; z-index: 1; }
+  .panel h1 { font-size: 24px; letter-spacing: 4px; color: var(--c-armor-glow); margin-bottom: 6px;
+    text-shadow: 0 0 12px rgba(255,138,58,0.55); }
+  .panel .sub { font-size: 10.5px; letter-spacing: 3px; color: #9ca3b8; text-transform: uppercase; margin-bottom: 4px; }
+  .panel p { font-size: 13px; line-height: 1.6; color: #d4dae8; margin-bottom: 12px; }
+  .panel .stat-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 12px; }
+  .panel .stat-row:last-child { border-bottom: 0; }
+  .panel .stat-row span:first-child { color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; }
+  .panel .stat-row span:last-child { color: var(--c-cyan); font-weight: bold; letter-spacing: 1px; }
+  .ctrl-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; padding: 10px 12px; margin-bottom: 12px;
+    background: rgba(102,232,255,0.06); border: 1px solid rgba(102,232,255,0.18); border-radius: 4px; font-size: 11px; color: #cbd5e1; }
+  .ctrl-legend strong { color: #fff; letter-spacing: 1.5px; }
+  .btn { display: block; width: 100%; padding: 14px 18px; margin-top: 12px;
+    background: linear-gradient(180deg, rgba(255,138,58,0.32), rgba(255,138,58,0.12));
+    border: 2px solid var(--c-armor-glow); color: white;
+    font-family: inherit; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; border-radius: 4px;
+    text-decoration: none; text-align: center; font-weight: bold;
+    box-shadow: 0 4px 16px rgba(255,138,58,0.25), inset 0 0 12px rgba(255,138,58,0.18); }
+  .btn:hover, .btn:active { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(255,138,58,0.45), inset 0 0 18px rgba(255,180,80,0.3); }
+  .btn.secondary { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.3); color: #cbd5e1; box-shadow: none; }
+  .btn.secondary:hover { background: rgba(255,255,255,0.12); }
+  .btn.danger { border-color: var(--c-danger); background: linear-gradient(180deg, rgba(255,50,80,0.32), rgba(255,50,80,0.12));
+    box-shadow: 0 4px 16px rgba(255,50,80,0.25); }
+
+  /* Floating damage / score text */
+  .floater { position: absolute; pointer-events: none; font-weight: bold; text-shadow: 0 0 5px black; animation: floatup 1s ease-out forwards; }
+  @keyframes floatup { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-36px); } }
+
+  /* Mobile portrait — make HUD tighter */
+  @media (max-width: 480px) {
+    .hud-armor-label, .hud-reality-pill { display: none; }
+    .hud-center { padding: 2px 10px; min-width: 78px; }
+    .hud-wave-num { font-size: 15px; }
+    .beacon-icon { min-width: 44px; font-size: 10px; }
+    .ctrl-btn { width: 60px; height: 60px; font-size: 22px; }
+    .ctrl-btn.jump { width: 66px; height: 66px; font-size: 26px; }
+    .ctrl-btn.fire { width: 82px; height: 82px; font-size: 30px; }
   }
 </style>
 </head>
 <body>
 <div id="game-root">
+  <!-- ──────── HUD — Reality Defense v3 (mobile-first, glanceable) ──────── -->
   <div id="hud">
-    <div class="hud-row">
-      <span class="pill amber">CENTURION · LIVE OPS</span>
-      <span class="pill" id="target-pill">REALITY: —</span>
-      <span class="pill danger" id="wave-pill">WAVE 1</span>
+    <div class="hud-armor">
+      <span class="hud-armor-label">◆ HP</span>
+      <div id="hp-strip"></div>
     </div>
-    <div class="hud-row" style="gap:6px;">
-      <span style="font-size:10px;color:#94a3b8;letter-spacing:2px;">HP</span>
-      <div id="hp-strip" style="display:flex;gap:3px;"></div>
-      <span class="pill accent" id="kill-pill" style="margin-left:auto;">▮ KILLS 0</span>
+    <div class="hud-center">
+      <div class="hud-wave-lbl">WAVE</div>
+      <div class="hud-wave-num" id="wave-num">1</div>
     </div>
-    <div class="hud-row">
-      <span style="font-size:10px;color:#94a3b8;letter-spacing:2px;min-width:54px;">BEACON</span>
-      <div id="beacon-bar"><div class="fill"></div><div class="label">0%</div></div>
+    <div class="hud-right">
+      <div class="hud-kills">
+        <span class="hud-kills-icon"></span>
+        <span class="hud-kills-num" id="kill-num">0</span>
+      </div>
+      <button id="pause-btn" aria-label="pause">▌▌</button>
+    </div>
+    <div class="hud-reality">
+      <span class="hud-reality-pill" id="target-pill">REALITY: —</span>
+      <div id="beacon-wrap">
+        <span class="beacon-icon">▸ BEACON</span>
+        <div id="beacon-bar"><div class="fill"></div><div class="label">0%</div></div>
+      </div>
     </div>
   </div>
-  <button id="pause-btn">▌▌ PAUSE</button>
+
+  <div id="combo-bubble"></div>
 
   <canvas id="stage"></canvas>
 
+  <!-- Touch controls — left D-pad cluster, right action cluster -->
   <div id="controls">
     <div class="ctrl-cluster">
-      <button class="ctrl-btn" id="btn-left" aria-label="left">◀</button>
-      <button class="ctrl-btn" id="btn-right" aria-label="right">▶</button>
+      <div class="dpad-wrap">
+        <button class="ctrl-btn" id="btn-left" aria-label="move left">◀<span class="ctrl-lbl">LEFT</span></button>
+        <button class="ctrl-btn" id="btn-right" aria-label="move right">▶<span class="ctrl-lbl">RIGHT</span></button>
+      </div>
     </div>
-    <div class="ctrl-cluster">
-      <button class="ctrl-btn jump" id="btn-jump" aria-label="jump">▲</button>
-      <button class="ctrl-btn fire" id="btn-fire" aria-label="fire">⌖</button>
+    <div class="ctrl-cluster" style="gap:14px;">
+      <button class="ctrl-btn jump" id="btn-jump" aria-label="jump">▲<span class="ctrl-lbl">JUMP</span></button>
+      <button class="ctrl-btn fire" id="btn-fire" aria-label="fire">⌖<span class="ctrl-lbl">FIRE</span></button>
     </div>
   </div>
 
   <div class="overlay" id="start-overlay">
     <div class="panel">
-      <div class="sub">CENTURION GUARD · LIVE-OPS BRIEFING</div>
-      <h1>REALITY DEFENSE</h1>
-      <p>A reality has been overrun by <strong style="color:var(--c-purple);">Mawworm Parasites</strong> — gaping toothed husks that bore through breaches in dying realities. You are dropped in as a <strong style="color:var(--c-armor-glow);">Centurion Trooper</strong>. <strong style="color:var(--c-accent);">Hold the beacon</strong> until deployment reaches <strong>100%</strong> — every kill boosts the success roll; every hit you take subtracts from it.</p>
-      <p style="font-size:11px;color:#94a3b8;">Move: <span style="color:#cbd5e1;">◀ ▶ / A · D</span> &nbsp;·&nbsp; Jump: <span style="color:#cbd5e1;">▲ / Space</span> &nbsp;·&nbsp; Fire: <span style="color:#cbd5e1;">⌖ / J</span></p>
-      <div class="stat-row"><span>Target Strata</span><span id="brief-strata">—</span></div>
-      <div class="stat-row"><span>Target Reality</span><span id="brief-target">—</span></div>
-      <div class="stat-row"><span>Base Success Roll</span><span>70%</span></div>
-      <button class="btn" id="start-btn">▶ DEPLOY</button>
-      <a class="btn secondary" id="abort-link" href="#">⨯ ABORT</a>
+      <div class="panel-header">
+        <div class="sub">▌ CENTURION GUARD · LIVE-OPS BRIEFING</div>
+        <h1>REALITY DEFENSE</h1>
+      </div>
+      <div class="panel-body">
+        <p>A reality has been overrun by <strong style="color:var(--c-purple);">Mawworm Parasites</strong> — gaping toothed husks that bore through breaches in dying realities. You are dropped in as a <strong style="color:var(--c-armor-glow);">Centurion Trooper</strong>. <strong style="color:var(--c-accent);">Hold the beacon</strong> until deployment reaches <strong>100%</strong>.</p>
+        <div class="ctrl-legend">
+          <div><strong>◀ ▶ / A · D</strong><br><span style="font-size:10px;color:#94a3b8;">MOVE</span></div>
+          <div><strong>▲ / SPACE</strong><br><span style="font-size:10px;color:#94a3b8;">JUMP</span></div>
+          <div><strong>⌖ / J</strong><br><span style="font-size:10px;color:#94a3b8;">FIRE</span></div>
+          <div><strong>▌▌ / P</strong><br><span style="font-size:10px;color:#94a3b8;">PAUSE</span></div>
+        </div>
+        <div class="stat-row"><span>Target Strata</span><span id="brief-strata">—</span></div>
+        <div class="stat-row"><span>Target Reality</span><span id="brief-target">—</span></div>
+        <div class="stat-row"><span>Base Success Roll</span><span>70%</span></div>
+        <button class="btn" id="start-btn">▶ DEPLOY</button>
+        <a class="btn secondary" id="abort-link" href="#">⨯ ABORT</a>
+      </div>
     </div>
   </div>
 
   <div class="overlay hidden" id="end-overlay">
     <div class="panel">
-      <div class="sub" id="end-sub">— OUTCOME —</div>
-      <h1 id="end-title">VICTORY</h1>
-      <p id="end-flavor">The beacon ignited. The mawworms recoiled into the void.</p>
-      <div class="stat-row"><span>Kills</span><span id="end-kills">0</span></div>
-      <div class="stat-row"><span>Damage Taken</span><span id="end-damage">0</span></div>
-      <div class="stat-row"><span>Beacon Deploy</span><span id="end-deploy">0%</span></div>
-      <div class="stat-row"><span>Containment Roll</span><span id="end-roll">0%</span></div>
-      <button class="btn" id="end-retry-btn">▶ REDEPLOY</button>
-      <a class="btn secondary" id="end-return-btn" href="#">↩ RETURN TO ASTROLABE</a>
+      <div class="panel-header">
+        <div class="sub" id="end-sub">— OUTCOME —</div>
+        <h1 id="end-title">VICTORY</h1>
+      </div>
+      <div class="panel-body">
+        <p id="end-flavor">The beacon ignited. The mawworms recoiled into the void.</p>
+        <div class="stat-row"><span>Kills</span><span id="end-kills">0</span></div>
+        <div class="stat-row"><span>Damage Taken</span><span id="end-damage">0</span></div>
+        <div class="stat-row"><span>Beacon Deploy</span><span id="end-deploy">0%</span></div>
+        <div class="stat-row"><span>Containment Roll</span><span id="end-roll">0%</span></div>
+        <button class="btn" id="end-retry-btn">▶ REDEPLOY</button>
+        <a class="btn secondary" id="end-return-btn" href="#">↩ RETURN TO ASTROLABE</a>
+      </div>
     </div>
   </div>
 
   <div class="overlay hidden" id="pause-overlay">
     <div class="panel">
-      <div class="sub">SIMULATION HELD</div>
-      <h1>PAUSED</h1>
-      <p>Live-Ops link maintained. Resume when ready.</p>
-      <button class="btn" id="resume-btn">▶ RESUME</button>
-      <a class="btn secondary danger" id="pause-abort-btn" href="#">⨯ ABORT MISSION</a>
+      <div class="panel-header">
+        <div class="sub">SIMULATION HELD</div>
+        <h1>PAUSED</h1>
+      </div>
+      <div class="panel-body">
+        <p>Live-Ops link maintained. Resume when ready.</p>
+        <button class="btn" id="resume-btn">▶ RESUME</button>
+        <a class="btn secondary danger" id="pause-abort-btn" href="#">⨯ ABORT MISSION</a>
+      </div>
     </div>
   </div>
 </div>
@@ -594,8 +714,9 @@ function updateSpawner(dt) {
     GAME.spawnTimer = Math.max(0.6, GAME.waveSpawnRate / wavePower);
     if (performance.now() - GAME.startTime > GAME.wave * 18000) {
       GAME.wave++;
-      document.getElementById('wave-pill').textContent = 'WAVE ' + GAME.wave;
-      flashMessage('▌ WAVE ' + GAME.wave + ' ▌', '#ff8866');
+      const wn = document.getElementById('wave-num');
+      if (wn) { wn.textContent = GAME.wave; wn.style.transform = 'scale(1.4)'; setTimeout(()=> wn.style.transform = 'scale(1)', 250); }
+      flashCombo('▌ WAVE ' + GAME.wave + ' ▌');
     }
   }
 }
@@ -674,7 +795,12 @@ function update(dt) {
     }
     if (e.hp <= 0) {
       GAME.kills++;
-      document.getElementById('kill-pill').textContent = '▮ KILLS ' + GAME.kills;
+      const kn = document.getElementById('kill-num');
+      if (kn) { kn.textContent = GAME.kills; }
+      // streaks
+      GAME.streak = (GAME.streak || 0) + 1;
+      GAME.lastKillT = performance.now();
+      if (GAME.streak >= 3) flashCombo('×' + GAME.streak + ' STREAK');
       spawnHitParticles(e.x + e.w/2, e.y + e.h/2, e.bodyColor, 18);
       flashFloater(e.x + e.w/2, e.y, '+' + e.score, '#66ffaa');
       playBeep(180, 0.1, 'sawtooth', 0.06);
@@ -697,6 +823,10 @@ function update(dt) {
   updateBeaconUI();
 
   if (GAME.invuln > 0) GAME.invuln -= dt;
+  // Streak decays if no kill within 2.5s
+  if (GAME.streak && GAME.lastKillT && (performance.now() - GAME.lastKillT) > 2500) {
+    GAME.streak = 0;
+  }
   updateSpawner(dt);
   if (GAME.shake > 0) GAME.shake = Math.max(0, GAME.shake - dt*15);
 }
@@ -705,7 +835,8 @@ function hurtPlayer(dmg) {
   GAME.player.hp -= dmg;
   GAME.damageTaken += dmg;
   GAME.invuln = 1.1; GAME.shake = 1.2;
-  renderHP();
+  GAME.streak = 0; // reset streak on hit
+  renderHP(true);
   playBeep(120, 0.18, 'square', 0.12);
   if (GAME.player.hp <= 0) endGame(false);
 }
@@ -750,12 +881,13 @@ function loop(t) {
   if (!GAME.ended) requestAnimationFrame(loop);
 }
 
-function renderHP() {
+function renderHP(flash) {
   const strip = document.getElementById('hp-strip');
   strip.innerHTML = '';
   for (let i = 0; i < GAME.player.hpMax; i++) {
     const c = document.createElement('div');
     c.className = 'hp-cell' + (i >= GAME.player.hp ? ' empty' : '');
+    if (flash && i === GAME.player.hp) c.classList.add('flash'); // the one we just lost
     strip.appendChild(c);
   }
 }
@@ -763,6 +895,18 @@ function updateBeaconUI() {
   const bb = document.getElementById('beacon-bar');
   bb.querySelector('.fill').style.width = GAME.beaconPct + '%';
   bb.querySelector('.label').textContent = Math.floor(GAME.beaconPct) + '%';
+  // Surging effect when deploying fast (few enemies near beacon)
+  const closeEnemies = GAME.enemies.filter(e => e.x < 220).length;
+  bb.classList.toggle('surging', closeEnemies <= 1 && GAME.running);
+}
+
+function flashCombo(txt) {
+  const el = document.getElementById('combo-bubble');
+  if (!el) return;
+  el.textContent = txt;
+  el.classList.add('visible');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=> el.classList.remove('visible'), 900);
 }
 
 let audioCtx = null;
@@ -778,16 +922,15 @@ function playBeep(freq, dur, type='sine', vol=0.1) {
 }
 
 function startGame() {
-  // Wait for sprites if needed (only first time)
   SPRITE_READY.then(() => {
     GAME.running = true; GAME.paused = false; GAME.ended = false;
     GAME.startTime = performance.now();
     GAME.beaconPct = 0; GAME.player = makePlayer();
     GAME.bullets = []; GAME.enemies = []; GAME.particles = [];
-    GAME.kills = 0; GAME.damageTaken = 0; GAME.wave = 1;
+    GAME.kills = 0; GAME.damageTaken = 0; GAME.wave = 1; GAME.streak = 0; GAME.lastKillT = 0;
     GAME.spawnTimer = 1.0; GAME.shake = 0; GAME.invuln = 0;
-    document.getElementById('wave-pill').textContent = 'WAVE 1';
-    document.getElementById('kill-pill').textContent = '▮ KILLS 0';
+    const wn = document.getElementById('wave-num'); if (wn) wn.textContent = '1';
+    const kn = document.getElementById('kill-num'); if (kn) kn.textContent = '0';
     renderHP(); updateBeaconUI();
     document.getElementById('start-overlay').classList.add('hidden');
     document.getElementById('end-overlay').classList.add('hidden');

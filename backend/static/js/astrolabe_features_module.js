@@ -526,6 +526,128 @@
     }
 
     // ──────────────────────────────────────────────────────────────────
+    //   LAYER ENTRY CONFIRMATION  (secondary way to enter a strata)
+    //   When the user taps a strata ring, instead of *immediately* dropping
+    //   into the local viewport, we surface a small "ENTER STRATA?" panel.
+    //   This is a second-chance affordance: confirm to enter, or cancel.
+    //   We wrap window.cinematicEnterLayer so we don't have to edit engine.
+    // ──────────────────────────────────────────────────────────────────
+    function buildLayerEntryModal() {
+        if (document.getElementById('layer-entry-confirm')) return;
+        const m = document.createElement('div');
+        m.id = 'layer-entry-confirm';
+        m.style.cssText = `
+            position: fixed; inset: 0; z-index: 92; display: none;
+            align-items: center; justify-content: center; padding: 16px;
+            background: rgba(2, 4, 10, 0.78); backdrop-filter: blur(5px);
+            font-family: 'Share Tech Mono', monospace;
+        `;
+        m.innerHTML = `
+          <div id="layer-entry-panel" style="max-width:420px;width:100%;
+              background:linear-gradient(180deg,rgba(8,16,28,0.96),rgba(14,8,28,0.96));
+              border:1px solid rgba(120,220,255,0.5);border-radius:6px;padding:0;
+              box-shadow:0 0 32px rgba(120,220,255,0.18),inset 0 0 22px rgba(0,0,0,0.55);">
+            <div style="padding:14px 16px;border-bottom:1px solid rgba(120,220,255,0.3);
+                 background:rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+                   background:#66e8ff;box-shadow:0 0 8px #66e8ff;"></span>
+              <div style="flex:1;">
+                <div style="color:#9aa3b8;font-size:10px;letter-spacing:2px;text-transform:uppercase;">DESCENT WARNING</div>
+                <div id="layer-entry-title" style="color:#fff;font-size:17px;font-weight:bold;letter-spacing:2px;">ENTER STRATA —</div>
+              </div>
+            </div>
+            <div style="padding:16px;">
+              <div id="layer-entry-faction" style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;color:#7d8aa1;"></div>
+              <div id="layer-entry-flavor" style="color:#cbd5e1;font-size:12.5px;line-height:1.6;margin-bottom:14px;
+                   padding:9px 11px;background:rgba(120,220,255,0.05);border-left:2px solid rgba(120,220,255,0.45);">
+                Drop into the local viewport. Confirm to descend into this strata of the Endless.
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button id="layer-entry-confirm-btn" style="flex:1;padding:11px 12px;
+                    background:rgba(102,232,255,0.18);border:2px solid #66e8ff;color:#fff;
+                    font-family:inherit;font-size:12px;letter-spacing:3px;text-transform:uppercase;
+                    cursor:pointer;border-radius:3px;font-weight:bold;
+                    box-shadow:0 0 18px rgba(102,232,255,0.3);transition:all .15s;">
+                  ▾ ENTER
+                </button>
+                <button id="layer-entry-cancel-btn" style="flex:1;padding:11px 12px;
+                    background:rgba(255,255,255,0.04);border:2px solid rgba(255,255,255,0.25);color:#cbd5e1;
+                    font-family:inherit;font-size:12px;letter-spacing:3px;text-transform:uppercase;
+                    cursor:pointer;border-radius:3px;transition:all .15s;">
+                  ⨯ CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(m);
+        // wire buttons
+        m.querySelector('#layer-entry-cancel-btn').addEventListener('click', () => closeLayerEntry());
+        m.addEventListener('click', (e) => { if (e.target === m) closeLayerEntry(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && m.style.display !== 'none') closeLayerEntry();
+        });
+    }
+    let _pendingLayerEntry = null;
+    function closeLayerEntry() {
+        const m = document.getElementById('layer-entry-confirm');
+        if (m) m.style.display = 'none';
+        _pendingLayerEntry = null;
+    }
+    function openLayerEntry(layerIndex, selectedRing) {
+        buildLayerEntryModal();
+        const m = document.getElementById('layer-entry-confirm');
+        const niceLvl = layerIndex > 0 ? '+' + layerIndex : ('' + layerIndex);
+        m.querySelector('#layer-entry-title').textContent = 'ENTER STRATA ' + niceLvl;
+        // Faction badge + flavor from canon when available
+        let factionLabel = '';
+        let flavor = 'Drop into the local viewport of this strata. Confirm to descend.';
+        try {
+            const lc = window.LORE_CORPUS;
+            const poi = lc && lc.POIS[String(layerIndex)] && lc.POIS[String(layerIndex)][0];
+            if (poi) {
+                factionLabel = '◆ ' + poi.faction.name + ' · ' + poi.name;
+                flavor = poi.desc || flavor;
+                m.querySelector('#layer-entry-faction').style.color = poi.faction.color;
+            } else if (window.layerProfiles && window.layerProfiles[layerIndex]) {
+                const f = window.layerProfiles[layerIndex].faction;
+                if (f) { factionLabel = '◆ Border zone · ' + f; m.querySelector('#layer-entry-faction').style.color = '#7d8aa1'; }
+            }
+        } catch (e) {}
+        m.querySelector('#layer-entry-faction').textContent = factionLabel;
+        m.querySelector('#layer-entry-flavor').textContent = flavor;
+        _pendingLayerEntry = { layerIndex, selectedRing };
+        m.style.display = 'flex';
+
+        // Wire confirm to call the original cinematicEnterLayer once
+        const confirmBtn = m.querySelector('#layer-entry-confirm-btn');
+        confirmBtn.onclick = () => {
+            const pe = _pendingLayerEntry;
+            closeLayerEntry();
+            if (pe && typeof window.__originalCinematicEnterLayer === 'function') {
+                try { window.__originalCinematicEnterLayer(pe.layerIndex, pe.selectedRing); } catch(e) { warn('enter failed', e); }
+            }
+        };
+    }
+
+    function installLayerEntryConfirmation() {
+        if (window.__layerEntryConfirmInstalled) return;
+        const orig = window.cinematicEnterLayer;
+        if (typeof orig !== 'function') return setTimeout(installLayerEntryConfirmation, 400);
+        window.__originalCinematicEnterLayer = orig;
+        window.cinematicEnterLayer = function (layerIndex, selectedRing) {
+            // If a "skipConfirm" flag is on STATE we bypass (engine internal calls).
+            if (window.STATE && window.STATE.__skipLayerConfirm) {
+                window.STATE.__skipLayerConfirm = false;
+                return orig.call(this, layerIndex, selectedRing);
+            }
+            openLayerEntry(layerIndex, selectedRing);
+        };
+        window.__layerEntryConfirmInstalled = true;
+        log('layer-entry confirmation installed');
+    }
+
+    // ──────────────────────────────────────────────────────────────────
     //   PHASE C  — REALITY DEFENSE: "PLAY LIVE OPS" button injection
     // ──────────────────────────────────────────────────────────────────
     function injectLiveOpsButton() {
@@ -770,6 +892,7 @@
             loadPOIIndex().then(() => {
                 hookUpdateLayer();
                 hookSelectStarSystem();
+                installLayerEntryConfirmation();
                 // Initial build for current layer (in case updateLayer already ran)
                 setTimeout(() => {
                     rebuildPOIMarkers();
@@ -777,6 +900,7 @@
                     injectLiveOpsButton();
                     injectCenturionSpriteOnPill();
                     hookDeployDispatch();
+                    installLayerEntryConfirmation(); // retry — engine may bind late
                 }, 250);
                 animateFeatureObjects();
                 pollLayerChange();

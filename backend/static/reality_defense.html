@@ -7,7 +7,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #05030a; font-family: 'Courier New', monospace; color: #c9d6ea; user-select: none; touch-action: none; }
-  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #1a0830 0%, #05030a 70%); }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #1a0830 0%, #05030a 70%); overflow: hidden; }
   canvas { display: block; image-rendering: pixelated; image-rendering: -moz-crisp-edges; background: #05030a; box-shadow: 0 0 80px rgba(120, 60, 200, 0.4), inset 0 0 60px rgba(0,0,0,0.6); border: 1px solid #2a1845; cursor: crosshair; }
 
   /* Title screen */
@@ -3790,34 +3790,84 @@ function frame(t) {
   if (typeof refreshAbilityButtons === 'function') refreshAbilityButtons();
 
   if (!State.paused) update(dt);
+  // Portrait-only: pan the canvas horizontally to keep the player on-screen.
+  if (State.portraitMode) panPortraitCamera(false);
 
   requestAnimationFrame(frame);
 }
 
 // === RESIZE — fits the landscape game (1280×720) into any viewport.
-// In portrait we DO NOT rotate the canvas — we letterbox it (fit by width)
-// so the player can hold the phone upright and read the HUD normally.
+// PORTRAIT: fit-by-height so the canvas fills the full screen height.
+//   The canvas overflows horizontally (1280 wider than viewport); a per-frame
+//   camera-pan keeps the player horizontally centered on screen.
+// LANDSCAPE: standard fit-by-min letterbox.
 function resize() {
   const wrap = document.getElementById('wrap');
   const aw = wrap.clientWidth, ah = wrap.clientHeight;
   const portrait = ah > aw * 1.05;  // screen is taller than wide
   State.portraitMode = portrait;
-  // Always fit landscape canvas inside the viewport (no rotation).
-  // In portrait this letterboxes with vertical bands top & bottom; the
-  // game itself remains upright and readable.
-  const scale = Math.min(aw / W, ah / H);
-  canvas.style.width  = (W * scale) + 'px';
-  canvas.style.height = (H * scale) + 'px';
-  canvas.style.transform = 'none';
-  canvas.style.transformOrigin = 'center center';
-  canvas.style.position = 'absolute';
-  canvas.style.left = '50%';
-  canvas.style.top  = '50%';
-  canvas.style.marginLeft = (-(W * scale) / 2) + 'px';
-  canvas.style.marginTop  = (-(H * scale) / 2) + 'px';
+  if (portrait) {
+    // Fit by HEIGHT — canvas fills screen vertically; horizontally overflows
+    // and is camera-panned by panPortraitCamera() each frame.
+    // We also cap so we never zoom in beyond what landscape would have shown,
+    // and we tilt slightly higher (0.92) so the HUD has breathing room.
+    const scale = (ah * 0.92) / H;
+    const dispW = W * scale, dispH = H * scale;
+    State._portraitDispW = dispW; State._portraitDispH = dispH;
+    canvas.style.width  = dispW + 'px';
+    canvas.style.height = dispH + 'px';
+    canvas.style.transform = 'none';
+    canvas.style.transformOrigin = 'center center';
+    canvas.style.position = 'absolute';
+    canvas.style.left = '50%';
+    canvas.style.top  = '50%';
+    canvas.style.marginTop  = (-dispH / 2) + 'px';
+    // marginLeft is driven each frame by panPortraitCamera(); start centered.
+    canvas.style.marginLeft = (-dispW / 2) + 'px';
+    panPortraitCamera(true /* instant */);
+  } else {
+    const scale = Math.min(aw / W, ah / H);
+    const dispW = W * scale, dispH = H * scale;
+    canvas.style.width  = dispW + 'px';
+    canvas.style.height = dispH + 'px';
+    canvas.style.transform = 'none';
+    canvas.style.position = 'absolute';
+    canvas.style.left = '50%';
+    canvas.style.top  = '50%';
+    canvas.style.marginLeft = (-dispW / 2) + 'px';
+    canvas.style.marginTop  = (-dispH / 2) + 'px';
+  }
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 250));
+
+// === CAMERA PAN — only active in portrait. Keeps the player horizontally
+// centered on screen by shifting the (oversized) canvas left/right via CSS
+// marginLeft. We smoothly lerp to avoid sudden jolts during fast movement.
+let _camCSSx = 0;
+function panPortraitCamera(instant) {
+  if (!State.portraitMode || !State.player) return;
+  const wrap = document.getElementById('wrap');
+  if (!wrap) return;
+  const dispW = State._portraitDispW || 0;
+  if (dispW <= 0) return;
+  const viewW = wrap.clientWidth;
+  // Player's screen-x if marginLeft were zero (canvas centered).
+  // The canvas in CSS is positioned with left:50%; marginLeft:-dispW/2 + camCSSx
+  // so player's screen-x = viewW/2 - dispW/2 + camCSSx + (player.x / W) * dispW
+  // We want player to appear at viewW * 0.45 (slightly left-of-center for room to aim).
+  const targetScreenX = viewW * 0.45;
+  const playerOnCanvas = (State.player.x / W) * dispW;
+  let desiredCamCSSx = targetScreenX - (viewW / 2 - dispW / 2) - playerOnCanvas;
+  // Clamp so we never expose past the left/right edges of the canvas.
+  const minCSSx = (viewW - dispW) / 2;  // canvas right edge flush with viewport right
+  const maxCSSx = (dispW - viewW) / 2;  // canvas left edge flush with viewport left
+  if (minCSSx > maxCSSx) { desiredCamCSSx = 0; }
+  else desiredCamCSSx = Math.max(minCSSx, Math.min(maxCSSx, desiredCamCSSx));
+  if (instant) _camCSSx = desiredCamCSSx;
+  else _camCSSx += (desiredCamCSSx - _camCSSx) * 0.18; // smooth lerp
+  canvas.style.marginLeft = (-dispW / 2 + _camCSSx) + 'px';
+}
 
 // === Input coord remap helper (works for both orientations now that the
 // canvas is no longer CSS-rotated) ===

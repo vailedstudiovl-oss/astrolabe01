@@ -57,78 +57,10 @@
     };
 
     // ===== 8c. HEADER BUTTON STRIP (Back / Settings / Community Lore) =====
-    // Injects three top-right action buttons that the new v2 astrolabe
-    // is missing: a return-to-main-menu button, a settings overlay, and
-    // a community-lore submission form for the active strata.
+    // REMOVED: Vertical button strip was taking up space and not serving much function.
+    // The settings gear is still accessible from the top-right corner (auth_module.js)
     function injectHeaderButtons() {
-        const header = document.querySelector('header');
-        if (!header || document.getElementById('astro-action-strip')) return;
-        // VERTICAL RIGHT-SIDE STRIP (per user's reference screenshot).
-        // 7 buttons stacked, large enough for mobile thumbs, with the
-        // Settings, Community Lore, Main Menu, and view-toggles all
-        // accessible at a glance.
-        const strip = document.createElement('div');
-        strip.id = 'astro-action-strip';
-        strip.className = 'fixed z-30 flex flex-col gap-1.5';
-        strip.style.cssText = 'right: 10px; top: 96px; align-items: flex-end;';
-        const baseBtn = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(0,15,18,0.86);border:1.5px solid rgba(0,255,204,0.45);color:#00ffcc;border-radius:6px;cursor:pointer;font-size:18px;font-family:"Share Tech Mono",monospace;box-shadow:0 0 6px rgba(0,255,204,0.25),inset 0 0 6px rgba(0,255,204,0.05);transition:all 0.15s ease;';
-        strip.innerHTML = `
-            <a href="/api/astrolabe" id="astro-home-btn" title="◂ Main Menu" style="${baseBtn}text-decoration:none;">≡</a>
-            <button id="astro-graphics-btn" title="Graphics / View" style="${baseBtn}">⬢</button>
-            <button id="astro-focus-btn"    title="Re-center camera" style="${baseBtn}">⊕</button>
-            <button id="astro-filter-btn"   title="Filter quick-toggle" style="${baseBtn}">◆</button>
-            <button id="astro-scan-btn"     title="Ping / scan" style="${baseBtn}">▸</button>
-            <button id="astro-settings-btn" title="Settings" style="${baseBtn}">⚙</button>
-            <button id="astro-community-btn" title="Add Community Lore" style="${baseBtn}border-color:rgba(255,168,80,0.55);color:#ffd28b;">✎</button>
-            <button id="astro-contrast-btn" title="Toggle high contrast" style="${baseBtn}">◐</button>
-        `;
-        document.body.appendChild(strip);
-
-        // Wire each button
-        const $ = (id) => document.getElementById(id);
-        $('astro-settings-btn').addEventListener('click', openSettings);
-        $('astro-community-btn').addEventListener('click', () =>
-            openCommunityLore(window.STATE && window.STATE.currentLayer || 0)
-        );
-        $('astro-contrast-btn').addEventListener('click', () => {
-            const on = !document.body.classList.contains('astro-high-contrast');
-            document.body.classList.toggle('astro-high-contrast', on);
-            try { localStorage.setItem('astro_contrast', on ? '1' : '0'); } catch (e) {}
-        });
-        // Graphics → cycles through view modes if those buttons exist in the
-        // left panel. Otherwise toggles ambient.
-        $('astro-graphics-btn').addEventListener('click', () => {
-            const modes = ['view-standard', 'view-thermal', 'view-density'];
-            for (const m of modes) {
-                const b = document.getElementById(m);
-                if (b && !b.classList.contains('btn-active-neon')) { b.click(); return; }
-            }
-            // Fallback: simulate cinematic toggle
-            const cin = document.getElementById('cinematic-toggle');
-            if (cin) cin.click();
-        });
-        // Focus → call recenterCamera if defined
-        $('astro-focus-btn').addEventListener('click', () => {
-            if (typeof window.recenterCamera === 'function') window.recenterCamera();
-            else if (typeof window.dispatchEvent === 'function')
-                window.dispatchEvent(new Event('astrolabe-recenter'));
-        });
-        // Filter → opens left panel filters / cycles through
-        $('astro-filter-btn').addEventListener('click', () => {
-            const lp = document.getElementById('left-panel');
-            if (lp) {
-                lp.style.opacity = lp.style.opacity === '0' ? '1' : (lp.style.opacity === '1' ? '0.5' : '1');
-            }
-            const dead = document.getElementById('filter-dead');
-            if (dead) dead.click();
-        });
-        // Scan → calls ping if button exists
-        $('astro-scan-btn').addEventListener('click', () => {
-            const ping = document.getElementById('btn-ping') || document.getElementById('ping-btn');
-            if (ping) { ping.click(); return; }
-            // Fallback: trigger anomaly scan flash
-            if (typeof window.triggerAnomalyScanner === 'function') window.triggerAnomalyScanner('STABLE');
-        });
+        // Button strip removed per user request - functionality available elsewhere
         // Restore contrast state from settings
         try { if (localStorage.getItem('astro_contrast') === '1') document.body.classList.add('astro-high-contrast'); } catch(e) {}
     }

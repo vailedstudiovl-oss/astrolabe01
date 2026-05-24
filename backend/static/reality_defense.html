@@ -422,6 +422,20 @@ const FEET_FRAC = {
   attack: 0.73,
 };
 
+// === PER-ANIM SIZE MULTIPLIER ===
+// Each sprite sheet has the character occupy a slightly different fraction
+// of its 128×128 cell (idle is tight, run/shoot extend arms/gun far wider).
+// To keep the *visible body height* consistent across all anims, we scale
+// each anim down so the head-to-feet height is roughly the same. Without
+// this the player appears to "grow" when firing or running.
+const SIZE_MUL = {
+  idle:   1.00,
+  run:    0.92,   // wider stride takes more cell width — scale down
+  jump:   0.94,
+  shoot:  0.86,   // gun extends forward, character itself is small in cell
+  attack: 0.86,
+};
+
 // === BIOMES ===
 // The campaign cycles through 4 biomes, advancing every 5 waves. Each defines
 // its own sky gradient, ground gradient, mountain silhouettes, ambient
@@ -927,14 +941,15 @@ function applyPowerup(id) {
 
 // Powerup card layout — three cards centered on screen.
 function powerupCardGeom(idx) {
-  // Mobile: stack vertically and fill width. Desktop: 3 cards in a row.
-  const mobile = W < 720;
-  if (mobile) {
-    const cardW = Math.min(W - 28, 380);
-    const cardH = Math.min(Math.floor((H - 140) / 3) - 10, 150);
-    const gap = 10;
+  // Mobile portrait: stack vertically. Desktop landscape: 3 cards in a row.
+  // We detect via the runtime portraitMode flag (set by resize()) so we use
+  // the actual screen orientation, not the fixed logical canvas dims.
+  if (State.portraitMode) {
+    const cardW = Math.min(W - 80, 900);
+    const cardH = Math.min(Math.floor((H - 220) / 3) - 12, 220);
+    const gap = 14;
     const total = cardH * 3 + gap * 2;
-    const startY = Math.max(80, (H - total) / 2);
+    const startY = Math.max(120, (H - total) / 2);
     const x = (W - cardW) / 2;
     const y = startY + idx * (cardH + gap);
     return { x, y, w: cardW, h: cardH, mobile: true };
@@ -1240,6 +1255,11 @@ function clientToGame(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const sx = (clientX - rect.left) / rect.width;
   const sy = (clientY - rect.top) / rect.height;
+  if (State.portraitMode) {
+    // Canvas is CSS-rotated 90° clockwise in portrait. Remap screen → canvas:
+    // screen-right (sx) maps to canvas-down (y), screen-down (sy) maps to canvas-LEFT (W - x).
+    return { x: sy * W, y: (1 - sx) * H };
+  }
   return { x: sx * W, y: sy * H };
 }
 
@@ -2451,7 +2471,11 @@ function updateAmbientParticles(dt) {
 
 function drawPlayer() {
   const p = State.player;
-  const size = playerSpriteSize();
+  const baseSize = playerSpriteSize();
+  // Normalize visible body height across all anims (each sheet has a different
+  // character-to-cell ratio — e.g. shooting frames extend the gun far past
+  // the body, making the cell appear "bigger"). SIZE_MUL compensates.
+  const size = baseSize * (SIZE_MUL[p.anim] || 1.0);
   const cellSize = FRAME_SRC_SIZE;
   const facing = p.facing;
 
@@ -3726,15 +3750,60 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
-// === RESIZE ===
+// === RESIZE — supports portrait by CSS-rotating the canvas 90° ===
 function resize() {
   const wrap = document.getElementById('wrap');
   const aw = wrap.clientWidth, ah = wrap.clientHeight;
-  const scale = Math.min(aw / W, ah / H);
-  canvas.style.width = (W * scale) + 'px';
-  canvas.style.height = (H * scale) + 'px';
+  const portrait = ah > aw * 1.05;  // screen is taller than wide
+  State.portraitMode = portrait;
+  if (portrait) {
+    // Rotate the LANDSCAPE canvas 90° so it fills the portrait screen.
+    // Internal coords stay 1280×720; CSS transform handles the visual.
+    const scale = Math.min(ah / W, aw / H);
+    canvas.style.width  = (W * scale) + 'px';
+    canvas.style.height = (H * scale) + 'px';
+    canvas.style.transform = 'rotate(90deg)';
+    canvas.style.transformOrigin = 'center center';
+    canvas.style.position = 'absolute';
+    canvas.style.left = '50%';
+    canvas.style.top  = '50%';
+    canvas.style.marginLeft = (-(W * scale) / 2) + 'px';
+    canvas.style.marginTop  = (-(H * scale) / 2) + 'px';
+  } else {
+    const scale = Math.min(aw / W, ah / H);
+    canvas.style.width = (W * scale) + 'px';
+    canvas.style.height = (H * scale) + 'px';
+    canvas.style.transform = 'none';
+    canvas.style.position = '';
+    canvas.style.left = canvas.style.top = '';
+    canvas.style.marginLeft = canvas.style.marginTop = '';
+  }
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
+
+// === Input coord remap helper (for rotated canvas in portrait) ===
+function _mapPointerToCanvas(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  // Position relative to displayed canvas
+  const localX = clientX - r.left;
+  const localY = clientY - r.top;
+  if (!State.portraitMode) {
+    return { x: localX * (W / r.width), y: localY * (H / r.height) };
+  }
+  // Canvas is visually rotated 90° clockwise. Map screen coords back to
+  // unrotated canvas coords. The displayed rect r already has the rotated
+  // bounding box, so r.width corresponds to canvas-internal H and r.height
+  // to canvas-internal W.
+  const u = localX / r.width;   // 0..1 left→right on screen
+  const v = localY / r.height;  // 0..1 top→bottom on screen
+  // After CSS rotate(90deg), screen-right = canvas-down, screen-down = canvas-left
+  const xC = v * W;
+  const yC = (1 - u) * H;
+  return { x: xC, y: yC };
+}
+// Expose so other handlers can use it
+window._mapPointerToCanvas = _mapPointerToCanvas;
 
 // === RESTART ===
 window.addEventListener('keydown', (e) => {

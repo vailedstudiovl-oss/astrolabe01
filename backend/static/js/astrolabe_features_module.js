@@ -679,19 +679,29 @@
         const m = document.getElementById('layer-entry-confirm');
         const niceLvl = layerIndex > 0 ? '+' + layerIndex : ('' + layerIndex);
         m.querySelector('#layer-entry-title').textContent = 'ENTER STRATA ' + niceLvl;
-        // Faction badge + flavor from canon when available
+        // Faction badge + flavor from canon when available.
+        // CANON: strata are layer-spaces between realities and contain
+        // NO suns / planets / stars themselves — physical features only
+        // exist *inside* realities. So we describe a strata by NAMING
+        // the realities and POIs it contains, not by physical features.
         let factionLabel = '';
         let flavor = 'Drop into the local viewport of this strata. Confirm to descend.';
         try {
             const lc = window.LORE_CORPUS;
-            const poi = lc && lc.POIS[String(layerIndex)] && lc.POIS[String(layerIndex)][0];
-            if (poi) {
+            const poiList = lc && lc.POIS[String(layerIndex)];
+            if (poiList && poiList.length) {
+                const poi = poiList[0];
                 factionLabel = '◆ ' + poi.faction.name + ' · ' + poi.name;
-                flavor = poi.desc || flavor;
                 m.querySelector('#layer-entry-faction').style.color = poi.faction.color;
+                // Build reality-based flavor (NO sun/planet references)
+                const realityList = poiList.map(p => p.name).join(' · ');
+                const subSample = (poi.subLocations || []).slice(0, 3).join(', ');
+                flavor = `Strata ${niceLvl} — known realities: ${realityList}.`
+                       + (subSample ? ` Contains: ${subSample}.` : '');
             } else if (window.layerProfiles && window.layerProfiles[layerIndex]) {
                 const f = window.layerProfiles[layerIndex].faction;
                 if (f) { factionLabel = '◆ Border zone · ' + f; m.querySelector('#layer-entry-faction').style.color = '#7d8aa1'; }
+                flavor = `Strata ${niceLvl} — open border zone of the Endless. No canon-tagged realities indexed yet at this depth.`;
             }
         } catch (e) {}
         m.querySelector('#layer-entry-faction').textContent = factionLabel;

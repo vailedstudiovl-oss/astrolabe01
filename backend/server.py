@@ -1696,6 +1696,16 @@ try:
 except Exception as _e:
     print(f"[startup] reaper roster failed to mount: {_e}")
 
+# Reaper Market — full economy (wallet, listings, inventory, classifieds)
+# backed by real MongoDB collections. Hooked into the 5-floor bazaar in
+# deaths_ship.html.
+try:
+    from routes.reaper_market import router as reaper_market_router
+    app.include_router(reaper_market_router)
+    print("[startup] reaper market router mounted at /api/reaper-market")
+except Exception as _e:
+    print(f"[startup] reaper market failed to mount: {_e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

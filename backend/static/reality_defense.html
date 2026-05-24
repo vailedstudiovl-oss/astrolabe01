@@ -1083,23 +1083,49 @@ function showStageBanner(name, sub) {
 function triggerVictory() {
   State.beaconWin = true;
   State.beaconActive = false;
-  // Big win banner stays up; gameOver path treats win specially
   State.gameOver = true;
   State.shake = 26;
   const p = State.player;
-  // Triumphant particle burst from player upward
-  for (let i = 0; i < 80; i++) {
-    const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
-    const sp = 200 + Math.random() * 500;
-    State.particles.push({
-      x: p.x, y: p.y - playerSpriteSize()*0.5,
-      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
-      life: 1.6 + Math.random()*1.2, maxLife: 2.8,
-      r: 3 + Math.random()*5,
-      color: i%3===0 ? '#6effd4' : (i%3===1 ? '#ffe066' : '#ffffff'),
-      kind: 'death',
-    });
+  // Triumphant particle burst from player upward (guard if player not yet init)
+  if (p && typeof p.x === 'number') {
+    for (let i = 0; i < 80; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
+      const sp = 200 + Math.random() * 500;
+      State.particles.push({
+        x: p.x, y: p.y - playerSpriteSize()*0.5,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        life: 1.6 + Math.random()*1.2, maxLife: 2.8,
+        r: 3 + Math.random()*5,
+        color: i%3===0 ? '#6effd4' : (i%3===1 ? '#ffe066' : '#ffffff'),
+        kind: 'death',
+      });
+    }
   }
+  // ── PERSIST SAVE + CUE ASTROLABE RETURN ──────────────────────────
+  // Stash a result the Astrolabe features-module consumes on return
+  // (renders the green holographic ring + unlocks achievements).
+  try {
+    const params = new URLSearchParams(location.search);
+    const realityName = params.get('reality') || 'Unknown Reality';
+    const strata = params.get('strata') || '?';
+    const ret = params.get('return') || '/api/astrolabe-game-v2';
+    State._returnUrl = ret;
+    const result = {
+      reality: realityName,
+      strata: strata,
+      won: true,
+      succeeded: true,
+      roll: Math.max(50, Math.min(98, Math.round(70 + (State.kills || 0) * 0.15 - (100 - (State.player.hp || 100)) * 0.5))),
+      kills: State.kills || 0,
+      damage: 100 - (State.player.hp || 0),
+      deploy_pct: 100,
+      ts: Date.now(),
+    };
+    localStorage.setItem('reality_defense_result', JSON.stringify(result));
+    State._victoryReturnAt = performance.now() + 8000; // auto-return after 8s
+    // Flag so the end-screen render knows to show RETURN, not REPLAY
+    State._showReturnPrompt = true;
+  } catch (e) { console.warn('victory persist failed', e); }
 }
 
 // === PLAYER ===
@@ -1120,7 +1146,7 @@ function makePlayer() {
     isShooting: false,
     shootHoldTimer: 0,
     isBursting: false,
-    drawScale: 0.86,
+    drawScale: 1.35,
 
     // === POWERUP MODIFIERS ===
     dmgMult: 1,           // bullet damage multiplier
@@ -2095,14 +2121,17 @@ function killParasite(e, suppressScore=false) {
   e.hp = 0;
   State.kills++;
   if (!suppressScore) State.score += e.scoreValue || 10;
-  // Beacon mission progress per kill — scales with enemy strength
+  // Beacon mission progress per kill — scales with enemy strength.
+  // Halved (from prior pacing) so the mission spans the full 10-stage
+  // campaign: each kill grants ~half a percent, requiring ~200 enemy
+  // kills to reach 100%, paced across all 10 BIOMES.
   const beaconValue =
-    e.type === 'wisp' ? 0.5 :
-    e.type === 'drifter' ? 1.0 :
-    e.type === 'spitter' ? 1.3 :
-    e.type === 'brood' ? 1.4 :
-    e.type === 'maw' ? 2.2 :
-    e.type === 'reaper' ? 3.5 : 1.0;
+    e.type === 'wisp' ? 0.25 :
+    e.type === 'drifter' ? 0.50 :
+    e.type === 'spitter' ? 0.65 :
+    e.type === 'brood' ? 0.70 :
+    e.type === 'maw' ? 1.10 :
+    e.type === 'reaper' ? 1.75 : 0.50;
   addBeaconProgress(beaconValue);
   playSfx('death');
   // Death particles — green guts/ichor sprayed along every segment of the body
@@ -3222,8 +3251,23 @@ function drawVictoryScreen() {
   ctx.font = 'bold 18px "Courier New", monospace';
   ctx.fillStyle = '#6effd4';
   const blink = Math.floor(performance.now() / 500) % 2;
-  if (blink) ctx.fillText('[ PRESS R OR TAP TO REPLAY ]', W/2, H/2 + 130);
+  // Countdown to auto-return to Astrolabe
+  const remainingMs = Math.max(0, (State._victoryReturnAt || 0) - performance.now());
+  const remainingS = Math.ceil(remainingMs / 1000);
+  if (blink) ctx.fillText('[ TAP TO RETURN TO ASTROLABE ]', W/2, H/2 + 130);
+  ctx.font = '13px "Courier New", monospace';
+  ctx.fillStyle = '#a8ff60';
+  ctx.fillText('Reality saved — green holographic ring will mark it on the map.', W/2, H/2 + 156);
+  if (remainingS > 0) {
+    ctx.fillStyle = '#8a9bb8';
+    ctx.fillText(`Auto-return in ${remainingS}s…`, W/2, H/2 + 178);
+  }
   ctx.restore();
+  // Trigger auto-return
+  if (remainingMs <= 0 && State._victoryReturnAt && !State._returnTriggered) {
+    State._returnTriggered = true;
+    setTimeout(() => { location.href = State._returnUrl || '/api/astrolabe-game-v2'; }, 50);
+  }
 }
 
 // === POWERUP SELECTION UI ===
@@ -3750,57 +3794,38 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
-// === RESIZE — supports portrait by CSS-rotating the canvas 90° ===
+// === RESIZE — fits the landscape game (1280×720) into any viewport.
+// In portrait we DO NOT rotate the canvas — we letterbox it (fit by width)
+// so the player can hold the phone upright and read the HUD normally.
 function resize() {
   const wrap = document.getElementById('wrap');
   const aw = wrap.clientWidth, ah = wrap.clientHeight;
   const portrait = ah > aw * 1.05;  // screen is taller than wide
   State.portraitMode = portrait;
-  if (portrait) {
-    // Rotate the LANDSCAPE canvas 90° so it fills the portrait screen.
-    // Internal coords stay 1280×720; CSS transform handles the visual.
-    const scale = Math.min(ah / W, aw / H);
-    canvas.style.width  = (W * scale) + 'px';
-    canvas.style.height = (H * scale) + 'px';
-    canvas.style.transform = 'rotate(90deg)';
-    canvas.style.transformOrigin = 'center center';
-    canvas.style.position = 'absolute';
-    canvas.style.left = '50%';
-    canvas.style.top  = '50%';
-    canvas.style.marginLeft = (-(W * scale) / 2) + 'px';
-    canvas.style.marginTop  = (-(H * scale) / 2) + 'px';
-  } else {
-    const scale = Math.min(aw / W, ah / H);
-    canvas.style.width = (W * scale) + 'px';
-    canvas.style.height = (H * scale) + 'px';
-    canvas.style.transform = 'none';
-    canvas.style.position = '';
-    canvas.style.left = canvas.style.top = '';
-    canvas.style.marginLeft = canvas.style.marginTop = '';
-  }
+  // Always fit landscape canvas inside the viewport (no rotation).
+  // In portrait this letterboxes with vertical bands top & bottom; the
+  // game itself remains upright and readable.
+  const scale = Math.min(aw / W, ah / H);
+  canvas.style.width  = (W * scale) + 'px';
+  canvas.style.height = (H * scale) + 'px';
+  canvas.style.transform = 'none';
+  canvas.style.transformOrigin = 'center center';
+  canvas.style.position = 'absolute';
+  canvas.style.left = '50%';
+  canvas.style.top  = '50%';
+  canvas.style.marginLeft = (-(W * scale) / 2) + 'px';
+  canvas.style.marginTop  = (-(H * scale) / 2) + 'px';
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
-// === Input coord remap helper (for rotated canvas in portrait) ===
+// === Input coord remap helper (works for both orientations now that the
+// canvas is no longer CSS-rotated) ===
 function _mapPointerToCanvas(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
-  // Position relative to displayed canvas
   const localX = clientX - r.left;
   const localY = clientY - r.top;
-  if (!State.portraitMode) {
-    return { x: localX * (W / r.width), y: localY * (H / r.height) };
-  }
-  // Canvas is visually rotated 90° clockwise. Map screen coords back to
-  // unrotated canvas coords. The displayed rect r already has the rotated
-  // bounding box, so r.width corresponds to canvas-internal H and r.height
-  // to canvas-internal W.
-  const u = localX / r.width;   // 0..1 left→right on screen
-  const v = localY / r.height;  // 0..1 top→bottom on screen
-  // After CSS rotate(90deg), screen-right = canvas-down, screen-down = canvas-left
-  const xC = v * W;
-  const yC = (1 - u) * H;
-  return { x: xC, y: yC };
+  return { x: localX * (W / r.width), y: localY * (H / r.height) };
 }
 // Expose so other handlers can use it
 window._mapPointerToCanvas = _mapPointerToCanvas;

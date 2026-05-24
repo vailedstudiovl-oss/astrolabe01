@@ -201,11 +201,34 @@
                 </div>
                 <div class="blurb">Your saved realities, achievements and reaper-market wallet are tied to this account. Logging out keeps the data on the server — sign back in to restore.</div>
                 <div id="amSaveSummary"></div>
+                
+                <!-- GRAPHICS SETTINGS SECTION -->
+                <div class="graphics-section" style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(216,166,74,.3);">
+                    <label style="font-size:11px;letter-spacing:.18em;color:#d8a64a;margin-bottom:10px;display:block;">▸ GRAPHICS QUALITY</label>
+                    <div class="quality-btns" style="display:flex;gap:6px;margin-bottom:12px;">
+                        <button class="gfx-btn" data-quality="low" style="flex:1;padding:8px;font-size:10px;background:rgba(0,0,0,.4);border:1px solid rgba(216,166,74,.4);color:#8a9bb8;cursor:pointer;border-radius:2px;letter-spacing:.1em;">LOW</button>
+                        <button class="gfx-btn" data-quality="medium" style="flex:1;padding:8px;font-size:10px;background:rgba(0,0,0,.4);border:1px solid rgba(216,166,74,.4);color:#8a9bb8;cursor:pointer;border-radius:2px;letter-spacing:.1em;">MEDIUM</button>
+                        <button class="gfx-btn" data-quality="high" style="flex:1;padding:8px;font-size:10px;background:rgba(0,0,0,.4);border:1px solid rgba(216,166,74,.4);color:#8a9bb8;cursor:pointer;border-radius:2px;letter-spacing:.1em;">HIGH</button>
+                    </div>
+                    <div class="gfx-toggles" style="display:flex;flex-direction:column;gap:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#a0c4ff;cursor:pointer;">
+                            <input type="checkbox" id="gfxBloom" style="accent-color:#d8a64a;"> Bloom Effects
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#a0c4ff;cursor:pointer;">
+                            <input type="checkbox" id="gfxAA" style="accent-color:#d8a64a;"> Anti-Aliasing (FXAA)
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#a0c4ff;cursor:pointer;">
+                            <input type="checkbox" id="gfxScanlines" style="accent-color:#d8a64a;"> Scanlines Overlay
+                        </label>
+                    </div>
+                </div>
+                
                 <a class="btn ghost" href="/api/lore">VIEW LORE ARCHIVE ▸</a>
                 <button class="btn danger" id="amLogout">LOG OUT</button>
             `;
             document.getElementById('amLogout').onclick = doLogout;
             loadSaveSummary();
+            initGraphicsUI();
         } else {
             body.innerHTML = `
                 <div class="blurb">Same login as the Lore Archive. Persists across Reality Defense, Astrolabe, Death's Ship & the Reaper Market.</div>
@@ -225,11 +248,82 @@
                     <button type="submit" class="btn" id="amSubmit">${_mode==='register'?'BECOME AMBASSADOR ▸':'LOG IN ▸'}</button>
                     <div id="amErr"></div>
                 </form>
+                
+                <!-- GRAPHICS SETTINGS SECTION (also shown when logged out) -->
+                <div class="graphics-section" style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(216,166,74,.3);">
+                    <label style="font-size:11px;letter-spacing:.18em;color:#d8a64a;margin-bottom:10px;display:block;">▸ GRAPHICS QUALITY</label>
+                    <div class="quality-btns" style="display:flex;gap:6px;margin-bottom:12px;">
+                        <button class="gfx-btn" data-quality="low" style="flex:1;padding:8px;font-size:10px;background:rgba(0,0,0,.4);border:1px solid rgba(216,166,74,.4);color:#8a9bb8;cursor:pointer;border-radius:2px;letter-spacing:.1em;">LOW</button>
+                        <button class="gfx-btn" data-quality="medium" style="flex:1;padding:8px;font-size:10px;background:rgba(0,0,0,.4);border:1px solid rgba(216,166,74,.4);color:#8a9bb8;cursor:pointer;border-radius:2px;letter-spacing:.1em;">MEDIUM</button>
+                        <button class="gfx-btn" data-quality="high" style="flex:1;padding:8px;font-size:10px;background:rgba(0,0,0,.4);border:1px solid rgba(216,166,74,.4);color:#8a9bb8;cursor:pointer;border-radius:2px;letter-spacing:.1em;">HIGH</button>
+                    </div>
+                    <div class="gfx-toggles" style="display:flex;flex-direction:column;gap:8px;">
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#a0c4ff;cursor:pointer;">
+                            <input type="checkbox" id="gfxBloom" style="accent-color:#d8a64a;"> Bloom Effects
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#a0c4ff;cursor:pointer;">
+                            <input type="checkbox" id="gfxAA" style="accent-color:#d8a64a;"> Anti-Aliasing (FXAA)
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#a0c4ff;cursor:pointer;">
+                            <input type="checkbox" id="gfxScanlines" style="accent-color:#d8a64a;"> Scanlines Overlay
+                        </label>
+                    </div>
+                </div>
             `;
             document.getElementById('amTabLogin').onclick = () => setMode('login');
             document.getElementById('amTabReg').onclick   = () => setMode('register');
             document.getElementById('amForm').onsubmit   = submitAuth;
+            initGraphicsUI();
         }
+    }
+
+    // Graphics settings management
+    function getGraphicsSettings() {
+        try {
+            const raw = localStorage.getItem('dlds_graphics');
+            if (raw) return JSON.parse(raw);
+        } catch(e) {}
+        return { quality: 'medium', bloom: true, aa: true, scanlines: true };
+    }
+    function saveGraphicsSettings(settings) {
+        try { localStorage.setItem('dlds_graphics', JSON.stringify(settings)); } catch(e) {}
+        // Notify any listeners (e.g., the Astrolabe renderer)
+        if (typeof window.applyGraphicsQualityPreset === 'function' && settings.quality) {
+            window.applyGraphicsQualityPreset(settings.quality);
+        }
+        // Toggle scanlines
+        const scanlinesEl = document.querySelector('.scanlines');
+        if (scanlinesEl) scanlinesEl.style.display = settings.scanlines ? 'block' : 'none';
+    }
+    function initGraphicsUI() {
+        const settings = getGraphicsSettings();
+        // Quality buttons
+        document.querySelectorAll('.gfx-btn').forEach(btn => {
+            const q = btn.getAttribute('data-quality');
+            if (q === settings.quality) {
+                btn.style.background = 'rgba(216,166,74,.25)';
+                btn.style.color = '#f4dca0';
+                btn.style.borderColor = '#d8a64a';
+            }
+            btn.onclick = () => {
+                settings.quality = q;
+                saveGraphicsSettings(settings);
+                // Re-highlight buttons
+                document.querySelectorAll('.gfx-btn').forEach(b => {
+                    const isActive = b.getAttribute('data-quality') === q;
+                    b.style.background = isActive ? 'rgba(216,166,74,.25)' : 'rgba(0,0,0,.4)';
+                    b.style.color = isActive ? '#f4dca0' : '#8a9bb8';
+                    b.style.borderColor = isActive ? '#d8a64a' : 'rgba(216,166,74,.4)';
+                });
+            };
+        });
+        // Checkboxes
+        const bloomEl = document.getElementById('gfxBloom');
+        const aaEl = document.getElementById('gfxAA');
+        const scanlinesEl = document.getElementById('gfxScanlines');
+        if (bloomEl) { bloomEl.checked = settings.bloom !== false; bloomEl.onchange = () => { settings.bloom = bloomEl.checked; saveGraphicsSettings(settings); }; }
+        if (aaEl) { aaEl.checked = settings.aa !== false; aaEl.onchange = () => { settings.aa = aaEl.checked; saveGraphicsSettings(settings); }; }
+        if (scanlinesEl) { scanlinesEl.checked = settings.scanlines !== false; scanlinesEl.onchange = () => { settings.scanlines = scanlinesEl.checked; saveGraphicsSettings(settings); }; }
     }
 
     async function loadSaveSummary() {

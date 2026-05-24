@@ -1706,6 +1706,16 @@ try:
 except Exception as _e:
     print(f"[startup] reaper market failed to mount: {_e}")
 
+# Skill Tree — persistent Centurion Guard upgrades. Spent against the Reaper
+# Market soul-token wallet; consumed by reality_defense at game start via
+# GET /api/skill-tree/loadout.
+try:
+    from routes.skill_tree import router as skill_tree_router
+    app.include_router(skill_tree_router)
+    print("[startup] skill tree router mounted at /api/skill-tree")
+except Exception as _e:
+    print(f"[startup] skill tree failed to mount: {_e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

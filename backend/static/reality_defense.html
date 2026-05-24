@@ -347,6 +347,7 @@ const State = {
 
 function reset() {
   State.player = makePlayer();
+  applyLoadoutToPlayer();  // pulls /api/skill-tree/loadout and applies modifiers
   State.bullets = [];
   State.parasites = [];
   State.particles = [];
@@ -1184,6 +1185,61 @@ function makePlayer() {
 
 function playerSpriteSize() {
   return FRAME_SRC_SIZE * State.player.drawScale; // ~205 px
+}
+
+// === SKILL-TREE LOADOUT APPLICATION ===
+// Fetches the player's persistent upgrade state from /api/skill-tree/loadout
+// and applies the multipliers/bonuses to the freshly-spawned player.
+// Cached for the session so subsequent reset()s don't re-fetch.
+let _cachedLoadout = null;
+function _resolveLoadoutUserId() {
+  try {
+    if (window.AuthModule && window.AuthModule.userId) return window.AuthModule.userId();
+    let u = localStorage.getItem('dlds_user_id');
+    if (!u) { u = 'u-' + Math.random().toString(36).slice(2,10); localStorage.setItem('dlds_user_id', u); }
+    return u;
+  } catch (e) { return 'u-local'; }
+}
+async function preloadLoadout() {
+  try {
+    const r = await fetch('/api/skill-tree/loadout?user_id=' + encodeURIComponent(_resolveLoadoutUserId()));
+    if (r.ok) _cachedLoadout = await r.json();
+  } catch (e) {}
+}
+preloadLoadout();
+// Refresh when the player logs in/out — their upgrades may change instantly.
+if (window.AuthModule && window.AuthModule.onChange) {
+  window.AuthModule.onChange(() => { _cachedLoadout = null; preloadLoadout(); });
+}
+function applyLoadoutToPlayer() {
+  const p = State.player; const L = _cachedLoadout; if (!p || !L) return;
+  // VITAL FORTIFICATION → +HP
+  if (L.max_hp_bonus) {
+    p.maxHp = 100 + L.max_hp_bonus;
+    p.hp    = p.maxHp;
+  }
+  // CHAINGUN CALIBRATION → damage multiplier (consumed by fire/bullet code)
+  if (typeof L.dmg_mult === 'number') p.dmgMult = L.dmg_mult;
+  // MINIGUN OVERCLOCK → burst cooldown multiplier + extra bullets
+  if (typeof L.burst_cd_mult === 'number') p.burstCdMult = L.burst_cd_mult;
+  if (L.bullets_extra) p.bulletsExtra = L.bullets_extra;
+  // PHASE DASH unlock + cooldown
+  if (L.unlock_dash) {
+    p.hasDash = true;
+    if (typeof L.dash_cd_mult === 'number') p.dashCooldownMax = 6.0 * L.dash_cd_mult;
+    if (L.dash_damage) p.dashDamage = true;
+  }
+  // KINETIC LEAP → jump + speed
+  if (typeof L.jump_mult  === 'number') p.jumpMult     *= L.jump_mult;
+  if (typeof L.speed_mult === 'number') p.moveSpeedMult = (p.moveSpeedMult || 1) * L.speed_mult;
+  if (L.double_jump) p.doubleJump = true;
+  // CHRONOS TWEAK
+  if (L.unlock_timewarp) {
+    p.hasTimeWarp = true;
+    if (L.timewarp_dur_bonus) p.timeWarpDurationBonus = L.timewarp_dur_bonus;
+  }
+  if (L.crit_chance) p.critChance = L.crit_chance;
+  if (L.warp_bullets) p.warpBullets = true;
 }
 
 function setAnim(p, name) {

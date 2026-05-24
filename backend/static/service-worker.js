@@ -6,7 +6,7 @@
 //   - stale-while-revalidate for cross-origin CDN assets (Three.js, Tailwind, Google Fonts)
 //     so the app launches offline once it has been opened once.
 
-const VERSION       = 'v30-2026-05-24-auth-mo';
+const VERSION       = 'v31-2026-05-24-skill-tree';
 const SHELL_CACHE   = `astrolabe-shell-${VERSION}`;
 const RUNTIME_CACHE = `astrolabe-runtime-${VERSION}`;
 const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;
@@ -164,4 +164,6 @@ self.addEventListener('fetch', (event) => {
 // Allow page to trigger immediate activation (used after deploy).
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+WAITING') self.skipWaiting();
 });

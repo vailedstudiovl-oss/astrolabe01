@@ -6,7 +6,7 @@
 //   - stale-while-revalidate for cross-origin CDN assets (Three.js, Tailwind, Google Fonts)
 //     so the app launches offline once it has been opened once.
 
-const VERSION       = 'v28-2026-05-24-rd-mobile-controls-on';
+const VERSION       = 'v30-2026-05-24-auth-mo';
 const SHELL_CACHE   = `astrolabe-shell-${VERSION}`;
 const RUNTIME_CACHE = `astrolabe-runtime-${VERSION}`;
 const CDN_CACHE     = `astrolabe-cdn-${VERSION}`;
@@ -29,6 +29,9 @@ const SHELL_ASSETS = [
   '/api/static/icon-512.png',
   '/api/static/icon-maskable-512.png',
   '/api/static/icon-apple.png',
+  // Universal auth + settings (shared JWT with Lore Archive)
+  '/api/static/js/auth_module.js',
+  '/api/static/js/reaper_market_ui.js',
   // music + video (cached on demand by runtime strategy; listed here so they
   // pre-cache on install for offline replay)
   '/api/static/dimensionlock_theme.mp3',

@@ -829,13 +829,28 @@
     // ──────────────────────────────────────────────────────────────────
     //   PERSISTENT SAVE STATE + ACHIEVEMENTS
     // ──────────────────────────────────────────────────────────────────
-    const USER_ID = (() => {
+    // Use the unified AuthModule's user id (wanderer_id when signed in,
+    // anonymous local fallback otherwise) so saved realities migrate
+    // automatically the moment the player logs in.
+    function _resolveUserId() {
         try {
+            if (window.AuthModule && typeof window.AuthModule.userId === 'function') {
+                return window.AuthModule.userId();
+            }
             let u = localStorage.getItem('dlds_user_id');
             if (!u) { u = 'u-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('dlds_user_id', u); }
             return u;
         } catch (e) { return 'local'; }
-    })();
+    }
+    let USER_ID = _resolveUserId();
+    // Re-load saved state whenever the player signs in/out.
+    if (window.AuthModule && typeof window.AuthModule.onChange === 'function') {
+        window.AuthModule.onChange(() => {
+            USER_ID = _resolveUserId();
+            try { loadSavedRealities && loadSavedRealities(); } catch(e){}
+            try { loadUnlockedAchievements && loadUnlockedAchievements(); } catch(e){}
+        });
+    }
     let SAVED_REALITIES = [];      // [{reality, strata, faction_id, ...}, ...]
     let SAVED_NAMES_LOWER = new Set();  // for O(1) lookup during ring rendering
     let ACHIEVEMENTS = [];         // master catalog

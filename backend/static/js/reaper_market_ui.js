@@ -20,7 +20,13 @@
     // 1. USER ID + WALLET STATE
     // -------------------------------------------------------------------
     const USER_ID = (() => {
+        // Prefer the unified AuthModule wanderer_id when signed in (so the
+        // Reaper-Market wallet maps to the same account as Lore). Falls back
+        // to the legacy anonymous local id for unsigned-in users.
         try {
+            if (window.AuthModule && typeof window.AuthModule.userId === 'function') {
+                return window.AuthModule.userId();
+            }
             let u = localStorage.getItem('dlds_user_id');
             if (!u) {
                 u = 'u-' + Math.random().toString(36).slice(2, 10);
@@ -29,6 +35,17 @@
             return u;
         } catch (e) { return 'u-local'; }
     })();
+    // Re-fetch wallet whenever the user logs in/out, so the HUD updates
+    // immediately without a page reload.
+    if (window.AuthModule && typeof window.AuthModule.onChange === 'function') {
+        window.AuthModule.onChange(() => {
+            WALLET = null;
+            const cur = (window.state && window.state.currentRoom) || null;
+            if (isMarketRoom(cur)) {
+                fetchWallet().then(paintWalletHud);
+            }
+        });
+    }
     let WALLET = null;               // {soul_tokens, reaper_credit, obols, tier}
     let LISTINGS_BY_ID = Object.create(null);
 

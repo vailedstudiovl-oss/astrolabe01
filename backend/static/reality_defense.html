@@ -1385,10 +1385,12 @@ function updatePlayerAnim(p, dt) {
 }
 
 // Resolve facing only — bullets fly toward cursor, sprite plays horizontally.
+// Reduced deadzone for more responsive turning when free aiming
 function resolveAim(p) {
   const dx = State.aimX - p.x;
-  if (dx > 12) p.facing = 1;
-  else if (dx < -12) p.facing = -1;
+  // Immediate facing change with minimal deadzone (2px instead of 12px)
+  if (dx > 2) p.facing = 1;
+  else if (dx < -2) p.facing = -1;
 }
 
 // World-space muzzle position (where bullets spawn) and direction toward cursor.
@@ -1396,12 +1398,16 @@ function getMuzzle(p) {
   const size = playerSpriteSize();
   const mx = p.x + p.facing * MUZZLE_X_FRAC * size;
   const my = p.y - MUZZLE_Y_FRAC * size;
-  // Direction: toward the cursor
+  // Direction: toward the cursor/aim position for free aim
   let ddx = State.aimX - mx;
   let ddy = State.aimY - my;
-  // Lock to forward-facing if cursor is behind the player
-  if (p.facing === 1 && ddx < 0) ddx = 1;
-  if (p.facing === -1 && ddx > 0) ddx = -1;
+  // For free aim mode: allow shooting in the aimed direction even if cursor is behind
+  // Only lock forward if aimActive is false (auto-aim mode)
+  if (!State.aimActive) {
+    // Auto-aim: lock to forward-facing if cursor is behind the player
+    if (p.facing === 1 && ddx < 0) ddx = 1;
+    if (p.facing === -1 && ddx > 0) ddx = -1;
+  }
   const len = Math.max(1, Math.hypot(ddx, ddy));
   return {x: mx, y: my, dirX: ddx / len, dirY: ddy / len};
 }
@@ -2001,10 +2007,12 @@ function update(dt) {
     }
 
     // Resolve facing from cursor position (sprite plays in facing direction)
+    // This should be called FIRST to set facing based on aim
     resolveAim(p);
 
-    // When the user is moving with keys, override facing if no active aim
-    if (!State.aimActive && p.vx !== 0) p.facing = Math.sign(p.vx);
+    // When using keyboard and not actively aiming, override facing based on movement
+    // But on mobile, if aim zone is active, always use aim-based facing
+    if (!State.aimActive && !touchState.fire && p.vx !== 0) p.facing = Math.sign(p.vx);
 
     if (wantJump && p.onGround) {
       p.vy = JUMP_VEL * p.jumpMult;

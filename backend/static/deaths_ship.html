@@ -7506,6 +7506,7 @@ function enterDoor(door){
   if (state.fading) return;
   console.log('[door] entering', door.to, 'spawn', door.spawn);
   if (typeof playDoorCue === 'function') playDoorCue();
+  if (typeof crossfadeMusic === 'function') crossfadeMusic(); // Crossfade music on room transition
   state.fading = true;
   const fade = document.getElementById('fade');
   fade.classList.add('show');
@@ -8214,17 +8215,35 @@ function playDoorCue() {
 }
 
 // ============================================================
-//   GAME MUSIC — softly pause when ad plays, resume after.
+//   GAME MUSIC — gothic theme with crossfade on room transitions
 // ============================================================
-// (We reuse the existing /api/static/dimensionlock_theme.mp3 if available.)
 let musicEl = null;
 let musicWasPlaying = false;
+const MUSIC_VOLUME = 0.38;
+
 function ensureMusic() {
   if (musicEl) return musicEl;
-  musicEl = new Audio('/api/static/dimensionlock_theme.mp3');
+  musicEl = new Audio('/api/static/audio/deaths_ship_gothic.mp3');
   musicEl.loop = true;
-  musicEl.volume = 0.32;
+  musicEl.volume = MUSIC_VOLUME;
+  musicEl.preload = 'auto';
   return musicEl;
+}
+
+// Crossfade effect on room transitions — brief volume dip then restore
+function crossfadeMusic() {
+  if (!musicEl || musicEl.paused) return;
+  const originalVol = MUSIC_VOLUME;
+  const duckVol = originalVol * 0.3;
+  musicEl.volume = duckVol;
+  // Smoothly restore over 1.5 seconds
+  let t = 0;
+  const fadeIn = setInterval(() => {
+    t += 50;
+    const progress = Math.min(t / 1500, 1);
+    musicEl.volume = duckVol + (originalVol - duckVol) * progress;
+    if (progress >= 1) clearInterval(fadeIn);
+  }, 50);
 }
 function startGameMusic() {
   const m = ensureMusic();

@@ -358,6 +358,45 @@ function playSfx(type) {
   }
 }
 
+// === BACKGROUND MUSIC (Combat Loop) ===
+// Plays reality_defense_fight.mp3 as combat BGM, ducks to 15% when ability menu opens
+let bgmAudio = null;
+let bgmGainNode = null;
+const BGM_FULL_VOLUME = 0.35;
+const BGM_DUCKED_VOLUME = 0.05; // 15% of full volume approximately
+
+function initBGM() {
+  if (bgmAudio) return;
+  bgmAudio = new Audio('/api/static/audio/reality_defense_fight.mp3');
+  bgmAudio.loop = true;
+  bgmAudio.volume = BGM_FULL_VOLUME;
+  bgmAudio.preload = 'auto';
+}
+
+function startBGM() {
+  if (!bgmAudio) initBGM();
+  if (bgmAudio.paused) {
+    bgmAudio.play().catch(e => console.log('BGM autoplay blocked:', e));
+  }
+}
+
+function stopBGM() {
+  if (bgmAudio && !bgmAudio.paused) {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
+  }
+}
+
+function duckBGM(ducked) {
+  if (!bgmAudio) return;
+  // Smoothly transition volume
+  const targetVol = ducked ? BGM_DUCKED_VOLUME : BGM_FULL_VOLUME;
+  bgmAudio.volume = targetVol;
+}
+
+// Initialize BGM on load
+initBGM();
+
 // === GAME STATE ===
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -1057,6 +1096,7 @@ function confirmPowerupChoice(idx) {
   State.powerupChoices = [];
   State.hitFlash = 0.25;
   playSfx('wave');
+  duckBGM(false); // Restore music volume when ability menu closes
   // Update touch action-button visibility if a new ability was unlocked
   if (typeof refreshAbilityButtons === 'function') refreshAbilityButtons();
 }
@@ -2272,6 +2312,7 @@ function update(dt) {
           State.powerupChoices = pickPowerupChoices(p, 3);
           State.powerupCardHover = -1;
           State.powerupAnimT = 0;
+          duckBGM(true); // Duck music when ability menu opens
         }
       }
     }
@@ -4270,18 +4311,27 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   const showCinematic = window.Cinematic && !sessionStorage.getItem(seenKey);
   if (showCinematic) {
     try { sessionStorage.setItem(seenKey, '1'); } catch(e){}
+    // Play cinematic music during intro
+    const cinematicMusic = new Audio('/api/static/audio/endless_phonk.mp3');
+    cinematicMusic.volume = 0.5;
+    cinematicMusic.play().catch(() => {});
     await new Promise((res) => {
       window.Cinematic.play({
         id: 'drop-pod',
         videoUrl: '/api/static/cinematic_drop_pod.mp4',
         maxDurationMs: 5500,
-        onComplete: res,
+        onComplete: () => {
+          cinematicMusic.pause();
+          cinematicMusic.currentTime = 0;
+          res();
+        },
       });
     });
   }
 
   reset();
   resize();
+  startBGM(); // Start combat music when game begins
   requestAnimationFrame(frame);
 });
 

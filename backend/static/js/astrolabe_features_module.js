@@ -696,32 +696,272 @@
             if (raw) result = JSON.parse(raw);
         } catch (e) {}
         if (!result || !result.ts) return;
-        // Only act on results from the last 5 minutes
         if (Date.now() - result.ts > 5 * 60 * 1000) {
             try { localStorage.removeItem('reality_defense_result'); } catch(e){}
             return;
         }
-        // Clear so we don't double-apply
         try { localStorage.removeItem('reality_defense_result'); } catch(e){}
 
         const won  = !!result.won;
         const succ = !!result.succeeded;
-        // Use the existing 'toast' if available
         const toast = window.toast || function(msg, c) { console.log('TOAST', c, msg); };
         if (succ) {
             toast(`▌ CONTAINMENT SUCCESS · ${result.reality}<br><span class="text-cyan-300 normal-case tracking-wide text-[10px]">Kills ${result.kills} · Roll ${result.roll}% · Strata ${result.strata}</span>`, 'emerald');
+            // Persist save + check achievements
+            persistRealitySave(result);
         } else if (won) {
             toast(`▌ BEACON DEPLOYED · ${result.reality}<br><span class="text-amber-300 normal-case tracking-wide text-[10px]">Partial purge — Roll ${result.roll}%</span>`, 'amber');
         } else {
             toast(`▌ BEACON LOST · ${result.reality}<br><span class="text-rose-300 normal-case tracking-wide text-[10px]">Centurion fell · Strata ${result.strata}</span>`, 'rose');
         }
-
-        // If the engine exposes infestation control hooks, apply outcome:
         try {
             if (succ && window.DEBUG_centurion && typeof window.DEBUG_centurion.stopByName === 'function') {
                 window.DEBUG_centurion.stopByName(result.reality);
             }
         } catch (e) {}
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //   RIGHT-SIDEBAR REMOVAL  — hide #right-panel everywhere
+    // ──────────────────────────────────────────────────────────────────
+    function hideRightSidebar() {
+        if (document.getElementById('features-hide-right-panel')) return;
+        const s = document.createElement('style');
+        s.id = 'features-hide-right-panel';
+        s.textContent = `
+            #right-panel { display: none !important; }
+            /* Reclaim the screen space — move the bottom toolbar / stages
+               panel back to a centered/edge-aware layout. */
+        `;
+        document.head.appendChild(s);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //   PERSISTENT SAVE STATE + ACHIEVEMENTS
+    // ──────────────────────────────────────────────────────────────────
+    const USER_ID = (() => {
+        try {
+            let u = localStorage.getItem('dlds_user_id');
+            if (!u) { u = 'u-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('dlds_user_id', u); }
+            return u;
+        } catch (e) { return 'local'; }
+    })();
+    let SAVED_REALITIES = [];      // [{reality, strata, faction_id, ...}, ...]
+    let SAVED_NAMES_LOWER = new Set();  // for O(1) lookup during ring rendering
+    let ACHIEVEMENTS = [];         // master catalog
+    let UNLOCKED_ACHS = new Set(); // set of unlocked achievement ids
+    let _prevUnlockedSnapshot = new Set();
+
+    async function loadAchievementsCatalog() {
+        try {
+            const r = await fetch('/api/achievements');
+            if (r.ok) ACHIEVEMENTS = await r.json();
+        } catch (e) { warn('catalog load failed', e); }
+    }
+    async function refreshSavedAndUnlocked() {
+        try {
+            const r = await fetch('/api/realities/saved?user_id=' + encodeURIComponent(USER_ID));
+            if (r.ok) {
+                SAVED_REALITIES = await r.json();
+                SAVED_NAMES_LOWER = new Set(SAVED_REALITIES.map(s => (s.reality || '').toLowerCase()));
+            }
+        } catch (e) {}
+        try {
+            const r2 = await fetch('/api/achievements/unlocked?user_id=' + encodeURIComponent(USER_ID));
+            if (r2.ok) {
+                const j = await r2.json();
+                _prevUnlockedSnapshot = new Set(UNLOCKED_ACHS);
+                UNLOCKED_ACHS = new Set(j.unlocked || []);
+                // Diff: any newly-unlocked entry triggers a toast + flash
+                for (const id of UNLOCKED_ACHS) {
+                    if (!_prevUnlockedSnapshot.has(id) && _prevUnlockedSnapshot.size > 0) {
+                        const ach = ACHIEVEMENTS.find(a => a.id === id);
+                        if (ach && window.toast) {
+                            window.toast(`📜 ACHIEVEMENT · ${ach.title}<br><span class="text-emerald-300 normal-case tracking-wide text-[11px]">${ach.lore}</span>`, 'emerald');
+                        }
+                    }
+                }
+                renderAchievementCount();
+            }
+        } catch (e) {}
+    }
+    async function persistRealitySave(result) {
+        try {
+            // Look up faction from POI table
+            let faction_id = null, faction_name = null;
+            try {
+                const lc = window.LORE_CORPUS;
+                if (lc) {
+                    const poi = (lc.POIS[String(result.strata)] || []).find(p => p.name.toLowerCase() === (result.reality || '').toLowerCase());
+                    if (poi) { faction_id = poi.faction.id; faction_name = poi.faction.name; }
+                }
+            } catch(e){}
+            const r = await fetch('/api/realities/save', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: USER_ID,
+                    reality: result.reality, strata: String(result.strata),
+                    faction_id, faction_name,
+                    won: !!result.won, succeeded: !!result.succeeded,
+                    roll: result.roll || 0, kills: result.kills || 0,
+                    damage: result.damage || 0, deploy_pct: result.deploy_pct || 0,
+                }),
+            });
+            if (r.ok) {
+                const j = await r.json();
+                // Refresh local lists; this also fires achievement toasts for newly unlocked
+                await refreshSavedAndUnlocked();
+                // Force re-render so the green holographic ring appears immediately
+                rebuildPOIMarkers();
+                applyFactionsView();
+            }
+        } catch (e) { warn('save failed', e); }
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //   GREEN HOLOGRAPHIC RING around saved realities
+    //   We inject a Three.js TorusGeometry into each saved reality group
+    //   on the active layer. Rebuilt by pollLayerChange.
+    // ──────────────────────────────────────────────────────────────────
+    function decorateSavedRealities() {
+        const THREE = window.THREE;
+        const stars = window.STATE && window.STATE.starsOnLayer;
+        if (!THREE || !stars || !stars.length) return;
+        for (const grp of stars) {
+            if (!grp.userData || !grp.userData.name) continue;
+            if (grp.userData.isPOI) continue;
+            const isSaved = SAVED_NAMES_LOWER.has(grp.userData.name.toLowerCase());
+            // Find existing decoration
+            const existing = grp.children.find(c => c.userData && c.userData.isSavedRing);
+            if (isSaved && !existing) {
+                const ringGeom = new THREE.TorusGeometry(2.6, 0.18, 8, 32);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: 0x33ff99, transparent: true, opacity: 0.85,
+                    blending: THREE.AdditiveBlending, depthWrite: false,
+                });
+                const ring = new THREE.Mesh(ringGeom, ringMat);
+                ring.rotation.x = Math.PI / 2;
+                ring.userData.isSavedRing = true;
+                grp.add(ring);
+                // outer halo ring
+                const haloGeom = new THREE.TorusGeometry(3.2, 0.08, 8, 32);
+                const halo = new THREE.Mesh(haloGeom, ringMat.clone());
+                halo.material.opacity = 0.35;
+                halo.rotation.x = Math.PI / 2;
+                halo.userData.isSavedRing = true;
+                halo.userData.isHalo = true;
+                grp.add(halo);
+                // Vertical light beam (holographic shaft)
+                const beamGeom = new THREE.CylinderGeometry(0.18, 0.18, 6, 8, 1, true);
+                const beamMat = new THREE.MeshBasicMaterial({
+                    color: 0x33ff99, transparent: true, opacity: 0.35,
+                    blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false,
+                });
+                const beam = new THREE.Mesh(beamGeom, beamMat);
+                beam.position.y = 3;
+                beam.userData.isSavedRing = true;
+                grp.add(beam);
+            } else if (!isSaved && existing) {
+                // remove
+                const toRemove = grp.children.filter(c => c.userData && c.userData.isSavedRing);
+                toRemove.forEach(c => {
+                    grp.remove(c);
+                    if (c.geometry) c.geometry.dispose && c.geometry.dispose();
+                    if (c.material) c.material.dispose && c.material.dispose();
+                });
+            }
+        }
+    }
+    // Animate the holographic rings
+    function animateSavedRings() {
+        const stars = window.STATE && window.STATE.starsOnLayer || [];
+        const t = performance.now() * 0.001;
+        for (const grp of stars) {
+            for (const c of grp.children) {
+                if (c.userData && c.userData.isSavedRing) {
+                    if (c.userData.isHalo) {
+                        c.rotation.z = -t * 0.7;
+                    } else {
+                        c.rotation.z = t * 0.4;
+                    }
+                    if (c.material) c.material.opacity = 0.55 + 0.3 * Math.sin(t * 1.5 + (grp.userData.name || '').length);
+                }
+            }
+        }
+        requestAnimationFrame(animateSavedRings);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //   ACHIEVEMENT HUD — pill + modal
+    // ──────────────────────────────────────────────────────────────────
+    function ensureAchievementPill() {
+        if (document.getElementById('ach-pill')) return;
+        const pill = document.createElement('button');
+        pill.id = 'ach-pill';
+        pill.style.cssText = `
+            position: fixed; right: 12px; top: 60px; z-index: 70; cursor: pointer;
+            background: rgba(8,18,16,0.85); border: 1px solid rgba(102,255,170,0.55);
+            color: #b2ffd6; padding: 5px 11px; border-radius: 4px;
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
+            box-shadow: 0 0 12px rgba(102,255,170,0.25); transition: all .15s;
+        `;
+        pill.innerHTML = `📜 <span id="ach-count">0</span><span style="opacity:.55;"> / ${ACHIEVEMENTS.length || 20}</span>`;
+        pill.addEventListener('click', openAchievementModal);
+        document.body.appendChild(pill);
+    }
+    function renderAchievementCount() {
+        ensureAchievementPill();
+        const el = document.getElementById('ach-pill');
+        if (!el) return;
+        el.innerHTML = `📜 <span id="ach-count">${UNLOCKED_ACHS.size}</span><span style="opacity:.55;"> / ${ACHIEVEMENTS.length}</span>`;
+    }
+    function openAchievementModal() {
+        let m = document.getElementById('ach-modal');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'ach-modal';
+            m.style.cssText = `position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,4,10,0.78);backdrop-filter:blur(5px);font-family:'Share Tech Mono',monospace;`;
+            m.innerHTML = `<div id="ach-panel" style="max-width:560px;width:100%;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,rgba(8,18,16,0.96),rgba(14,22,26,0.96));border:1px solid rgba(102,255,170,0.45);border-radius:6px;box-shadow:0 0 28px rgba(102,255,170,0.2),inset 0 0 18px rgba(0,0,0,0.55);">
+                <div style="padding:14px 16px;border-bottom:1px solid rgba(102,255,170,0.3);background:rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;">
+                    <span style="color:#9aa3b8;font-size:10px;letter-spacing:2px;flex:1;">▌ DLDS · LORE ARCHIVE — ACHIEVEMENT UNLOCKS</span>
+                    <button id="ach-close" style="background:transparent;border:1px solid rgba(255,80,80,0.6);color:#ffb0b0;padding:4px 9px;border-radius:3px;cursor:pointer;font-size:11px;letter-spacing:2px;">⨯</button>
+                </div>
+                <div id="ach-list" style="padding:10px 14px;"></div>
+            </div>`;
+            document.body.appendChild(m);
+            m.querySelector('#ach-close').addEventListener('click', () => m.style.display = 'none');
+            m.addEventListener('click', (e) => { if (e.target === m) m.style.display = 'none'; });
+        }
+        // render rows
+        const list = m.querySelector('#ach-list');
+        list.innerHTML = '';
+        for (const ach of ACHIEVEMENTS) {
+            const unl = UNLOCKED_ACHS.has(ach.id);
+            const row = document.createElement('div');
+            row.style.cssText = `padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:11px;align-items:flex-start;`;
+            row.innerHTML = `
+                <div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+                    background:${unl ? 'rgba(102,255,170,0.18)' : 'rgba(255,255,255,0.04)'};
+                    border:1px solid ${unl ? '#66ffaa' : 'rgba(255,255,255,0.2)'};
+                    color:${unl ? '#b2ffd6' : '#666'};
+                    box-shadow:${unl ? '0 0 10px rgba(102,255,170,0.4)' : 'none'};">${ach.icon || '◇'}</div>
+                <div style="flex:1;">
+                    <div style="color:${unl ? '#fff' : '#888'};font-size:13px;letter-spacing:1.5px;font-weight:bold;">${ach.title}</div>
+                    <div style="color:${unl ? '#d4dae8' : '#555'};font-size:11.5px;line-height:1.55;margin-top:3px;font-style:${unl ? 'normal' : 'italic'};">${unl ? ach.lore : '— locked — save more realities to reveal —'}</div>
+                </div>`;
+            list.appendChild(row);
+        }
+        m.style.display = 'flex';
+    }
+
+    // Hook polled layer change to decorate saved realities
+    function startSavedRingsLoop() {
+        // Decorate on every poll iteration (light operation since it diffs)
+        const origPoll = pollLayerChange;
+        // pollLayerChange itself already calls rebuildPOIMarkers after detection;
+        // we just need decorations to refresh after that. Patch:
+        animateSavedRings();
+        setInterval(decorateSavedRealities, 600);
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -889,24 +1129,33 @@
         // Wait for LORE_CORPUS (lore module may load slightly after us)
         const waitLore = () => {
             if (!window.LORE_CORPUS) return setTimeout(waitLore, 150);
-            loadPOIIndex().then(() => {
-                hookUpdateLayer();
-                hookSelectStarSystem();
-                installLayerEntryConfirmation();
-                // Initial build for current layer (in case updateLayer already ran)
+            loadPOIIndex().then(async () => {
+                try { hookUpdateLayer(); } catch(e) { warn('hookUpdateLayer', e); }
+                try { hookSelectStarSystem(); } catch(e) { warn('hookSelect', e); }
+                try { installLayerEntryConfirmation(); } catch(e) { warn('installLayerEntry', e); }
+                try { hideRightSidebar(); } catch(e) { warn('hideRightSidebar', e); }
+                try { await loadAchievementsCatalog(); } catch(e) { warn('catalog', e); }
+                try { await refreshSavedAndUnlocked(); } catch(e) { warn('refresh', e); }
+                try { ensureAchievementPill(); renderAchievementCount(); } catch(e) { warn('ach pill', e); }
+                // Expose for debugging
+                window.__features = { SAVED_REALITIES, UNLOCKED_ACHS, ACHIEVEMENTS, USER_ID, refreshSavedAndUnlocked, persistRealitySave };
+                // Initial build for current layer
                 setTimeout(() => {
-                    rebuildPOIMarkers();
-                    applyFactionsView();
-                    injectLiveOpsButton();
-                    injectCenturionSpriteOnPill();
-                    hookDeployDispatch();
-                    installLayerEntryConfirmation(); // retry — engine may bind late
+                    try { rebuildPOIMarkers(); } catch(e) {}
+                    try { applyFactionsView(); } catch(e) {}
+                    try { injectLiveOpsButton(); } catch(e) {}
+                    try { injectCenturionSpriteOnPill(); } catch(e) {}
+                    try { hookDeployDispatch(); } catch(e) {}
+                    try { installLayerEntryConfirmation(); } catch(e) {}
+                    try { decorateSavedRealities(); } catch(e) {}
                 }, 250);
                 animateFeatureObjects();
+                animateSavedRings();
+                setInterval(() => { try { decorateSavedRealities(); } catch(e) {} }, 600);
                 pollLayerChange();
                 consumeRealityDefenseResult();
-                log('features ready');
-            });
+                log('features ready · saved=' + (SAVED_REALITIES ? SAVED_REALITIES.length : '?') + ' achievements=' + (UNLOCKED_ACHS ? UNLOCKED_ACHS.size : '?'));
+            }).catch(err => { warn('boot chain failed', err); });
         };
         waitLore();
     });

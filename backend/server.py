@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import time
 import logging
 import re
 import asyncio
@@ -521,6 +522,121 @@ def _load_poi_lore_cache() -> Dict[str, Any]:
 async def list_poi_lore():
     """Return the entire pre-baked POI lore cache (small JSON)."""
     return _load_poi_lore_cache()
+
+
+# ============================================================
+#   SAVED REALITIES + ACHIEVEMENTS
+#   Backend-persisted across devices via Mongo. Per-user is keyed
+#   by `user_id` (any string the client picks; defaults to "local").
+# ============================================================
+
+ACHIEVEMENT_CATALOG = [
+    {"id": "first_save",          "title": "First Contact", "lore": "The first reality you saved was small. You will not remember its name. It will remember yours.", "criteria": {"saves_total": 1}, "icon": "▲"},
+    {"id": "save_three",          "title": "Triumvirate", "lore": "Three realities owe you their continued existence. The Centurion Council notes your file.", "criteria": {"saves_total": 3}, "icon": "▲▲▲"},
+    {"id": "save_ten",            "title": "Decimator's Mercy", "lore": "Ten breaches sealed. The Mawworms whisper your designation now — not in greeting, but as a curse.", "criteria": {"saves_total": 10}, "icon": "✶"},
+    {"id": "vamperica_save",      "title": "Sunless Sworn", "lore": "Even the Sanguine Court will not refuse a Centurion who saved one of theirs. Their gratitude tastes of iron.", "criteria": {"saved_faction": "vamperica"}, "icon": "♦"},
+    {"id": "reaper_save",         "title": "Ledger Entry", "lore": "Maytradalis recorded your name in the colorless ledger. She did not write it in pencil.", "criteria": {"saved_faction": "reapers"}, "icon": "✝"},
+    {"id": "centorian_save",      "title": "Brother Of Oasis", "lore": "Greyhen himself raised a glass to you in absentia. The toast was witnessed by no one. It still counted.", "criteria": {"saved_faction": "centorian"}, "icon": "★"},
+    {"id": "abyss_save",          "title": "Returned From The Maw", "lore": "You walked into a reality the Abyss Followers had already buried. You walked back out. The Abyss is still trying to decide how to feel about that.", "criteria": {"saved_faction": "abyss_followers"}, "icon": "◐"},
+    {"id": "unholy_save",         "title": "Forge-Cooler", "lore": "The Damnation Forge cooled by half a degree. Old Hopeful is no longer entirely hopeless.", "criteria": {"saved_faction": "unholy_ones"}, "icon": "⚒"},
+    {"id": "magic_save",          "title": "Whisperer's Debt", "lore": "A magic whisperer owes you a single uncast spell. They will not remind you. You should remember to ask.", "criteria": {"saved_faction": "magic_whisperers"}, "icon": "✧"},
+    {"id": "watrari_save",        "title": "Rebel's Quarter", "lore": "The Watrari mark your transponder code as friend-of-fleet. Smugglers will look the other way when you pass.", "criteria": {"saved_faction": "watrari"}, "icon": "⚐"},
+    {"id": "trigon_save",         "title": "Trader's Stamp", "lore": "Rippers Street will not charge you the foreigner-tax. The book stalls of R&J Collections will open a back room for you, once.", "criteria": {"saved_faction": "trigon"}, "icon": "◇"},
+    {"id": "soul_save",           "title": "Vault Witness", "lore": "The Soul Collectors filed your save under \"interferences, beneficial\". This is the highest praise they offer.", "criteria": {"saved_faction": "soul_collectors"}, "icon": "♆"},
+    {"id": "elderions_save",      "title": "Joys Market Hour", "lore": "An Elderion set a chair aside for you in Joys Market. The chair is always empty. The chair is always yours.", "criteria": {"saved_faction": "elderions"}, "icon": "❂"},
+    {"id": "centura_save",        "title": "Front Page", "lore": "Centura News ran your name above the fold. They spelled it correctly. They did not credit you. That is journalism.", "criteria": {"saved_faction": "centura_news"}, "icon": "▤"},
+    {"id": "supremes_save",       "title": "Velvet Reception", "lore": "The Golden Spire opened the Celestial Runway for you. You did not walk it. You looked at it. That was enough.", "criteria": {"saved_faction": "supremes_finest"}, "icon": "♛"},
+    {"id": "dimensionlock_save",  "title": "Zero-Point Veteran", "lore": "Dimensionlock Corp inscribed your service number on a brass plate at Event Horizen. You will probably never see it.", "criteria": {"saved_faction": "dimensionlock"}, "icon": "✖"},
+    {"id": "perfect_roll",        "title": "Clean Containment", "lore": "A 98%-roll save. The Mawworms recoiled so fast the breach sealed before deploying its second wave. Master Death briefly stopped what He was doing.", "criteria": {"min_roll": 95}, "icon": "✔"},
+    {"id": "no_damage",           "title": "Untouched", "lore": "Saved a reality without taking damage. The Centurion Training Manual will be updated. You are now in chapter 7.", "criteria": {"no_damage_save": True}, "icon": "◉"},
+    {"id": "all_layers_visited",  "title": "Cartographer of the Endless", "lore": "Every strata you have walked has been logged. The Astrolabe knows you by your descent rhythm.", "criteria": {"layers_visited": 10}, "icon": "▦"},
+    {"id": "five_factions",       "title": "Cross-Faction Friend", "lore": "You have saved realities of five different factions. The Endless does not have a word for what you are. It is trying to invent one.", "criteria": {"unique_factions": 5}, "icon": "⚯"},
+]
+
+
+class SavedReality(BaseModel):
+    user_id: str = "local"
+    reality: str
+    strata: str
+    faction_id: Optional[str] = None
+    faction_name: Optional[str] = None
+    won: bool = True
+    succeeded: bool = True
+    roll: int = 70
+    kills: int = 0
+    damage: int = 0
+    deploy_pct: int = 100
+    ts: Optional[float] = None
+
+
+@api_router.post("/realities/save")
+async def save_reality(payload: SavedReality):
+    """Persist a Reality Defense outcome (typically a successful save)."""
+    doc = payload.model_dump()
+    if not doc.get("ts"):
+        doc["ts"] = time.time()
+    doc["id"] = str(uuid.uuid4())
+    try:
+        await db.saved_realities.insert_one(doc)
+    except Exception as e:
+        logging.exception(f"save_reality insert failed: {e}")
+        raise HTTPException(500, "persistence failed")
+    # Recompute unlocked achievements for this user
+    unlocked = await _evaluate_achievements(payload.user_id)
+    return {"ok": True, "id": doc["id"], "unlocked": unlocked}
+
+
+@api_router.get("/realities/saved")
+async def list_saved_realities(user_id: str = "local", limit: int = 200):
+    """List saved realities for a given user."""
+    try:
+        cur = db.saved_realities.find({"user_id": user_id}).sort("ts", -1).limit(limit)
+        items = await cur.to_list(length=limit)
+        for it in items:
+            it.pop("_id", None)
+        return items
+    except Exception as e:
+        logging.exception(f"list_saved_realities failed: {e}")
+        return []
+
+
+@api_router.get("/achievements")
+async def achievements_catalog():
+    """Return the full achievement catalog (no user state)."""
+    return ACHIEVEMENT_CATALOG
+
+
+@api_router.get("/achievements/unlocked")
+async def achievements_unlocked(user_id: str = "local"):
+    unlocked = await _evaluate_achievements(user_id)
+    return {"user_id": user_id, "unlocked": unlocked}
+
+
+async def _evaluate_achievements(user_id: str) -> List[str]:
+    """Re-derive unlocked achievement ids from save history."""
+    try:
+        items = await db.saved_realities.find({"user_id": user_id}).to_list(length=2000)
+    except Exception:
+        items = []
+    succ = [s for s in items if s.get("succeeded") or (s.get("won") and s.get("roll", 0) >= 50)]
+    total = len(succ)
+    factions = {s.get("faction_id") for s in succ if s.get("faction_id")}
+    strata_set = {str(s.get("strata")) for s in succ if s.get("strata") is not None}
+    rolls = [int(s.get("roll", 0)) for s in succ]
+    nodmg = any(s.get("damage", 1) == 0 for s in succ)
+    unlocked: List[str] = []
+    for ach in ACHIEVEMENT_CATALOG:
+        c = ach["criteria"]
+        ok = True
+        if "saves_total" in c and total < c["saves_total"]: ok = False
+        if "saved_faction" in c and c["saved_faction"] not in factions: ok = False
+        if "min_roll" in c and (not rolls or max(rolls) < c["min_roll"]): ok = False
+        if "no_damage_save" in c and c["no_damage_save"] and not nodmg: ok = False
+        if "layers_visited" in c and len(strata_set) < c["layers_visited"]: ok = False
+        if "unique_factions" in c and len(factions) < c["unique_factions"]: ok = False
+        if ok:
+            unlocked.append(ach["id"])
+    return unlocked
 
 
 @api_router.get("/lore/poi/{poi_id}")

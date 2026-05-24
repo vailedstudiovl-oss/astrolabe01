@@ -109,6 +109,86 @@ user_problem_statement: |
   + community-saved universes backed by MongoDB.
 
 backend:
+  - task: "Achievements catalog + Saved Realities endpoints (GET /api/achievements, GET /api/achievements/unlocked, POST /api/realities/save, GET /api/realities/saved)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            [Focused validation of the 4 new endpoints — /app/realities_achievements_test.py
+             run against external preview URL
+             https://astrolabe-map-mobile.preview.emergentagent.com]
+
+            RESULTS: 34 / 34 assertions PASSED.
+
+            ✅ GET /api/achievements
+              • 200 OK, response is a JSON list with exactly 20 entries.
+              • Every entry has all required keys: id, title, lore,
+                criteria (dict), icon. Catalog contains the canonical
+                ids referenced by the spec: first_save, vamperica_save,
+                no_damage, perfect_roll (plus the other 16).
+
+            ✅ GET /api/achievements/unlocked?user_id=test_user_<random>
+              (UNKNOWN user)
+              • 200 OK, body = {"user_id": "...", "unlocked": []}.
+              • unlocked array is empty for a never-seen user as required.
+
+            ✅ POST /api/realities/save (Sanguine Court / vamperica)
+               body {user_id:test_user_<x>, reality:"Sanguine Court",
+                     strata:"-50", faction_id:"vamperica",
+                     faction_name:"Vamperica Empire", won:true,
+                     succeeded:true, roll:75, kills:12, damage:1,
+                     deploy_pct:100}
+              • 200 OK, response shape
+                {"ok":true,"id":"<uuid>","unlocked":[...]}
+              • unlocked contained BOTH "first_save" AND "vamperica_save"
+                in the same response (as required).
+              • id is a valid UUID string.
+
+            ✅ GET /api/realities/saved?user_id=test_user_<same>
+              • 200 OK, returns a JSON list with length >= 1.
+              • Contains reality="Sanguine Court" with correct
+                faction_id="vamperica", correct user_id, and the
+                persisted record carries its own "id" field
+                (Mongo _id properly stripped — no ObjectId leak).
+
+            ✅ Sanity GET /api/achievements/unlocked
+              (same user, post-save)
+              • 200 OK; unlocked now contains both "first_save" and
+                "vamperica_save" — derived live from the save history,
+                exactly matching the response from POST /save.
+
+            ✅ Edge case: damage=0
+              • POST /api/realities/save with damage:0 (Pristine Vault,
+                centurion, roll 80) returned
+                unlocked=["first_save","no_damage"]. Confirmed by a
+                follow-up GET /achievements/unlocked for that user.
+
+            ✅ Edge case: roll=96
+              • POST /api/realities/save with roll:96 (Cathedral of
+                Silence, reapers) returned
+                unlocked=["first_save","reaper_save","perfect_roll"].
+                Confirmed by GET /achievements/unlocked.
+
+            NOTE — Pre-test the testing tool observed a stale-cache
+            NameError ("name 'time' is not defined") in
+            /var/log/supervisor/backend.err.log from an earlier reload;
+            current code has `import time` at the top of server.py and
+            all 34 assertions passed against the live preview URL, so
+            the issue is not present in the running build. No fix
+            applied — the running backend is healthy.
+
+            Per request, regression of unrelated endpoints was NOT run.
+            All 4 newly added endpoints (plus the two edge-case unlocks)
+            are confirmed WORKING.
+
+
+backend:
   - task: "Phase B/C — POI pre-baked AI lore endpoint (/api/lore/poi, /api/lore/poi/{id}) + /api/reality-defense static route"
     implemented: true
     working: true

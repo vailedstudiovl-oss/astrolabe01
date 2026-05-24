@@ -11,7 +11,7 @@ import sys
 import json
 import requests
 
-BASE = "https://astrolabe-map-mobile.preview.emergentagent.com"
+BASE = "https://review-gamebase.preview.emergentagent.com"
 API = f"{BASE}/api"
 
 REQUIRED_POI_KEYS = {

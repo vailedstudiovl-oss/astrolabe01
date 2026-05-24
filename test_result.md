@@ -122,7 +122,7 @@ backend:
           comment: |
             [Focused validation of the 4 new endpoints — /app/realities_achievements_test.py
              run against external preview URL
-             https://astrolabe-map-mobile.preview.emergentagent.com]
+             https://review-gamebase.preview.emergentagent.com]
 
             RESULTS: 34 / 34 assertions PASSED.
 
@@ -202,7 +202,7 @@ backend:
           comment: |
             [2026-06 — Focused validation of the 4 new endpoints]
             Ran /app/poi_lore_test.py against external preview URL
-            (https://astrolabe-map-mobile.preview.emergentagent.com).
+            (https://review-gamebase.preview.emergentagent.com).
             RESULTS: 19 / 19 assertions PASSED. No failures.
 
             ✅ GET /api/lore/poi → 200, JSON dict, exactly 15 keys cached.
